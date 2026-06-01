@@ -312,7 +312,9 @@ export function ProductScreen({
   );
   const [adminTapCount, setAdminTapCount] = useState(0);
   const adminTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [mobileDrawerTab, setMobileDrawerTab] = useState<"menu" | "extras" | "pedido">("menu");
+  const [mobileDrawerTab, setMobileDrawerTab] = useState<
+    "menu" | "extras" | "pedido"
+  >("menu");
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartSubtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -392,68 +394,65 @@ export function ProductScreen({
       return next;
     });
   };
-                fontSize: isMobile ? 12 : 13,
   const addSideItem = (item: (typeof SIDE_ITEMS)[number]) => {
     addToCart({ id: item.id, name: item.label, price: item.price });
     setAdded(true);
-              {description}
+    setTimeout(() => setAdded(false), 1800);
+  };
+
   const addSideExtra = (ex: (typeof EXTRAS)[number]) => {
-            {!isMobile && (
-              <>
-                <p
-                  style={{
-                    fontSize: 12,
-                    lineHeight: 1.65,
-                    color: "#2f3d38",
-                    marginTop: 8,
-                  }}
-                >
-                  {isSuperCombo
-                    ? "Perfeito para quem quer sair no lucro: acompanha bebida e batata em uma escolha só, sem complicação."
-                    : "Aquele tipo que faz o molho escorrer, o queijo puxar e você já pensar na próxima mordida antes de terminar a primeira."}
-                </p>
-                <p
-                  style={{
-                    fontSize: 11,
-                    marginTop: 8,
-                    fontStyle: "italic",
-                    color: VERDE,
-                    opacity: 0.4,
-                  }}
-                >
-                  {isSuperCombo
-                    ? "Mais pedido para dividir com estilo."
-                    : 'Simplesmente impossível comer sem soltar um "hmm..."'}
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 6,
-                    marginTop: 12,
-                  }}
-                >
-                  {(isSuperCombo ? SUPER_COMBO_TAGS : TAGS).map((t) => (
-                    <span
-                      key={t}
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 900,
-                        padding: "5px 11px",
-                        borderRadius: 999,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        background: `${ROSA}76`,
-                        color: VERDE,
-                        boxShadow: "inset 0 0 0 1px rgba(31,61,46,0.03)",
-                      }}
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
+    addToCart({ id: ex.id, name: ex.label, price: ex.price });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
+
+  const QtyControl = ({
+    id,
+    onAdd,
+    size = 36,
+  }: {
+    id: string;
+    onAdd: () => void;
+    size?: number;
+  }) => {
+    const qty = cart.find((item) => item.id === id)?.qty ?? 0;
+    if (qty === 0) {
+      return (
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={onAdd}
+          style={{
+            width: size,
+            height: size,
+            background: VERDE,
+            border: "none",
+            borderRadius: 10,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Plus
+            size={size >= 34 ? 18 : 13}
+            strokeWidth={2.5}
+            style={{ color: ROSA }}
+          />
+        </motion.button>
+      );
+    }
+
+    return (
+      <div
+        style={{
+          height: size,
+          background: VERDE,
+          borderRadius: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 3,
           padding: "0 4px",
           flexShrink: 0,
         }}
@@ -692,7 +691,13 @@ export function ProductScreen({
                 }}
               >
                 {isMobile && (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: 8,
+                    }}
+                  >
                     {[
                       { id: "menu" as const, label: "Menu" },
                       { id: "extras" as const, label: "Extras" },
@@ -724,426 +729,451 @@ export function ProductScreen({
 
                 {/* Lanches */}
                 {(!isMobile || mobileDrawerTab === "menu") && (
-                <div>
-                  <p
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                      color: VERDE,
-                      opacity: 0.4,
-                      marginBottom: 10,
-                    }}
-                  >
-                          {!isMobile && (
-                            <p
-                              style={{
-                                fontSize: 9,
-                                marginTop: 3,
-                                color: VERDE,
-                                opacity: 0.4,
-                                lineHeight: 1.3,
-                              }}
-                            >
-                              {item.desc}
-                            </p>
-                          )}
-                          gap: 12,
-                          padding: "10px 14px",
-                          borderRadius: 16,
-                          border: `1.5px solid ${ROSA}`,
-                          background: "#fff",
-                          position: "relative",
-                        }}
-                      >
-                        {"badge" in item && item.badge && (
-                          <span
-                            style={{
-                              position: "absolute",
-                              top: -9,
-                              left: 12,
-                              background: VERDE,
-                              color: ROSA,
-                              fontSize: 7,
-                              fontWeight: 900,
-                              padding: "2px 8px",
-                              borderRadius: 999,
-                              letterSpacing: "0.08em",
-                            }}
-                          >
-                            {item.badge}
-                          </span>
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 900,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.04em",
-                              color: VERDE,
-                              lineHeight: 1,
-                            }}
-                          >
-                            {item.label}
-                          </p>
-                          <p
-                            style={{
-                              fontSize: 9,
-                              marginTop: 3,
-                              color: VERDE,
-                              opacity: 0.4,
-                              lineHeight: 1.3,
-                            }}
-                          >
-                            {item.desc}
-                          </p>
-                          <p
-                            style={{
-                              color: VERDE,
-                              fontFamily:
-                                "'Bebas Neue','Arial Black',sans-serif",
-                              fontSize: "0.95rem",
-                              marginTop: 4,
-                            }}
-                          >
-                            {fmt(item.price)}
-                          </p>
-                        </div>
-                        <QtyControl
-                          id={item.id}
-                          onAdd={() => addSideItem(item)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                )}
-
-                {/* Extras no drawer */}
-                {(!isMobile || mobileDrawerTab === "extras") && (
-                <div>
-                  <p
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                      color: VERDE,
-                      opacity: 0.4,
-                      marginBottom: 10,
-                    }}
-                  >
-                    Extras avulsos
-                  </p>
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                  >
-                    {drawerExtras.map((ex) => (
-                      <div
-                        key={ex.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "8px 14px",
-                          borderRadius: 12,
-                          border: `1.5px solid ${ROSA}50`,
-                          background: "#fff",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: ROSA,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <ex.Cartoon color={VERDE} />
-                        </div>
-                        <p
-                          style={{
-                            flex: 1,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: VERDE,
-                          }}
-                        >
-                          {ex.label}
-                        </p>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, marginRight: 6 }}>
-                          <p
-                            style={{
-                              fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                              fontSize: "0.9rem",
-                              color: VERDE,
-                              lineHeight: 1,
-                            }}
-                          >
-                            {fmt(ex.price)}
-                          </p>
-                          {!isMobile && (
-                            <p style={{ fontSize: 8, color: VERDE, opacity: 0.4 }}>Toque no +</p>
-                          )}
-                        </div>
-                        <QtyControl
-                          id={ex.id}
-                          onAdd={() => addSideExtra(ex)}
-                          size={30}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                )}
-
-                {(!isMobile || mobileDrawerTab === "pedido") && (
-                <div>
-                  <button
-                    onClick={() => setObsOpen((v) => !v)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "11px 12px",
-                      borderRadius: 12,
-                      background: obsOpen ? `${VERDE}10` : "#fff",
-                      border: `1.5px solid ${ROSA}`,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <MessageSquare
-                      size={13}
-                      strokeWidth={2.2}
-                      style={{ color: VERDE }}
-                    />
-                    <span
+                  <div>
+                    <p
                       style={{
-                        flex: 1,
-                        textAlign: "left",
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: 900,
                         textTransform: "uppercase",
-                        letterSpacing: "0.08em",
+                        letterSpacing: "0.1em",
                         color: VERDE,
+                        opacity: 0.4,
+                        marginBottom: 10,
                       }}
                     >
-                      Observações
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 8,
-                        fontWeight: 900,
-                        color: VERDE,
-                        opacity: 0.45,
-                      }}
-                    >
-                      {removed.size > 0
-                        ? `${removed.size} remov.`
-                        : "remover itens"}
-                    </span>
-                  </button>
-                  <AnimatePresence>
-                    {obsOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        style={{ overflow: "hidden" }}
-                      >
-                        <div style={{ paddingTop: 8 }}>
-                          {[
-                            "Alface Crocante",
-                            "Queijo",
-                            "Carne",
-                            "Cebola Caramelizada",
-                            "Molho",
-                          ].map((opt) => {
-                            const active = removed.has(opt);
-                            return (
-                              <button
-                                key={opt}
-                                onClick={() => toggleRemove(opt)}
-                                style={{
-                                  width: "100%",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 8,
-                                  padding: "8px 10px",
-                                  background: active ? `${ROSA}55` : "#fff",
-                                  border: "none",
-                                  borderBottom: `1px solid ${VERDE}08`,
-                                  cursor: "pointer",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    width: 16,
-                                    height: 16,
-                                    borderRadius: 5,
-                                    border: `1.5px solid ${active ? VERDE : `${VERDE}35`}`,
-                                    background: active ? VERDE : "#fff",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {active && (
-                                    <Check
-                                      size={10}
-                                      strokeWidth={3}
-                                      style={{ color: ROSA }}
-                                    />
-                                  )}
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    fontWeight: 800,
-                                    color: VERDE,
-                                    opacity: active ? 1 : 0.65,
-                                  }}
-                                >
-                                  Sem {opt}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <div
-                  style={{
-                    flex: 1,
-                )}
-                    minHeight: 220,
-                {(!isMobile || mobileDrawerTab === "pedido") && (
-                <div
-                    flexDirection: "column",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontSize: 9,
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.1em",
-                      color: VERDE,
-                      opacity: 0.42,
-                      marginBottom: 8,
-                    }}
-                  >
-                    Pedido atual
-                  </p>
-                  {cartCount > 0 ? (
+                      Lanches e Combos
+                    </p>
                     <div
                       style={{
-                        flex: 1,
-                        minHeight: 180,
-                        overflowY: "auto",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 7,
-                        paddingRight: 4,
+                        gap: 8,
                       }}
                     >
-                      {cart.map((item) => (
+                      {SIDE_ITEMS.map((item) => (
                         <div
                           key={item.id}
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 8,
-                            background: `${VERDE}06`,
-                            border: `1px solid ${VERDE}10`,
-                            borderRadius: 10,
-                            padding: "8px 9px",
+                            gap: 12,
+                            padding: "10px 14px",
+                            borderRadius: 16,
+                            border: `1.5px solid ${ROSA}`,
+                            background: "#fff",
+                            position: "relative",
                           }}
                         >
-                          <span
-                            style={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: 999,
-                              background: ROSA,
-                              color: VERDE,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 9,
-                              fontWeight: 900,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {item.qty}
-                          </span>
-                          <span
-                            style={{
-                              flex: 1,
-                              minWidth: 0,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              color: VERDE,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {item.name}
-                          </span>
-                          <span
-                            style={{
-                              fontFamily:
-                                "'Bebas Neue','Arial Black',sans-serif",
-                              fontSize: "0.82rem",
-                              color: VERDE,
-                            }}
-                          >
-                            {fmt(item.price * item.qty)}
-                          </span>
+                          {"badge" in item && item.badge && (
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: -9,
+                                left: 12,
+                                background: VERDE,
+                                color: ROSA,
+                                fontSize: 7,
+                                fontWeight: 900,
+                                padding: "2px 8px",
+                                borderRadius: 999,
+                                letterSpacing: "0.08em",
+                              }}
+                            >
+                              {item.badge}
+                            </span>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 900,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                                color: VERDE,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {item.label}
+                            </p>
+                            {!isMobile && (
+                              <p
+                                style={{
+                                  fontSize: 9,
+                                  marginTop: 3,
+                                  color: VERDE,
+                                  opacity: 0.4,
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                {item.desc}
+                              </p>
+                            )}
+                            <p
+                              style={{
+                                color: VERDE,
+                                fontFamily:
+                                  "'Bebas Neue','Arial Black',sans-serif",
+                                fontSize: "0.95rem",
+                                marginTop: 4,
+                              }}
+                            >
+                              {fmt(item.price)}
+                            </p>
+                          </div>
+                          <QtyControl
+                            id={item.id}
+                            onAdd={() => addSideItem(item)}
+                          />
                         </div>
                       ))}
                     </div>
-                  ) : (
+                  </div>
+                )}
+
+                {/* Extras no drawer */}
+                {(!isMobile || mobileDrawerTab === "extras") && (
+                  <div>
+                    <p
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 900,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.1em",
+                        color: VERDE,
+                        opacity: 0.4,
+                        marginBottom: 10,
+                      }}
+                    >
+                      Extras avulsos
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      {drawerExtras.map((ex) => (
+                        <div
+                          key={ex.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "8px 14px",
+                            borderRadius: 12,
+                            border: `1.5px solid ${ROSA}50`,
+                            background: "#fff",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              background: ROSA,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              overflow: "hidden",
+                            }}
+                          >
+                            <ex.Cartoon color={VERDE} />
+                          </div>
+                          <p
+                            style={{
+                              flex: 1,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: VERDE,
+                            }}
+                          >
+                            {ex.label}
+                          </p>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-end",
+                              gap: 2,
+                              marginRight: 6,
+                            }}
+                          >
+                            <p
+                              style={{
+                                fontFamily:
+                                  "'Bebas Neue','Arial Black',sans-serif",
+                                fontSize: "0.9rem",
+                                color: VERDE,
+                                lineHeight: 1,
+                              }}
+                            >
+                              {fmt(ex.price)}
+                            </p>
+                            {!isMobile && (
+                              <p
+                                style={{
+                                  fontSize: 8,
+                                  color: VERDE,
+                                  opacity: 0.4,
+                                }}
+                              >
+                                Toque no +
+                              </p>
+                            )}
+                          </div>
+                          <QtyControl
+                            id={ex.id}
+                            onAdd={() => addSideExtra(ex)}
+                            size={30}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(!isMobile || mobileDrawerTab === "pedido") && (
+                  <div>
+                    <button
+                      onClick={() => setObsOpen((v) => !v)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "11px 12px",
+                        borderRadius: 12,
+                        background: obsOpen ? `${VERDE}10` : "#fff",
+                        border: `1.5px solid ${ROSA}`,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <MessageSquare
+                        size={13}
+                        strokeWidth={2.2}
+                        style={{ color: VERDE }}
+                      />
+                      <span
+                        style={{
+                          flex: 1,
+                          textAlign: "left",
+                          fontSize: 10,
+                          fontWeight: 900,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                          color: VERDE,
+                        }}
+                      >
+                        Observações
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 8,
+                          fontWeight: 900,
+                          color: VERDE,
+                          opacity: 0.45,
+                        }}
+                      >
+                        {removed.size > 0
+                          ? `${removed.size} remov.`
+                          : "remover itens"}
+                      </span>
+                    </button>
+                    <AnimatePresence>
+                      {obsOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          style={{ overflow: "hidden" }}
+                        >
+                          <div style={{ paddingTop: 8 }}>
+                            {[
+                              "Alface Crocante",
+                              "Queijo",
+                              "Carne",
+                              "Cebola Caramelizada",
+                              "Molho",
+                            ].map((opt) => {
+                              const active = removed.has(opt);
+                              return (
+                                <button
+                                  key={opt}
+                                  onClick={() => toggleRemove(opt)}
+                                  style={{
+                                    width: "100%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    padding: "8px 10px",
+                                    background: active ? `${ROSA}55` : "#fff",
+                                    border: "none",
+                                    borderBottom: `1px solid ${VERDE}08`,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: 16,
+                                      height: 16,
+                                      borderRadius: 5,
+                                      border: `1.5px solid ${active ? VERDE : `${VERDE}35`}`,
+                                      background: active ? VERDE : "#fff",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {active && (
+                                      <Check
+                                        size={10}
+                                        strokeWidth={3}
+                                        style={{ color: ROSA }}
+                                      />
+                                    )}
+                                  </span>
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      color: VERDE,
+                                      opacity: active ? 1 : 0.65,
+                                    }}
+                                  >
+                                    Sem {opt}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <div
                       style={{
                         flex: 1,
-                        minHeight: 180,
-                        border: `1.5px dashed ${VERDE}18`,
-                        borderRadius: 14,
+                        minHeight: 220,
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 16,
+                        flexDirection: "column",
+                        marginTop: 12,
                       }}
                     >
                       <p
                         style={{
-                          fontSize: 10,
-                          fontWeight: 800,
+                          fontSize: 9,
+                          fontWeight: 900,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.1em",
                           color: VERDE,
-                          opacity: 0.35,
-                          textAlign: "center",
+                          opacity: 0.42,
+                          marginBottom: 8,
                         }}
                       >
-                        Seu pedido aparece aqui conforme você adiciona itens.
+                        Pedido atual
                       </p>
+                      {cartCount > 0 ? (
+                        <div
+                          style={{
+                            flex: 1,
+                            minHeight: 180,
+                            overflowY: "auto",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 7,
+                            paddingRight: 4,
+                          }}
+                        >
+                          {cart.map((item) => (
+                            <div
+                              key={item.id}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                background: `${VERDE}06`,
+                                border: `1px solid ${VERDE}10`,
+                                borderRadius: 10,
+                                padding: "8px 9px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: 999,
+                                  background: ROSA,
+                                  color: VERDE,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 9,
+                                  fontWeight: 900,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {item.qty}
+                              </span>
+                              <span
+                                style={{
+                                  flex: 1,
+                                  minWidth: 0,
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  color: VERDE,
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                }}
+                              >
+                                {item.name}
+                              </span>
+                              <span
+                                style={{
+                                  fontFamily:
+                                    "'Bebas Neue','Arial Black',sans-serif",
+                                  fontSize: "0.82rem",
+                                  color: VERDE,
+                                }}
+                              >
+                                {fmt(item.price * item.qty)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            flex: 1,
+                            minHeight: 180,
+                            border: `1.5px dashed ${VERDE}18`,
+                            borderRadius: 14,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: 16,
+                          }}
+                        >
+                          <p
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: VERDE,
+                              opacity: 0.35,
+                              textAlign: "center",
+                            }}
+                          >
+                            Seu pedido aparece aqui conforme você adiciona
+                            itens.
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
                 )}
               </div>
 

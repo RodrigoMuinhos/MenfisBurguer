@@ -6,7 +6,14 @@ import { ProductScreen } from "./components/menfis/ProductScreen";
 import { CartScreen } from "./components/menfis/CartScreen";
 import { TrackingScreen } from "./components/menfis/TrackingScreen";
 import { AdminPanel } from "./components/menfis/AdminPanel";
-import { CartItem, Order, OrderStatus, CREME } from "./components/menfis/types";
+import {
+  CartItem,
+  Order,
+  OrderStatus,
+  CREME,
+  VERDE,
+  ROSA,
+} from "./components/menfis/types";
 import logoMini from "../../public/logo_M.jpeg";
 
 type Screen = "product" | "cart" | "tracking" | "admin" | "admin-login";
