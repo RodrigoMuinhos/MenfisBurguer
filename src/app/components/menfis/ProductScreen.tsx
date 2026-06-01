@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Check,
@@ -13,6 +13,7 @@ import {
   Star,
 } from "lucide-react";
 import { CartItem, VERDE, ROSA } from "./types";
+import { useIsMobile } from "../ui/use-mobile";
 import burgerPhoto from "@/imports/image-9.png";
 import colaPhoto from "@/imports/image-19.png";
 import friesPhoto from "@/imports/image-20.png";
@@ -294,6 +295,7 @@ export function ProductScreen({
   goBack,
   onAdminOpen,
 }: Props) {
+  const isMobile = useIsMobile();
   const [productMode, setProductMode] = useState<"burger" | "superCombo">(
     "burger",
   );
@@ -308,6 +310,9 @@ export function ProductScreen({
   const [infoItem, setInfoItem] = useState<(typeof EXTRAS)[number] | null>(
     null,
   );
+  const [adminTapCount, setAdminTapCount] = useState(0);
+  const adminTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mobileDrawerTab, setMobileDrawerTab] = useState<"menu" | "extras" | "pedido">("menu");
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartSubtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
@@ -346,6 +351,9 @@ export function ProductScreen({
     : withCombo
       ? "COMBO MENFI'S"
       : "MENFI'S BURGER";
+  const description = isSuperCombo
+    ? "2 burgers, 2 refris e batata frita em uma opção só."
+    : "Pão brioche, burger 100g, queijo, salada e molho da casa.";
 
   const handleAdd = () => {
     addToCart({ id: itemId, name: itemName, price: total });
@@ -362,65 +370,90 @@ export function ProductScreen({
     setTimeout(() => setAdded(false), 1800);
   };
 
+  const handleAdminTap = () => {
+    setAdminTapCount((prev) => {
+      const next = prev + 1;
+
+      if (adminTapTimerRef.current) {
+        clearTimeout(adminTapTimerRef.current);
+      }
+
+      if (next >= 3) {
+        adminTapTimerRef.current = null;
+        onAdminOpen?.();
+        return 0;
+      }
+
+      adminTapTimerRef.current = setTimeout(() => {
+        setAdminTapCount(0);
+        adminTapTimerRef.current = null;
+      }, 700);
+
+      return next;
+    });
+  };
+                fontSize: isMobile ? 12 : 13,
   const addSideItem = (item: (typeof SIDE_ITEMS)[number]) => {
     addToCart({ id: item.id, name: item.label, price: item.price });
     setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
-  };
-
+              {description}
   const addSideExtra = (ex: (typeof EXTRAS)[number]) => {
-    addToCart({ id: ex.id, name: ex.label, price: ex.price });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
-  };
-
-  const QtyControl = ({
-    id,
-    onAdd,
-    size = 36,
-  }: {
-    id: string;
-    onAdd: () => void;
-    size?: number;
-  }) => {
-    const qty = cart.find((item) => item.id === id)?.qty ?? 0;
-    if (qty === 0) {
-      return (
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={onAdd}
-          style={{
-            width: size,
-            height: size,
-            background: VERDE,
-            border: "none",
-            borderRadius: 10,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Plus
-            size={size >= 34 ? 18 : 13}
-            strokeWidth={2.5}
-            style={{ color: ROSA }}
-          />
-        </motion.button>
-      );
-    }
-
-    return (
-      <div
-        style={{
-          height: size,
-          background: VERDE,
-          borderRadius: 10,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 3,
+            {!isMobile && (
+              <>
+                <p
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.65,
+                    color: "#2f3d38",
+                    marginTop: 8,
+                  }}
+                >
+                  {isSuperCombo
+                    ? "Perfeito para quem quer sair no lucro: acompanha bebida e batata em uma escolha só, sem complicação."
+                    : "Aquele tipo que faz o molho escorrer, o queijo puxar e você já pensar na próxima mordida antes de terminar a primeira."}
+                </p>
+                <p
+                  style={{
+                    fontSize: 11,
+                    marginTop: 8,
+                    fontStyle: "italic",
+                    color: VERDE,
+                    opacity: 0.4,
+                  }}
+                >
+                  {isSuperCombo
+                    ? "Mais pedido para dividir com estilo."
+                    : 'Simplesmente impossível comer sem soltar um "hmm..."'}
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 6,
+                    marginTop: 12,
+                  }}
+                >
+                  {(isSuperCombo ? SUPER_COMBO_TAGS : TAGS).map((t) => (
+                    <span
+                      key={t}
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 900,
+                        padding: "5px 11px",
+                        borderRadius: 999,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.06em",
+                        background: `${ROSA}76`,
+                        color: VERDE,
+                        boxShadow: "inset 0 0 0 1px rgba(31,61,46,0.03)",
+                      }}
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
           padding: "0 4px",
           flexShrink: 0,
         }}
@@ -485,6 +518,7 @@ export function ProductScreen({
       {/* ══ RETRACTABLE SIDEBAR STRIP ═══════════════════ */}
       <div
         style={{
+          display: isMobile ? "none" : "block",
           position: "fixed",
           left: 0,
           top: "50%",
@@ -600,7 +634,7 @@ export function ProductScreen({
                 top: 0,
                 left: 0,
                 bottom: 0,
-                width: SIDE_PANEL_WIDTH,
+                width: isMobile ? "100vw" : SIDE_PANEL_WIDTH,
                 background: "#fff",
                 zIndex: 22,
                 overflowY: "auto",
@@ -657,7 +691,39 @@ export function ProductScreen({
                   flex: 1,
                 }}
               >
+                {isMobile && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                    {[
+                      { id: "menu" as const, label: "Menu" },
+                      { id: "extras" as const, label: "Extras" },
+                      { id: "pedido" as const, label: "Pedido" },
+                    ].map((tab) => {
+                      const active = mobileDrawerTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setMobileDrawerTab(tab.id)}
+                          style={{
+                            border: `1.5px solid ${active ? VERDE : `${VERDE}15`}`,
+                            background: active ? VERDE : "#fff",
+                            color: active ? ROSA : VERDE,
+                            borderRadius: 14,
+                            padding: "10px 8px",
+                            fontSize: 10,
+                            fontWeight: 900,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                          }}
+                        >
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* Lanches */}
+                {(!isMobile || mobileDrawerTab === "menu") && (
                 <div>
                   <p
                     style={{
@@ -670,17 +736,19 @@ export function ProductScreen({
                       marginBottom: 10,
                     }}
                   >
-                    Lanches e Combos
-                  </p>
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                  >
-                    {SIDE_ITEMS.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
+                          {!isMobile && (
+                            <p
+                              style={{
+                                fontSize: 9,
+                                marginTop: 3,
+                                color: VERDE,
+                                opacity: 0.4,
+                                lineHeight: 1.3,
+                              }}
+                            >
+                              {item.desc}
+                            </p>
+                          )}
                           gap: 12,
                           padding: "10px 14px",
                           borderRadius: 16,
@@ -751,8 +819,10 @@ export function ProductScreen({
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* Extras no drawer */}
+                {(!isMobile || mobileDrawerTab === "extras") && (
                 <div>
                   <p
                     style={{
@@ -808,16 +878,21 @@ export function ProductScreen({
                         >
                           {ex.label}
                         </p>
-                        <p
-                          style={{
-                            fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                            fontSize: "0.9rem",
-                            color: VERDE,
-                            marginRight: 6,
-                          }}
-                        >
-                          {fmt(ex.price)}
-                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, marginRight: 6 }}>
+                          <p
+                            style={{
+                              fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                              fontSize: "0.9rem",
+                              color: VERDE,
+                              lineHeight: 1,
+                            }}
+                          >
+                            {fmt(ex.price)}
+                          </p>
+                          {!isMobile && (
+                            <p style={{ fontSize: 8, color: VERDE, opacity: 0.4 }}>Toque no +</p>
+                          )}
+                        </div>
                         <QtyControl
                           id={ex.id}
                           onAdd={() => addSideExtra(ex)}
@@ -827,7 +902,9 @@ export function ProductScreen({
                     ))}
                   </div>
                 </div>
+                )}
 
+                {(!isMobile || mobileDrawerTab === "pedido") && (
                 <div>
                   <button
                     onClick={() => setObsOpen((v) => !v)}
@@ -951,8 +1028,10 @@ export function ProductScreen({
                 <div
                   style={{
                     flex: 1,
+                )}
                     minHeight: 220,
-                    display: "flex",
+                {(!isMobile || mobileDrawerTab === "pedido") && (
+                <div
                     flexDirection: "column",
                   }}
                 >
@@ -1065,6 +1144,7 @@ export function ProductScreen({
                     </div>
                   )}
                 </div>
+                )}
               </div>
 
               <div
@@ -1076,6 +1156,26 @@ export function ProductScreen({
                   borderTop: `1.5px solid ${ROSA}`,
                 }}
               >
+                {isMobile && mobileDrawerTab !== "pedido" && (
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setMobileDrawerTab("pedido")}
+                    style={{
+                      width: "100%",
+                      marginBottom: 8,
+                      padding: "12px 16px",
+                      borderRadius: 14,
+                      background: `${VERDE}08`,
+                      color: VERDE,
+                      border: `1.5px solid ${ROSA}`,
+                      fontWeight: 900,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.12em",
+                    }}
+                  >
+                    Ver pedido
+                  </motion.button>
+                )}
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={() => {
@@ -1382,7 +1482,7 @@ export function ProductScreen({
             <Plus size={22} strokeWidth={2.7} />
           </motion.button>
           <motion.button
-            onClick={onAdminOpen}
+            onClick={handleAdminTap}
             whileTap={{ scale: 0.92 }}
             className="absolute top-3 right-3"
             style={{
@@ -1841,16 +1941,18 @@ export function ProductScreen({
             >
               Extras
             </p>
-            <p
-              style={{
-                fontSize: 11,
-                color: VERDE,
-                opacity: 0.45,
-                marginBottom: 14,
-              }}
-            >
-              Toque no item para ver exatamente o que ele adiciona
-            </p>
+            {!isMobile && (
+              <p
+                style={{
+                  fontSize: 11,
+                  color: VERDE,
+                  opacity: 0.45,
+                  marginBottom: 14,
+                }}
+              >
+                Toque no item para ver exatamente o que ele adiciona
+              </p>
+            )}
 
             <div
               style={{

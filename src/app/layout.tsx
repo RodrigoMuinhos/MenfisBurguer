@@ -4,6 +4,27 @@ import "../styles/index.css";
 export const metadata: Metadata = {
   title: "Menfi's Burger",
   description: "Cardapio digital Menfi's Burger",
+  icons: {
+    icon: [
+      {
+        url: "/logo_M.jpeg",
+        sizes: "180x180",
+        type: "image/jpeg",
+      },
+    ],
+    apple: [
+      {
+        url: "/logo_M.jpeg",
+        sizes: "180x180",
+        type: "image/jpeg",
+      },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Menfi's Burger",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({
