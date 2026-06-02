@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 import { motion } from "motion/react";
 import { ChevronLeft, Minus, Plus } from "lucide-react";
 import { CartItem, VERDE, ROSA, CREME } from "./types";
@@ -65,22 +66,18 @@ export function MenuScreen({ addToCart, updateQty, cart, goToCart }: Props) {
           TOTEM DE VENDA
         </p>
 
-        <img
-          src={logoSkull.src}
+        <Image
+          src={logoSkull}
           alt="Menfi's"
-          style={{
-            width: 38,
-            height: 38,
-            objectFit: "contain",
-            mixBlendMode: "screen",
-          }}
+          width={38}
+          height={38}
+          style={{ objectFit: "contain", mixBlendMode: "screen" }}
         />
       </div>
 
       {/* ══ SCROLLABLE BODY ═════════════════════════════ */}
       <div className="flex-1 overflow-auto">
         <div className="flex flex-col px-4 pt-5 pb-4 gap-4">
-
           {/* Section label */}
           <p
             className="font-black uppercase tracking-widest text-xs"
@@ -101,9 +98,7 @@ export function MenuScreen({ addToCart, updateQty, cart, goToCart }: Props) {
                 className="rounded-2xl overflow-hidden"
                 style={{
                   background: "white",
-                  border: active
-                    ? `2.5px solid ${VERDE}`
-                    : "2px solid #E8E0D8",
+                  border: active ? `2.5px solid ${VERDE}` : "2px solid #E8E0D8",
                   boxShadow: active
                     ? `0 0 0 5px ${ROSA}55, 0 4px 20px rgba(31,61,46,0.12)`
                     : "0 2px 14px rgba(0,0,0,0.07)",
@@ -114,10 +109,12 @@ export function MenuScreen({ addToCart, updateQty, cart, goToCart }: Props) {
                   className="relative overflow-hidden"
                   style={{ height: 148 }}
                 >
-                  <img
-                    src={burgerPhoto.src}
+                  <Image
+                    src={burgerPhoto}
                     alt={item.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    priority={item.id === "burger"}
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     style={{ objectPosition: "center 38%" }}
                   />
                   {/* Bottom gradient */}
@@ -247,9 +244,24 @@ export function MenuScreen({ addToCart, updateQty, cart, goToCart }: Props) {
             <div className="flex gap-3">
               {(
                 [
-                  { id: "balcao",   icon: "🏪", line1: "Retirada",  line2: "no balcão" },
-                  { id: "delivery", icon: "🛵", line1: "Delivery",  line2: "Motoboy"   },
-                ] as { id: Pickup; icon: string; line1: string; line2: string }[]
+                  {
+                    id: "balcao",
+                    icon: "🏪",
+                    line1: "Retirada",
+                    line2: "no balcão",
+                  },
+                  {
+                    id: "delivery",
+                    icon: "🛵",
+                    line1: "Delivery",
+                    line2: "Motoboy",
+                  },
+                ] as {
+                  id: Pickup;
+                  icon: string;
+                  line1: string;
+                  line2: string;
+                }[]
               ).map((opt) => (
                 <button
                   key={opt.id}
@@ -271,7 +283,13 @@ export function MenuScreen({ addToCart, updateQty, cart, goToCart }: Props) {
                   }
                 >
                   <span style={{ fontSize: 28 }}>{opt.icon}</span>
-                  <span style={{ fontSize: "0.68rem", lineHeight: 1.3, textAlign: "center" }}>
+                  <span
+                    style={{
+                      fontSize: "0.68rem",
+                      lineHeight: 1.3,
+                      textAlign: "center",
+                    }}
+                  >
                     {opt.line1}
                     <br />
                     {opt.line2}
@@ -324,7 +342,8 @@ export function MenuScreen({ addToCart, updateQty, cart, goToCart }: Props) {
             padding: "14px 28px",
             fontSize: "0.85rem",
             letterSpacing: "0.18em",
-            boxShadow: cartCount > 0 ? "0 4px 16px rgba(255,214,227,0.4)" : "none",
+            boxShadow:
+              cartCount > 0 ? "0 4px 16px rgba(255,214,227,0.4)" : "none",
             border: "none",
             cursor: cartCount > 0 ? "pointer" : "default",
           }}

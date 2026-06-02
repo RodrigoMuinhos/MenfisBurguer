@@ -17,10 +17,14 @@ export interface Order {
   customerPhone?: string;
   customerAddress?: string;
   total: number;
+  paymentProvider?: string;
+  paymentMethod?: "pix" | "cartao";
+  paymentStatus?: string;
+  paymentId?: string;
   timestamp: number;
   status: OrderStatus;
 }
 
-export const VERDE = "#1F3D2E";
-export const ROSA = "#FFD6E3";
-export const CREME = "#F2E5D5";
+export const VERDE = "#65001F";
+export const ROSA = "#FFBACF";
+export const CREME = "#FFE9EC";

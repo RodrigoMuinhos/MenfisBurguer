@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { VERDE, ROSA, Order, OrderStatus } from "./types";
 import { EstoqueView, INITIAL_ITEMS, StockItem, Movement } from "./EstoqueView";
-import logoSkull from "@/imports/image-1.png";
 
 type AdminTab = "cozinha" | "dashboard" | "estoque";
 
@@ -73,6 +72,25 @@ const STAGE_ICON: Record<OrderStatus, React.ElementType> = {
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 function uid() {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function paymentBadge(order: Order) {
+  const status = order.paymentStatus ?? "not_required";
+  if (status === "approved") {
+    return { label: "Pago", bg: "#ECFDF5", text: "#065F46", border: "#6EE7B7" };
+  }
+  if (order.paymentProvider === "mercado_pago") {
+    return { label: "Pgto pendente", bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" };
+  }
+  return { label: "Sem online", bg: `${VERDE}08`, text: VERDE, border: `${VERDE}18` };
+}
+
+function canAdvanceOrder(order: Order) {
+  return (
+    order.paymentProvider !== "mercado_pago" ||
+    order.paymentStatus === "approved" ||
+    order.status !== "recebido"
+  );
 }
 
 function elapsed(ts: number) {
@@ -200,13 +218,17 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
         style={{ background: VERDE, borderBottom: `2px solid ${ROSA}22` }}
       >
         <img
-          src={logoSkull.src}
+          src="/logo_M_square.png"
           alt="Admin"
+          width={36}
+          height={36}
           style={{
             width: 36,
             height: 36,
-            objectFit: "contain",
-            mixBlendMode: "screen",
+            borderRadius: "50%",
+            objectFit: "cover",
+            background: "#fff",
+            border: `1.5px solid ${ROSA}55`,
           }}
         />
         <div className="flex-1">
@@ -334,6 +356,7 @@ function KitchenView({
         .flatMap(([, removed]) => removed)
         .filter((value, index, arr) => arr.indexOf(value) === index)
     : [];
+  const selectedCanAdvance = selectedOrder ? canAdvanceOrder(selectedOrder) : false;
 
   // Clamp row if orders leave the column after Enter
   useEffect(() => {
@@ -344,6 +367,7 @@ function KitchenView({
   const advance = (o: Order) => {
     const nextIdx = STAGE_ORDER.indexOf(o.status) + 1;
     if (nextIdx >= STAGE_ORDER.length) return;
+    if (!canAdvanceOrder(o)) return;
     // Deduct stock only when the kitchen accepts the order (recebido → preparo)
     if (o.status === "recebido") deductStock(o);
     updateOrderStatus(o.id, STAGE_ORDER[nextIdx]);
@@ -505,6 +529,7 @@ function KitchenView({
                 <AnimatePresence>
                   {colOrders.map((order, rowIdx) => {
                     const isSelected = isActiveCol && rowIdx === clampedRow;
+                    const pay = paymentBadge(order);
                     return (
                       <motion.div
                         key={order.id}
@@ -587,6 +612,7 @@ function KitchenView({
                             display: "flex",
                             alignItems: "center",
                             gap: 3,
+                            flexWrap: "wrap",
                           }}
                         >
                           {order.deliveryType === "delivery" ? (
@@ -613,6 +639,21 @@ function KitchenView({
                             {order.deliveryType === "delivery"
                               ? "Delivery"
                               : "Retirada"}
+                          </span>
+                          <span
+                            style={{
+                              background: pay.bg,
+                              color: pay.text,
+                              border: `1px solid ${pay.border}`,
+                              borderRadius: 999,
+                              fontSize: 7,
+                              fontWeight: 900,
+                              padding: "1px 5px",
+                              letterSpacing: "0.04em",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {pay.label}
                           </span>
                           {isSelected && (
                             <span
@@ -795,6 +836,50 @@ function KitchenView({
                 marginBottom: 10,
               }}
             >
+              {(() => {
+                const pay = paymentBadge(selectedOrder);
+                return (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      background: pay.bg,
+                      border: `1px solid ${pay.border}`,
+                      borderRadius: 10,
+                      padding: "8px 10px",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: pay.text,
+                        fontSize: 10,
+                        fontWeight: 900,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {pay.label}
+                    </span>
+                    <span
+                      style={{
+                        color: pay.text,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        opacity: 0.75,
+                      }}
+                    >
+                      {selectedOrder.paymentMethod === "pix"
+                        ? "Pix"
+                        : selectedOrder.paymentMethod === "cartao"
+                          ? "Cartão"
+                          : "Atendimento"}
+                    </span>
+                  </div>
+                );
+              })()}
               <p
                 style={{
                   fontSize: 10,
@@ -938,20 +1023,20 @@ function KitchenView({
             <motion.button
               whileTap={{ scale: 0.94, y: 3 }}
               onClick={() => selectedOrder && advance(selectedOrder)}
-              disabled={!selectedOrder}
+              disabled={!selectedOrder || !selectedCanAdvance}
               style={{
                 flex: 1,
                 height: 88,
-                background: selectedOrder ? ROSA : `${ROSA}30`,
+                background: selectedCanAdvance ? ROSA : `${ROSA}30`,
                 border: "none",
                 borderRadius: 14,
-                cursor: selectedOrder ? "pointer" : "default",
+                cursor: selectedCanAdvance ? "pointer" : "default",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 5,
-                boxShadow: selectedOrder
+                boxShadow: selectedCanAdvance
                   ? `0 6px 0 ${ROSA}60, 0 8px 20px rgba(0,0,0,0.3)`
                   : "none",
                 transition: "all 0.2s",
@@ -960,20 +1045,23 @@ function KitchenView({
               <Check
                 size={22}
                 strokeWidth={3}
-                style={{ color: selectedOrder ? VERDE : `${ROSA}50` }}
+                style={{ color: selectedCanAdvance ? VERDE : `${ROSA}50` }}
               />
               <span
                 style={{
                   fontFamily: "'Bebas Neue','Arial Black',sans-serif",
                   fontSize: "1.05rem",
                   letterSpacing: "0.12em",
-                  color: selectedOrder ? VERDE : `${ROSA}40`,
+                  color: selectedCanAdvance ? VERDE : `${ROSA}40`,
                   lineHeight: 1,
                 }}
               >
-                CONFIRMAR
+                {selectedOrder && !selectedCanAdvance
+                  ? "AGUARDANDO PAGAMENTO"
+                  : "CONFIRMAR"}
               </span>
               {selectedOrder &&
+                selectedCanAdvance &&
                 STAGE_ORDER.indexOf(selectedOrder.status) + 1 <
                   STAGE_ORDER.length && (
                   <span

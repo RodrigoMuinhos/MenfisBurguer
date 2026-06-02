@@ -1,8 +1,8 @@
 import { motion } from "motion/react";
 import completeLogo from "@/imports/complete-logo.png";
 
-const VERDE = "#1F3D2E";
-const ROSA  = "#FFD6E3";
+const VERDE = "#65001F";
+const ROSA  = "#FFBACF";
 
 export function SplashScreen({ onStart }: { onStart: () => void }) {
   return (

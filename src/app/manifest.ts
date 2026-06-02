@@ -7,13 +7,13 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Cardápio digital Menfi's Burger",
     start_url: "/",
     display: "standalone",
-    background_color: "#F2E5D5",
-    theme_color: "#1F3D2E",
+    background_color: "#FFE9EC",
+    theme_color: "#65001F",
     icons: [
       {
-        src: "/logo_M.jpeg",
+        src: "/logo_M_square.png",
         sizes: "180x180",
-        type: "image/jpeg",
+        type: "image/png",
       },
     ],
   };

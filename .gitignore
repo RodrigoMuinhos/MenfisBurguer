@@ -30,3 +30,5 @@ Thumbs.db
 # Next.js / temporary files
 next-dev.log
 next-dev.err.log
+
+.vercel

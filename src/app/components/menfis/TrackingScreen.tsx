@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import Image from "next/image";
 import { motion } from "motion/react";
 import {
   CheckCircle2,
@@ -7,6 +8,9 @@ import {
   Bike,
   Store,
   ChevronLeft,
+  CreditCard,
+  QrCode,
+  AlertCircle,
 } from "lucide-react";
 import logoSkull from "@/imports/image-1.png";
 import { VERDE, ROSA, Order } from "./types";
@@ -19,6 +23,51 @@ const STEPS = [
 ];
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+
+function paymentInfo(order: Order) {
+  const status = order.paymentStatus ?? "not_required";
+  const approved = status === "approved";
+  const rejected = ["rejected", "cancelled", "refunded", "charged_back"].includes(status);
+  const pending = order.paymentProvider === "mercado_pago" && !approved && !rejected;
+
+  if (approved) {
+    return {
+      label: "Pagamento aprovado",
+      copy: "Mercado Pago confirmou o pagamento deste pedido.",
+      color: "#065F46",
+      bg: "#ECFDF5",
+      border: "#6EE7B7",
+    };
+  }
+
+  if (rejected) {
+    return {
+      label: "Pagamento não aprovado",
+      copy: "O Mercado Pago não confirmou este pagamento. Fale com o atendimento.",
+      color: "#991B1B",
+      bg: "#FEF2F2",
+      border: "#FECACA",
+    };
+  }
+
+  if (pending) {
+    return {
+      label: "Pagamento pendente",
+      copy: "Aguardando confirmação automática do Mercado Pago.",
+      color: "#92400E",
+      bg: "#FFFBEB",
+      border: "#FDE68A",
+    };
+  }
+
+  return {
+    label: "Pagamento no atendimento",
+    copy: "Pedido criado sem cobrança online vinculada.",
+    color: VERDE,
+    bg: `${VERDE}08`,
+    border: `${VERDE}18`,
+  };
+}
 
 interface Props {
   orderPlaced: boolean;
@@ -54,10 +103,11 @@ export function TrackingScreen({
         className="flex flex-col items-center justify-center gap-5 p-8 text-center"
         style={{ minHeight: 420, background: "#fff" }}
       >
-        <img
-          src={logoSkull.src}
+        <Image
+          src={logoSkull}
           alt="Mascote"
-          className="w-20 h-20 object-contain"
+          width={80}
+          height={80}
           style={{ mixBlendMode: "multiply", opacity: 0.18 }}
         />
         <div>
@@ -99,19 +149,25 @@ export function TrackingScreen({
     hour: "2-digit",
     minute: "2-digit",
   });
+  const pay = paymentInfo(order);
+  const PayIcon = order.paymentMethod === "pix" ? QrCode : CreditCard;
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: "#fff" }}>
+    <div className="flex flex-col min-h-full" style={{ background: "#FFF8F2" }}>
       {/* ── Hero ── */}
       <div
         className="relative px-5 pt-5 pb-6 overflow-hidden"
-        style={{ background: VERDE }}
+        style={{
+          background: VERDE,
+          boxShadow: "0 16px 42px rgba(31,61,46,0.18)",
+        }}
       >
         <div className="flex items-center gap-4">
-          <img
-            src={logoSkull.src}
+          <Image
+            src={logoSkull}
             alt="Menfi's"
-            className="h-14 w-14 object-contain shrink-0"
+            width={56}
+            height={56}
             style={{ mixBlendMode: "screen" }}
           />
           <div className="flex-1">
@@ -178,7 +234,11 @@ export function TrackingScreen({
         {/* Steps */}
         <div
           className="rounded-2xl p-4"
-          style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
+          style={{
+            background: "#fff",
+            border: `1.5px solid ${ROSA}`,
+            boxShadow: "0 14px 36px rgba(31,61,46,0.07)",
+          }}
         >
           <p
             className="text-[10px] font-black uppercase tracking-widest mb-4"
@@ -247,10 +307,56 @@ export function TrackingScreen({
           })}
         </div>
 
+        {/* Payment status */}
+        <div
+          className="rounded-2xl p-4"
+          style={{ background: pay.bg, border: `1.5px solid ${pay.border}` }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: "#fff", color: pay.color }}
+            >
+              {pay.label.includes("não") ? (
+                <AlertCircle size={18} strokeWidth={2.3} />
+              ) : (
+                <PayIcon size={18} strokeWidth={2.3} />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-xs font-black uppercase tracking-wide"
+                style={{ color: pay.color }}
+              >
+                {pay.label}
+              </p>
+              <p
+                className="text-[11px] leading-relaxed mt-1"
+                style={{ color: pay.color, opacity: 0.72 }}
+              >
+                {pay.copy}
+              </p>
+              {order.paymentMethod && (
+                <p
+                  className="text-[10px] font-black uppercase tracking-wider mt-2"
+                  style={{ color: pay.color, opacity: 0.62 }}
+                >
+                  Método: {order.paymentMethod === "pix" ? "Pix" : "Cartão"} · Status:{" "}
+                  {order.paymentStatus ?? "not_required"}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Order items */}
         <div
           className="rounded-2xl p-4"
-          style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
+          style={{
+            background: "#fff",
+            border: `1.5px solid ${ROSA}`,
+            boxShadow: "0 14px 36px rgba(31,61,46,0.07)",
+          }}
         >
           <p
             className="text-[10px] font-black uppercase tracking-widest mb-3"

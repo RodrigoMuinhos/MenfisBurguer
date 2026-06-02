@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ChevronLeft,
@@ -6,7 +7,6 @@ import {
   Plus,
   MessageSquare,
   X,
-  Store,
   Bike,
   UtensilsCrossed,
   CheckCircle2,
@@ -14,6 +14,11 @@ import {
   Loader2,
   QrCode,
   CreditCard,
+  ShieldCheck,
+  Clock,
+  MapPin,
+  ReceiptText,
+  LockKeyhole,
 } from "lucide-react";
 import { CartItem, VERDE, ROSA } from "./types";
 import logoSkull from "@/imports/image-1.png";
@@ -32,10 +37,23 @@ const REMOVE_OPTIONS = [
 const ITEM_DESC: Record<string, string> = {
   burger:
     "Pão brioche · Burger 100g · Queijo · Alface Crocante · Cebola Caramelizada · Molho Menfi's",
+  "double-burger":
+    "Pão brioche · 2 burgers · Queijo · Alface Crocante · Cebola Caramelizada · Molho Menfi's",
   combo: "Menfi's Burger · Coca-Cola 350ml · Batata Frita 250g",
+  "double-combo": "Double Menfi's · Coca-Cola 350ml · Batata Frita 250g",
+  "combo-upgrade": "Batata frita 250g · Coca-Cola 350ml",
+  "extra-queijo": "Queijo extra derretido",
+  "extra-ovo": "Ovo adicional no burger",
+  "extra-molho": "Porção extra do molho Menfi's",
+  batata: "Batata frita 250g",
+  cola: "Coca-Cola 350ml gelada",
 };
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+const deliveryEta = "25-45 min";
+
+const LGPD_COPY =
+  "Usamos CPF, telefone e endereço somente para identificar o pedido, emitir registros fiscais quando necessário, entregar corretamente e tratar suporte. O pagamento é processado pelo Mercado Pago.";
 
 /* ── Masks ────────────────────────────────────────── */
 function maskCPF(v: string) {
@@ -82,9 +100,7 @@ function validateCPF(raw: string): boolean {
 }
 
 /* ── CEP Lookup ───────────────────────────────────── */
-async function lookupCEP(
-  cep: string,
-): Promise<{
+async function lookupCEP(cep: string): Promise<{
   logradouro: string;
   bairro: string;
   localidade: string;
@@ -109,11 +125,31 @@ interface Props {
     phone?: string,
     address?: string,
     removedByItemId?: Record<string, string[]>,
-  ) => void;
+  ) => void | Promise<void>;
   goToMenu: () => void;
 }
 
 const STORAGE_KEY = "menfis_cliente";
+const MEMBER_KEY = "menfis_member";
+
+function registerMemberOrder() {
+  try {
+    const raw = localStorage.getItem(MEMBER_KEY);
+    if (!raw) return;
+    const member = JSON.parse(raw);
+    const counted = Number(member.orders ?? 0) + 1;
+    localStorage.setItem(
+      MEMBER_KEY,
+      JSON.stringify({
+        ...member,
+        orders: counted,
+        rewards: Math.floor(counted / 10),
+      }),
+    );
+  } catch {
+    // perfil local opcional
+  }
+}
 
 function loadSaved() {
   try {
@@ -124,12 +160,17 @@ function loadSaved() {
 }
 
 export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
-  const [delivery, setDelivery] = useState<DeliveryType>("retirada");
+  const delivery: DeliveryType = "delivery";
   const [obsOpen, setObsOpen] = useState<string | null>(null);
   const [removed, setRemoved] = useState<Record<string, Set<string>>>({});
   const [savedBadge, setSavedBadge] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [payment, setPayment] = useState<PaymentMethod | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentSlow, setPaymentSlow] = useState(false);
+  const [lgpdAccepted, setLgpdAccepted] = useState(false);
+  const [freeShipping, setFreeShipping] = useState(false);
 
   /* Delivery form — pre-fill from localStorage */
   const saved = loadSaved();
@@ -149,6 +190,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   );
 
   /* Persist to localStorage whenever any field changes */
+  useEffect(() => {
+    setFreeShipping(Boolean(localStorage.getItem(MEMBER_KEY)));
+  }, []);
+
   useEffect(() => {
     if (!cep && !cpf && !phone) return;
     localStorage.setItem(
@@ -240,26 +285,29 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   };
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const fee = delivery === "delivery" ? 5.1 : 0;
+  const fee = freeShipping ? 0 : 5.1;
   const total = subtotal + fee;
 
   const deliveryValid =
-    delivery === "retirada" ||
-    (cep.replace(/\D/g, "").length === 8 &&
-      !cepError &&
-      street.length > 0 &&
-      number.trim().length > 0 &&
-      cpfRaw.replace(/\D/g, "").length === 11 &&
-      cpfValid === true &&
-      phone.replace(/\D/g, "").length >= 10);
+    cep.replace(/\D/g, "").length === 8 &&
+    !cepError &&
+    street.length > 0 &&
+    number.trim().length > 0 &&
+    cpfRaw.replace(/\D/g, "").length === 11 &&
+    cpfValid === true &&
+    phone.replace(/\D/g, "").length >= 10;
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
     if (!deliveryValid) return;
+    if (paying) return;
+
     if (!paymentOpen) {
       setPaymentOpen(true);
       return;
     }
     if (!payment) return;
+
+    setPaymentError("");
 
     const removedByItemId = Object.fromEntries(
       Object.entries(removed)
@@ -267,14 +315,56 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         .filter(([, opts]) => opts.length > 0),
     ) as Record<string, string[]>;
 
-    onPlaceOrder(
-      delivery,
-      phone || undefined,
-      delivery === "delivery"
-        ? `${street}, ${number}${complement ? ` ${complement}` : ""}`
-        : undefined,
-      Object.keys(removedByItemId).length > 0 ? removedByItemId : undefined,
-    );
+    const address = `${street}, ${number}${complement ? ` ${complement}` : ""}`;
+
+    let slowTimer: number | null = null;
+    try {
+      setPaying(true);
+      setPaymentSlow(false);
+      slowTimer = window.setTimeout(() => setPaymentSlow(true), 3500);
+      const res = await fetch("/api/payments/mercadopago/preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart,
+          removedByItemId:
+            Object.keys(removedByItemId).length > 0
+              ? removedByItemId
+              : undefined,
+          deliveryType: delivery,
+          customerPhone: phone || undefined,
+          customerAddress: address,
+          total,
+          paymentMethod: payment,
+          origin: window.location.origin,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      const checkoutUrl =
+        typeof data.checkoutUrl === "string" && data.checkoutUrl
+          ? data.checkoutUrl
+          : typeof data.sandboxCheckoutUrl === "string" &&
+              data.sandboxCheckoutUrl
+            ? data.sandboxCheckoutUrl
+            : "";
+
+      if (!res.ok || !checkoutUrl) {
+        throw new Error(data?.error || "checkout_creation_failed");
+      }
+
+      registerMemberOrder();
+      window.location.assign(checkoutUrl);
+      return;
+    } catch {
+      setPaymentError(
+        "Não foi possível iniciar o checkout Mercado Pago. Verifique os dados e tente novamente.",
+      );
+    } finally {
+      if (slowTimer) window.clearTimeout(slowTimer);
+      setPaymentSlow(false);
+      setPaying(false);
+    }
   };
 
   const inputStyle = (err?: boolean) => ({
@@ -299,6 +389,9 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     </p>
   );
 
+  const canSubmit =
+    deliveryValid && lgpdAccepted && (!paymentOpen || Boolean(payment));
+
   /* ── Empty ── */
   if (cart.length === 0) {
     return (
@@ -306,10 +399,11 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         className="flex flex-col items-center justify-center gap-5 p-8 text-center"
         style={{ minHeight: 460, background: "#fff" }}
       >
-        <img
-          src={logoSkull.src}
+        <Image
+          src={logoSkull}
           alt="Mascote"
-          className="w-20 h-20 object-contain"
+          width={80}
+          height={80}
           style={{ mixBlendMode: "multiply", opacity: 0.18 }}
         />
         <div>
@@ -348,7 +442,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   return (
     <div
       style={{
-        background: "#fff",
+        background: "#FFF8F2",
         fontFamily: "'Inter', system-ui, sans-serif",
         minHeight: "100%",
       }}
@@ -356,7 +450,11 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
       {/* ══ HEADER ════════════════════════════════════════ */}
       <div
         className="px-4 pt-5 pb-4 flex items-center gap-3"
-        style={{ background: "#fff", borderBottom: `1px solid ${ROSA}` }}
+        style={{
+          background: VERDE,
+          borderBottom: `1px solid ${ROSA}30`,
+          boxShadow: "0 16px 40px rgba(31,61,46,0.18)",
+        }}
       >
         <button
           onClick={goToMenu}
@@ -376,7 +474,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           <p
             className="font-black uppercase"
             style={{
-              color: VERDE,
+              color: ROSA,
               fontFamily: "'Bebas Neue','Arial Black',sans-serif",
               fontSize: "1.4rem",
               letterSpacing: "0.12em",
@@ -387,22 +485,83 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           </p>
           <p
             className="text-[10px] mt-0.5"
-            style={{ color: VERDE, opacity: 0.45 }}
+            style={{ color: ROSA, opacity: 0.68 }}
           >
             {cart.reduce((s, i) => s + i.qty, 0)}{" "}
             {cart.reduce((s, i) => s + i.qty, 0) === 1 ? "item" : "itens"}
           </p>
         </div>
-        <img
-          src={logoSkull.src}
+        <Image
+          src={logoSkull}
           alt="Menfi's"
-          className="h-11 w-11 object-contain"
-          style={{ mixBlendMode: "multiply" }}
+          width={44}
+          height={44}
+          style={{ mixBlendMode: "screen" }}
         />
+      </div>
+      <div
+        className="px-4 py-3"
+        style={{ background: VERDE, color: ROSA }}
+      >
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: "Conferir", active: true },
+            { label: "Entrega", active: deliveryValid },
+            { label: "Pagamento", active: paymentOpen && Boolean(payment) },
+            { label: "Cozinha", active: false },
+          ].map((step, index) => (
+            <div key={step.label}>
+              <div
+                className="h-1.5 rounded-full"
+                style={{
+                  background: step.active ? ROSA : `${ROSA}24`,
+                }}
+              />
+              <p
+                className="mt-1 text-[9px] font-black uppercase tracking-wider"
+                style={{ opacity: step.active ? 0.9 : 0.36 }}
+              >
+                {index + 1}. {step.label}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ══ BODY ══════════════════════════════════════════ */}
       <div className="px-4 pt-5 pb-32 flex flex-col gap-5">
+        <div
+          className="rounded-2xl p-4"
+          style={{
+            background: "#fff",
+            border: `1px solid ${VERDE}12`,
+            boxShadow: "0 14px 36px rgba(31,61,46,0.07)",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+              style={{ background: `${ROSA}85`, color: VERDE }}
+            >
+              <ReceiptText size={20} strokeWidth={2.3} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p
+                className="text-xs font-black uppercase tracking-widest"
+                style={{ color: VERDE }}
+              >
+                Checkout Menfi's
+              </p>
+              <p
+                className="mt-1 text-[11px] leading-relaxed"
+                style={{ color: VERDE, opacity: 0.62 }}
+              >
+                Revise itens, confirme seus dados de entrega e escolha a forma
+                de pagamento.
+              </p>
+            </div>
+          </div>
+        </div>
         {/* ── Itens ── */}
         <div>
           <Label>Itens do pedido</Label>
@@ -639,12 +798,25 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           className="rounded-2xl p-4"
           style={{ background: `${ROSA}25`, border: `1.5px solid ${ROSA}` }}
         >
-          <p
-            className="text-[10px] font-black uppercase tracking-widest mb-3"
-            style={{ color: VERDE, opacity: 0.4 }}
-          >
-            Resumo do pedido
-          </p>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p
+                className="text-[10px] font-black uppercase tracking-widest"
+                style={{ color: VERDE, opacity: 0.4 }}
+              >
+                Resumo do pedido
+              </p>
+              <p className="text-[11px] mt-1" style={{ color: VERDE, opacity: 0.62 }}>
+                Conferência final antes de enviar para a cozinha.
+              </p>
+            </div>
+            <span
+              className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider"
+              style={{ background: VERDE, color: ROSA }}
+            >
+              {deliveryEta}
+            </span>
+          </div>
           {cart.map((item) => (
             <div
               key={item.id}
@@ -677,15 +849,13 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               </p>
             </div>
           ))}
-          {delivery === "delivery" && (
-            <div
-              className="flex justify-between text-xs py-1"
-              style={{ color: VERDE, opacity: 0.5 }}
-            >
-              <span>Taxa de entrega</span>
-              <span>{fmt(fee)}</span>
-            </div>
-          )}
+          <div
+            className="flex justify-between text-xs py-1"
+            style={{ color: VERDE, opacity: 0.5 }}
+          >
+            <span>{freeShipping ? "Frete grátis Clube Menfi's" : "Taxa de entrega"}</span>
+            <span>{fmt(fee)}</span>
+          </div>
           <div className="flex justify-between items-center pt-2 mt-1">
             <span
               className="font-black uppercase tracking-wider text-sm"
@@ -706,39 +876,81 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           </div>
         </div>
 
-        {/* ── Tipo de pedido ── */}
+        {/* ── Entrega ── */}
         <div>
-          <Label>Tipo de pedido</Label>
+          <Label>Entrega</Label>
+          <div className="mb-3 grid grid-cols-2 gap-2" style={{ color: VERDE }}>
+            <div
+              className="rounded-xl px-3 py-2"
+              style={{ background: `${VERDE}08`, border: `1px solid ${VERDE}12` }}
+            >
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
+                <Clock size={12} strokeWidth={2.2} />
+                Prazo médio
+              </div>
+              <p className="text-xs font-bold mt-1">{deliveryEta}</p>
+            </div>
+            <div
+              className="rounded-xl px-3 py-2"
+              style={{ background: `${VERDE}08`, border: `1px solid ${VERDE}12` }}
+            >
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
+                <MapPin size={12} strokeWidth={2.2} />
+                Delivery
+              </div>
+              <p className="text-xs font-bold mt-1">
+                {freeShipping ? "Frete grátis" : `${fmt(fee)} de taxa`}
+              </p>
+            </div>
+          </div>
           <div
-            className="flex rounded-2xl overflow-hidden"
-            style={{ border: `1.5px solid ${ROSA}` }}
+            className="rounded-2xl p-4"
+            style={{
+              background: "#fff",
+              border: `1.5px solid ${ROSA}`,
+              color: VERDE,
+            }}
           >
-            {(
-              [
-                { id: "retirada", label: "Retirada", Icon: Store },
-                { id: "delivery", label: "Delivery", Icon: Bike },
-              ] as {
-                id: DeliveryType;
-                label: string;
-                Icon: React.ElementType;
-              }[]
-            ).map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                onClick={() => setDelivery(id)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-black uppercase tracking-wider"
-                style={{
-                  background: delivery === id ? ROSA : "#fff",
-                  color: VERDE,
-                  border: "none",
-                  cursor: "pointer",
-                  transition: "background 0.2s, color 0.2s",
-                }}
+            <div className="flex items-start gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                style={{ background: ROSA }}
               >
-                <Icon size={14} strokeWidth={2} />
-                {label}
-              </button>
-            ))}
+                <Bike size={18} strokeWidth={2.4} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-black uppercase tracking-wider">
+                  Somente delivery
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed opacity-65">
+                  Taxa de R$ 5,10 e prazo médio de 25-45 min, sujeito à
+                  distância e fila da cozinha.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {["Conferimos", "Cozinha", "Saiu para entrega"].map((step, index) => (
+                <div key={step}>
+                  <div className="flex items-center">
+                    <span
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black"
+                      style={{ background: index === 0 ? VERDE : ROSA, color: index === 0 ? ROSA : VERDE }}
+                    >
+                      {index + 1}
+                    </span>
+                    {index < 2 && (
+                      <span
+                        className="h-1 flex-1 rounded-full"
+                        style={{ background: ROSA }}
+                      />
+                    )}
+                  </div>
+                  <p className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-55">
+                    {step}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -753,23 +965,40 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             >
               <div>
                 <Label>Como vai pagar?</Label>
+                <div
+                  className="mb-3 rounded-2xl p-3"
+                  style={{ background: `${VERDE}08`, border: `1px solid ${VERDE}14` }}
+                >
+                  <div className="flex items-start gap-2">
+                    <LockKeyhole size={16} strokeWidth={2.2} style={{ color: VERDE }} />
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
+                        Pagamento seguro
+                      </p>
+                      <p className="text-[11px] leading-relaxed mt-1" style={{ color: VERDE, opacity: 0.62 }}>
+                        Você finaliza pelo Mercado Pago e acompanha a confirmação do pedido.
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {(
                     [
-                      { id: "pix", label: "Pix", Icon: QrCode },
-                      { id: "cartao", label: "Cartão", Icon: CreditCard },
+                      { id: "pix", label: "Pix", copy: "Aprovação rápida", Icon: QrCode },
+                      { id: "cartao", label: "Cartão", copy: "Crédito ou débito", Icon: CreditCard },
                     ] as {
                       id: PaymentMethod;
                       label: string;
+                      copy: string;
                       Icon: React.ElementType;
                     }[]
-                  ).map(({ id, label, Icon }) => {
+                  ).map(({ id, label, copy, Icon }) => {
                     const active = payment === id;
                     return (
                       <button
                         key={id}
                         onClick={() => setPayment(id)}
-                        className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black uppercase tracking-wider"
+                        className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl text-xs font-black uppercase tracking-wider"
                         style={{
                           background: active ? ROSA : "#fff",
                           color: VERDE,
@@ -781,6 +1010,12 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                       >
                         <Icon size={17} strokeWidth={2.2} />
                         {label}
+                        <span
+                          className="text-[9px] normal-case tracking-normal font-bold"
+                          style={{ opacity: 0.58 }}
+                        >
+                          {copy}
+                        </span>
                       </button>
                     );
                   })}
@@ -789,6 +1024,102 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {paymentError && (
+          <div
+            className="rounded-xl px-3 py-2 text-[11px] font-semibold"
+            style={{ background: `${ROSA}80`, color: VERDE }}
+          >
+            {paymentError}
+          </div>
+        )}
+
+        {paymentSlow && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold"
+            style={{ background: `${ROSA}80`, color: VERDE }}
+          >
+            <Loader2
+              size={15}
+              strokeWidth={2.4}
+              style={{ animation: "spin 1s linear infinite" }}
+            />
+            Conectando com o Mercado Pago. Seu pedido ainda não foi enviado para a cozinha.
+          </motion.div>
+        )}
+
+        <div
+          className="rounded-2xl p-4"
+          style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="flex items-center justify-center rounded-xl shrink-0"
+              style={{ width: 36, height: 36, background: `${VERDE}10` }}
+            >
+              <ReceiptText size={17} strokeWidth={2.1} style={{ color: VERDE }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
+                Informações do atendimento
+              </p>
+              <div className="mt-2 grid gap-1.5 text-[11px] leading-relaxed" style={{ color: VERDE, opacity: 0.68 }}>
+                <p>
+                  Delivery:{" "}
+                  {freeShipping
+                    ? "frete grátis aplicado pelo Clube Menfi's"
+                    : `taxa de ${fmt(fee || 5.1)}`}{" "}
+                  e prazo médio de {deliveryEta}, sujeito à distância e fila da cozinha.
+                </p>
+                <p>Conferimos itens, remoções e dados antes de enviar o pedido para produção.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setLgpdAccepted((v) => !v)}
+          className="w-full rounded-2xl p-4 text-left"
+          style={{
+            background: lgpdAccepted ? `${ROSA}55` : "#fff",
+            border: `1.5px solid ${lgpdAccepted ? ROSA : `${VERDE}18`}`,
+            cursor: "pointer",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="flex items-center justify-center rounded-lg shrink-0"
+              style={{
+                width: 24,
+                height: 24,
+                marginTop: 1,
+                background: lgpdAccepted ? VERDE : "#fff",
+                border: `1.5px solid ${lgpdAccepted ? VERDE : `${VERDE}28`}`,
+              }}
+            >
+              {lgpdAccepted && (
+                <CheckCircle2 size={14} strokeWidth={2.8} style={{ color: ROSA }} />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={15} strokeWidth={2.2} style={{ color: VERDE }} />
+                <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
+                  LGPD e dados do pedido
+                </p>
+              </div>
+              <p className="text-[11px] leading-relaxed mt-1.5" style={{ color: VERDE, opacity: 0.65 }}>
+                {LGPD_COPY}
+              </p>
+              <p className="text-[10px] font-black uppercase tracking-wider mt-2" style={{ color: VERDE, opacity: lgpdAccepted ? 0.7 : 0.45 }}>
+                {lgpdAccepted ? "Consentimento confirmado" : "Toque para confirmar antes de pagar"}
+              </p>
+            </div>
+          </div>
+        </button>
 
         {/* ── Formulário delivery ── */}
         <AnimatePresence>
@@ -976,10 +1307,50 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           boxShadow: "0 -8px 24px rgba(0,0,0,0.06)",
         }}
       >
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p
+              className="text-[10px] font-black uppercase tracking-widest"
+              style={{ color: VERDE, opacity: 0.42 }}
+            >
+              Próxima etapa
+            </p>
+            <p className="text-xs font-bold" style={{ color: VERDE }}>
+              {!deliveryValid
+                ? "Complete os dados obrigatórios"
+                : !lgpdAccepted
+                  ? "Confirme o uso dos dados"
+                  : !paymentOpen
+                    ? "Escolher pagamento"
+                    : !payment
+                      ? "Selecione Pix ou cartão"
+                      : "Ir para o Mercado Pago"}
+            </p>
+          </div>
+          <div className="text-right">
+            <p
+              className="text-[10px] font-black uppercase tracking-widest"
+              style={{ color: VERDE, opacity: 0.42 }}
+            >
+              Total
+            </p>
+            <p
+              className="font-black"
+              style={{
+                color: VERDE,
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "1.45rem",
+                lineHeight: 1,
+              }}
+            >
+              {fmt(total)}
+            </p>
+          </div>
+        </div>
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={handleFinalize}
-          disabled={!deliveryValid || (paymentOpen && !payment)}
+          disabled={paying || !canSubmit}
           className="w-full py-4 rounded-2xl font-black uppercase tracking-widest disabled:opacity-30"
           style={{
             background: ROSA,
@@ -988,13 +1359,24 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             fontSize: "1.1rem",
             letterSpacing: "0.2em",
             border: "none",
-            cursor:
-              deliveryValid && (!paymentOpen || payment)
-                ? "pointer"
-                : "default",
+            cursor: canSubmit ? "pointer" : "default",
           }}
         >
-          {paymentOpen ? "CONFIRMAR PEDIDO" : "FINALIZAR PEDIDO"} — {fmt(total)}
+          <span className="inline-flex items-center justify-center gap-2">
+            {paying && (
+              <Loader2
+                size={18}
+                strokeWidth={2.6}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
+            )}
+            {paying
+              ? "INICIANDO PAGAMENTO"
+              : paymentOpen
+                ? "PAGAR ONLINE"
+                : "FINALIZAR PEDIDO"}{" "}
+            - {fmt(total)}
+          </span>
         </motion.button>
       </div>
 

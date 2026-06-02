@@ -1,282 +1,233 @@
-import { useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useMemo, useRef, useState } from "react";
+import Image, { StaticImageData } from "next/image";
+import { AnimatePresence, motion } from "motion/react";
 import {
-  Check,
-  MessageSquare,
-  X,
-  ShoppingBag,
-  Plus,
-  Utensils,
-  Package,
-  Flame,
+  Beef,
+  Bike,
+  ChefHat,
+  ChevronRight,
   Coffee,
-  Star,
+  Flame,
+  Gift,
+  Loader2,
+  Mail,
+  MapPin,
+  Minus,
+  Package,
+  Plus,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Trophy,
+  UserRound,
+  X,
 } from "lucide-react";
-import { CartItem, VERDE, ROSA } from "./types";
-import { useIsMobile } from "../ui/use-mobile";
+import { CartItem, CREME, ROSA, VERDE } from "./types";
 import burgerPhoto from "@/imports/image-9.png";
-import colaPhoto from "@/imports/image-19.png";
 import friesPhoto from "@/imports/image-20.png";
-import logoSkull from "@/imports/image-1.png";
+import colaPhoto from "@/imports/image-19.png";
 
-const BURGER_PRICE = 19.9;
-const SUPER_COMBO_PRICE = 59.9;
-const SUPER_COMBO_HERO_SRC = "/SC.png";
-const COMBO_PRICE = 32.8;
-const COMBO_EXTRA = COMBO_PRICE - BURGER_PRICE;
+type MenuItem = {
+  id: string;
+  name: string;
+  eyebrow: string;
+  desc: string;
+  price: number;
+  image?: StaticImageData | string;
+  tags: string[];
+  category: "burger" | "combo" | "bebida" | "extra";
+  highlight?: boolean;
+};
 
-/* ─── Cartoon SVG illustrations ─────────────────────── */
-const CartoonBurger = ({ color }: { color: string }) => (
-  <svg width="48" height="38" viewBox="0 0 48 38" fill="none">
-    <ellipse cx="24" cy="9" rx="18" ry="9" fill={color} opacity={0.95} />
-    <ellipse
-      cx="17"
-      cy="5"
-      rx="2.5"
-      ry="1.5"
-      fill={color}
-      opacity={0.4}
-      transform="rotate(-20 17 5)"
-    />
-    <ellipse cx="25" cy="3.5" rx="2" ry="1.5" fill={color} opacity={0.4} />
-    <ellipse
-      cx="32"
-      cy="6"
-      rx="2.5"
-      ry="1.5"
-      fill={color}
-      opacity={0.4}
-      transform="rotate(15 32 6)"
-    />
-    <rect
-      x="6"
-      y="16"
-      width="36"
-      height="6"
-      rx="3"
-      fill={color}
-      opacity={0.8}
-    />
-    <path d="M4 21 L44 21 L41 26 L7 26 Z" fill={color} opacity={0.45} />
-    <rect
-      x="6"
-      y="24"
-      width="36"
-      height="6"
-      rx="3"
-      fill={color}
-      opacity={0.8}
-    />
-    <ellipse cx="24" cy="34" rx="20" ry="5.5" fill={color} />
-  </svg>
-);
+type BuilderState = {
+  cheese: boolean;
+  sauce: boolean;
+};
 
-const CartoonCheese = ({ color }: { color: string }) => (
-  <svg width="46" height="40" viewBox="0 0 46 40" fill="none">
-    <path d="M2 36 L23 5 L44 36 Z" fill={color} opacity={0.9} />
-    <rect x="2" y="33" width="42" height="8" rx="4" fill={color} />
-    <circle cx="16" cy="25" r="3.5" fill="white" opacity={0.3} />
-    <circle cx="28" cy="29" r="2.5" fill="white" opacity={0.25} />
-    <circle cx="23" cy="18" r="2" fill="white" opacity={0.2} />
-  </svg>
-);
+type MemberProfile = {
+  name: string;
+  email: string;
+  phone: string;
+  freeShipping: boolean;
+  orders: number;
+  rewards: number;
+  createdAt: number;
+};
 
-const CartoonEgg = ({ color }: { color: string }) => (
-  <svg width="46" height="40" viewBox="0 0 46 40" fill="none">
-    <path
-      d="M8 26 Q3 36 23 39 Q43 36 38 26 Q40 12 31 9 Q23 7 15 11 Q8 15 8 26 Z"
-      fill={color}
-      opacity={0.55}
-    />
-    <circle cx="23" cy="22" r="10" fill={color} opacity={0.95} />
-    <circle cx="20" cy="19" r="3.5" fill="white" opacity={0.22} />
-  </svg>
-);
-
-const CartoonCup = ({ color }: { color: string }) => (
-  <svg width="40" height="46" viewBox="0 0 40 46" fill="none">
-    <rect
-      x="28"
-      y="2"
-      width="3.5"
-      height="22"
-      rx="1.75"
-      fill={color}
-      opacity={0.7}
-    />
-    <path d="M6 16 L10 42 L30 42 L34 16 Z" fill={color} opacity={0.85} />
-    <rect x="4" y="11" width="32" height="7" rx="3.5" fill={color} />
-    <circle cx="15" cy="27" r="2.5" fill="white" opacity={0.18} />
-    <circle cx="22" cy="33" r="1.8" fill="white" opacity={0.14} />
-  </svg>
-);
-
-const CartoonSauce = ({ color }: { color: string }) => (
-  <svg width="34" height="48" viewBox="0 0 34 48" fill="none">
-    <rect
-      x="13"
-      y="2"
-      width="8"
-      height="9"
-      rx="3.5"
-      fill={color}
-      opacity={0.75}
-    />
-    <rect
-      x="7"
-      y="9"
-      width="20"
-      height="27"
-      rx="9"
-      fill={color}
-      opacity={0.9}
-    />
-    <rect
-      x="7"
-      y="20"
-      width="20"
-      height="6"
-      rx="0"
-      fill="white"
-      opacity={0.16}
-    />
-    <path
-      d="M15 36 Q17 44 17 47 Q17 44 19 36"
-      fill={color}
-      opacity={0.9}
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const CartoonCrown = ({ color }: { color: string }) => (
-  <svg width="50" height="42" viewBox="0 0 50 42" fill="none">
-    <path
-      d="M4 36 L4 20 L15 29 L25 8 L35 29 L46 20 L46 36 Z"
-      fill={color}
-      opacity={0.9}
-    />
-    <rect x="4" y="34" width="42" height="8" rx="4" fill={color} />
-    <circle cx="25" cy="11" r="4.5" fill="white" opacity={0.3} />
-    <circle cx="9" cy="23" r="3" fill="white" opacity={0.22} />
-    <circle cx="41" cy="23" r="3" fill="white" opacity={0.22} />
-    <circle cx="25" cy="38" r="2.5" fill="white" opacity={0.2} />
-  </svg>
-);
-
-/* ─── Extras com ilustrações cartoon ────────────────── */
-const EXTRAS = [
-  {
-    id: "extra-carne",
-    label: "Double Burger",
-    copy: "Adiciona 1 burger extra",
-    price: 6.9,
-    cardBg: ROSA,
-    fg: VERDE,
-    Cartoon: CartoonBurger,
-  },
-  {
-    id: "extra-queijo",
-    label: "Mais Queijo",
-    copy: "Adiciona mais queijo",
-    price: 2.0,
-    cardBg: ROSA,
-    fg: VERDE,
-    Cartoon: CartoonCheese,
-  },
-  {
-    id: "extra-ovo",
-    label: "Com Ovo",
-    copy: "Adiciona 1 ovo ao burger",
-    price: 2.5,
-    cardBg: ROSA,
-    fg: VERDE,
-    Cartoon: CartoonEgg,
-  },
-  {
-    id: "extra-bebida",
-    label: "Mais Refri",
-    copy: "Adiciona 1 refrigerante",
-    price: 6.9,
-    cardBg: ROSA,
-    fg: VERDE,
-    Cartoon: CartoonCup,
-  },
-  {
-    id: "extra-molho",
-    label: "Molho Extra",
-    copy: "Adiciona mais molho",
-    price: 2.9,
-    cardBg: ROSA,
-    fg: VERDE,
-    Cartoon: CartoonSauce,
-  },
-  {
-    id: "combo2",
-    label: "Super Combo",
-    copy: "2 burgers + 2 refri + batata",
-    price: 59.9,
-    cardBg: ROSA,
-    fg: VERDE,
-    Cartoon: CartoonCrown,
-    action: "combo2" as const,
-  },
-];
-
-/* ─── Menu lateral ───────────────────────────────────── */
-const SIDE_ITEMS = [
+const MENU_ITEMS: MenuItem[] = [
   {
     id: "burger",
-    label: "Menfi's Burger",
-    desc: "Pão brioche, burger 100g, queijo e molho",
+    name: "Menfi's Burger",
+    eyebrow: "Clássico da casa",
+    desc: "Pão brioche selado, burger 100g, queijo, alface crocante, cebola caramelizada e molho Menfi's.",
     price: 19.9,
+    image: burgerPhoto,
+    tags: ["100g", "Molho da casa", "Brioche"],
+    category: "burger",
+    highlight: true,
+  },
+  {
+    id: "double-burger",
+    name: "Double Menfi's",
+    eyebrow: "Mais carne",
+    desc: "O dobro de burger, queijo derretido, cebola caramelizada e molho Menfi's no brioche.",
+    price: 29.9,
+    image: burgerPhoto,
+    tags: ["Double", "Mais suculento", "Brioche"],
+    category: "burger",
   },
   {
     id: "combo",
-    label: "Combo Menfi's",
-    desc: "Burger + Coca-Cola 350ml + Batata Frita 250g",
-    price: 32.8,
+    name: "Combo Menfi's",
+    eyebrow: "Pedido completo",
+    desc: "Menfi's Burger com Coca-Cola 350ml e batata frita 250g. Ideal para quem quer o pedido fechado.",
+    price: 37.9,
+    image: burgerPhoto,
+    tags: ["Burger", "Batata", "Refri"],
+    category: "combo",
+  },
+  {
+    id: "double-combo",
+    name: "Double Combo Menfi's",
+    eyebrow: "Pedido completo",
+    desc: "Double Menfi's com Coca-Cola 350ml e batata frita 250g. Mais burger no combo.",
+    price: 46.9,
+    image: burgerPhoto,
+    tags: ["Double", "Batata", "Refri"],
+    category: "combo",
   },
   {
     id: "combo2",
-    label: "Super Combo",
-    desc: "2 burgers + 2 Coca-Cola + batata frita",
-    price: 59.9,
-    badge: "NOVO",
+    name: "Super Combo",
+    eyebrow: "Para dividir",
+    desc: "2 burgers, 2 Coca-Cola 350ml e batata frita. Melhor custo por pessoa.",
+    price: 64.9,
+    image: burgerPhoto,
+    tags: ["2 pessoas", "Mais vendido", "Economia"],
+    category: "combo",
+    highlight: true,
   },
   {
     id: "batata",
-    label: "Batata Frita",
-    desc: "250g crocante e temperada",
-    price: 8.9,
+    name: "Batata Frita",
+    eyebrow: "Acompanhamento",
+    desc: "Porção 250g crocante, finalizada quente para acompanhar o burger.",
+    price: 15.9,
+    image: friesPhoto,
+    tags: ["250g", "Crocante"],
+    category: "extra",
+  },
+  {
+    id: "extra-queijo",
+    name: "Extra Queijo",
+    eyebrow: "Adicional",
+    desc: "Camada extra de queijo derretido no burger.",
+    price: 2,
+    image: "/queijo.jpg",
+    tags: ["Derretido", "Cremoso"],
+    category: "extra",
+  },
+  {
+    id: "extra-ovo",
+    name: "Ovo",
+    eyebrow: "Adicional",
+    desc: "Ovo preparado para completar o burger.",
+    price: 2.5,
+    image: "/ovo.jpg",
+    tags: ["Adicional", "Quente"],
+    category: "extra",
+  },
+  {
+    id: "extra-molho",
+    name: "Molho Extra",
+    eyebrow: "Adicional",
+    desc: "Porção extra do molho Menfi's.",
+    price: 2.9,
+    image: "/maionese.jpg",
+    tags: ["Molho da casa"],
+    category: "extra",
   },
   {
     id: "cola",
-    label: "Coca-Cola 350ml",
-    desc: "Gelada e pronta para acompanhar",
-    price: 6.9,
+    name: "Coca-Cola 350ml",
+    eyebrow: "Bebida",
+    desc: "Lata gelada para retirada ou envio junto do pedido.",
+    price: 7.9,
+    image: colaPhoto,
+    tags: ["350ml", "Gelada"],
+    category: "bebida",
   },
 ];
 
-const SIDEBAR_TABS = [
-  { id: "burger", label: "Burger", Icon: Utensils },
-  { id: "combo", label: "Combo", Icon: Package },
-  { id: "batata", label: "Batata", Icon: Flame },
-  { id: "cola", label: "Cola", Icon: Coffee },
-  { id: "extras", label: "Extras", Icon: Star },
+const CATEGORIES = [
+  { id: "combo", label: "Combos", Icon: Package },
+  { id: "burger", label: "Burgers", Icon: Beef },
+  { id: "extra", label: "Extras", Icon: Flame },
+  { id: "bebida", label: "Bebidas", Icon: Coffee },
 ] as const;
 
-const TAGS = ["Blend da Casa", "Queijo Derretido", "Molho Menfi's Exclusivo"];
-const SUPER_COMBO_TAGS = ["2 Burgers", "2 Refri", "Batata Frita"];
-
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+const BURGER_ID = "burger";
+const BURGER_PRICE = 19.9;
+const CHEESE_PRICE = 2;
+const SAUCE_PRICE = 2.9;
+const COMBO_PRICE = 37.9;
+const COMBO_UPGRADE_PRICE = COMBO_PRICE - BURGER_PRICE;
+const MEMBER_KEY = "menfis_member";
+const DELIVERY_STORAGE_KEY = "menfis_cliente";
 
-const sectionVariants = {
-  hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0 },
-};
+function readMemberProfile(): MemberProfile | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(MEMBER_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data?.email) return null;
+    return {
+      name: String(data.name ?? ""),
+      email: String(data.email ?? ""),
+      phone: String(data.phone ?? ""),
+      freeShipping: Boolean(data.freeShipping),
+      orders: Number(data.orders ?? 0),
+      rewards: Number(data.rewards ?? Math.floor(Number(data.orders ?? 0) / 10)),
+      createdAt: Number(data.createdAt ?? Date.now()),
+    };
+  } catch {
+    return null;
+  }
+}
 
-const SIDE_PANEL_WIDTH = "min(340px, 38vw)";
+function readSavedDelivery() {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(DELIVERY_STORAGE_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function isEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function buildBurger(builder: BuilderState) {
+  const additions = [
+    builder.cheese ? "Extra queijo" : "",
+    builder.sauce ? "Molho extra" : "",
+  ].filter(Boolean);
+  const price =
+    BURGER_PRICE +
+    (builder.cheese ? CHEESE_PRICE : 0) +
+    (builder.sauce ? SAUCE_PRICE : 0);
+
+  return {
+    id: additions.length ? `burger-${additions.join("-").toLowerCase().replace(/\s+/g, "-")}` : BURGER_ID,
+    name: additions.length
+      ? `MENFI'S BURGER (${additions.join(" + ")})`
+      : "MENFI'S BURGER",
+    price,
+  };
+}
 
 interface Props {
   cart: CartItem[];
@@ -292,2204 +243,1086 @@ export function ProductScreen({
   addToCart,
   updateQty,
   goToCart,
-  goBack,
   onAdminOpen,
 }: Props) {
-  const isMobile = useIsMobile();
-  const [productMode, setProductMode] = useState<"burger" | "superCombo">(
-    "burger",
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>(
+    "combo",
   );
-  const [withCombo, setWithCombo] = useState(false);
-  const [selExtras, setSelExtras] = useState<Set<string>>(new Set());
-  const [obsOpen, setObsOpen] = useState(false);
-  const [removed, setRemoved] = useState<Set<string>>(new Set());
-  const [added, setAdded] = useState(false);
-  const [sideOpen, setSideOpen] = useState(false);
-  const [upsellOpen, setUpsellOpen] = useState(false);
-  const [upsellTitle, setUpsellTitle] = useState("");
-  const [infoItem, setInfoItem] = useState<(typeof EXTRAS)[number] | null>(
-    null,
+  const [builder, setBuilder] = useState<BuilderState>({
+    cheese: false,
+    sauce: false,
+  });
+  const [suggestion, setSuggestion] = useState<{
+    item: Omit<CartItem, "qty">;
+    canCombo: boolean;
+  } | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [memberName, setMemberName] = useState("");
+  const [memberEmail, setMemberEmail] = useState("");
+  const [memberPhone, setMemberPhone] = useState("");
+  const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(
+    () => readMemberProfile(),
   );
-  const [adminTapCount, setAdminTapCount] = useState(0);
+  const [memberError, setMemberError] = useState("");
+  const [memberSaving, setMemberSaving] = useState(false);
   const adminTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [mobileDrawerTab, setMobileDrawerTab] = useState<
-    "menu" | "extras" | "pedido"
-  >("menu");
+  const adminTapCountRef = useRef(0);
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
-  const cartSubtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const isSuperCombo = productMode === "superCombo";
-  const visibleExtras = isSuperCombo
-    ? EXTRAS.filter((ex) => !("action" in ex))
-    : EXTRAS;
-  const drawerExtras = EXTRAS.filter(
-    (ex) => !("action" in ex) && ex.id !== "extra-bebida",
+  const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const filteredItems = useMemo(
+    () => MENU_ITEMS.filter((item) => item.category === category),
+    [category],
   );
+  const savedDelivery = readSavedDelivery();
+  const memberProgress = memberProfile ? memberProfile.orders % 10 : 0;
 
-  const toggleExtra = (id: string) =>
-    setSelExtras((prev) => {
-      const s = new Set(prev);
-      s.has(id) ? s.delete(id) : s.add(id);
-      return s;
-    });
-
-  const toggleRemove = (opt: string) =>
-    setRemoved((prev) => {
-      const s = new Set(prev);
-      s.has(opt) ? s.delete(opt) : s.add(opt);
-      return s;
-    });
-
-  const extrasTotal = EXTRAS.filter(
-    (e) => selExtras.has(e.id) && !("action" in e),
-  ).reduce((s, e) => s + e.price, 0);
-  const total =
-    (isSuperCombo
-      ? SUPER_COMBO_PRICE
-      : BURGER_PRICE + (withCombo ? COMBO_EXTRA : 0)) + extrasTotal;
-  const itemId = isSuperCombo ? "combo2" : withCombo ? "combo" : "burger";
-  const itemName = isSuperCombo
-    ? "SUPER COMBO"
-    : withCombo
-      ? "COMBO MENFI'S"
-      : "MENFI'S BURGER";
-  const description = isSuperCombo
-    ? "2 burgers, 2 refris e batata frita em uma opção só."
-    : "Pão brioche, burger 100g, queijo, salada e molho da casa.";
-
-  const handleAdd = () => {
-    addToCart({ id: itemId, name: itemName, price: total });
-    EXTRAS.filter((e) => selExtras.has(e.id) && !("action" in e)).forEach((e) =>
-      addToCart({ id: e.id, name: e.label, price: e.price }),
-    );
-    setSideOpen(true);
-    setInfoItem(null);
-    setAdded(true);
-    setSelExtras(new Set());
-    setWithCombo(false);
-    setRemoved(new Set());
-    setObsOpen(false);
-    setTimeout(() => setAdded(false), 1800);
-  };
+  const qty = (id: string) => cart.find((item) => item.id === id)?.qty ?? 0;
 
   const handleAdminTap = () => {
-    setAdminTapCount((prev) => {
-      const next = prev + 1;
+    adminTapCountRef.current += 1;
+    if (adminTapTimerRef.current) clearTimeout(adminTapTimerRef.current);
 
-      if (adminTapTimerRef.current) {
-        clearTimeout(adminTapTimerRef.current);
-      }
-
-      if (next >= 3) {
-        adminTapTimerRef.current = null;
-        onAdminOpen?.();
-        return 0;
-      }
-
-      adminTapTimerRef.current = setTimeout(() => {
-        setAdminTapCount(0);
-        adminTapTimerRef.current = null;
-      }, 700);
-
-      return next;
-    });
-  };
-  const addSideItem = (item: (typeof SIDE_ITEMS)[number]) => {
-    addToCart({ id: item.id, name: item.label, price: item.price });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
-  };
-
-  const addSideExtra = (ex: (typeof EXTRAS)[number]) => {
-    addToCart({ id: ex.id, name: ex.label, price: ex.price });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
-  };
-
-  const QtyControl = ({
-    id,
-    onAdd,
-    size = 36,
-  }: {
-    id: string;
-    onAdd: () => void;
-    size?: number;
-  }) => {
-    const qty = cart.find((item) => item.id === id)?.qty ?? 0;
-    if (qty === 0) {
-      return (
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={onAdd}
-          style={{
-            width: size,
-            height: size,
-            background: VERDE,
-            border: "none",
-            borderRadius: 10,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <Plus
-            size={size >= 34 ? 18 : 13}
-            strokeWidth={2.5}
-            style={{ color: ROSA }}
-          />
-        </motion.button>
-      );
+    if (adminTapCountRef.current >= 3) {
+      adminTapCountRef.current = 0;
+      adminTapTimerRef.current = null;
+      onAdminOpen?.();
+      return;
     }
 
-    return (
-      <div
-        style={{
-          height: size,
-          background: VERDE,
-          borderRadius: 10,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 3,
-          padding: "0 4px",
-          flexShrink: 0,
-        }}
-      >
-        <button
-          onClick={() => updateQty(id, -1)}
-          style={{
-            width: size - 10,
-            height: size - 10,
-            background: "transparent",
-            border: "none",
-            color: ROSA,
-            cursor: "pointer",
-            fontSize: 17,
-            fontWeight: 900,
-            lineHeight: 1,
-          }}
-        >
-          -
-        </button>
-        <span
-          style={{
-            minWidth: 16,
-            textAlign: "center",
-            color: ROSA,
-            fontSize: 12,
-            fontWeight: 900,
-          }}
-        >
-          {qty}
-        </span>
-        <button
-          onClick={onAdd}
-          style={{
-            width: size - 10,
-            height: size - 10,
-            background: "transparent",
-            border: "none",
-            color: ROSA,
-            cursor: "pointer",
-            fontSize: 17,
-            fontWeight: 900,
-            lineHeight: 1,
-          }}
-        >
-          +
-        </button>
-      </div>
-    );
+    adminTapTimerRef.current = setTimeout(() => {
+      adminTapCountRef.current = 0;
+      adminTapTimerRef.current = null;
+    }, 700);
+  };
+
+  const addMenuItem = (item: MenuItem) => {
+    const cartItem =
+      item.id === BURGER_ID
+        ? buildBurger(builder)
+        : { id: item.id, name: item.name.toUpperCase(), price: item.price };
+
+    addToCart(cartItem);
+    const canCombo = item.category === "burger";
+    if (canCombo) {
+      setSuggestion({ item: cartItem, canCombo });
+    }
+  };
+
+  const addComboUpgrade = () => {
+    addToCart({
+      id: "combo-upgrade",
+      name: "TRANSFORMAR EM COMBO (BATATA + COCA-COLA)",
+      price: COMBO_UPGRADE_PRICE,
+    });
+    setSuggestion(null);
+  };
+
+  const openMemberAccess = () => {
+    if (memberProfile) {
+      setProfileOpen(true);
+      return;
+    }
+    setLoginOpen(true);
+  };
+
+  const editMember = () => {
+    if (memberProfile) {
+      setMemberName(memberProfile.name);
+      setMemberEmail(memberProfile.email);
+      setMemberPhone(memberProfile.phone);
+    }
+    setProfileOpen(false);
+    setLoginOpen(true);
+  };
+
+  const saveMember = () => {
+    const name = memberName.trim();
+    const email = memberEmail.trim().toLowerCase();
+    const phone = memberPhone.trim();
+    setMemberError("");
+    if (!name || !isEmail(email) || phone.replace(/\D/g, "").length < 10) {
+      setMemberError("Preencha nome, email válido e WhatsApp para criar seu perfil.");
+      return;
+    }
+
+    const existing = readMemberProfile();
+    if (existing && existing.email.toLowerCase() !== email) {
+      setMemberError(
+        "Este aparelho já tem um perfil Menfi's. Use o mesmo email para manter seus benefícios.",
+      );
+      return;
+    }
+
+    setMemberSaving(true);
+    window.setTimeout(() => {
+      const profile: MemberProfile = {
+        name,
+        email,
+        phone,
+        freeShipping: true,
+        orders: existing?.orders ?? 0,
+        rewards: existing?.rewards ?? 0,
+        createdAt: existing?.createdAt ?? Date.now(),
+      };
+      localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+      setMemberProfile(profile);
+      setMemberSaving(false);
+      setLoginOpen(false);
+    }, 650);
   };
 
   return (
     <div
       style={{
-        background: "#FFFFFF",
+        minHeight: "100dvh",
+        background: "#FFF8F2",
+        color: VERDE,
         fontFamily: "'Inter', system-ui, sans-serif",
-        position: "relative",
-        minHeight: "100%",
-        overflowX: "hidden",
       }}
     >
-      {/* ══ RETRACTABLE SIDEBAR STRIP ═══════════════════ */}
-      <div
+      <header
         style={{
-          display: isMobile ? "none" : "block",
-          position: "fixed",
-          left: 0,
-          top: "50%",
-          transform: "translateY(-50%)",
-          zIndex: 35,
+          position: "sticky",
+          top: 0,
+          zIndex: 40,
+          background: "rgba(255,248,242,0.94)",
+          backdropFilter: "blur(18px)",
+          borderBottom: `1px solid ${VERDE}14`,
         }}
       >
-        <AnimatePresence>
-          {!sideOpen && !upsellOpen && (
-            <motion.div
-              initial={{ x: -64 }}
-              animate={{ x: 0 }}
-              exit={{ x: -64 }}
-              transition={{ type: "spring", damping: 26, stiffness: 300 }}
-              style={{
-                background: VERDE,
-                borderRadius: "0 14px 14px 0",
-                paddingTop: 10,
-                paddingBottom: 10,
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: "4px 0 24px rgba(31,61,46,0.28)",
-              }}
-            >
-              {SIDEBAR_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setSideOpen(true)}
-                  style={{
-                    width: 56,
-                    height: 54,
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 3,
-                    padding: 0,
-                  }}
-                >
-                  <tab.Icon size={19} strokeWidth={1.7} color={ROSA} />
-                  <span
-                    style={{
-                      fontSize: 7,
-                      fontWeight: 900,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: ROSA,
-                      opacity: 0.8,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {tab.label}
-                  </span>
-                </button>
-              ))}
-              {cartCount > 0 && (
-                <button
-                  onClick={goToCart}
-                  style={{
-                    width: 56,
-                    height: 54,
-                    background: `${ROSA}18`,
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 3,
-                    borderTop: `1px solid ${ROSA}25`,
-                    marginTop: 4,
-                    padding: 0,
-                  }}
-                >
-                  <ShoppingBag size={19} strokeWidth={1.7} color={ROSA} />
-                  <span
-                    style={{
-                      background: ROSA,
-                      color: VERDE,
-                      borderRadius: 999,
-                      fontSize: 9,
-                      fontWeight: 900,
-                      width: 18,
-                      height: 18,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {cartCount}
-                  </span>
-                </button>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* ══ SIDE DRAWER ══════════════════════════════════ */}
-      <AnimatePresence>
-        {sideOpen && (
-          <>
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 280 }}
-              style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                bottom: 0,
-                width: isMobile ? "100vw" : SIDE_PANEL_WIDTH,
-                background: "#fff",
-                zIndex: 22,
-                overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: "18px 0 40px rgba(31,61,46,0.14)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "20px 20px 14px",
-                  background: VERDE,
-                }}
-              >
-                <p
-                  style={{
-                    color: ROSA,
-                    fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                    fontSize: "1.2rem",
-                    letterSpacing: "0.15em",
-                    lineHeight: 1,
-                  }}
-                >
-                  Adicionar Itens
-                </p>
-                <button
-                  onClick={() => setSideOpen(false)}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    background: ROSA,
-                    border: "none",
-                    borderRadius: "50%",
-                    color: VERDE,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <X size={16} strokeWidth={2.5} />
-                </button>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 20,
-                  padding: "18px 14px 16px",
-                  flex: 1,
-                }}
-              >
-                {isMobile && (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(3, 1fr)",
-                      gap: 8,
-                    }}
-                  >
-                    {[
-                      { id: "menu" as const, label: "Menu" },
-                      { id: "extras" as const, label: "Extras" },
-                      { id: "pedido" as const, label: "Pedido" },
-                    ].map((tab) => {
-                      const active = mobileDrawerTab === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => setMobileDrawerTab(tab.id)}
-                          style={{
-                            border: `1.5px solid ${active ? VERDE : `${VERDE}15`}`,
-                            background: active ? VERDE : "#fff",
-                            color: active ? ROSA : VERDE,
-                            borderRadius: 14,
-                            padding: "10px 8px",
-                            fontSize: 10,
-                            fontWeight: 900,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.08em",
-                          }}
-                        >
-                          {tab.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Lanches */}
-                {(!isMobile || mobileDrawerTab === "menu") && (
-                  <div>
-                    <p
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 900,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        color: VERDE,
-                        opacity: 0.4,
-                        marginBottom: 10,
-                      }}
-                    >
-                      Lanches e Combos
-                    </p>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8,
-                      }}
-                    >
-                      {SIDE_ITEMS.map((item) => (
-                        <div
-                          key={item.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 12,
-                            padding: "10px 14px",
-                            borderRadius: 16,
-                            border: `1.5px solid ${ROSA}`,
-                            background: "#fff",
-                            position: "relative",
-                          }}
-                        >
-                          {"badge" in item && item.badge && (
-                            <span
-                              style={{
-                                position: "absolute",
-                                top: -9,
-                                left: 12,
-                                background: VERDE,
-                                color: ROSA,
-                                fontSize: 7,
-                                fontWeight: 900,
-                                padding: "2px 8px",
-                                borderRadius: 999,
-                                letterSpacing: "0.08em",
-                              }}
-                            >
-                              {item.badge}
-                            </span>
-                          )}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 900,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.04em",
-                                color: VERDE,
-                                lineHeight: 1,
-                              }}
-                            >
-                              {item.label}
-                            </p>
-                            {!isMobile && (
-                              <p
-                                style={{
-                                  fontSize: 9,
-                                  marginTop: 3,
-                                  color: VERDE,
-                                  opacity: 0.4,
-                                  lineHeight: 1.3,
-                                }}
-                              >
-                                {item.desc}
-                              </p>
-                            )}
-                            <p
-                              style={{
-                                color: VERDE,
-                                fontFamily:
-                                  "'Bebas Neue','Arial Black',sans-serif",
-                                fontSize: "0.95rem",
-                                marginTop: 4,
-                              }}
-                            >
-                              {fmt(item.price)}
-                            </p>
-                          </div>
-                          <QtyControl
-                            id={item.id}
-                            onAdd={() => addSideItem(item)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Extras no drawer */}
-                {(!isMobile || mobileDrawerTab === "extras") && (
-                  <div>
-                    <p
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 900,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        color: VERDE,
-                        opacity: 0.4,
-                        marginBottom: 10,
-                      }}
-                    >
-                      Extras avulsos
-                    </p>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8,
-                      }}
-                    >
-                      {drawerExtras.map((ex) => (
-                        <div
-                          key={ex.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            padding: "8px 14px",
-                            borderRadius: 12,
-                            border: `1.5px solid ${ROSA}50`,
-                            background: "#fff",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 8,
-                              background: ROSA,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                              overflow: "hidden",
-                            }}
-                          >
-                            <ex.Cartoon color={VERDE} />
-                          </div>
-                          <p
-                            style={{
-                              flex: 1,
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: VERDE,
-                            }}
-                          >
-                            {ex.label}
-                          </p>
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "flex-end",
-                              gap: 2,
-                              marginRight: 6,
-                            }}
-                          >
-                            <p
-                              style={{
-                                fontFamily:
-                                  "'Bebas Neue','Arial Black',sans-serif",
-                                fontSize: "0.9rem",
-                                color: VERDE,
-                                lineHeight: 1,
-                              }}
-                            >
-                              {fmt(ex.price)}
-                            </p>
-                            {!isMobile && (
-                              <p
-                                style={{
-                                  fontSize: 8,
-                                  color: VERDE,
-                                  opacity: 0.4,
-                                }}
-                              >
-                                Toque no +
-                              </p>
-                            )}
-                          </div>
-                          <QtyControl
-                            id={ex.id}
-                            onAdd={() => addSideExtra(ex)}
-                            size={30}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(!isMobile || mobileDrawerTab === "pedido") && (
-                  <div>
-                    <button
-                      onClick={() => setObsOpen((v) => !v)}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "11px 12px",
-                        borderRadius: 12,
-                        background: obsOpen ? `${VERDE}10` : "#fff",
-                        border: `1.5px solid ${ROSA}`,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <MessageSquare
-                        size={13}
-                        strokeWidth={2.2}
-                        style={{ color: VERDE }}
-                      />
-                      <span
-                        style={{
-                          flex: 1,
-                          textAlign: "left",
-                          fontSize: 10,
-                          fontWeight: 900,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          color: VERDE,
-                        }}
-                      >
-                        Observações
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 8,
-                          fontWeight: 900,
-                          color: VERDE,
-                          opacity: 0.45,
-                        }}
-                      >
-                        {removed.size > 0
-                          ? `${removed.size} remov.`
-                          : "remover itens"}
-                      </span>
-                    </button>
-                    <AnimatePresence>
-                      {obsOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          style={{ overflow: "hidden" }}
-                        >
-                          <div style={{ paddingTop: 8 }}>
-                            {[
-                              "Alface Crocante",
-                              "Queijo",
-                              "Carne",
-                              "Cebola Caramelizada",
-                              "Molho",
-                            ].map((opt) => {
-                              const active = removed.has(opt);
-                              return (
-                                <button
-                                  key={opt}
-                                  onClick={() => toggleRemove(opt)}
-                                  style={{
-                                    width: "100%",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 8,
-                                    padding: "8px 10px",
-                                    background: active ? `${ROSA}55` : "#fff",
-                                    border: "none",
-                                    borderBottom: `1px solid ${VERDE}08`,
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      width: 16,
-                                      height: 16,
-                                      borderRadius: 5,
-                                      border: `1.5px solid ${active ? VERDE : `${VERDE}35`}`,
-                                      background: active ? VERDE : "#fff",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {active && (
-                                      <Check
-                                        size={10}
-                                        strokeWidth={3}
-                                        style={{ color: ROSA }}
-                                      />
-                                    )}
-                                  </span>
-                                  <span
-                                    style={{
-                                      fontSize: 10,
-                                      fontWeight: 800,
-                                      color: VERDE,
-                                      opacity: active ? 1 : 0.65,
-                                    }}
-                                  >
-                                    Sem {opt}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <div
-                      style={{
-                        flex: 1,
-                        minHeight: 220,
-                        display: "flex",
-                        flexDirection: "column",
-                        marginTop: 12,
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 900,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          color: VERDE,
-                          opacity: 0.42,
-                          marginBottom: 8,
-                        }}
-                      >
-                        Pedido atual
-                      </p>
-                      {cartCount > 0 ? (
-                        <div
-                          style={{
-                            flex: 1,
-                            minHeight: 180,
-                            overflowY: "auto",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 7,
-                            paddingRight: 4,
-                          }}
-                        >
-                          {cart.map((item) => (
-                            <div
-                              key={item.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                background: `${VERDE}06`,
-                                border: `1px solid ${VERDE}10`,
-                                borderRadius: 10,
-                                padding: "8px 9px",
-                              }}
-                            >
-                              <span
-                                style={{
-                                  width: 22,
-                                  height: 22,
-                                  borderRadius: 999,
-                                  background: ROSA,
-                                  color: VERDE,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: 9,
-                                  fontWeight: 900,
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {item.qty}
-                              </span>
-                              <span
-                                style={{
-                                  flex: 1,
-                                  minWidth: 0,
-                                  fontSize: 10,
-                                  fontWeight: 800,
-                                  color: VERDE,
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                }}
-                              >
-                                {item.name}
-                              </span>
-                              <span
-                                style={{
-                                  fontFamily:
-                                    "'Bebas Neue','Arial Black',sans-serif",
-                                  fontSize: "0.82rem",
-                                  color: VERDE,
-                                }}
-                              >
-                                {fmt(item.price * item.qty)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            flex: 1,
-                            minHeight: 180,
-                            border: `1.5px dashed ${VERDE}18`,
-                            borderRadius: 14,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: 16,
-                          }}
-                        >
-                          <p
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 800,
-                              color: VERDE,
-                              opacity: 0.35,
-                              textAlign: "center",
-                            }}
-                          >
-                            Seu pedido aparece aqui conforme você adiciona
-                            itens.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div
-                style={{
-                  position: "sticky",
-                  bottom: 0,
-                  padding: "12px 14px 14px",
-                  background: "#fff",
-                  borderTop: `1.5px solid ${ROSA}`,
-                }}
-              >
-                {isMobile && mobileDrawerTab !== "pedido" && (
-                  <motion.button
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => setMobileDrawerTab("pedido")}
-                    style={{
-                      width: "100%",
-                      marginBottom: 8,
-                      padding: "12px 16px",
-                      borderRadius: 14,
-                      background: `${VERDE}08`,
-                      color: VERDE,
-                      border: `1.5px solid ${ROSA}`,
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.12em",
-                    }}
-                  >
-                    Ver pedido
-                  </motion.button>
-                )}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    if (cartCount > 0) {
-                      setSideOpen(false);
-                      goToCart();
-                    }
-                  }}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "14px 20px",
-                    borderRadius: 16,
-                    background: cartCount > 0 ? VERDE : `${VERDE}35`,
-                    color: ROSA,
-                    border: "none",
-                    cursor: cartCount > 0 ? "pointer" : "default",
-                    fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                    fontSize: "1rem",
-                    letterSpacing: "0.15em",
-                  }}
-                >
-                  <span>Finalizar pedido</span>
-                  <span
-                    style={{
-                      background: ROSA,
-                      color: VERDE,
-                      borderRadius: 999,
-                      minWidth: 28,
-                      height: 24,
-                      padding: "0 8px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 11,
-                      fontWeight: 900,
-                    }}
-                  >
-                    {cartCount > 0 ? fmt(cartSubtotal) : "0"}
-                  </span>
-                </motion.button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ══ UPSELL MODAL ════════════════════════════════ */}
-      <AnimatePresence>
-        {upsellOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.6 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setUpsellOpen(false)}
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "#000",
-                zIndex: 60,
-              }}
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              style={{
-                position: "fixed",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                zIndex: 61,
-                background: "#fff",
-                borderRadius: "24px 24px 0 0",
-                paddingBottom: 32,
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 4,
-                  background: `${VERDE}18`,
-                  borderRadius: 99,
-                  margin: "12px auto 0",
-                }}
-              />
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  padding: "16px 18px 12px",
-                }}
-              >
-                <div>
-                  <p
-                    style={{
-                      fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                      fontSize: "1.4rem",
-                      color: VERDE,
-                      lineHeight: 1,
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    {upsellTitle}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 11,
-                      color: VERDE,
-                      opacity: 0.4,
-                      marginTop: 3,
-                    }}
-                  >
-                    Adicione ao seu pedido com um toque
-                  </p>
-                </div>
-                <button
-                  onClick={() => setUpsellOpen(false)}
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: "50%",
-                    background: `${VERDE}10`,
-                    border: "none",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <X size={14} strokeWidth={2.5} style={{ color: VERDE }} />
-                </button>
-              </div>
-
-              {/* 3×2 cartoon grid */}
-              <div
-                style={{
-                  padding: "0 14px",
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: 10,
-                }}
-              >
-                {EXTRAS.filter((ex) => !("action" in ex)).map((ex) => (
-                  <motion.button
-                    key={ex.id}
-                    whileTap={{ scale: 0.93 }}
-                    onClick={() => {
-                      addToCart({ id: ex.id, name: ex.label, price: ex.price });
-                      setUpsellOpen(false);
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: `1.5px solid ${VERDE}18`,
-                      borderRadius: 16,
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      padding: 0,
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: 80,
-                        background: ROSA,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <ex.Cartoon color={VERDE} />
-                    </div>
-                    <div style={{ padding: "8px 8px 10px", textAlign: "left" }}>
-                      <p
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 900,
-                          color: VERDE,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {ex.label}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: 7.5,
-                          color: VERDE,
-                          opacity: 0.4,
-                          lineHeight: 1.3,
-                          marginTop: 2,
-                        }}
-                      >
-                        {ex.copy}
-                      </p>
-                      <p
-                        style={{
-                          fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                          fontSize: "0.85rem",
-                          color: VERDE,
-                          marginTop: 5,
-                          lineHeight: 1,
-                        }}
-                      >
-                        + {fmt(ex.price)}
-                      </p>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setUpsellOpen(false)}
-                style={{
-                  display: "block",
-                  margin: "16px auto 0",
-                  background: "none",
-                  border: `1.5px solid ${VERDE}18`,
-                  borderRadius: 12,
-                  padding: "10px 32px",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: VERDE,
-                  opacity: 0.45,
-                }}
-              >
-                Não, já está ótimo!
-              </motion.button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <motion.div
-        animate={{
-          marginLeft: sideOpen ? SIDE_PANEL_WIDTH : 0,
-          width: sideOpen ? `calc(100% - ${SIDE_PANEL_WIDTH})` : "100%",
-        }}
-        transition={{ type: "spring", damping: 30, stiffness: 260 }}
-        style={{
-          minHeight: "100%",
-          position: "relative",
-          zIndex: 10,
-          overflow: "hidden",
-        }}
-      >
-        {/* ══ HERO ════════════════════════════════════════ */}
-        <motion.div
-          className="relative"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          style={{
-            height: "min(62vh, 620px)",
-            minHeight: 430,
-            overflow: "hidden",
-            background: "#f7f4ef",
-          }}
-        >
-          <motion.img
-            src={isSuperCombo ? SUPER_COMBO_HERO_SRC : burgerPhoto.src}
-            alt={isSuperCombo ? "Super Combo Menfi's" : "Menfi's Burger"}
-            className="w-full h-full object-cover"
-            initial={{ scale: 1.06 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            style={{
-              objectPosition: isSuperCombo ? "center 74%" : "center 66%",
-            }}
-          />
-          <div
-            className="absolute inset-x-0 bottom-0 pointer-events-none"
-            style={{
-              height: "44%",
-              background:
-                "linear-gradient(to top, #fff 0%, rgba(255,255,255,0.88) 26%, rgba(255,255,255,0.16) 68%, transparent 100%)",
-            }}
-          />
-          <motion.button
-            onClick={() => setSideOpen(true)}
-            whileTap={{ scale: 0.92 }}
-            className="absolute top-4 left-4 flex items-center justify-center rounded-full"
-            style={{
-              width: 44,
-              height: 44,
-              background: ROSA,
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255,255,255,0.65)",
-              color: VERDE,
-              cursor: "pointer",
-              boxShadow: "0 10px 28px rgba(31,61,46,0.16)",
-            }}
-          >
-            <Plus size={22} strokeWidth={2.7} />
-          </motion.button>
-          <motion.button
+        <div className="flex w-full items-center gap-4 px-4 py-3">
+          <button
             onClick={handleAdminTap}
-            whileTap={{ scale: 0.92 }}
-            className="absolute top-3 right-3"
+            aria-label="Menfi's Burger"
+            className="shrink-0 overflow-hidden rounded-full"
             style={{
-              width: 52,
-              height: 52,
-              background: "rgba(255,255,255,0.22)",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-              borderRadius: "50%",
-              backdropFilter: "blur(4px)",
+              width: 46,
+              height: 46,
+              background: "#fff",
+              border: `2px solid ${ROSA}`,
+              boxShadow: "0 10px 24px rgba(31,61,46,0.18)",
             }}
           >
             <img
-              src={logoSkull.src}
-              alt="Admin"
-              style={{
-                width: 52,
-                height: 52,
-                objectFit: "contain",
-                mixBlendMode: "multiply",
-              }}
+              src="/logo_M_square.png"
+              alt=""
+              width={46}
+              height={46}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
-          </motion.button>
-          <span
-            className="absolute top-4 left-1/2 -translate-x-1/2 text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider"
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <p
+              className="text-[10px] font-black uppercase tracking-[0.22em]"
+              style={{ color: `${VERDE}80` }}
+            >
+              Menfi's Burger
+            </p>
+            <p
+              className="truncate text-sm font-black uppercase tracking-wide"
+              style={{ color: VERDE }}
+            >
+              Burger quente e entrega rápida. Feito com amor
+            </p>
+          </div>
+
+          <button
+            onClick={goToCart}
+            disabled={cartCount === 0}
+            className="flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-35"
             style={{
               background: VERDE,
               color: ROSA,
-              whiteSpace: "nowrap",
-              boxShadow: "0 10px 24px rgba(31,61,46,0.16)",
-            }}
-          >
-            O ÚNICO
-          </span>
-        </motion.div>
-
-        {/* ══ BODY ════════════════════════════════════════ */}
-        <motion.div
-          initial="hidden"
-          animate="show"
-          transition={{ staggerChildren: 0.08, delayChildren: 0.08 }}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            padding: "18px 20px 172px 82px",
-            gap: 25,
-            background: "#fff",
-            maxWidth: 1180,
-            margin: "0 auto",
-            width: "100%",
-          }}
-        >
-          <motion.div
-            variants={sectionVariants}
-            transition={{ duration: 0.28, ease: "easeOut" }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <p
-              style={{
-                fontSize: 10,
-                fontWeight: 900,
-                textTransform: "uppercase",
-                letterSpacing: "0.09em",
-                color: VERDE,
-                opacity: 0.35,
-              }}
-            >
-              Passe para o lado e escolha
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                background: `${VERDE}08`,
-                borderRadius: 999,
-                padding: 4,
-              }}
-            >
-              <button
-                onClick={() => setProductMode("burger")}
-                style={{
-                  border: "none",
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  fontSize: 10,
-                  fontWeight: 900,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  background: !isSuperCombo ? VERDE : "transparent",
-                  color: !isSuperCombo ? ROSA : VERDE,
-                }}
-              >
-                Burger
-              </button>
-              <button
-                onClick={() => {
-                  setProductMode("superCombo");
-                  setWithCombo(false);
-                  setInfoItem(null);
-                }}
-                style={{
-                  border: "none",
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  fontSize: 10,
-                  fontWeight: 900,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  background: isSuperCombo ? VERDE : "transparent",
-                  color: isSuperCombo ? ROSA : VERDE,
-                }}
-              >
-                Super Combo
-              </button>
-            </div>
-          </motion.div>
-
-          {/* Nome + preço */}
-          <motion.div
-            variants={sectionVariants}
-            transition={{ duration: 0.36, ease: "easeOut" }}
-          >
-            <h1
-              style={{
-                color: VERDE,
-                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                fontSize: "clamp(2.55rem, 9vw, 3.25rem)",
-                lineHeight: 0.95,
-                margin: 0,
-                letterSpacing: "0.015em",
-              }}
-            >
-              {isSuperCombo ? "SUPER COMBO" : "MENFI'S BURGER"}
-            </h1>
-            <p
-              style={{
-                color: VERDE,
-                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                fontSize: "1.5rem",
-                lineHeight: 1,
-                marginTop: 4,
-                opacity: 0.55,
-              }}
-            >
-              {fmt(isSuperCombo ? SUPER_COMBO_PRICE : BURGER_PRICE)}
-            </p>
-          </motion.div>
-
-          {/* Descrição */}
-          <motion.div
-            variants={sectionVariants}
-            transition={{ duration: 0.36, ease: "easeOut" }}
-          >
-            <p
-              style={{
-                fontSize: 9,
-                fontWeight: 900,
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                color: VERDE,
-                opacity: 0.4,
-                marginBottom: 6,
-              }}
-            >
-              Descrição
-            </p>
-            <p style={{ fontSize: 13, lineHeight: 1.65, color: "#2f3d38" }}>
-              {isSuperCombo
-                ? "Combo completo para dividir (ou encarar sozinho): 2 burgers, 2 refris e batata frita. Mais volume, mais sabor e melhor custo-benefício."
-                : "Pão brioche na manteiga, burger de 100g do blend da casa, queijo derretido, alface crocante, cebola caramelizada e o irresistível Molho Menfi's. Suculento, cheio de sabor e feito para matar aquela vontade de comer algo realmente bom."}
-            </p>
-            <p
-              style={{
-                fontSize: 12,
-                lineHeight: 1.65,
-                color: "#2f3d38",
-                marginTop: 8,
-              }}
-            >
-              {isSuperCombo
-                ? "Perfeito para quem quer sair no lucro: acompanha bebida e batata em uma escolha só, sem complicação."
-                : "Aquele tipo que faz o molho escorrer, o queijo puxar e você já pensar na próxima mordida antes de terminar a primeira."}
-            </p>
-            <p
-              style={{
-                fontSize: 11,
-                marginTop: 8,
-                fontStyle: "italic",
-                color: VERDE,
-                opacity: 0.4,
-              }}
-            >
-              {isSuperCombo
-                ? "Mais pedido para dividir com estilo."
-                : 'Simplesmente impossível comer sem soltar um "hmm..."'}
-            </p>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                marginTop: 12,
-              }}
-            >
-              {(isSuperCombo ? SUPER_COMBO_TAGS : TAGS).map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 900,
-                    padding: "5px 11px",
-                    borderRadius: 999,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    background: `${ROSA}76`,
-                    color: VERDE,
-                    boxShadow: "inset 0 0 0 1px rgba(31,61,46,0.03)",
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Combo toggle */}
-          {!isSuperCombo && (
-            <motion.div
-              variants={sectionVariants}
-              transition={{ duration: 0.36, ease: "easeOut" }}
-            >
-              <p
-                style={{
-                  fontSize: 9,
-                  fontWeight: 900,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  color: VERDE,
-                  opacity: 0.4,
-                  marginBottom: 10,
-                }}
-              >
-                Quero acrescentar
-              </p>
-              <motion.button
-                onClick={() => setWithCombo((v) => !v)}
-                whileTap={{ scale: 0.985 }}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  borderRadius: 20,
-                  padding: 15,
-                  background: withCombo ? VERDE : "white",
-                  border: withCombo
-                    ? `2.5px solid ${VERDE}`
-                    : `1.5px solid ${VERDE}16`,
-                  boxShadow: withCombo
-                    ? `0 0 0 5px ${ROSA}55, 0 16px 34px rgba(31,61,46,0.16)`
-                    : "0 12px 30px rgba(31,61,46,0.09)",
-                  cursor: "pointer",
-                  transition:
-                    "background 0.2s, box-shadow 0.2s, border-color 0.2s",
-                }}
-              >
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
-                    background: withCombo ? ROSA : `${VERDE}10`,
-                    border: withCombo ? "none" : `2px solid ${VERDE}25`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.2s",
-                    flexShrink: 0,
-                  }}
-                >
-                  <AnimatePresence>
-                    {withCombo && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        exit={{ scale: 0 }}
-                      >
-                        <Check
-                          size={14}
-                          strokeWidth={3}
-                          style={{ color: VERDE }}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-                <div style={{ flex: 1, textAlign: "left" }}>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 900,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.04em",
-                      color: withCombo ? ROSA : VERDE,
-                    }}
-                  >
-                    Combo Menfi's
-                  </p>
-                  <p
-                    style={{
-                      fontSize: 11,
-                      marginTop: 2,
-                      color: withCombo ? `${ROSA}80` : "#999",
-                    }}
-                  >
-                    Coca-Cola 350ml + Batata Frita 250g
-                  </p>
-                </div>
-                <div
-                  style={{
-                    borderRadius: 10,
-                    padding: "6px 12px",
-                    background: withCombo ? `${ROSA}20` : `${VERDE}08`,
-                    flexShrink: 0,
-                  }}
-                >
-                  <p
-                    style={{
-                      color: withCombo ? ROSA : VERDE,
-                      fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                      fontSize: "1rem",
-                      lineHeight: 1,
-                    }}
-                  >
-                    + {fmt(COMBO_EXTRA)}
-                  </p>
-                </div>
-              </motion.button>
-
-              <AnimatePresence>
-                {withCombo && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                    animate={{ opacity: 1, height: 140, marginTop: 10 }}
-                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                    transition={{ duration: 0.28 }}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: 10,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 8,
-                        borderRadius: 16,
-                        overflow: "hidden",
-                        padding: "10px 10px",
-                        background: "#FFF5F5",
-                        border: `1.5px solid ${ROSA}40`,
-                      }}
-                    >
-                      <img
-                        src={colaPhoto.src}
-                        alt="Coca-Cola"
-                        style={{
-                          height: 80,
-                          width: "auto",
-                          objectFit: "contain",
-                        }}
-                      />
-                      <p
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 900,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
-                          color: VERDE,
-                          opacity: 0.6,
-                        }}
-                      >
-                        Coca-Cola 350ml
-                      </p>
-                    </div>
-                    <div
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 8,
-                        borderRadius: 16,
-                        overflow: "hidden",
-                        padding: "10px 10px",
-                        background: "#FFFBF0",
-                        border: `1.5px solid ${VERDE}10`,
-                      }}
-                    >
-                      <img
-                        src={friesPhoto.src}
-                        alt="Batata Frita"
-                        style={{
-                          height: 80,
-                          width: "auto",
-                          objectFit: "contain",
-                        }}
-                      />
-                      <p
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 900,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.06em",
-                          color: VERDE,
-                          opacity: 0.6,
-                        }}
-                      >
-                        Batata Frita 250g
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
-
-          {/* ══ EXTRAS — cartoon avatar grid ══════════════ */}
-          <motion.div
-            variants={sectionVariants}
-            transition={{ duration: 0.36, ease: "easeOut" }}
-          >
-            <p
-              style={{
-                fontSize: 9,
-                fontWeight: 900,
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                color: VERDE,
-                opacity: 0.4,
-                marginBottom: 2,
-              }}
-            >
-              Extras
-            </p>
-            {!isMobile && (
-              <p
-                style={{
-                  fontSize: 11,
-                  color: VERDE,
-                  opacity: 0.45,
-                  marginBottom: 14,
-                }}
-              >
-                Toque no item para ver exatamente o que ele adiciona
-              </p>
-            )}
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
-                gap: 14,
-              }}
-            >
-              {visibleExtras.map((ex) => {
-                const isAction = "action" in ex;
-                const on = !isAction && selExtras.has(ex.id);
-                return (
-                  <motion.button
-                    key={ex.id}
-                    whileTap={{ scale: 0.94 }}
-                    whileHover={{ y: -2 }}
-                    onClick={() => {
-                      if (isAction) {
-                        setProductMode("superCombo");
-                        setWithCombo(false);
-                        setInfoItem(null);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      } else {
-                        toggleExtra(ex.id);
-                      }
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: `2px solid ${on ? VERDE : VERDE + "16"}`,
-                      borderRadius: 18,
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      padding: 0,
-                      display: "flex",
-                      flexDirection: "column",
-                      boxShadow: on
-                        ? `0 0 0 4px ${VERDE}18, 0 14px 28px rgba(31,61,46,0.14)`
-                        : "0 10px 22px rgba(31,61,46,0.09)",
-                      transition:
-                        "box-shadow 0.2s, border-color 0.2s, transform 0.2s",
-                    }}
-                  >
-                    {/* Visual area */}
-                    <div
-                      style={{
-                        height: 76,
-                        background: ex.cardBg,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        position: "relative",
-                      }}
-                      onClick={(e) => {
-                        if (isAction) return;
-                        e.stopPropagation();
-                        setInfoItem(ex);
-                      }}
-                    >
-                      <ex.Cartoon color={ex.fg} />
-                      <AnimatePresence>
-                        {on && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            style={{
-                              position: "absolute",
-                              top: 7,
-                              right: 7,
-                              width: 20,
-                              height: 20,
-                              borderRadius: "50%",
-                              background: "#fff",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              boxShadow: "0 2px 6px rgba(0,0,0,0.18)",
-                            }}
-                          >
-                            <Check
-                              size={11}
-                              strokeWidth={3.5}
-                              style={{ color: VERDE }}
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                      {isAction && (
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: 6,
-                            left: 6,
-                            background: VERDE,
-                            borderRadius: 999,
-                            padding: "2px 6px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 6.5,
-                              fontWeight: 900,
-                              color: ROSA,
-                              letterSpacing: "0.06em",
-                              textTransform: "uppercase",
-                            }}
-                          >
-                            NOVO
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    {/* Info */}
-                    <div style={{ padding: "8px 9px 11px", textAlign: "left" }}>
-                      <p
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 900,
-                          color: VERDE,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {ex.label}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: 8.5,
-                          color: VERDE,
-                          opacity: 0.55,
-                          lineHeight: 1.35,
-                          marginTop: 3,
-                        }}
-                      >
-                        {ex.copy}
-                      </p>
-                      <p
-                        style={{
-                          fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                          fontSize: "0.85rem",
-                          color: on ? VERDE : `${VERDE}70`,
-                          marginTop: 5,
-                          lineHeight: 1,
-                        }}
-                      >
-                        + {fmt(ex.price)}
-                      </p>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
-
-          <AnimatePresence>
-            {infoItem && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 12 }}
-                style={{
-                  position: "fixed",
-                  left: 16,
-                  right: 16,
-                  bottom: 92,
-                  zIndex: 80,
-                  background: "#fff",
-                  border: `2px solid ${VERDE}`,
-                  borderRadius: 18,
-                  padding: "14px 16px",
-                  boxShadow: "0 16px 36px rgba(31,61,46,0.18)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <p
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 900,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        color: VERDE,
-                        opacity: 0.4,
-                      }}
-                    >
-                      O que é isso?
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 900,
-                        textTransform: "uppercase",
-                        color: VERDE,
-                        lineHeight: 1.1,
-                      }}
-                    >
-                      {infoItem.label}
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: VERDE,
-                        opacity: 0.72,
-                        marginTop: 4,
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {infoItem.copy}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setInfoItem(null)}
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: "50%",
-                      border: "none",
-                      background: ROSA,
-                      color: VERDE,
-                      fontWeight: 900,
-                      cursor: "pointer",
-                      flexShrink: 0,
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Observação */}
-          <motion.div
-            variants={sectionVariants}
-            transition={{ duration: 0.36, ease: "easeOut" }}
-          >
-            <button
-              onClick={() => setObsOpen((v) => !v)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "13px 15px",
-                borderRadius: 18,
-                background: obsOpen ? ROSA : "#fff",
-                border: `1.5px solid ${ROSA}`,
-                cursor: "pointer",
-                transition: "background 0.2s, box-shadow 0.2s",
-                boxShadow: "0 8px 20px rgba(31,61,46,0.04)",
-              }}
-            >
-              <MessageSquare
-                size={14}
-                strokeWidth={2}
-                style={{ color: VERDE, opacity: 0.65 }}
-              />
-              <span
-                style={{
-                  flex: 1,
-                  textAlign: "left",
-                  fontSize: 11,
-                  fontWeight: 900,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  color: VERDE,
-                  opacity: 0.7,
-                }}
-              >
-                {obsOpen ? "Fechar observação" : "Adicionar observação"}
-              </span>
-              {removed.size > 0 && !obsOpen && (
-                <span
-                  style={{
-                    fontSize: 8,
-                    fontWeight: 900,
-                    padding: "2px 7px",
-                    borderRadius: 999,
-                    background: ROSA,
-                    color: VERDE,
-                  }}
-                >
-                  {removed.size} remoção{removed.size > 1 ? "ões" : ""}
-                </span>
-              )}
-            </button>
-            <AnimatePresence>
-              {obsOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  style={{ overflow: "hidden" }}
-                >
-                  <div
-                    style={{ paddingTop: 10, paddingLeft: 4, paddingRight: 4 }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 8,
-                        fontWeight: 900,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        color: VERDE,
-                        opacity: 0.35,
-                        marginBottom: 8,
-                      }}
-                    >
-                      Quero remover:
-                    </p>
-                    <div
-                      style={{
-                        border: `1.5px solid ${ROSA}`,
-                        borderRadius: 12,
-                        overflow: "hidden",
-                      }}
-                    >
-                      {[
-                        "Alface Crocante",
-                        "Queijo",
-                        "Carne",
-                        "Cebola Caramelizada",
-                        "Molho",
-                      ].map((opt, i) => {
-                        const active = removed.has(opt);
-                        return (
-                          <motion.button
-                            key={opt}
-                            whileTap={{ scale: 0.99 }}
-                            onClick={() => toggleRemove(opt)}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                              padding: "11px 14px",
-                              width: "100%",
-                              textAlign: "left",
-                              background: active ? `${ROSA}40` : "#fff",
-                              border: "none",
-                              cursor: "pointer",
-                              borderTop: i > 0 ? `1px solid ${ROSA}` : "none",
-                              transition: "background 0.15s",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: 6,
-                                background: active ? ROSA : "#fff",
-                                border: `1.5px solid ${ROSA}`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                transition: "all 0.15s",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {active && (
-                                <X
-                                  size={10}
-                                  strokeWidth={3}
-                                  style={{ color: VERDE }}
-                                />
-                              )}
-                            </div>
-                            <span
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 700,
-                                color: VERDE,
-                                opacity: active ? 1 : 0.6,
-                                textDecoration: active
-                                  ? "line-through"
-                                  : "none",
-                              }}
-                            >
-                              Sem {opt}
-                            </span>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </motion.div>
-
-        {/* ══ CTA sticky ══════════════════════════════════ */}
-        <div
-          style={{
-            position: "fixed",
-            left: sideOpen ? SIDE_PANEL_WIDTH : 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 30,
-            background: "rgba(255,255,255,0.92)",
-            backdropFilter: "blur(14px)",
-            borderTop: `1.5px solid ${VERDE}10`,
-            boxShadow: "0 -12px 34px rgba(31,61,46,0.09)",
-            padding: "12px 20px 14px",
-            transition: "left 0.32s cubic-bezier(.22,1,.36,1)",
-          }}
-        >
-          <AnimatePresence>
-            {cartCount > 0 && (
-              <motion.button
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => setSideOpen(true)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  borderRadius: 16,
-                  padding: "12px 18px",
-                  marginBottom: 8,
-                  fontSize: 11,
-                  fontWeight: 900,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  background: "#fff",
-                  color: VERDE,
-                  border: `2px solid ${VERDE}`,
-                  cursor: "pointer",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <ShoppingBag size={16} strokeWidth={2} />
-                  <span>Ver Pedido</span>
-                </div>
-                <span
-                  style={{
-                    borderRadius: "50%",
-                    width: 24,
-                    height: 24,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 11,
-                    fontWeight: 900,
-                    background: ROSA,
-                    color: VERDE,
-                  }}
-                >
-                  {cartCount}
-                </span>
-              </motion.button>
-            )}
-          </AnimatePresence>
-
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleAdd}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderRadius: 18,
-              padding: "17px 22px",
-              fontSize: 13,
-              fontWeight: 900,
-              letterSpacing: "0.16em",
-              textTransform: "uppercase",
-              background: added ? ROSA : VERDE,
-              color: added ? VERDE : ROSA,
               border: "none",
-              cursor: "pointer",
-              boxShadow: "0 10px 28px rgba(31,61,46,0.32)",
-              transition: "background 0.3s, box-shadow 0.2s",
+              cursor: cartCount > 0 ? "pointer" : "default",
             }}
           >
-            <span>{added ? "Adicionado ✓" : "ADICIONAR"}</span>
-            {!added && (
-              <motion.span
-                key={total}
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
+            <ShoppingBag size={16} strokeWidth={2.3} />
+            {cartCount}
+          </button>
+        </div>
+      </header>
+
+      <main className="w-full px-0 pb-36 pt-0">
+        <section
+          className="mx-0 grid gap-4 overflow-hidden rounded-none p-4 md:grid-cols-[1.05fr_0.95fr] md:p-6"
+          style={{
+            background: ROSA,
+            color: VERDE,
+            boxShadow: "0 24px 70px rgba(31,61,46,0.12)",
+          }}
+        >
+          <div className="flex min-h-[290px] flex-col justify-between gap-5">
+            <div>
+              <div className="flex flex-wrap gap-2">
+                {["Burger suculento", "Molho da casa", "Entrega rápida"].map(
+                  (tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider"
+                      style={{
+                        background: `${VERDE}10`,
+                        color: VERDE,
+                        border: `1px solid ${VERDE}18`,
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ),
+                )}
+              </div>
+
+              <h1
+                className="mt-5 max-w-xl uppercase"
                 style={{
                   fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                  fontSize: "1.3rem",
-                  lineHeight: 1,
-                  color: ROSA,
+                  fontSize: "clamp(3rem, 7vw, 6.8rem)",
+                  lineHeight: 0.9,
+                  letterSpacing: 0,
+                  color: VERDE,
                 }}
               >
-                {fmt(total)}
-              </motion.span>
-            )}
-          </motion.button>
+                Burger no ponto, delivery sem enrolação
+              </h1>
+              <p
+                className="mt-4 max-w-lg text-sm leading-relaxed md:text-base"
+                style={{ color: `${VERDE}CC` }}
+              >
+                Combos generosos, burger suculento e entrega pensada para
+                chegar quente na sua mesa.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "Entrega", value: "Delivery Menfi's", Icon: Bike },
+                { label: "Pedido", value: "Conferido antes da cozinha", Icon: ShieldCheck },
+                {
+                  label: "Delivery",
+                  value: "Chega quentinho no conforto da sua casa",
+                  Icon: Flame,
+                },
+              ].map(({ label, value, Icon }) => (
+                <div
+                  key={`${label}-${value}`}
+                  className="rounded-2xl p-3"
+                  style={{ background: "rgba(255,255,255,0.42)" }}
+                >
+                  <Icon size={16} strokeWidth={2.2} style={{ color: VERDE }} />
+                  <p
+                    className="mt-2 text-[9px] font-black uppercase tracking-wider"
+                    style={{ color: `${VERDE}85` }}
+                  >
+                    {label}
+                  </p>
+                  <p className="mt-1 text-xs font-black" style={{ color: VERDE }}>
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            className="relative min-h-[280px] overflow-hidden rounded-[24px]"
+            style={{ background: "#F9D2C5" }}
+          >
+            <Image
+              src={burgerPhoto}
+              alt="Menfi's Burger"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 50vw"
+              style={{ objectFit: "cover", objectPosition: "center 42%" }}
+            />
+            <div
+              className="absolute inset-x-0 bottom-0 p-4"
+              style={{
+                background:
+                  "linear-gradient(to top, rgba(31,61,46,0.92), rgba(31,61,46,0))",
+              }}
+            >
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/70">
+                    Destaque
+                  </p>
+                  <p
+                    className="uppercase"
+                    style={{
+                      fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                      fontSize: "2rem",
+                      lineHeight: 1,
+                      color: ROSA,
+                    }}
+                  >
+                    Menfi's Burger
+                  </p>
+                </div>
+                <button
+                  onClick={() => addMenuItem(MENU_ITEMS[0])}
+                  className="flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider"
+                  style={{ background: ROSA, color: VERDE }}
+                >
+                  Adicionar
+                  <Plus size={15} strokeWidth={2.5} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 pt-4">
+          <button
+            onClick={openMemberAccess}
+            className="flex w-full items-center justify-between gap-3 rounded-[24px] p-4 text-left md:p-5"
+            style={{
+              background: memberProfile ? VERDE : "#fff",
+              color: memberProfile ? ROSA : VERDE,
+              border: `1px solid ${memberProfile ? VERDE : `${VERDE}12`}`,
+              boxShadow: "0 12px 34px rgba(31,61,46,0.08)",
+            }}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                style={{
+                  background: memberProfile ? `${ROSA}18` : `${ROSA}80`,
+                }}
+              >
+                {memberProfile ? (
+                  <ShieldCheck size={20} strokeWidth={2.4} />
+                ) : (
+                  <Gift size={20} strokeWidth={2.4} />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-wider">
+                  {memberProfile
+                    ? `${memberProfile.name}, seu perfil Menfi's`
+                    : "Cadastre-se e ganhe frete grátis"}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed" style={{ opacity: 0.72 }}>
+                  {memberProfile
+                    ? `${memberProfile.orders % 10}/10 pedidos para ganhar um burger. Dados de entrega ficam salvos.`
+                    : "Entre no clube Menfi's para receber benefício e acompanhar pedidos pelo WhatsApp."}
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={18} strokeWidth={2.4} />
+          </button>
+        </section>
+
+        <section className="mt-5 px-4">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {CATEGORIES.map(({ id, label, Icon }) => {
+              const active = category === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setCategory(id)}
+                  className="flex shrink-0 items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider"
+                  style={{
+                    background: active ? VERDE : "#fff",
+                    color: active ? ROSA : VERDE,
+                    border: `1px solid ${active ? VERDE : `${VERDE}14`}`,
+                    boxShadow: active
+                      ? "0 12px 28px rgba(31,61,46,0.18)"
+                      : "none",
+                  }}
+                >
+                  <Icon size={15} strokeWidth={2.2} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="mt-6 px-4">
+          <div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredItems.map((item) => (
+                <MenuCard
+                  key={item.id}
+                  item={item}
+                  qty={qty(item.id)}
+                  builder={item.id === BURGER_ID ? builder : undefined}
+                  onAdd={() => addMenuItem(item)}
+                  onMinus={() => updateQty(item.id, -1)}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <div
+        className="fixed inset-x-0 bottom-0 z-50"
+        style={{
+          background: "rgba(255,248,242,0.94)",
+          borderTop: `1px solid ${VERDE}14`,
+          backdropFilter: "blur(18px)",
+        }}
+      >
+        <div className="flex w-full items-center gap-3 px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
+              Total do pedido
+            </p>
+            <p
+              style={{
+                color: VERDE,
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "2rem",
+                lineHeight: 1,
+              }}
+            >
+              {cartCount > 0 ? fmt(cartTotal) : "R$ 0,00"}
+            </p>
+          </div>
+          <button
+            onClick={goToCart}
+            disabled={cartCount === 0}
+            className="flex min-h-14 items-center gap-2 rounded-2xl px-5 text-xs font-black uppercase tracking-wider disabled:opacity-35"
+            style={{
+              background: cartCount > 0 ? VERDE : `${VERDE}20`,
+              color: cartCount > 0 ? ROSA : `${VERDE}70`,
+              cursor: cartCount > 0 ? "pointer" : "default",
+              border: "none",
+            }}
+          >
+            <ShoppingBag size={17} strokeWidth={2.4} />
+            Fechar pedido
+          </button>
         </div>
-      </motion.div>
+      </div>
+
+      <AnimatePresence>
+        {loginOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[75] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+          >
+            <motion.div
+              initial={{ y: 24, scale: 0.98 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 24, scale: 0.98 }}
+              className="w-full max-w-md rounded-[28px] p-5"
+              style={{ background: "#fff", color: VERDE }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/40">
+                    Clube Menfi's
+                  </p>
+                  <h2
+                    className="mt-2 uppercase"
+                    style={{
+                      fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                      fontSize: "2.4rem",
+                      lineHeight: 0.95,
+                    }}
+                  >
+                    Frete grátis no primeiro delivery
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setLoginOpen(false)}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: `${VERDE}08`, color: VERDE }}
+                >
+                  <X size={18} strokeWidth={2.4} />
+                </button>
+              </div>
+
+              <div
+                className="mt-4 rounded-2xl p-4"
+                style={{ background: ROSA, color: VERDE }}
+              >
+                <div className="flex items-center gap-2">
+                  <UserRound size={17} strokeWidth={2.3} />
+                  <p className="text-xs font-black uppercase tracking-wider">
+                    Identifique-se como no app de delivery
+                  </p>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed" style={{ opacity: 0.68 }}>
+                  Guardamos nome, email e WhatsApp para reconhecer você, aplicar
+                  benefícios, lembrar a entrega e preparar o programa de pontos.
+                  Você confirma a LGPD no checkout.
+                </p>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
+                    Nome
+                  </span>
+                  <input
+                    value={memberName}
+                    onChange={(e) => setMemberName(e.target.value)}
+                    placeholder="Seu nome"
+                    className="rounded-2xl px-4 py-3 text-sm outline-none"
+                    style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
+                    Email
+                  </span>
+                  <input
+                    value={memberEmail}
+                    onChange={(e) => setMemberEmail(e.target.value)}
+                    placeholder="voce@email.com"
+                    inputMode="email"
+                    className="rounded-2xl px-4 py-3 text-sm outline-none"
+                    style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
+                    WhatsApp
+                  </span>
+                  <input
+                    value={memberPhone}
+                    onChange={(e) => setMemberPhone(e.target.value)}
+                    placeholder="(00) 00000-0000"
+                    inputMode="tel"
+                    className="rounded-2xl px-4 py-3 text-sm outline-none"
+                    style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
+                  />
+                </label>
+              </div>
+
+              {memberError && (
+                <p
+                  className="mt-3 rounded-2xl px-3 py-2 text-xs font-bold leading-relaxed"
+                  style={{ background: `${ROSA}70`, color: VERDE }}
+                >
+                  {memberError}
+                </p>
+              )}
+
+              <button
+                onClick={saveMember}
+                disabled={memberSaving}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-wider"
+                style={{
+                  background: VERDE,
+                  color: ROSA,
+                  opacity: memberSaving ? 0.76 : 1,
+                }}
+              >
+                {memberSaving ? "Criando perfil" : "Liberar frete grátis"}
+                {memberSaving ? (
+                  <Loader2
+                    size={16}
+                    strokeWidth={2.4}
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />
+                ) : (
+                  <Gift size={16} strokeWidth={2.4} />
+                )}
+              </button>
+              <button
+                onClick={() => setLoginOpen(false)}
+                className="mt-2 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                style={{
+                  background: "transparent",
+                  color: VERDE,
+                  border: `1.5px solid ${VERDE}12`,
+                }}
+              >
+                Agora não
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {profileOpen && memberProfile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[75] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+          >
+            <motion.div
+              initial={{ y: 24, scale: 0.98 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 24, scale: 0.98 }}
+              className="w-full max-w-md overflow-hidden rounded-[28px]"
+              style={{ background: "#fff", color: VERDE }}
+            >
+              <div className="p-5" style={{ background: ROSA }}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                      style={{
+                        background: "#fff",
+                        border: `2px solid ${VERDE}`,
+                      }}
+                    >
+                      <img
+                        src="/logo_M_square.png"
+                        alt=""
+                        width={56}
+                        height={56}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-55">
+                        Perfil Menfi's
+                      </p>
+                      <h2 className="text-xl font-black leading-tight">
+                        {memberProfile.name}
+                      </h2>
+                      <p className="mt-1 text-xs font-bold opacity-70">
+                        Seu pedido chega quentinho no conforto da sua casa.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setProfileOpen(false)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                    style={{ background: "#fff", color: VERDE }}
+                  >
+                    <X size={18} strokeWidth={2.4} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 p-5">
+                {[
+                  {
+                    icon: Mail,
+                    title: memberProfile.email,
+                    copy: "Email único deste perfil",
+                  },
+                  {
+                    icon: UserRound,
+                    title: memberProfile.phone,
+                    copy: "WhatsApp para atualizações do pedido",
+                  },
+                  {
+                    icon: MapPin,
+                    title:
+                      savedDelivery.street && savedDelivery.number
+                        ? `${savedDelivery.street}, ${savedDelivery.number}`
+                        : "Endereço salvo no checkout",
+                    copy:
+                      savedDelivery.cep || savedDelivery.complement
+                        ? [savedDelivery.cep, savedDelivery.complement]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : "Preencha uma vez e o próximo pedido já lembra",
+                  },
+                ].map(({ icon: Icon, title, copy }) => (
+                  <div
+                    key={`${title}-${copy}`}
+                    className="flex items-start gap-3 rounded-2xl p-3"
+                    style={{ background: "#FFF8F2", border: `1px solid ${VERDE}10` }}
+                  >
+                    <Icon size={18} strokeWidth={2.2} className="mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-black">{title}</p>
+                      <p className="mt-1 text-[11px] leading-relaxed opacity-58">
+                        {copy}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ background: VERDE, color: ROSA }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Trophy size={18} strokeWidth={2.3} />
+                    <p className="text-xs font-black uppercase tracking-wider">
+                      Bônus Menfi's
+                    </p>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed opacity-75">
+                    A cada 10 pedidos no perfil, você ganha 1 burger. Progresso atual:
+                  </p>
+                  <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/18">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.max(8, memberProgress * 10)}%`,
+                        background: ROSA,
+                      }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs font-black">
+                    {memberProgress}/10 pedidos · {memberProfile.rewards} bônus liberado
+                    {memberProfile.rewards === 1 ? "" : "s"}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={editMember}
+                    className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                    style={{ background: ROSA, color: VERDE }}
+                  >
+                    Editar perfil
+                  </button>
+                  <button
+                    onClick={() => setProfileOpen(false)}
+                    className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                    style={{
+                      background: "transparent",
+                      color: VERDE,
+                      border: `1.5px solid ${VERDE}12`,
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {suggestion && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+          >
+            <motion.div
+              initial={{ y: 24, scale: 0.98 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 24, scale: 0.98 }}
+              className="w-full max-w-md rounded-[28px] p-5"
+              style={{ background: "#FFF8F2", color: VERDE }}
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/40">
+                Sugestão para seu pedido
+              </p>
+              <h2
+                className="mt-2 uppercase"
+                style={{
+                  fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                  fontSize: "2.45rem",
+                  lineHeight: 0.95,
+                }}
+              >
+                Quer melhorar esse burger?
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-black/58">
+                {suggestion.item.name} foi adicionado. Você pode completar com
+                acompanhamento ou deixar o burger mais forte.
+              </p>
+
+              <div className="mt-5 grid gap-2">
+                {suggestion.canCombo && (
+                  <button
+                    onClick={addComboUpgrade}
+                    className="flex items-center justify-between rounded-2xl px-4 py-4 text-left"
+                    style={{ background: VERDE, color: ROSA }}
+                  >
+                    <span>
+                      <strong className="block text-xs uppercase tracking-wider">
+                        Transformar em combo
+                      </strong>
+                      <span className="text-xs opacity-75">
+                        Batata frita + Coca-Cola 350ml
+                      </span>
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                        fontSize: "1.35rem",
+                      }}
+                    >
+                      + {fmt(COMBO_UPGRADE_PRICE)}
+                    </span>
+                  </button>
+                )}
+
+              </div>
+
+              <button
+                onClick={() => setSuggestion(null)}
+                className="mt-3 w-full rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-wider"
+                style={{
+                  background: "transparent",
+                  color: VERDE,
+                  border: `1.5px solid ${VERDE}16`,
+                }}
+              >
+                Continuar sem upgrade
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+function BurgerBuilder({
+  builder,
+  setBuilder,
+}: {
+  builder: BuilderState;
+  setBuilder: React.Dispatch<React.SetStateAction<BuilderState>>;
+}) {
+  const options = [
+    {
+      id: "cheese",
+      label: "Extra Queijo",
+      copy: "Camada extra de queijo",
+      price: CHEESE_PRICE,
+    },
+    {
+      id: "sauce",
+      label: "Molho extra",
+      copy: "Porção extra do molho Menfi's",
+      price: SAUCE_PRICE,
+    },
+  ] as const;
+
+  return (
+    <div
+      className="rounded-[24px] p-4"
+      style={{
+        background: "#fff",
+        border: `1px solid ${VERDE}12`,
+        boxShadow: "0 14px 34px rgba(31,61,46,0.06)",
+      }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/35">
+            Personalize o burger
+          </p>
+          <p className="mt-1 text-sm font-black uppercase" style={{ color: VERDE }}>
+            Queijo e molho ficam dentro do pedido
+          </p>
+        </div>
+        <span
+          className="hidden rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider sm:block"
+          style={{ background: `${ROSA}80`, color: VERDE }}
+        >
+          Opcionais
+        </span>
+      </div>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        {options.map((option) => {
+          const active = builder[option.id];
+          return (
+            <button
+              key={option.id}
+              onClick={() =>
+                setBuilder((prev) => ({
+                  ...prev,
+                  [option.id]: !prev[option.id],
+                }))
+              }
+              className="rounded-2xl p-3 text-left"
+              style={{
+                background: active ? VERDE : "#FFF8F2",
+                color: active ? ROSA : VERDE,
+                border: `1.5px solid ${active ? VERDE : `${VERDE}12`}`,
+              }}
+            >
+              <p className="text-xs font-black uppercase tracking-wider">
+                {option.label}
+              </p>
+              <p className="mt-1 text-[11px]" style={{ opacity: 0.65 }}>
+                {option.copy}
+              </p>
+              <p
+                className="mt-2"
+                style={{
+                  fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                  fontSize: "1.15rem",
+                  lineHeight: 1,
+                }}
+              >
+                + {fmt(option.price)}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MenuCard({
+  item,
+  qty,
+  builder,
+  onAdd,
+  onMinus,
+}: {
+  item: MenuItem;
+  qty: number;
+  builder?: BuilderState;
+  onAdd: () => void;
+  onMinus: () => void;
+}) {
+  const displayPrice = builder ? buildBurger(builder).price : item.price;
+  return (
+    <motion.article
+      layout
+      whileHover={{ y: -2 }}
+      className="overflow-hidden rounded-[24px]"
+      style={{
+        background: "#fff",
+        border: `1px solid ${qty > 0 ? VERDE : `${VERDE}12`}`,
+        boxShadow: qty > 0
+          ? "0 18px 42px rgba(31,61,46,0.16)"
+          : "0 10px 30px rgba(31,61,46,0.07)",
+      }}
+    >
+      <div className="relative h-40 overflow-hidden" style={{ background: CREME }}>
+        {item.image ? (
+          <Image
+            src={item.image}
+            alt={item.name}
+            fill
+            sizes="(max-width: 768px) 100vw, 360px"
+            style={{
+              objectFit: "cover",
+              objectPosition: "center",
+            }}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <ChefHat size={56} strokeWidth={1.5} style={{ color: VERDE, opacity: 0.3 }} />
+          </div>
+        )}
+        {item.highlight && (
+          <span
+            className="absolute left-3 top-3 flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider"
+            style={{ background: VERDE, color: ROSA }}
+          >
+            <Sparkles size={12} strokeWidth={2.4} />
+            Destaque
+          </span>
+        )}
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-widest text-black/35">
+              {item.eyebrow}
+            </p>
+            <h2
+              className="mt-1 uppercase"
+              style={{
+                color: VERDE,
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "1.75rem",
+                lineHeight: 1,
+                letterSpacing: 0,
+              }}
+            >
+              {item.name}
+            </h2>
+          </div>
+          <p
+            className="shrink-0"
+            style={{
+              color: VERDE,
+              fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+              fontSize: "1.45rem",
+              lineHeight: 1,
+            }}
+          >
+            {fmt(displayPrice)}
+          </p>
+        </div>
+
+        <p className="mt-2 min-h-[54px] text-sm leading-relaxed text-black/58">
+          {item.desc}
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {item.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider"
+              style={{ background: `${VERDE}08`, color: `${VERDE}B8` }}
+            >
+              {tag}
+            </span>
+          ))}
+          {builder?.cheese && (
+            <span className="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider" style={{ background: `${ROSA}80`, color: VERDE }}>
+              Extra queijo
+            </span>
+          )}
+          {builder?.sauce && (
+            <span className="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider" style={{ background: `${ROSA}80`, color: VERDE }}>
+              Molho extra
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4">
+          {qty > 0 ? (
+            <div
+              className="grid h-12 grid-cols-[56px_1fr_56px] overflow-hidden rounded-2xl"
+              style={{
+                border: `1.5px solid ${VERDE}`,
+                background: "#fff",
+              }}
+            >
+              <button
+                onClick={onMinus}
+                className="flex items-center justify-center"
+                style={{ background: VERDE, color: ROSA }}
+              >
+                <Minus size={17} strokeWidth={2.7} />
+              </button>
+              <div
+                className="flex items-center justify-center"
+                style={{
+                  color: VERDE,
+                  fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                  fontSize: "1.45rem",
+                  lineHeight: 1,
+                }}
+              >
+                {qty}
+              </div>
+              <button
+                onClick={onAdd}
+                className="flex items-center justify-center"
+                style={{ background: VERDE, color: ROSA }}
+              >
+                <Plus size={17} strokeWidth={2.7} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onAdd}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-xs font-black uppercase tracking-wider"
+              style={{ background: VERDE, color: ROSA }}
+            >
+              Adicionar
+              <Plus size={15} strokeWidth={2.5} />
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.article>
   );
 }

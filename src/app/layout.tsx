@@ -7,16 +7,16 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/logo_M.jpeg",
+        url: "/logo_M_square.png",
         sizes: "180x180",
-        type: "image/jpeg",
+        type: "image/png",
       },
     ],
     apple: [
       {
-        url: "/logo_M.jpeg",
+        url: "/logo_M_square.png",
         sizes: "180x180",
-        type: "image/jpeg",
+        type: "image/png",
       },
     ],
   },
