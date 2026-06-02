@@ -60,7 +60,7 @@ const MENU_ITEMS: MenuItem[] = [
     name: "Menfi's Burger",
     eyebrow: "Clássico da casa",
     desc: "Pão brioche selado, burger 100g, queijo, alface crocante, cebola caramelizada e molho Menfi's.",
-    price: 19.9,
+    price: 23.9,
     image: burgerPhoto,
     tags: ["100g", "Molho da casa", "Brioche"],
     category: "burger",
@@ -71,7 +71,7 @@ const MENU_ITEMS: MenuItem[] = [
     name: "Double Menfi's",
     eyebrow: "Mais carne",
     desc: "O dobro de burger, queijo derretido, cebola caramelizada e molho Menfi's no brioche.",
-    price: 29.9,
+    price: 33.9,
     image: burgerPhoto,
     tags: ["Double", "Mais suculento", "Brioche"],
     category: "burger",
@@ -168,7 +168,7 @@ const CATEGORIES = [
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 const BURGER_ID = "burger";
-const BURGER_PRICE = 19.9;
+const BURGER_PRICE = 23.9;
 const CHEESE_PRICE = 2;
 const SAUCE_PRICE = 2.9;
 const COMBO_PRICE = 37.9;
