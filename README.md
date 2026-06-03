@@ -1,35 +1,54 @@
-# Menfi's Burguer
+# Menfis Burguer
 
-Aplicação Next.js para o restaurante Menfi's Burguer, com fluxo de pedido, painel da cozinha, dashboard e estoque.
+Monorepo do delivery Menfis Burguer.
 
-## Rodando com Docker
+## Estrutura
 
-1. Copie o arquivo de exemplo de ambiente:
-   - `.env.example` → `.env.local`
-2. Preencha `DATABASE_URL` com sua conexão PostgreSQL/Neon.
-3. Suba o ambiente:
-   - `docker compose up --build`
-4. Abra a aplicação em:
-   - `http://localhost:3000`
+- `frontend/` - Next.js, TypeScript e Tailwind. Deploy na Vercel.
+- `backend/` - Java Spring Boot. Deploy no Railway.
+- `docs/` - arquitetura e notas operacionais.
 
-## Observações
+## Vercel
 
-- A aplicação usa `DATABASE_URL` para a rota `POST /api/customer`.
-- O projeto foi configurado com `output: "standalone"` para gerar uma imagem Docker de produção menor e mais simples.
+Configure o projeto Vercel com:
 
-## Railway / produção
+- Root Directory: `frontend`
+- Build Command: `npm run build`
+- Output: padrao do Next.js
 
-O backend atualmente precisa de **apenas uma variável de ambiente** no Railway:
+Variaveis do frontend:
 
-- `DATABASE_URL` → URL do PostgreSQL do Railway/Neon
+```env
+NEXT_PUBLIC_API_URL=https://menfisburguer-production.up.railway.app
+NEXT_PUBLIC_MP_PUBLIC_KEY=APP_USR-dc31a91c-3aef-4128-92b8-8359b01ba106
+APP_BASE_URL=https://www.menfisburguer.com.br
+```
 
-Exemplo de formato aceito:
+## Railway
 
-- `postgresql://USER:PASSWORD@HOST:5432/DBNAME?sslmode=require`
-- ou `jdbc:postgresql://HOST/DBNAME?user=USER&password=PASSWORD&sslmode=require`
+Configure o servico Railway com:
 
-Observações importantes:
+- Root Directory: `backend`
+- Dockerfile Path: `Dockerfile`
+- Public Networking Port: `8080`
 
-- Não há chave extra obrigatória para o backend hoje.
-- `PORT` é fornecida automaticamente pelo Railway.
-- O código já normaliza URL JDBC e conecta com SSL.
+Variaveis do backend ficam no Railway, nao na Vercel:
+
+```env
+DATABASE_URL=postgresql://...
+MERCADO_PAGO_ACCESS_TOKEN=APP_USR-...
+MP_ACCESS_TOKEN=APP_USR-...
+FRONTEND_URL=https://www.menfisburguer.com.br
+BACKEND_URL=https://menfisburguer-production.up.railway.app
+JWT_SECRET=...
+```
+
+## Teste de backend
+
+Depois do deploy Railway, esta URL deve retornar JSON:
+
+```txt
+https://menfisburguer-production.up.railway.app/dashboard/summary
+```
+
+Se retornar uma pagina HTML 404 do Next, o Railway ainda esta apontando para o frontend ou para a raiz errada.
