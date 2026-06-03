@@ -25,6 +25,7 @@ import logoSkull from "@/imports/image-1.png";
 
 type DeliveryType = "retirada" | "delivery";
 type PaymentMethod = "pix" | "cartao";
+type CheckoutStep = "delivery" | "payment" | "review";
 
 const REMOVE_OPTIONS = [
   "Alface Crocante",
@@ -166,7 +167,9 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   const [removed, setRemoved] = useState<Record<string, Set<string>>>({});
   const [savedBadge, setSavedBadge] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [payment, setPayment] = useState<PaymentMethod | null>(null);
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("delivery");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [payment, setPayment] = useState<PaymentMethod>("pix");
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
@@ -298,17 +301,40 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     cpfValid === true &&
     phone.replace(/\D/g, "").length >= 10;
 
+  const missingDelivery = [
+    cep.replace(/\D/g, "").length !== 8 || cepError ? "CEP válido" : "",
+    !street.length ? "endereço" : "",
+    !number.trim().length ? "número" : "",
+    cpfRaw.replace(/\D/g, "").length !== 11 || cpfValid !== true
+      ? "CPF válido"
+      : "",
+    phone.replace(/\D/g, "").length < 10 ? "WhatsApp" : "",
+    !lgpdAccepted ? "confirmação LGPD" : "",
+  ].filter(Boolean);
+
+  const canCreatePayment =
+    deliveryValid && lgpdAccepted && Boolean(payment) && checkoutStep === "review";
+
   const handleFinalize = async () => {
-    if (!deliveryValid) return;
     if (paying) return;
 
-    if (!paymentOpen) {
+    setSubmitAttempted(true);
+    setPaymentError("");
+
+    if (checkoutStep === "delivery") {
+      if (!deliveryValid || !lgpdAccepted) return;
       setPaymentOpen(true);
+      setCheckoutStep("payment");
       return;
     }
-    if (!payment) return;
 
-    setPaymentError("");
+    if (checkoutStep === "payment") {
+      if (!payment) return;
+      setCheckoutStep("review");
+      return;
+    }
+
+    if (!canCreatePayment) return;
 
     const removedByItemId = Object.fromEntries(
       Object.entries(removed)
@@ -400,8 +426,15 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     </p>
   );
 
-  const canSubmit =
-    deliveryValid && lgpdAccepted && (!paymentOpen || Boolean(payment));
+  const stepLabel =
+    checkoutStep === "delivery"
+      ? "Dados"
+      : checkoutStep === "payment"
+        ? "Pagamento"
+        : "Revisão";
+
+  const nextActionLabel =
+    checkoutStep === "review" ? "Gerar Pix" : "Continuar";
 
   /* ── Empty ── */
   if (cart.length === 0) {
@@ -516,10 +549,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
       >
         <div className="grid grid-cols-4 gap-2">
           {[
-            { label: "Conferir", active: true },
-            { label: "Entrega", active: deliveryValid },
-            { label: "Pagamento", active: paymentOpen && Boolean(payment) },
-            { label: "Cozinha", active: false },
+            { label: "Sacola", active: true },
+            { label: "Dados", active: deliveryValid && lgpdAccepted },
+            { label: "Pagamento", active: checkoutStep !== "delivery" },
+            { label: "Pix", active: checkoutStep === "review" },
           ].map((step, index) => (
             <div key={step.label}>
               <div
@@ -567,12 +600,21 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                 className="mt-1 text-[11px] leading-relaxed"
                 style={{ color: VERDE, opacity: 0.62 }}
               >
-                Revise itens, confirme seus dados de entrega e escolha a forma
-                de pagamento.
+                Etapa atual: {stepLabel}. Continue até gerar o Pix pelo Mercado
+                Pago.
               </p>
             </div>
           </div>
         </div>
+
+        {submitAttempted && missingDelivery.length > 0 && (
+          <div
+            className="rounded-2xl p-3 text-[11px] font-bold leading-relaxed"
+            style={{ background: `${ROSA}70`, color: VERDE, border: `1px solid ${ROSA}` }}
+          >
+            Falta preencher: {missingDelivery.join(", ")}.
+          </div>
+        )}
         {/* ── Itens ── */}
         <div>
           <Label>Itens do pedido</Label>
@@ -1045,6 +1087,32 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           </div>
         )}
 
+        {checkoutStep === "review" && (
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: "#fff", border: `1.5px solid ${VERDE}20` }}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                style={{ background: ROSA, color: VERDE }}
+              >
+                <QrCode size={18} strokeWidth={2.4} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
+                  Tudo pronto para gerar o Pix
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed" style={{ color: VERDE, opacity: 0.65 }}>
+                  Ao tocar em Gerar Pix, o pedido será registrado no backend,
+                  o pagamento será criado no Mercado Pago e você será enviado
+                  para a tela segura de pagamento.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {paymentSlow && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
@@ -1327,15 +1395,13 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               Próxima etapa
             </p>
             <p className="text-xs font-bold" style={{ color: VERDE }}>
-              {!deliveryValid
-                ? "Complete os dados obrigatórios"
-                : !lgpdAccepted
-                  ? "Confirme o uso dos dados"
-                  : !paymentOpen
-                    ? "Escolher pagamento"
-                    : !payment
-                      ? "Selecione Pix ou cartão"
-                      : "Ir para o Mercado Pago"}
+              {checkoutStep === "delivery"
+                ? missingDelivery.length > 0
+                  ? "Conferir dados de entrega"
+                  : "Escolher pagamento"
+                : checkoutStep === "payment"
+                  ? "Revisar pedido"
+                  : "Enviar para o Mercado Pago"}
             </p>
           </div>
           <div className="text-right">
@@ -1361,8 +1427,8 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={handleFinalize}
-          disabled={paying || !canSubmit}
-          className="w-full py-4 rounded-2xl font-black uppercase tracking-widest disabled:opacity-30"
+          disabled={paying}
+          className="w-full py-4 rounded-2xl font-black uppercase tracking-widest disabled:opacity-55"
           style={{
             background: ROSA,
             color: VERDE,
@@ -1370,7 +1436,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             fontSize: "1.1rem",
             letterSpacing: "0.2em",
             border: "none",
-            cursor: canSubmit ? "pointer" : "default",
+            cursor: paying ? "default" : "pointer",
           }}
         >
           <span className="inline-flex items-center justify-center gap-2">
@@ -1383,9 +1449,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             )}
             {paying
               ? "INICIANDO PAGAMENTO"
-              : paymentOpen
-                ? "PAGAR ONLINE"
-                : "FINALIZAR PEDIDO"}{" "}
+              : nextActionLabel}{" "}
             - {fmt(total)}
           </span>
         </motion.button>
