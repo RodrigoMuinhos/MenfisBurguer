@@ -67,11 +67,12 @@ export default function App() {
 
   useEffect(() => {
     if (!started) return;
+    if (screen !== "admin" && screen !== "tracking") return;
 
     syncOrders();
-    const timer = window.setInterval(syncOrders, 2000);
+    const timer = window.setInterval(syncOrders, 10000);
     return () => window.clearInterval(timer);
-  }, [started, syncOrders]);
+  }, [screen, started, syncOrders]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
