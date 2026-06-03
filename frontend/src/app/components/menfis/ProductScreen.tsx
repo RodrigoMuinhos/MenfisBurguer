@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  Store,
   Trophy,
   UserRound,
   X,
@@ -186,27 +187,26 @@ const MEMBER_KEY = "menfis_member";
 const DELIVERY_STORAGE_KEY = "menfis_cliente";
 
 const SAUCE_OPTIONS = [
-  "Sem molho",
-  "Barbecue",
-  "Catchup",
-  "Maionese temperada",
-  "Maionese do chef",
-  "Mostarda e mel",
+  { label: "Maionese Barbecue", icon: "🍖" },
+  { label: "Maionese Alho Frito", icon: "🧄" },
 ];
 
 const DRINK_OPTIONS = [
-  "Coca-Cola 350ml",
-  "Coca-Cola Zero 350ml",
-  "Guarana 350ml",
-  "Agua sem gas",
+  { label: "Coca-Cola Zero", icon: "🥤" },
+  { label: "Guaraná Zero", icon: "🟢" },
+  { label: "Água com gás", icon: "💧" },
 ];
 
 const EXTRA_OPTIONS = [
-  { id: "extra-queijo", label: "Extra queijo", price: 2 },
-  { id: "extra-ovo", label: "Ovo", price: 2.5 },
-  { id: "extra-molho", label: "Molho extra", price: 2.9 },
-  { id: "batata", label: "Batata frita", price: 15.9 },
+  { id: "extra-queijo", label: "Extra queijo", price: 2, icon: "🧀" },
+  { id: "extra-ovo", label: "Ovo", price: 2.5, icon: "🥚" },
+  { id: "batata", label: "Batata frita", price: 15.9, icon: "🍟" },
 ];
+
+function imageSrc(image?: StaticImageData | string) {
+  if (!image) return "";
+  return typeof image === "string" ? image : image.src;
+}
 
 function readMemberProfile(): MemberProfile | null {
   if (typeof window === "undefined") return null;
@@ -496,6 +496,20 @@ export function ProductScreen({
               Burger quente e entrega rápida. Feito com amor
             </p>
           </div>
+
+          <button
+            onClick={onAdminOpen}
+            className="flex items-center gap-2 rounded-full px-3 py-3 text-xs font-black uppercase tracking-wider sm:px-4"
+            style={{
+              background: "#fff",
+              color: VERDE,
+              border: `1px solid ${VERDE}18`,
+              cursor: "pointer",
+            }}
+          >
+            <Store size={15} strokeWidth={2.3} />
+            <span className="hidden sm:inline">PDV</span>
+          </button>
 
           <button
             onClick={goToCart}
@@ -1257,16 +1271,6 @@ function ProductCustomizer({
   const total = (state.item.price + extrasTotal) * state.qty;
   const valid = (!needsSauce || state.sauces.length >= 1) && (!needsDrink || state.drink);
 
-  const toggleSauce = (sauce: string) => {
-    setState((prev) => {
-      if (!prev) return prev;
-      const selected = prev.sauces.includes(sauce)
-        ? prev.sauces.filter((item) => item !== sauce)
-        : [...prev.sauces, sauce].slice(-2);
-      return { ...prev, sauces: selected };
-    });
-  };
-
   const toggleExtra = (extraId: string) => {
     setState((prev) => {
       if (!prev) return prev;
@@ -1288,8 +1292,8 @@ function ProductCustomizer({
         initial={{ y: 40, scale: 0.98 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 40, scale: 0.98 }}
-        className="max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-t-[28px] sm:rounded-[28px]"
-        style={{ background: "#fff", color: VERDE }}
+      className="max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-t-[22px] sm:rounded-[22px]"
+      style={{ background: "#fff", color: VERDE }}
       >
         <div
           className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-4"
@@ -1308,14 +1312,18 @@ function ProductCustomizer({
         </div>
 
         <div className="max-h-[calc(92dvh-150px)] overflow-y-auto">
-          <div className="relative h-48" style={{ background: CREME }}>
+          <div className="relative h-48 overflow-hidden" style={{ background: CREME }}>
             {state.item.image ? (
-              <Image
-                src={state.item.image}
+              <img
+                src={imageSrc(state.item.image)}
                 alt={state.item.name}
-                fill
-                sizes="100vw"
-                style={{ objectFit: "cover", objectPosition: "center" }}
+                style={{
+                  display: "block",
+                  height: "100%",
+                  width: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center",
+                }}
               />
             ) : (
               <div className="flex h-full items-center justify-center">
@@ -1357,24 +1365,40 @@ function ProductCustomizer({
           {needsSauce && (
             <OptionSection
               title="Molhos para o burger"
-              subtitle="Escolha de 1 a 2 opções"
+              subtitle="Escolha 1 opção"
               required
             >
               {SAUCE_OPTIONS.map((sauce) => {
-                const active = state.sauces.includes(sauce);
+                const active = state.sauces.includes(sauce.label);
                 return (
                   <button
-                    key={sauce}
-                    onClick={() => toggleSauce(sauce)}
+                    key={sauce.label}
+                    onClick={() =>
+                      setState((prev) =>
+                        prev ? { ...prev, sauces: [sauce.label] } : prev,
+                      )
+                    }
                     className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
-                    style={{ borderColor: `${VERDE}10`, background: active ? `${ROSA}45` : "#fff" }}
+                    style={{ borderColor: `${VERDE}10`, background: "#fff" }}
                   >
-                    <span className="text-sm font-bold">{sauce}</span>
+                    <span className="flex items-center gap-3">
+                      <span
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
+                        style={{ background: "#F4F4F4" }}
+                      >
+                        {sauce.icon}
+                      </span>
+                      <span className="text-sm font-bold">{sauce.label}</span>
+                    </span>
                     <span
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-lg font-black"
-                      style={{ background: active ? VERDE : `${VERDE}08`, color: active ? ROSA : VERDE }}
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-black"
+                      style={{
+                        background: active ? VERDE : "#fff",
+                        border: `2px solid ${active ? VERDE : "#E9D9DF"}`,
+                        color: active ? ROSA : "transparent",
+                      }}
                     >
-                      {active ? "✓" : "+"}
+                      ✓
                     </span>
                   </button>
                 );
@@ -1389,22 +1413,28 @@ function ProductCustomizer({
               required
             >
               {DRINK_OPTIONS.map((drink) => {
-                const active = state.drink === drink;
+                const active = state.drink === drink.label;
                 return (
                   <button
-                    key={drink}
-                    onClick={() => setState((prev) => (prev ? { ...prev, drink } : prev))}
+                    key={drink.label}
+                    onClick={() =>
+                      setState((prev) =>
+                        prev ? { ...prev, drink: drink.label } : prev,
+                      )
+                    }
                     className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
-                    style={{ borderColor: `${VERDE}10`, background: active ? `${ROSA}45` : "#fff" }}
+                    style={{ borderColor: `${VERDE}10`, background: "#fff" }}
                   >
-                    <span className="text-sm font-bold">{drink}</span>
-                    <span
-                      className="h-7 w-7 rounded-full"
-                      style={{
-                        border: `2px solid ${active ? VERDE : `${VERDE}18`}`,
-                        background: active ? VERDE : "#fff",
-                      }}
-                    />
+                    <span className="flex items-center gap-3">
+                      <span
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
+                        style={{ background: "#F4F4F4" }}
+                      >
+                        {drink.icon}
+                      </span>
+                      <span className="text-sm font-bold">{drink.label}</span>
+                    </span>
+                    <span className="h-7 w-7 rounded-full" style={{ border: `2px solid ${active ? VERDE : "#E9D9DF"}`, background: active ? VERDE : "#fff" }} />
                   </button>
                 );
               })}
@@ -1419,15 +1449,23 @@ function ProductCustomizer({
                   key={extra.id}
                   onClick={() => toggleExtra(extra.id)}
                   className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
-                  style={{ borderColor: `${VERDE}10`, background: active ? `${ROSA}45` : "#fff" }}
+                  style={{ borderColor: `${VERDE}10`, background: "#fff" }}
                 >
-                  <span>
-                    <span className="block text-sm font-bold">{extra.label}</span>
-                    <span className="text-xs text-black/50">+ {fmt(extra.price)}</span>
+                  <span className="flex items-center gap-3">
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
+                      style={{ background: "#F4F4F4" }}
+                    >
+                      {extra.icon}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-bold">{extra.label}</span>
+                      <span className="text-xs text-black/50">+ {fmt(extra.price)}</span>
+                    </span>
                   </span>
                   <span
                     className="flex h-8 w-8 items-center justify-center rounded-full text-lg font-black"
-                    style={{ background: active ? VERDE : `${VERDE}08`, color: active ? ROSA : VERDE }}
+                    style={{ background: active ? VERDE : "#F8F4F5", color: active ? ROSA : VERDE }}
                   >
                     {active ? "✓" : "+"}
                   </span>
