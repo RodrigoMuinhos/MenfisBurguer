@@ -131,6 +131,7 @@ interface Props {
 
 const STORAGE_KEY = "menfis_cliente";
 const MEMBER_KEY = "menfis_member";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 function registerMemberOrder() {
   try {
@@ -322,25 +323,35 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
       setPaying(true);
       setPaymentSlow(false);
       slowTimer = window.setTimeout(() => setPaymentSlow(true), 3500);
-      const res = await fetch("/api/payments/mercadopago/preference", {
+      const orderRes = await fetch(`${API_URL}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: cart,
-          removedByItemId:
-            Object.keys(removedByItemId).length > 0
-              ? removedByItemId
-              : undefined,
-          deliveryType: delivery,
+          items: cart.map((item) => ({
+            productId: item.id,
+            quantity: item.qty,
+          })),
+          deliveryType: delivery.toUpperCase(),
+          paymentMethod: payment.toUpperCase(),
           customerPhone: phone || undefined,
           customerAddress: address,
-          total,
-          paymentMethod: payment,
-          origin: window.location.origin,
+          cpf: cpfRaw.replace(/\D/g, ""),
+          idempotencyKey: `${cpfRaw.replace(/\D/g, "")}-${Date.now()}`,
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const createdOrder = await orderRes.json().catch(() => ({}));
+      if (!orderRes.ok || !createdOrder?.id) {
+        throw new Error(createdOrder?.error || "order_creation_failed");
+      }
+
+      const paymentRes = await fetch(`${API_URL}/payments/pix`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: createdOrder.id }),
+      });
+
+      const data = await paymentRes.json().catch(() => ({}));
       const checkoutUrl =
         typeof data.checkoutUrl === "string" && data.checkoutUrl
           ? data.checkoutUrl
@@ -349,7 +360,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             ? data.sandboxCheckoutUrl
             : "";
 
-      if (!res.ok || !checkoutUrl) {
+      if (!paymentRes.ok || !checkoutUrl) {
         throw new Error(data?.error || "checkout_creation_failed");
       }
 

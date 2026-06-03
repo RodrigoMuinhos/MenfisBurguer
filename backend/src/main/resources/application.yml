@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: menfis-delivery-backend
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+menfis:
+  backend-url: ${BACKEND_URL:http://localhost:8080}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  jwt-secret: ${JWT_SECRET:dev-only-change-me-dev-only-change-me}
+  mercado-pago-access-token: ${MERCADO_PAGO_ACCESS_TOKEN:${MP_ACCESS_TOKEN:}}
+  mercado-pago-webhook-secret: ${MERCADO_PAGO_WEBHOOK_SECRET:}
+  cloudinary-url: ${CLOUDINARY_URL:}
