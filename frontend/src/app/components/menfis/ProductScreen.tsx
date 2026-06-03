@@ -44,6 +44,15 @@ type BuilderState = {
   sauce: boolean;
 };
 
+type CustomizerState = {
+  item: MenuItem;
+  sauces: string[];
+  drink: string;
+  extras: string[];
+  qty: number;
+  note: string;
+};
+
 type MemberProfile = {
   name: string;
   email: string;
@@ -176,6 +185,29 @@ const COMBO_UPGRADE_PRICE = COMBO_PRICE - BURGER_PRICE;
 const MEMBER_KEY = "menfis_member";
 const DELIVERY_STORAGE_KEY = "menfis_cliente";
 
+const SAUCE_OPTIONS = [
+  "Sem molho",
+  "Barbecue",
+  "Catchup",
+  "Maionese temperada",
+  "Maionese do chef",
+  "Mostarda e mel",
+];
+
+const DRINK_OPTIONS = [
+  "Coca-Cola 350ml",
+  "Coca-Cola Zero 350ml",
+  "Guarana 350ml",
+  "Agua sem gas",
+];
+
+const EXTRA_OPTIONS = [
+  { id: "extra-queijo", label: "Extra queijo", price: 2 },
+  { id: "extra-ovo", label: "Ovo", price: 2.5 },
+  { id: "extra-molho", label: "Molho extra", price: 2.9 },
+  { id: "batata", label: "Batata frita", price: 15.9 },
+];
+
 function readMemberProfile(): MemberProfile | null {
   if (typeof window === "undefined") return null;
   try {
@@ -256,6 +288,7 @@ export function ProductScreen({
     item: Omit<CartItem, "qty">;
     canCombo: boolean;
   } | null>(null);
+  const [customizer, setCustomizer] = useState<CustomizerState | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [memberName, setMemberName] = useState("");
@@ -297,17 +330,52 @@ export function ProductScreen({
     }, 700);
   };
 
-  const addMenuItem = (item: MenuItem) => {
-    const cartItem =
-      item.id === BURGER_ID
-        ? buildBurger(builder)
-        : { id: item.id, name: item.name.toUpperCase(), price: item.price };
+  const openCustomizer = (item: MenuItem) => {
+    setCustomizer({
+      item,
+      sauces: [],
+      drink: "",
+      extras: [],
+      qty: 1,
+      note: "",
+    });
+  };
 
-    addToCart(cartItem);
-    const canCombo = item.category === "burger";
-    if (canCombo) {
-      setSuggestion({ item: cartItem, canCombo });
+  const addMenuItem = (item: MenuItem) => {
+    openCustomizer(item);
+  };
+
+  const confirmCustomizer = () => {
+    if (!customizer) return;
+    const requiresSauce =
+      customizer.item.category === "burger" || customizer.item.category === "combo";
+    const requiresDrink = customizer.item.category === "combo";
+    if (
+      (requiresSauce && customizer.sauces.length < 1) ||
+      (requiresDrink && !customizer.drink)
+    ) {
+      return;
     }
+
+    for (let i = 0; i < customizer.qty; i += 1) {
+      addToCart({
+        id: customizer.item.id,
+        name: customizer.item.name.toUpperCase(),
+        price: customizer.item.price,
+      });
+      customizer.extras.forEach((extraId) => {
+        const extra = EXTRA_OPTIONS.find((option) => option.id === extraId);
+        if (extra) {
+          addToCart({
+            id: extra.id,
+            name: extra.label.toUpperCase(),
+            price: extra.price,
+          });
+        }
+      });
+    }
+    setSuggestion(null);
+    setCustomizer(null);
   };
 
   const addComboUpgrade = () => {
@@ -992,6 +1060,14 @@ export function ProductScreen({
           </motion.div>
         )}
 
+        {customizer && (
+          <ProductCustomizer
+            state={customizer}
+            setState={setCustomizer}
+            onConfirm={confirmCustomizer}
+          />
+        )}
+
         {suggestion && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1160,6 +1236,288 @@ function BurgerBuilder({
         })}
       </div>
     </div>
+  );
+}
+
+function ProductCustomizer({
+  state,
+  setState,
+  onConfirm,
+}: {
+  state: CustomizerState;
+  setState: React.Dispatch<React.SetStateAction<CustomizerState | null>>;
+  onConfirm: () => void;
+}) {
+  const needsSauce = state.item.category === "burger" || state.item.category === "combo";
+  const needsDrink = state.item.category === "combo";
+  const extrasTotal = state.extras.reduce((sum, extraId) => {
+    const extra = EXTRA_OPTIONS.find((option) => option.id === extraId);
+    return sum + (extra?.price ?? 0);
+  }, 0);
+  const total = (state.item.price + extrasTotal) * state.qty;
+  const valid = (!needsSauce || state.sauces.length >= 1) && (!needsDrink || state.drink);
+
+  const toggleSauce = (sauce: string) => {
+    setState((prev) => {
+      if (!prev) return prev;
+      const selected = prev.sauces.includes(sauce)
+        ? prev.sauces.filter((item) => item !== sauce)
+        : [...prev.sauces, sauce].slice(-2);
+      return { ...prev, sauces: selected };
+    });
+  };
+
+  const toggleExtra = (extraId: string) => {
+    setState((prev) => {
+      if (!prev) return prev;
+      const selected = prev.extras.includes(extraId)
+        ? prev.extras.filter((item) => item !== extraId)
+        : [...prev.extras, extraId].slice(0, 5);
+      return { ...prev, extras: selected };
+    });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 sm:items-center"
+    >
+      <motion.div
+        initial={{ y: 40, scale: 0.98 }}
+        animate={{ y: 0, scale: 1 }}
+        exit={{ y: 40, scale: 0.98 }}
+        className="max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-t-[28px] sm:rounded-[28px]"
+        style={{ background: "#fff", color: VERDE }}
+      >
+        <div
+          className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-4"
+          style={{ background: "#fff", borderBottom: `1px solid ${VERDE}12` }}
+        >
+          <button
+            onClick={() => setState(null)}
+            className="flex h-10 w-10 items-center justify-center rounded-full"
+            style={{ background: `${VERDE}08`, color: VERDE }}
+            aria-label="Fechar"
+          >
+            <X size={18} strokeWidth={2.4} />
+          </button>
+          <p className="text-center text-sm font-black">{state.item.name}</p>
+          <div style={{ width: 40 }} />
+        </div>
+
+        <div className="max-h-[calc(92dvh-150px)] overflow-y-auto">
+          <div className="relative h-48" style={{ background: CREME }}>
+            {state.item.image ? (
+              <Image
+                src={state.item.image}
+                alt={state.item.name}
+                fill
+                sizes="100vw"
+                style={{ objectFit: "cover", objectPosition: "center" }}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <ChefHat size={54} strokeWidth={1.5} style={{ opacity: 0.35 }} />
+              </div>
+            )}
+          </div>
+
+          <div className="px-5 py-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/35">
+              {state.item.eyebrow}
+            </p>
+            <h2
+              className="mt-2 uppercase"
+              style={{
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "2.4rem",
+                lineHeight: 0.95,
+                letterSpacing: 0,
+              }}
+            >
+              {state.item.name}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-black/58">
+              {state.item.desc}
+            </p>
+            <p
+              className="mt-3"
+              style={{
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "1.65rem",
+                lineHeight: 1,
+              }}
+            >
+              a partir de {fmt(state.item.price)}
+            </p>
+          </div>
+
+          {needsSauce && (
+            <OptionSection
+              title="Molhos para o burger"
+              subtitle="Escolha de 1 a 2 opções"
+              required
+            >
+              {SAUCE_OPTIONS.map((sauce) => {
+                const active = state.sauces.includes(sauce);
+                return (
+                  <button
+                    key={sauce}
+                    onClick={() => toggleSauce(sauce)}
+                    className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
+                    style={{ borderColor: `${VERDE}10`, background: active ? `${ROSA}45` : "#fff" }}
+                  >
+                    <span className="text-sm font-bold">{sauce}</span>
+                    <span
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-lg font-black"
+                      style={{ background: active ? VERDE : `${VERDE}08`, color: active ? ROSA : VERDE }}
+                    >
+                      {active ? "✓" : "+"}
+                    </span>
+                  </button>
+                );
+              })}
+            </OptionSection>
+          )}
+
+          {needsDrink && (
+            <OptionSection
+              title="Aceita uma bebida?"
+              subtitle="Escolha 1 opção"
+              required
+            >
+              {DRINK_OPTIONS.map((drink) => {
+                const active = state.drink === drink;
+                return (
+                  <button
+                    key={drink}
+                    onClick={() => setState((prev) => (prev ? { ...prev, drink } : prev))}
+                    className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
+                    style={{ borderColor: `${VERDE}10`, background: active ? `${ROSA}45` : "#fff" }}
+                  >
+                    <span className="text-sm font-bold">{drink}</span>
+                    <span
+                      className="h-7 w-7 rounded-full"
+                      style={{
+                        border: `2px solid ${active ? VERDE : `${VERDE}18`}`,
+                        background: active ? VERDE : "#fff",
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </OptionSection>
+          )}
+
+          <OptionSection title="Extras" subtitle="Escolha até 5 opções">
+            {EXTRA_OPTIONS.map((extra) => {
+              const active = state.extras.includes(extra.id);
+              return (
+                <button
+                  key={extra.id}
+                  onClick={() => toggleExtra(extra.id)}
+                  className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
+                  style={{ borderColor: `${VERDE}10`, background: active ? `${ROSA}45` : "#fff" }}
+                >
+                  <span>
+                    <span className="block text-sm font-bold">{extra.label}</span>
+                    <span className="text-xs text-black/50">+ {fmt(extra.price)}</span>
+                  </span>
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-lg font-black"
+                    style={{ background: active ? VERDE : `${VERDE}08`, color: active ? ROSA : VERDE }}
+                  >
+                    {active ? "✓" : "+"}
+                  </span>
+                </button>
+              );
+            })}
+          </OptionSection>
+
+          <div className="px-5 py-5">
+            <p className="mb-2 text-xs font-black uppercase tracking-wider text-black/45">
+              Alguma observação?
+            </p>
+            <textarea
+              value={state.note}
+              onChange={(event) =>
+                setState((prev) => (prev ? { ...prev, note: event.target.value.slice(0, 140) } : prev))
+              }
+              placeholder="Ex: tirar cebola, molho à parte..."
+              className="h-24 w-full resize-none rounded-2xl p-4 text-sm outline-none"
+              style={{ border: `1.5px solid ${VERDE}12`, color: VERDE }}
+            />
+          </div>
+        </div>
+
+        <div
+          className="grid grid-cols-[128px_1fr] gap-3 px-5 py-4"
+          style={{ background: "#fff", borderTop: `1px solid ${VERDE}12` }}
+        >
+          <div
+            className="grid h-12 grid-cols-3 overflow-hidden rounded-2xl"
+            style={{ border: `1.5px solid ${VERDE}12` }}
+          >
+            <button
+              onClick={() => setState((prev) => (prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : prev))}
+              className="flex items-center justify-center"
+              style={{ color: VERDE }}
+            >
+              <Minus size={16} strokeWidth={2.6} />
+            </button>
+            <div className="flex items-center justify-center text-sm font-black">
+              {state.qty}
+            </div>
+            <button
+              onClick={() => setState((prev) => (prev ? { ...prev, qty: prev.qty + 1 } : prev))}
+              className="flex items-center justify-center"
+              style={{ color: VERDE }}
+            >
+              <Plus size={16} strokeWidth={2.6} />
+            </button>
+          </div>
+          <button
+            onClick={onConfirm}
+            disabled={!valid}
+            className="h-12 rounded-2xl text-xs font-black uppercase tracking-wider disabled:opacity-35"
+            style={{ background: VERDE, color: ROSA }}
+          >
+            {valid ? `Adicionar ${fmt(total)}` : "Complete obrigatórios"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function OptionSection({
+  title,
+  subtitle,
+  required,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex items-center justify-between gap-3 px-5 py-4" style={{ background: "#F5F5F5" }}>
+        <div>
+          <p className="text-lg font-black text-black/62">{title}</p>
+          <p className="text-sm text-black/50">{subtitle}</p>
+        </div>
+        {required && (
+          <span className="rounded-lg bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white">
+            Obrigatório
+          </span>
+        )}
+      </div>
+      {children}
+    </section>
   );
 }
 
