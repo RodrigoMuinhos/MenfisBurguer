@@ -25,7 +25,7 @@ import logoSkull from "@/imports/image-1.png";
 
 type DeliveryType = "retirada" | "delivery";
 type PaymentMethod = "pix" | "cartao";
-type CheckoutStep = "delivery" | "payment" | "review";
+type CheckoutStep = "bag" | "delivery" | "payment" | "review";
 
 const REMOVE_OPTIONS = [
   "Alface Crocante",
@@ -166,8 +166,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   const [obsOpen, setObsOpen] = useState<string | null>(null);
   const [removed, setRemoved] = useState<Record<string, Set<string>>>({});
   const [savedBadge, setSavedBadge] = useState(false);
-  const [paymentOpen, setPaymentOpen] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("delivery");
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("bag");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [payment, setPayment] = useState<PaymentMethod>("pix");
   const [paying, setPaying] = useState(false);
@@ -321,16 +320,23 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     setSubmitAttempted(true);
     setPaymentError("");
 
+    if (checkoutStep === "bag") {
+      setCheckoutStep("delivery");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (checkoutStep === "delivery") {
       if (!deliveryValid || !lgpdAccepted) return;
-      setPaymentOpen(true);
       setCheckoutStep("payment");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     if (checkoutStep === "payment") {
       if (!payment) return;
       setCheckoutStep("review");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -404,6 +410,22 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     }
   };
 
+  const handleBack = () => {
+    if (checkoutStep === "review") {
+      setCheckoutStep("payment");
+      return;
+    }
+    if (checkoutStep === "payment") {
+      setCheckoutStep("delivery");
+      return;
+    }
+    if (checkoutStep === "delivery") {
+      setCheckoutStep("bag");
+      return;
+    }
+    goToMenu();
+  };
+
   const inputStyle = (err?: boolean) => ({
     width: "100%",
     padding: "12px 14px",
@@ -427,9 +449,11 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   );
 
   const stepLabel =
-    checkoutStep === "delivery"
-      ? "Dados"
-      : checkoutStep === "payment"
+    checkoutStep === "bag"
+      ? "Sacola"
+      : checkoutStep === "delivery"
+        ? "Dados"
+        : checkoutStep === "payment"
         ? "Pagamento"
         : "Revisão";
 
@@ -468,7 +492,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         </div>
         <motion.button
           whileTap={{ scale: 0.95 }}
-          onClick={goToMenu}
+          onClick={handleBack}
           className="px-8 py-3 rounded-xl font-black text-xs uppercase tracking-wider"
           style={{
             background: ROSA,
@@ -549,9 +573,9 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
       >
         <div className="grid grid-cols-4 gap-2">
           {[
-            { label: "Sacola", active: true },
-            { label: "Dados", active: deliveryValid && lgpdAccepted },
-            { label: "Pagamento", active: checkoutStep !== "delivery" },
+            { label: "Sacola", active: ["bag", "delivery", "payment", "review"].includes(checkoutStep) },
+            { label: "Dados", active: ["delivery", "payment", "review"].includes(checkoutStep) },
+            { label: "Pagamento", active: ["payment", "review"].includes(checkoutStep) },
             { label: "Pix", active: checkoutStep === "review" },
           ].map((step, index) => (
             <div key={step.label}>
@@ -607,7 +631,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           </div>
         </div>
 
-        {submitAttempted && missingDelivery.length > 0 && (
+        {checkoutStep === "delivery" && submitAttempted && missingDelivery.length > 0 && (
           <div
             className="rounded-2xl p-3 text-[11px] font-bold leading-relaxed"
             style={{ background: `${ROSA}70`, color: VERDE, border: `1px solid ${ROSA}` }}
@@ -616,6 +640,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           </div>
         )}
         {/* ── Itens ── */}
+        {(checkoutStep === "bag" || checkoutStep === "review") && (
         <div>
           <Label>Itens do pedido</Label>
           <div className="flex flex-col gap-3">
@@ -845,8 +870,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             </AnimatePresence>
           </div>
         </div>
+        )}
 
         {/* ── Resumo do pedido ── */}
+        {(checkoutStep === "bag" || checkoutStep === "review") && (
         <div
           className="rounded-2xl p-4"
           style={{ background: `${ROSA}25`, border: `1.5px solid ${ROSA}` }}
@@ -928,8 +955,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             </span>
           </div>
         </div>
+        )}
 
         {/* ── Entrega ── */}
+        {checkoutStep === "delivery" && (
         <div>
           <Label>Entrega</Label>
           <div className="mb-3 grid grid-cols-2 gap-2" style={{ color: VERDE }}>
@@ -1006,10 +1035,11 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             </div>
           </div>
         </div>
+        )}
 
         {/* ── Pagamento ── */}
         <AnimatePresence>
-          {paymentOpen && (
+          {checkoutStep === "payment" && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -1129,6 +1159,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           </motion.div>
         )}
 
+        {checkoutStep === "review" && (
         <div
           className="rounded-2xl p-4"
           style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}
@@ -1157,7 +1188,9 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             </div>
           </div>
         </div>
+        )}
 
+        {checkoutStep === "delivery" && (
         <button
           type="button"
           onClick={() => setLgpdAccepted((v) => !v)}
@@ -1199,10 +1232,11 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             </div>
           </div>
         </button>
+        )}
 
         {/* ── Formulário delivery ── */}
         <AnimatePresence>
-          {delivery === "delivery" && (
+          {checkoutStep === "delivery" && delivery === "delivery" && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -1395,8 +1429,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               Próxima etapa
             </p>
             <p className="text-xs font-bold" style={{ color: VERDE }}>
-              {checkoutStep === "delivery"
-                ? missingDelivery.length > 0
+              {checkoutStep === "bag"
+                ? "Ir para entrega"
+                : checkoutStep === "delivery"
+                  ? missingDelivery.length > 0
                   ? "Conferir dados de entrega"
                   : "Escolher pagamento"
                 : checkoutStep === "payment"
