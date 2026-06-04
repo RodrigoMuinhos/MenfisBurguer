@@ -44,6 +44,9 @@ public class PaymentService {
   @Value("${menfis.default-payer-email:test_user_br@testuser.com}")
   private String defaultPayerEmail;
 
+  @Value("${menfis.default-card-payer-email:test@testuser.com}")
+  private String defaultCardPayerEmail;
+
   public PaymentService(JdbcTemplate jdbc, ObjectMapper mapper, OrderService orders, RestClient.Builder builder) {
     this.jdbc = jdbc;
     this.mapper = mapper;
@@ -80,6 +83,9 @@ public class PaymentService {
         "pending", frontendUrl + "/?payment=pending&orderId=" + encodedOrderId
       ));
     payload.put("statement_descriptor", "MENFISBURGUER");
+    payload.put("payer", Map.of(
+      "email", defaultCardPayerEmail == null || defaultCardPayerEmail.isBlank() ? "test@testuser.com" : defaultCardPayerEmail
+    ));
     if (frontendUrl != null && frontendUrl.startsWith("https://")) {
       payload.put("auto_return", "approved");
     }
@@ -216,7 +222,7 @@ public class PaymentService {
       .retrieve()
       .body(JsonNode.class);
 
-    String orderId = payment.path("external_reference").asText("");
+    String orderId = internalOrderId(payment.path("external_reference").asText(""));
     String status = payment.path("status").asText("unknown");
     if (!orderId.isBlank()) {
       orders.markPaid(orderId, payment.path("id").asText(paymentId), status);
