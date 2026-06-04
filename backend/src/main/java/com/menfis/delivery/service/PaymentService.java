@@ -58,7 +58,9 @@ public class PaymentService {
         "pending", frontendUrl + "/?payment=pending&orderId=" + encodedOrderId
       ));
     payload.put("statement_descriptor", "MENFISBURGUER");
-    payload.put("auto_return", "approved");
+    if (frontendUrl != null && frontendUrl.startsWith("https://")) {
+      payload.put("auto_return", "approved");
+    }
 
     String paymentMethod = order.paymentMethod() == null ? "" : order.paymentMethod().toUpperCase();
     if ("PIX".equals(paymentMethod)) {
