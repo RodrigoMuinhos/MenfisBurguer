@@ -483,10 +483,12 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     name,
     price,
     description,
+    image,
   }: {
     name: string;
     price: number;
     description: string;
+    image: string;
   }) => (
     <button
       onClick={goToMenu}
@@ -498,10 +500,26 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
       }}
     >
       <div
-        className="mb-3 flex h-24 items-center justify-center rounded-2xl"
-        style={{ background: `${ROSA}55`, color: VERDE }}
+        className="relative mb-3 h-24 overflow-hidden rounded-2xl"
+        style={{ background: `${ROSA}55` }}
       >
-        <Plus size={24} strokeWidth={2.6} />
+        <Image
+          src={image}
+          alt={name}
+          fill
+          sizes="142px"
+          style={{ objectFit: "cover" }}
+        />
+        <span
+          className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full"
+          style={{
+            background: "#fff",
+            color: VERDE,
+            boxShadow: "0 8px 18px rgba(0,0,0,0.14)",
+          }}
+        >
+          <Plus size={20} strokeWidth={2.7} />
+        </span>
       </div>
       <p className="text-sm font-black" style={{ color: VERDE }}>
         {fmt(price)}
@@ -997,10 +1015,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               Peça também
             </h3>
             <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
-              <SuggestedCard name="Coca-Cola Zero" price={8.9} description="Lata 350ml gelada" />
-              <SuggestedCard name="Guaraná Zero" price={8.9} description="Lata 350ml gelada" />
-              <SuggestedCard name="Água com gás" price={5.9} description="Garrafa gelada" />
-              <SuggestedCard name="Batata frita" price={15.9} description="Porção crocante" />
+              <SuggestedCard name="Coca-Cola Zero" price={8.9} description="Lata 350ml gelada" image="/EXTRAS/cocazero.jpg" />
+              <SuggestedCard name="Guaraná Zero" price={8.9} description="Lata 350ml gelada" image="/EXTRAS/Gurarana.jpg" />
+              <SuggestedCard name="Água com gás" price={5.9} description="Garrafa gelada" image="/EXTRAS/aguaComGas.png" />
+              <SuggestedCard name="Batata frita" price={15.9} description="Porção crocante" image="/EXTRAS/batata.jpg" />
             </div>
           </div>
         )}
