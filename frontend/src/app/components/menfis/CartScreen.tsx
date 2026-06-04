@@ -867,15 +867,28 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                 Resumo do pedido
               </p>
               <p className="text-[11px] mt-1" style={{ color: VERDE, opacity: 0.62 }}>
-                Conferência final antes de enviar para a cozinha.
+                Revise os itens antes de seguir para o pagamento.
               </p>
             </div>
-            <span
-              className="text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-wider"
-              style={{ background: VERDE, color: ROSA }}
-            >
-              {deliveryEta}
-            </span>
+            <div className="text-right shrink-0">
+              <p
+                className="text-[9px] font-black uppercase tracking-widest"
+                style={{ color: VERDE, opacity: 0.42 }}
+              >
+                Prazo
+              </p>
+              <p
+                className="font-black uppercase"
+                style={{
+                  color: VERDE,
+                  fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                  fontSize: "1.05rem",
+                  lineHeight: 1,
+                }}
+              >
+                {deliveryEta}
+              </p>
+            </div>
           </div>
           {cart.map((item) => (
             <div

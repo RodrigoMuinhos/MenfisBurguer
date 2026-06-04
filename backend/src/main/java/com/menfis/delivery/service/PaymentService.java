@@ -3,6 +3,8 @@ package com.menfis.delivery.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.menfis.delivery.dto.ApiDtos.PixResponse;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -41,22 +43,43 @@ public class PaymentService {
     }
     var order = orders.get(orderId);
     String encodedOrderId = URLEncoder.encode(order.id(), StandardCharsets.UTF_8);
-    Map<String, Object> payload = Map.of(
-      "items", java.util.List.of(Map.of(
+    Map<String, Object> payload = new LinkedHashMap<>();
+    payload.put("items", List.of(Map.of(
         "title", "Pedido " + order.id() + " - Menfi's Burger",
         "quantity", 1,
         "currency_id", "BRL",
         "unit_price", order.total()
-      )),
-      "external_reference", order.id(),
-      "notification_url", backendUrl + "/payments/webhook/mercadopago",
-      "back_urls", Map.of(
+      )));
+    payload.put("external_reference", order.id());
+    payload.put("notification_url", backendUrl + "/payments/webhook/mercadopago");
+    payload.put("back_urls", Map.of(
         "success", frontendUrl + "/?payment=success&orderId=" + encodedOrderId,
         "failure", frontendUrl + "/?payment=failure&orderId=" + encodedOrderId,
         "pending", frontendUrl + "/?payment=pending&orderId=" + encodedOrderId
-      ),
-      "statement_descriptor", "MENFISBURGUER"
-    );
+      ));
+    payload.put("statement_descriptor", "MENFISBURGUER");
+    payload.put("auto_return", "approved");
+
+    String paymentMethod = order.paymentMethod() == null ? "" : order.paymentMethod().toUpperCase();
+    if ("PIX".equals(paymentMethod)) {
+      payload.put("payment_methods", Map.of(
+        "excluded_payment_types", List.of(
+          Map.of("id", "credit_card"),
+          Map.of("id", "debit_card"),
+          Map.of("id", "ticket"),
+          Map.of("id", "atm")
+        ),
+        "installments", 1
+      ));
+    } else if ("CARTAO".equals(paymentMethod)) {
+      payload.put("payment_methods", Map.of(
+        "excluded_payment_types", List.of(
+          Map.of("id", "ticket"),
+          Map.of("id", "atm"),
+          Map.of("id", "bank_transfer")
+        )
+      ));
+    }
 
     JsonNode response = restClient.post()
       .uri("/checkout/preferences")
