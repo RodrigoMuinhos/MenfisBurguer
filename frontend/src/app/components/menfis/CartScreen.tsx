@@ -473,7 +473,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         : "Pagamento";
 
   const nextActionLabel =
-    checkoutStep === "review" ? "Fazer pedido" : checkoutStep === "payment" ? "Revisar pedido" : "Continuar";
+    checkoutStep === "review" ? "Fazer pagamento" : "Continuar";
 
   const clearCart = () => {
     cart.forEach((item) => updateQty(item.id, -item.qty));
@@ -648,8 +648,8 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           {[
             { label: "Sacola", active: ["bag", "delivery", "payment", "review"].includes(checkoutStep) },
             { label: "Dados", active: ["delivery", "payment", "review"].includes(checkoutStep) },
-            { label: "Pagamento", active: ["payment", "review"].includes(checkoutStep) },
-            { label: "Finalizar", active: checkoutStep === "review" },
+            { label: "Forma de pagamento", active: ["payment", "review"].includes(checkoutStep) },
+            { label: "Fazer pagamento", active: checkoutStep === "review" },
           ].map((step, index) => (
             <div key={step.label}>
               <div
@@ -1616,8 +1616,8 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                   ? "Conferir dados de entrega"
                   : "Escolher pagamento"
                 : checkoutStep === "payment"
-                  ? "Revisar pedido"
-                  : "Escolher no Mercado Pago"}
+                  ? "Conferir antes de pagar"
+                  : "Fazer pagamento"}
             </p>
           </div>
           <div className="text-right">

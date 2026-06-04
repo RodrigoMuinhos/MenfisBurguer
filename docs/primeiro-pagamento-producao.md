@@ -56,3 +56,5 @@ em `MERCADO_PAGO_WEBHOOK_SECRET` no Railway.
    KDS somente depois do webhook.
 
 Nunca use usuario, cartao ou e-mail de teste nesse fluxo produtivo.
+O Mercado Pago tambem bloqueia a tentativa da conta vendedora pagar a propria
+cobranca. Use uma janela anonima e outra conta real para o primeiro pagamento.
