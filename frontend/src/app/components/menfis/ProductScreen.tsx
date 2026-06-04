@@ -1303,9 +1303,9 @@ function ProductCustomizer({
   }, 0);
   const total = (state.item.price + extrasTotal) * state.qty;
   const valid =
-    (!needsMeatPoint || state.meatPoints.length >= requiredCount) &&
-    (!needsSauce || state.sauces.length >= requiredCount) &&
-    (!needsDrink || state.drinks.length >= requiredCount);
+    (!needsMeatPoint || state.meatPoints.length === requiredCount) &&
+    (!needsSauce || state.sauces.length === requiredCount) &&
+    (!needsDrink || state.drinks.length === requiredCount);
 
   const toggleLimited = (
     field: "meatPoints" | "sauces" | "drinks",
@@ -1315,12 +1315,23 @@ function ProductCustomizer({
     setState((prev) => {
       if (!prev) return prev;
       const current = prev[field];
-      const selected = current.includes(value)
-        ? current.filter((item) => item !== value)
-        : [...current, value].slice(-max);
+      const selectedCount = current.filter((item) => item === value).length;
+      let selected = current;
+      if (selectedCount >= max) {
+        selected = current.filter((item) => item !== value);
+      } else if (current.length < max) {
+        selected = [...current, value];
+      } else if (selectedCount > 0) {
+        selected = current.filter((item) => item !== value);
+      }
       return { ...prev, [field]: selected };
     });
   };
+
+  const countSelected = (
+    field: "meatPoints" | "sauces" | "drinks",
+    value: string,
+  ) => state[field].filter((item) => item === value).length;
 
   const toggleExtra = (extraId: string) => {
     setState((prev) => {
@@ -1417,10 +1428,13 @@ function ProductCustomizer({
             <OptionSection
               title="Ponto da carne"
               subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
+              count={state.meatPoints.length}
+              total={requiredCount}
               required
             >
               {MEAT_POINT_OPTIONS.map((point) => {
-                const active = state.meatPoints.includes(point.label);
+                const selectedCount = countSelected("meatPoints", point.label);
+                const active = selectedCount > 0;
                 return (
                   <button
                     key={point.label}
@@ -1442,7 +1456,7 @@ function ProductCustomizer({
                         color: active ? ROSA : "transparent",
                       }}
                     >
-                      ✓
+                      {selectedCount > 0 ? selectedCount : "✓"}
                     </span>
                   </button>
                 );
@@ -1454,10 +1468,13 @@ function ProductCustomizer({
             <OptionSection
               title="Molhos para o burger"
               subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
+              count={state.sauces.length}
+              total={requiredCount}
               required
             >
               {SAUCE_OPTIONS.map((sauce) => {
-                const active = state.sauces.includes(sauce.label);
+                const selectedCount = countSelected("sauces", sauce.label);
+                const active = selectedCount > 0;
                 return (
                   <button
                     key={sauce.label}
@@ -1479,7 +1496,7 @@ function ProductCustomizer({
                         color: active ? ROSA : "transparent",
                       }}
                     >
-                      ✓
+                      {selectedCount > 0 ? selectedCount : "✓"}
                     </span>
                   </button>
                 );
@@ -1491,10 +1508,13 @@ function ProductCustomizer({
             <OptionSection
               title="Aceita uma bebida?"
               subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
+              count={state.drinks.length}
+              total={requiredCount}
               required
             >
               {DRINK_OPTIONS.map((drink) => {
-                const active = state.drinks.includes(drink.id);
+                const selectedCount = countSelected("drinks", drink.id);
+                const active = selectedCount > 0;
                 return (
                   <button
                     key={drink.id}
@@ -1510,7 +1530,16 @@ function ProductCustomizer({
                         <span className="block text-sm font-bold">{drink.label}</span>
                       </span>
                     </span>
-                    <span className="h-7 w-7 rounded-full" style={{ border: `2px solid ${active ? VERDE : "#E9D9DF"}`, background: active ? VERDE : "#fff" }} />
+                    <span
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-black"
+                      style={{
+                        border: `2px solid ${active ? VERDE : "#E9D9DF"}`,
+                        background: active ? VERDE : "#fff",
+                        color: active ? ROSA : "transparent",
+                      }}
+                    >
+                      {selectedCount > 0 ? selectedCount : "✓"}
+                    </span>
                   </button>
                 );
               })}
@@ -1593,7 +1622,13 @@ function ProductCustomizer({
             className="h-12 rounded-2xl text-xs font-black uppercase tracking-wider disabled:opacity-35"
             style={{ background: VERDE, color: ROSA }}
           >
-            {valid ? `Adicionar ${fmt(total)}` : "Complete obrigatórios"}
+            {valid
+              ? `Adicionar ${fmt(total)}`
+              : `Complete obrigatórios (${[
+                  needsMeatPoint ? Math.min(state.meatPoints.length, requiredCount) : requiredCount,
+                  needsSauce ? Math.min(state.sauces.length, requiredCount) : requiredCount,
+                  needsDrink ? Math.min(state.drinks.length, requiredCount) : requiredCount,
+                ].filter((value) => value < requiredCount).length} falta)`}
           </button>
         </div>
       </motion.div>
@@ -1604,14 +1639,19 @@ function ProductCustomizer({
 function OptionSection({
   title,
   subtitle,
+  count,
+  total,
   required,
   children,
 }: {
   title: string;
   subtitle: string;
+  count?: number;
+  total?: number;
   required?: boolean;
   children: React.ReactNode;
 }) {
+  const showCounter = typeof count === "number" && typeof total === "number";
   return (
     <section>
       <div className="flex items-center justify-between gap-3 px-5 py-4" style={{ background: "#F5F5F5" }}>
@@ -1620,9 +1660,22 @@ function OptionSection({
           <p className="text-sm text-black/50">{subtitle}</p>
         </div>
         {required && (
-          <span className="rounded-lg bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white">
-            Obrigatório
-          </span>
+          <div className="flex items-center gap-2">
+            {showCounter && (
+              <span
+                className="rounded-full px-3 py-1 text-[11px] font-black"
+                style={{
+                  background: count >= total ? VERDE : ROSA,
+                  color: count >= total ? ROSA : VERDE,
+                }}
+              >
+                {count}/{total}
+              </span>
+            )}
+            <span className="rounded-lg bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white">
+              Obrigatório
+            </span>
+          </div>
         )}
       </div>
       {children}
