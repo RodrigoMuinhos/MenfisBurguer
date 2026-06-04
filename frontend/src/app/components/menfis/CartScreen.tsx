@@ -17,6 +17,10 @@ import {
   MapPin,
   ReceiptText,
   LockKeyhole,
+  ShoppingBag,
+  Store,
+  Bike,
+  Trash2,
 } from "lucide-react";
 import { CartItem, Order, VERDE, ROSA } from "./types";
 import logoSkull from "@/imports/image-1.png";
@@ -55,6 +59,8 @@ const ITEM_DESC: Record<string, string> = {
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 const deliveryEta = "25-45 min";
+const PICKUP_ADDRESS = "Rua Doutor Gilberto Studart, 728";
+const SERVICE_FEE = 0.99;
 
 /* ── Masks ────────────────────────────────────────── */
 function maskPhone(v: string) {
@@ -188,7 +194,7 @@ function couponDiscount(coupon: Coupon | null, grossTotal: number) {
 }
 
 export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
-  const delivery: DeliveryType = "delivery";
+  const [delivery, setDelivery] = useState<DeliveryType>("delivery");
   const [obsOpen, setObsOpen] = useState<string | null>(null);
   const [removed, setRemoved] = useState<Record<string, Set<string>>>({});
   const [savedBadge, setSavedBadge] = useState(false);
@@ -260,22 +266,24 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   }, [cep]);
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const fee = freeShipping ? 0 : 5.1;
-  const grossTotal = subtotal + fee;
+  const fee = delivery === "delivery" && !freeShipping ? 5.1 : 0;
+  const serviceFee = subtotal > 0 ? SERVICE_FEE : 0;
+  const grossTotal = subtotal + fee + serviceFee;
   const discount = couponDiscount(appliedCoupon, grossTotal);
   const total = Math.max(1, grossTotal - discount);
 
   const deliveryValid =
-    cep.replace(/\D/g, "").length === 8 &&
-    !cepError &&
-    street.length > 0 &&
-    number.trim().length > 0 &&
-    phone.replace(/\D/g, "").length >= 10;
+    phone.replace(/\D/g, "").length >= 10 &&
+    (delivery === "retirada" ||
+      (cep.replace(/\D/g, "").length === 8 &&
+        !cepError &&
+        street.length > 0 &&
+        number.trim().length > 0));
 
   const missingDelivery = [
-    cep.replace(/\D/g, "").length !== 8 || cepError ? "CEP válido" : "",
-    !street.length ? "endereço" : "",
-    !number.trim().length ? "número" : "",
+    delivery === "delivery" && (cep.replace(/\D/g, "").length !== 8 || cepError) ? "CEP válido" : "",
+    delivery === "delivery" && !street.length ? "endereço" : "",
+    delivery === "delivery" && !number.trim().length ? "número" : "",
     phone.replace(/\D/g, "").length < 10 ? "WhatsApp" : "",
   ].filter(Boolean);
 
@@ -328,7 +336,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         .filter(([, opts]) => opts.length > 0),
     ) as Record<string, string[]>;
 
-    const address = `${street}, ${number}${complement ? ` ${complement}` : ""}`;
+    const address =
+      delivery === "retirada"
+        ? `Retirada na loja - ${PICKUP_ADDRESS}`
+        : `${street}, ${number}${complement ? ` ${complement}` : ""}`;
 
     let slowTimer: number | null = null;
     try {
@@ -462,7 +473,47 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         : "Pagamento";
 
   const nextActionLabel =
-    checkoutStep === "review" ? "Escolher pagamento" : "Continuar";
+    checkoutStep === "review" ? "Fazer pedido" : checkoutStep === "payment" ? "Revisar pedido" : "Continuar";
+
+  const clearCart = () => {
+    cart.forEach((item) => updateQty(item.id, -item.qty));
+  };
+
+  const SuggestedCard = ({
+    name,
+    price,
+    description,
+  }: {
+    name: string;
+    price: number;
+    description: string;
+  }) => (
+    <button
+      onClick={goToMenu}
+      className="min-w-[142px] text-left rounded-2xl p-3"
+      style={{
+        background: "#fff",
+        border: `1px solid ${VERDE}10`,
+        boxShadow: "0 10px 24px rgba(101,0,31,0.06)",
+      }}
+    >
+      <div
+        className="mb-3 flex h-24 items-center justify-center rounded-2xl"
+        style={{ background: `${ROSA}55`, color: VERDE }}
+      >
+        <Plus size={24} strokeWidth={2.6} />
+      </div>
+      <p className="text-sm font-black" style={{ color: VERDE }}>
+        {fmt(price)}
+      </p>
+      <p className="mt-1 text-xs font-bold leading-snug" style={{ color: "#222" }}>
+        {name}
+      </p>
+      <p className="mt-1 text-[10px] leading-snug" style={{ color: VERDE, opacity: 0.52 }}>
+        {description}
+      </p>
+    </button>
+  );
 
   /* ── Empty ── */
   if (cart.length === 0) {
@@ -635,6 +686,48 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           </div>
         </div>
 
+        {checkoutStep === "bag" && (
+          <div
+            className="rounded-[26px] p-4"
+            style={{
+              background: "#fff",
+              border: `1px solid ${VERDE}10`,
+              boxShadow: "0 14px 36px rgba(31,61,46,0.06)",
+            }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Image
+                  src={logoSkull}
+                  alt="Menfi's"
+                  width={48}
+                  height={48}
+                  className="rounded-full"
+                />
+                <div>
+                  <p className="text-lg font-black" style={{ color: "#18181B" }}>
+                    Menfi's Burger
+                  </p>
+                  <button
+                    onClick={goToMenu}
+                    className="mt-0.5 text-left text-sm font-black"
+                    style={{ color: VERDE, border: 0, background: "transparent", padding: 0 }}
+                  >
+                    Adicionar mais itens
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={clearCart}
+                className="text-sm font-bold"
+                style={{ color: VERDE, background: "transparent", border: 0 }}
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
+        )}
+
         {checkoutStep === "delivery" && submitAttempted && missingDelivery.length > 0 && (
           <div
             className="rounded-2xl p-3 text-[11px] font-bold leading-relaxed"
@@ -646,7 +739,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         {/* ── Itens ── */}
         {(checkoutStep === "bag" || checkoutStep === "review") && (
         <div>
-          <Label>Itens do pedido</Label>
+          <Label>{checkoutStep === "bag" ? "Itens adicionados" : "Revise seu pedido"}</Label>
           <div className="flex flex-col gap-3">
             <AnimatePresence>
               {cart.map((item) => {
@@ -669,14 +762,27 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                     {/* Item info */}
                     <div className="flex items-start gap-3 px-4 pt-4 pb-2">
                       <div
-                        className="flex items-center justify-center rounded-xl shrink-0"
-                        style={{ width: 40, height: 40, background: ROSA }}
+                        className="relative flex items-center justify-center rounded-2xl shrink-0"
+                        style={{ width: 58, height: 58, background: `${ROSA}80` }}
                       >
                         <UtensilsCrossed
-                          size={18}
+                          size={22}
                           strokeWidth={2}
                           style={{ color: VERDE }}
                         />
+                        <button
+                          onClick={() => setObsOpen(isObsOpen ? null : item.id)}
+                          className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full"
+                          style={{
+                            background: "#fff",
+                            color: VERDE,
+                            border: `1px solid ${VERDE}10`,
+                            boxShadow: "0 8px 18px rgba(0,0,0,0.08)",
+                          }}
+                          aria-label="Editar item"
+                        >
+                          <MessageSquare size={13} strokeWidth={2.5} />
+                        </button>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p
@@ -725,7 +831,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                             cursor: "pointer",
                           }}
                         >
-                          <Minus size={13} strokeWidth={2.5} />
+                          {item.qty === 1 ? <Trash2 size={13} strokeWidth={2.5} /> : <Minus size={13} strokeWidth={2.5} />}
                         </button>
                         <span
                           className="w-8 text-center font-black text-sm"
@@ -873,7 +979,30 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               })}
             </AnimatePresence>
           </div>
+          {checkoutStep === "bag" && (
+            <button
+              onClick={goToMenu}
+              className="mt-5 w-full text-center text-base font-black"
+              style={{ color: VERDE, background: "transparent", border: 0 }}
+            >
+              Adicionar mais itens
+            </button>
+          )}
         </div>
+        )}
+
+        {checkoutStep === "bag" && (
+          <div>
+            <h3 className="mb-3 text-xl font-black" style={{ color: "#1F1F1F" }}>
+              Peça também
+            </h3>
+            <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
+              <SuggestedCard name="Coca-Cola Zero" price={8.9} description="Lata 350ml gelada" />
+              <SuggestedCard name="Guaraná Zero" price={8.9} description="Lata 350ml gelada" />
+              <SuggestedCard name="Água com gás" price={5.9} description="Garrafa gelada" />
+              <SuggestedCard name="Batata frita" price={15.9} description="Porção crocante" />
+            </div>
+          </div>
         )}
 
         {/* ── Resumo do pedido ── */}
@@ -946,19 +1075,41 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               </p>
             </div>
           ))}
-          <div
-            className="flex justify-between text-xs py-1"
-            style={{ color: VERDE, opacity: 0.5 }}
-          >
-            <span>{freeShipping ? "Frete grátis Clube Menfi's" : "Taxa de entrega"}</span>
-            <span>{fmt(fee)}</span>
+          <div className="mt-3 space-y-2">
+            <div
+              className="flex justify-between text-xs"
+              style={{ color: VERDE, opacity: 0.64 }}
+            >
+              <span>Subtotal dos itens</span>
+              <span>{fmt(subtotal)}</span>
+            </div>
+            <div
+              className="flex justify-between text-xs"
+              style={{ color: VERDE, opacity: 0.64 }}
+            >
+              <span>
+                {delivery === "retirada"
+                  ? "Retirada na loja"
+                  : freeShipping
+                    ? "Frete grátis Clube Menfi's"
+                    : "Taxa de entrega"}
+              </span>
+              <span>{delivery === "retirada" || freeShipping ? "Grátis" : fmt(fee)}</span>
+            </div>
+            <div
+              className="flex justify-between text-xs"
+              style={{ color: VERDE, opacity: 0.64 }}
+            >
+              <span>Taxa de serviço</span>
+              <span>{fmt(serviceFee)}</span>
+            </div>
           </div>
           {appliedCoupon && discount > 0 && (
             <div
-              className="flex justify-between text-xs py-1 font-bold"
+              className="flex justify-between text-xs py-2 font-bold"
               style={{ color: VERDE }}
             >
-              <span>Cupom {appliedCoupon.code}</span>
+              <span>Desconto {appliedCoupon.code}</span>
               <span>- {fmt(discount)}</span>
             </div>
           )}
@@ -987,6 +1138,30 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         {checkoutStep === "delivery" && (
         <div>
           <Label>Entrega</Label>
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            {([
+              { id: "delivery", label: "Entrega", copy: `${deliveryEta} · ${freeShipping ? "grátis" : fmt(5.1)}`, Icon: Bike },
+              { id: "retirada", label: "Retirada", copy: "Buscar na loja · grátis", Icon: Store },
+            ] as { id: DeliveryType; label: string; copy: string; Icon: React.ElementType }[]).map(({ id, label, copy, Icon }) => {
+              const active = delivery === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setDelivery(id)}
+                  className="rounded-2xl p-3 text-left"
+                  style={{
+                    background: active ? ROSA : "#fff",
+                    border: `1.5px solid ${active ? VERDE : `${VERDE}14`}`,
+                    color: VERDE,
+                  }}
+                >
+                  <Icon size={17} strokeWidth={2.4} />
+                  <p className="mt-2 text-xs font-black uppercase tracking-wide">{label}</p>
+                  <p className="mt-1 text-[10px] font-semibold opacity-60">{copy}</p>
+                </button>
+              );
+            })}
+          </div>
           <div className="mb-3 grid grid-cols-2 gap-2" style={{ color: VERDE }}>
             <div
               className="rounded-xl px-3 py-2"
@@ -1004,13 +1179,25 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             >
               <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider">
                 <MapPin size={12} strokeWidth={2.2} />
-                Delivery
+                {delivery === "retirada" ? "Retirada" : "Delivery"}
               </div>
               <p className="text-xs font-bold mt-1">
-                {freeShipping ? "Frete grátis" : `${fmt(fee)} de taxa`}
+                {delivery === "retirada" ? "Grátis na loja" : freeShipping ? "Frete grátis" : `${fmt(fee)} de taxa`}
               </p>
             </div>
           </div>
+          {delivery === "retirada" && (
+            <div
+              className="rounded-2xl p-4"
+              style={{ background: "#fff", border: `1px solid ${VERDE}14`, color: VERDE }}
+            >
+              <p className="text-xs font-black uppercase tracking-wide">Endereço para retirada</p>
+              <p className="mt-1 text-sm font-bold">{PICKUP_ADDRESS}</p>
+              <p className="mt-1 text-[11px] opacity-60">
+                Avise no WhatsApp quando chegar. Seu pedido entra na fila após confirmação do pagamento.
+              </p>
+            </div>
+          )}
         </div>
         )}
 
@@ -1094,7 +1281,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           </div>
         )}
 
-        {checkoutStep === "review" && (
+        {(checkoutStep === "bag" || checkoutStep === "review") && (
           <div
             className="rounded-2xl p-4"
             style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
@@ -1172,6 +1359,22 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                 </p>
               </div>
             </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setCheckoutStep("bag")}
+                className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
+                style={{ background: `${VERDE}08`, color: VERDE, border: `1px solid ${VERDE}14` }}
+              >
+                Alterar pedido
+              </button>
+              <button
+                onClick={() => setCheckoutStep("delivery")}
+                className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
+                style={{ background: `${VERDE}08`, color: VERDE, border: `1px solid ${VERDE}14` }}
+              >
+                Alterar entrega
+              </button>
+            </div>
           </div>
         )}
 
@@ -1193,7 +1396,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
 
         {/* ── Formulário delivery ── */}
         <AnimatePresence>
-          {checkoutStep === "delivery" && delivery === "delivery" && (
+          {checkoutStep === "delivery" && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -1219,90 +1422,94 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                 </AnimatePresence>
               </div>
 
-              {/* CEP */}
-              <div>
-                <Label>CEP</Label>
-                <div className="relative">
-                  <input
-                    value={cep}
-                    onChange={(e) => setCep(maskCEP(e.target.value))}
-                    placeholder="00000-000"
-                    style={inputStyle(cepError)}
-                  />
-                  {cepLoading && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2
-                        size={16}
-                        strokeWidth={2}
-                        style={{
-                          color: VERDE,
-                          opacity: 0.4,
-                          animation: "spin 1s linear infinite",
-                        }}
+              {delivery === "delivery" && (
+                <>
+                  {/* CEP */}
+                  <div>
+                    <Label>CEP</Label>
+                    <div className="relative">
+                      <input
+                        value={cep}
+                        onChange={(e) => setCep(maskCEP(e.target.value))}
+                        placeholder="00000-000"
+                        style={inputStyle(cepError)}
+                      />
+                      {cepLoading && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2
+                            size={16}
+                            strokeWidth={2}
+                            style={{
+                              color: VERDE,
+                              opacity: 0.4,
+                              animation: "spin 1s linear infinite",
+                            }}
+                          />
+                        </div>
+                      )}
+                      {!cepLoading && cep.replace(/\D/g, "").length === 8 && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {cepError ? (
+                            <AlertCircle
+                              size={16}
+                              strokeWidth={2}
+                              style={{ color: "#DC2626" }}
+                            />
+                          ) : (
+                            <CheckCircle2
+                              size={16}
+                              strokeWidth={2}
+                              style={{ color: "#16a34a" }}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {cepError && (
+                      <p className="text-[10px] mt-1" style={{ color: "#DC2626" }}>
+                        CEP não encontrado
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Endereço (preenchido pelo CEP) */}
+                  {street.length > 0 && (
+                    <div>
+                      <Label>Endereço</Label>
+                      <input
+                        value={street}
+                        onChange={(e) => setStreet(e.target.value)}
+                        style={inputStyle()}
                       />
                     </div>
                   )}
-                  {!cepLoading && cep.replace(/\D/g, "").length === 8 && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {cepError ? (
-                        <AlertCircle
-                          size={16}
-                          strokeWidth={2}
-                          style={{ color: "#DC2626" }}
+
+                  {/* Número + Complemento */}
+                  {street.length > 0 && (
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <Label>Número</Label>
+                        <input
+                          value={number}
+                          onChange={(e) => setNumber(e.target.value)}
+                          placeholder="Ex: 42"
+                          style={inputStyle(
+                            !number && street.length > 0 ? false : undefined,
+                          )}
                         />
-                      ) : (
-                        <CheckCircle2
-                          size={16}
-                          strokeWidth={2}
-                          style={{ color: "#16a34a" }}
+                      </div>
+                      <div className="flex-1">
+                        <Label>Complemento</Label>
+                        <input
+                          value={complement}
+                          onChange={(e) => setComplement(e.target.value)}
+                          placeholder="Apto, bloco..."
+                          style={inputStyle()}
                         />
-                      )}
+                      </div>
                     </div>
                   )}
-                </div>
-                {cepError && (
-                  <p className="text-[10px] mt-1" style={{ color: "#DC2626" }}>
-                    CEP não encontrado
-                  </p>
-                )}
-              </div>
-
-              {/* Endereço (preenchido pelo CEP) */}
-              {street.length > 0 && (
-                <div>
-                  <Label>Endereço</Label>
-                  <input
-                    value={street}
-                    onChange={(e) => setStreet(e.target.value)}
-                    style={inputStyle()}
-                  />
-                </div>
-              )}
-
-              {/* Número + Complemento */}
-              {street.length > 0 && (
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <Label>Número</Label>
-                    <input
-                      value={number}
-                      onChange={(e) => setNumber(e.target.value)}
-                      placeholder="Ex: 42"
-                      style={inputStyle(
-                        !number && street.length > 0 ? false : undefined,
-                      )}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Label>Complemento</Label>
-                    <input
-                      value={complement}
-                      onChange={(e) => setComplement(e.target.value)}
-                      placeholder="Apto, bloco..."
-                      style={inputStyle()}
-                    />
-                  </div>
-                </div>
+                </>
               )}
 
               {/* WhatsApp */}
@@ -1319,6 +1526,49 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {paying && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-6"
+            style={{ background: "rgba(255,248,242,0.92)", backdropFilter: "blur(6px)" }}
+          >
+            <motion.div
+              initial={{ y: 12, scale: 0.98 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 12, scale: 0.98 }}
+              className="w-full max-w-sm rounded-[28px] p-6 text-center"
+              style={{
+                background: "#fff",
+                border: `1px solid ${ROSA}`,
+                boxShadow: "0 24px 70px rgba(101,0,31,0.16)",
+                color: VERDE,
+              }}
+            >
+              <div
+                className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+                style={{ background: ROSA }}
+              >
+                <Loader2 size={30} strokeWidth={2.8} style={{ animation: "spin 1s linear infinite" }} />
+              </div>
+              <p className="text-sm font-black uppercase tracking-wide">
+                Conectando ao pagamento
+              </p>
+              <p className="mt-2 text-xs leading-relaxed opacity-65">
+                Estamos registrando seu pedido e abrindo o Mercado Pago. Se demorar, aguarde mais alguns segundos.
+              </p>
+              {paymentSlow && (
+                <p className="mt-3 rounded-xl px-3 py-2 text-[11px] font-bold" style={{ background: `${ROSA}70` }}>
+                  A conexão está mais lenta que o normal, mas ainda estamos tentando.
+                </p>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ══ CTA sticky ════════════════════════════════════ */}
       <div

@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OrderService {
   private static final BigDecimal DELIVERY_FEE = new BigDecimal("5.10");
+  private static final BigDecimal SERVICE_FEE = new BigDecimal("0.99");
 
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
@@ -50,7 +51,7 @@ public class OrderService {
     String id = "#" + number;
     PriceResult price = calculate(request.items());
     BigDecimal deliveryFee = request.deliveryType() == DeliveryType.DELIVERY ? DELIVERY_FEE : BigDecimal.ZERO;
-    BigDecimal grossTotal = price.subtotal().add(deliveryFee);
+    BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(SERVICE_FEE);
     CouponResult coupon = applyCoupon(request.couponCode(), request.couponDiscount(), grossTotal);
     BigDecimal total = grossTotal.subtract(coupon.discount()).max(new BigDecimal("1.00"));
     OrderStatus status = request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderStatus.RECEIVED : OrderStatus.PENDING_PAYMENT;
