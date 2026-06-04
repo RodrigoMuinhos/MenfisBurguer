@@ -3,16 +3,22 @@ package com.menfis.delivery.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.menfis.delivery.dto.ApiDtos.PixResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class PaymentService {
@@ -29,6 +35,9 @@ public class PaymentService {
 
   @Value("${menfis.backend-url}")
   private String backendUrl;
+
+  @Value("${menfis.mercado-pago-webhook-secret:}")
+  private String webhookSecret;
 
   public PaymentService(JdbcTemplate jdbc, ObjectMapper mapper, OrderService orders, RestClient.Builder builder) {
     this.jdbc = jdbc;
@@ -51,7 +60,10 @@ public class PaymentService {
         "unit_price", order.total()
       )));
     payload.put("external_reference", order.id());
-    payload.put("notification_url", backendUrl + "/payments/webhook/mercadopago");
+    String notificationUrl = notificationUrl();
+    if (notificationUrl != null) {
+      payload.put("notification_url", notificationUrl);
+    }
     payload.put("back_urls", Map.of(
         "success", frontendUrl + "/?payment=success&orderId=" + encodedOrderId,
         "failure", frontendUrl + "/?payment=failure&orderId=" + encodedOrderId,
@@ -109,7 +121,9 @@ public class PaymentService {
     return new PixResponse(order.id(), checkoutUrl, sandboxUrl, preferenceId);
   }
 
-  public void processMercadoPagoWebhook(String eventId, JsonNode payload) {
+  public void processMercadoPagoWebhook(String eventId, String dataId, String xSignature, String xRequestId, JsonNode payload) {
+    validateWebhookSignature(dataId, xSignature, xRequestId);
+
     if (eventId == null || eventId.isBlank()) eventId = payload.path("id").asText();
     if (eventId == null || eventId.isBlank()) eventId = java.util.UUID.randomUUID().toString();
     int inserted = jdbc.update(
@@ -120,7 +134,9 @@ public class PaymentService {
     );
     if (inserted == 0) return;
 
-    String paymentId = payload.path("data").path("id").asText(payload.path("id").asText(""));
+    String paymentId = payload.path("data").path("id").asText("");
+    if (paymentId.isBlank() && dataId != null) paymentId = dataId;
+    if (paymentId.isBlank()) paymentId = payload.path("id").asText("");
     if (paymentId.isBlank() || accessToken == null || accessToken.isBlank()) return;
 
     JsonNode payment = restClient.get()
@@ -140,6 +156,49 @@ public class PaymentService {
         payment.toString(),
         orderId
       );
+    }
+  }
+
+  private String notificationUrl() {
+    if (backendUrl == null || !backendUrl.startsWith("https://")) return null;
+    String separator = backendUrl.contains("?") ? "&" : "?";
+    return backendUrl + "/payments/webhook/mercadopago" + separator + "source_news=webhooks";
+  }
+
+  private void validateWebhookSignature(String dataId, String xSignature, String xRequestId) {
+    if (webhookSecret == null || webhookSecret.isBlank()) return;
+    if (xSignature == null || xSignature.isBlank() || xRequestId == null || xRequestId.isBlank()) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Mercado Pago webhook signature is missing");
+    }
+
+    String ts = null;
+    String v1 = null;
+    for (String part : xSignature.split(",")) {
+      String[] keyValue = part.split("=", 2);
+      if (keyValue.length != 2) continue;
+      String key = keyValue[0].trim();
+      String value = keyValue[1].trim();
+      if ("ts".equals(key)) ts = value;
+      if ("v1".equals(key)) v1 = value;
+    }
+
+    if (ts == null || v1 == null) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Mercado Pago webhook signature is incomplete");
+    }
+
+    String id = dataId == null ? "" : dataId.toLowerCase();
+    String signedTemplate = "id:" + id + ";request-id:" + xRequestId + ";ts:" + ts + ";";
+    try {
+      Mac hmac = Mac.getInstance("HmacSHA256");
+      hmac.init(new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+      String expected = HexFormat.of().formatHex(hmac.doFinal(signedTemplate.getBytes(StandardCharsets.UTF_8)));
+      if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), v1.getBytes(StandardCharsets.UTF_8))) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Mercado Pago webhook signature is invalid");
+      }
+    } catch (ResponseStatusException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Mercado Pago webhook signature validation failed", ex);
     }
   }
 }
