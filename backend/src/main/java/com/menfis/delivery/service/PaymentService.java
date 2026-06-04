@@ -111,6 +111,9 @@ public class PaymentService {
     String preferenceId = response.path("id").asText();
     String checkoutUrl = response.path("init_point").asText(null);
     String sandboxUrl = response.path("sandbox_init_point").asText(null);
+    String selectedCheckoutUrl = preferSandboxCheckout() && sandboxUrl != null && !sandboxUrl.isBlank()
+      ? sandboxUrl
+      : (checkoutUrl == null || checkoutUrl.isBlank() ? sandboxUrl : checkoutUrl);
     jdbc.update(
       """
       insert into payments(order_id, provider, provider_preference_id, method, status, amount, checkout_url, raw_payload)
@@ -120,10 +123,10 @@ public class PaymentService {
       preferenceId,
       order.paymentMethod(),
       order.total(),
-      checkoutUrl == null ? sandboxUrl : checkoutUrl,
+      selectedCheckoutUrl,
       response.toString()
     );
-    return new PixResponse(order.id(), checkoutUrl, sandboxUrl, preferenceId, null, null, "pending", null, null, null, null);
+    return new PixResponse(order.id(), selectedCheckoutUrl, sandboxUrl, preferenceId, null, null, "pending", null, null, null, null);
   }
 
   private PixResponse createPixOrder(com.menfis.delivery.dto.ApiDtos.OrderResponse order) {
@@ -240,6 +243,10 @@ public class PaymentService {
     if (backendUrl == null || !backendUrl.startsWith("https://")) return null;
     String separator = backendUrl.contains("?") ? "&" : "?";
     return backendUrl + "/payments/webhook/mercadopago" + separator + "source_news=webhooks";
+  }
+
+  private boolean preferSandboxCheckout() {
+    return frontendUrl == null || !frontendUrl.startsWith("https://");
   }
 
   private void processMercadoPagoOrder(String mercadoPagoOrderId) {
