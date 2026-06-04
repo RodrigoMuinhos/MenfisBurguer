@@ -117,7 +117,7 @@ type Coupon = {
 
 const DEFAULT_COUPONS: Coupon[] = [
   {
-    code: "Mob!0",
+    code: "mob10",
     label: "10% de desconto",
     type: "percent",
     value: 10,

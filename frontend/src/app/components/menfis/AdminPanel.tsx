@@ -32,7 +32,7 @@ type Coupon = {
 
 const DEFAULT_COUPONS: Coupon[] = [
   {
-    code: "Mob!0",
+    code: "mob10",
     label: "10% de desconto",
     type: "percent",
     value: 10,
@@ -1363,7 +1363,7 @@ function CouponsView({
           </button>
         </div>
         <p className="mt-3 text-[11px]" style={{ color: VERDE, opacity: 0.55 }}>
-          Os cupons padrão já ficam ativos: Mob!0 e marianazinha.
+          Os cupons padrão já ficam ativos: mob10 e marianazinha.
         </p>
       </div>
 

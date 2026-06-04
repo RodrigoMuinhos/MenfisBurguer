@@ -239,7 +239,7 @@ public class OrderService {
 
     String code = rawCode.trim();
     String normalized = code.toLowerCase();
-    if (normalized.equals("mob!0")) {
+    if (normalized.equals("mob10")) {
       BigDecimal discount = grossTotal.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
       return new CouponResult(code, discount);
     }
