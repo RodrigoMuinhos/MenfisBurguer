@@ -28,7 +28,9 @@ public class ApiDtos {
     String customerPhone,
     String customerAddress,
     String cpf,
-    String idempotencyKey
+    String idempotencyKey,
+    String couponCode,
+    BigDecimal couponDiscount
   ) {}
 
   public record OrderResponse(

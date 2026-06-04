@@ -13,12 +13,39 @@ import {
   TrendingUp,
   Check,
   MessageCircle,
+  TicketPercent,
 } from "lucide-react";
 import { VERDE, ROSA, Order, OrderStatus } from "./types";
 import { EstoqueView, INITIAL_ITEMS, StockItem, Movement } from "./EstoqueView";
 
-type AdminTab = "cozinha" | "dashboard" | "estoque" | "suporte";
+type AdminTab = "cozinha" | "dashboard" | "estoque" | "suporte" | "cupons";
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+const COUPON_STORAGE_KEY = "menfis_coupons";
+
+type Coupon = {
+  code: string;
+  label: string;
+  type: "percent" | "fixed_total";
+  value: number;
+  active: boolean;
+};
+
+const DEFAULT_COUPONS: Coupon[] = [
+  {
+    code: "Mob!0",
+    label: "10% de desconto",
+    type: "percent",
+    value: 10,
+    active: true,
+  },
+  {
+    code: "marianazinha",
+    label: "Pedido por R$ 1,00 para testar Mercado Pago",
+    type: "fixed_total",
+    value: 1,
+    active: true,
+  },
+];
 
 type SupportTicket = {
   id: string;
@@ -147,6 +174,15 @@ function elapsed(ts: number) {
   return `${Math.floor(s / 60)}min`;
 }
 
+function loadStoredCoupons(): Coupon[] {
+  try {
+    const stored = JSON.parse(localStorage.getItem(COUPON_STORAGE_KEY) ?? "[]");
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
+}
+
 /* ─── Menu → Estoque recipe map ──────────────────────── */
 // Each cart item ID maps to the stock ingredients it consumes (per unit sold)
 const MENU_STOCK_MAP: Record<
@@ -195,6 +231,10 @@ interface Props {
 export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
   const [tab, setTab] = useState<AdminTab>("cozinha");
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [customCoupons, setCustomCoupons] = useState<Coupon[]>(() => loadStoredCoupons());
+  const [couponCode, setCouponCode] = useState("");
+  const [couponValue, setCouponValue] = useState("10");
+  const [couponType, setCouponType] = useState<"percent" | "fixed_total">("percent");
 
   /* ── Shared stock state (owned here, passed down to EstoqueView) ── */
   const [stockItems, setStockItems] = useState<StockItem[]>(INITIAL_ITEMS);
@@ -249,6 +289,7 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
     { id: "dashboard", label: "Dashboard", Icon: TrendingUp },
     { id: "estoque", label: "Estoque", Icon: Package },
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
+    { id: "cupons", label: "Cupons", Icon: TicketPercent },
   ];
 
   const activeOrders = orders.filter(
@@ -291,6 +332,30 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
     } catch {
       await syncSupportTickets();
     }
+  };
+
+  const saveCustomCoupons = (next: Coupon[]) => {
+    setCustomCoupons(next);
+    localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const addCoupon = () => {
+    const code = couponCode.trim();
+    const value = Number(couponValue.replace(",", "."));
+    if (!code || !Number.isFinite(value) || value <= 0) return;
+    const coupon: Coupon = {
+      code,
+      label: couponType === "percent" ? `${value}% de desconto` : `Pedido por ${fmt(value)}`,
+      type: couponType,
+      value,
+      active: true,
+    };
+    saveCustomCoupons([
+      coupon,
+      ...customCoupons.filter((item) => item.code.toLowerCase() !== code.toLowerCase()),
+    ]);
+    setCouponCode("");
+    setCouponValue(couponType === "percent" ? "10" : "1");
   };
 
   return (
@@ -408,6 +473,25 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
           <SupportView
             tickets={supportTickets}
             onResolve={resolveSupportTicket}
+          />
+        )}
+        {tab === "cupons" && (
+          <CouponsView
+            coupons={[...DEFAULT_COUPONS, ...customCoupons]}
+            couponCode={couponCode}
+            couponValue={couponValue}
+            couponType={couponType}
+            setCouponCode={setCouponCode}
+            setCouponValue={setCouponValue}
+            setCouponType={setCouponType}
+            onAdd={addCoupon}
+            onRemove={(code) =>
+              saveCustomCoupons(
+                customCoupons.filter(
+                  (coupon) => coupon.code.toLowerCase() !== code.toLowerCase(),
+                ),
+              )
+            }
           />
         )}
       </div>
@@ -1213,6 +1297,117 @@ function supportTypeLabel(type: string) {
       DELIVERY_PROBLEM: "Entrega",
       PAYMENT_ERROR: "Pagamento",
     }[type] ?? type
+  );
+}
+
+function CouponsView({
+  coupons,
+  couponCode,
+  couponValue,
+  couponType,
+  setCouponCode,
+  setCouponValue,
+  setCouponType,
+  onAdd,
+  onRemove,
+}: {
+  coupons: Coupon[];
+  couponCode: string;
+  couponValue: string;
+  couponType: "percent" | "fixed_total";
+  setCouponCode: (value: string) => void;
+  setCouponValue: (value: string) => void;
+  setCouponType: (value: "percent" | "fixed_total") => void;
+  onAdd: () => void;
+  onRemove: (code: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div
+        className="rounded-2xl p-4"
+        style={{ background: "#fff", border: `1.5px solid ${VERDE}10` }}
+      >
+        <p className="text-xs font-black uppercase tracking-wider" style={{ color: VERDE }}>
+          Novo cupom
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_120px_140px_auto]">
+          <input
+            value={couponCode}
+            onChange={(event) => setCouponCode(event.target.value)}
+            placeholder="Código do cupom"
+            className="rounded-xl px-3 py-3 text-sm outline-none"
+            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
+          />
+          <input
+            value={couponValue}
+            onChange={(event) => setCouponValue(event.target.value)}
+            placeholder="Valor"
+            className="rounded-xl px-3 py-3 text-sm outline-none"
+            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
+          />
+          <select
+            value={couponType}
+            onChange={(event) => setCouponType(event.target.value as "percent" | "fixed_total")}
+            className="rounded-xl px-3 py-3 text-sm outline-none"
+            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE, background: "#fff" }}
+          >
+            <option value="percent">% desconto</option>
+            <option value="fixed_total">total fixo</option>
+          </select>
+          <button
+            onClick={onAdd}
+            className="rounded-xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+            style={{ background: VERDE, color: ROSA }}
+          >
+            Inserir
+          </button>
+        </div>
+        <p className="mt-3 text-[11px]" style={{ color: VERDE, opacity: 0.55 }}>
+          Os cupons padrão já ficam ativos: Mob!0 e marianazinha.
+        </p>
+      </div>
+
+      <div className="grid gap-3">
+        {coupons.map((coupon) => {
+          const isDefault = DEFAULT_COUPONS.some(
+            (item) => item.code.toLowerCase() === coupon.code.toLowerCase(),
+          );
+          return (
+            <div
+              key={coupon.code}
+              className="rounded-2xl p-4"
+              style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-xl"
+                  style={{ background: ROSA, color: VERDE }}
+                >
+                  <TicketPercent size={18} strokeWidth={2.4} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black" style={{ color: VERDE }}>
+                    {coupon.code}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: VERDE, opacity: 0.58 }}>
+                    {coupon.label}
+                  </p>
+                </div>
+                {!isDefault && (
+                  <button
+                    onClick={() => onRemove(coupon.code)}
+                    className="text-[10px] font-black uppercase tracking-wider"
+                    style={{ color: VERDE }}
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

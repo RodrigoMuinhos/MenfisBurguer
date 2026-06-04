@@ -11,6 +11,7 @@ import com.menfis.delivery.dto.ApiDtos.OrderItemRequest;
 import com.menfis.delivery.dto.ApiDtos.OrderResponse;
 import com.menfis.delivery.dto.ApiDtos.StatusResponse;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -49,7 +50,9 @@ public class OrderService {
     String id = "#" + number;
     PriceResult price = calculate(request.items());
     BigDecimal deliveryFee = request.deliveryType() == DeliveryType.DELIVERY ? DELIVERY_FEE : BigDecimal.ZERO;
-    BigDecimal total = price.subtotal().add(deliveryFee);
+    BigDecimal grossTotal = price.subtotal().add(deliveryFee);
+    CouponResult coupon = applyCoupon(request.couponCode(), request.couponDiscount(), grossTotal);
+    BigDecimal total = grossTotal.subtract(coupon.discount()).max(new BigDecimal("1.00"));
     OrderStatus status = request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderStatus.RECEIVED : OrderStatus.PENDING_PAYMENT;
     OffsetDateTime confirmedAt = status == OrderStatus.RECEIVED ? OffsetDateTime.now() : null;
     String itemsJson = toJson(price.items());
@@ -59,9 +62,9 @@ public class OrderService {
       insert into orders (
         id, number, items, delivery_type, customer_phone, customer_address,
         subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
-        timestamp, status, idempotency_key, confirmed_at, updated_at
+        timestamp, status, idempotency_key, confirmed_at, coupon_code, discount_total, updated_at
       )
-      values (?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+      values (?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
       """,
       id,
       number,
@@ -78,7 +81,9 @@ public class OrderService {
       System.currentTimeMillis(),
       status.name(),
       cleanIdempotency(request.idempotencyKey()),
-      confirmedAt
+      confirmedAt,
+      coupon.code(),
+      coupon.discount()
     );
 
     for (Map<String, Object> item : price.items()) {
@@ -227,6 +232,33 @@ public class OrderService {
     return new PriceResult(subtotal, priced);
   }
 
+  private CouponResult applyCoupon(String rawCode, BigDecimal requestedDiscount, BigDecimal grossTotal) {
+    if (rawCode == null || rawCode.isBlank()) {
+      return new CouponResult(null, BigDecimal.ZERO);
+    }
+
+    String code = rawCode.trim();
+    String normalized = code.toLowerCase();
+    if (normalized.equals("mob!0")) {
+      BigDecimal discount = grossTotal.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
+      return new CouponResult(code, discount);
+    }
+
+    if (normalized.equals("marianazinha")) {
+      BigDecimal discount = grossTotal.subtract(new BigDecimal("1.00")).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+      return new CouponResult(code, discount);
+    }
+
+    if (requestedDiscount != null && requestedDiscount.compareTo(BigDecimal.ZERO) > 0) {
+      BigDecimal discount = requestedDiscount
+        .min(grossTotal.subtract(new BigDecimal("1.00")).max(BigDecimal.ZERO))
+        .setScale(2, RoundingMode.HALF_UP);
+      return new CouponResult(code, discount);
+    }
+
+    return new CouponResult(null, BigDecimal.ZERO);
+  }
+
   private OrderResponse findByIdempotencyKey(String key) {
     try {
       String id = jdbc.queryForObject("select id from orders where idempotency_key = ?", String.class, cleanIdempotency(key));
@@ -295,4 +327,5 @@ public class OrderService {
   }
 
   private record PriceResult(BigDecimal subtotal, List<Map<String, Object>> items) {}
+  private record CouponResult(String code, BigDecimal discount) {}
 }

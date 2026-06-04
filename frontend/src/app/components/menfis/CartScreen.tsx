@@ -104,7 +104,33 @@ interface Props {
 
 const STORAGE_KEY = "menfis_cliente";
 const MEMBER_KEY = "menfis_member";
+const COUPON_STORAGE_KEY = "menfis_coupons";
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+
+type Coupon = {
+  code: string;
+  label: string;
+  type: "percent" | "fixed_total";
+  value: number;
+  active: boolean;
+};
+
+const DEFAULT_COUPONS: Coupon[] = [
+  {
+    code: "Mob!0",
+    label: "10% de desconto",
+    type: "percent",
+    value: 10,
+    active: true,
+  },
+  {
+    code: "marianazinha",
+    label: "Pedido por R$ 1,00 para teste",
+    type: "fixed_total",
+    value: 1,
+    active: true,
+  },
+];
 
 function registerMemberOrder() {
   try {
@@ -133,6 +159,33 @@ function loadSaved() {
   }
 }
 
+function loadCoupons(): Coupon[] {
+  try {
+    const stored = JSON.parse(localStorage.getItem(COUPON_STORAGE_KEY) ?? "[]");
+    const custom = Array.isArray(stored) ? stored : [];
+    const byCode = new Map<string, Coupon>();
+    [...DEFAULT_COUPONS, ...custom].forEach((coupon) => {
+      byCode.set(coupon.code.toLowerCase(), coupon);
+    });
+    return [...byCode.values()].filter((coupon) => coupon.active);
+  } catch {
+    return DEFAULT_COUPONS;
+  }
+}
+
+function findCoupon(code: string) {
+  const normalized = code.trim().toLowerCase();
+  if (!normalized) return null;
+  return loadCoupons().find((coupon) => coupon.code.toLowerCase() === normalized) ?? null;
+}
+
+function couponDiscount(coupon: Coupon | null, grossTotal: number) {
+  if (!coupon) return 0;
+  if (coupon.type === "percent") return Math.round(grossTotal * (coupon.value / 100) * 100) / 100;
+  if (coupon.type === "fixed_total") return Math.max(0, Math.round((grossTotal - coupon.value) * 100) / 100);
+  return 0;
+}
+
 export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   const delivery: DeliveryType = "delivery";
   const [obsOpen, setObsOpen] = useState<string | null>(null);
@@ -145,6 +198,9 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
   const [freeShipping, setFreeShipping] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponError, setCouponError] = useState("");
 
   /* Delivery form — pre-fill from localStorage */
   const saved = loadSaved();
@@ -204,7 +260,9 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const fee = freeShipping ? 0 : 5.1;
-  const total = subtotal + fee;
+  const grossTotal = subtotal + fee;
+  const discount = couponDiscount(appliedCoupon, grossTotal);
+  const total = Math.max(1, grossTotal - discount);
 
   const deliveryValid =
     cep.replace(/\D/g, "").length === 8 &&
@@ -222,6 +280,18 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
 
   const canCreatePayment =
     deliveryValid && Boolean(payment) && checkoutStep === "review";
+
+  const applyCoupon = () => {
+    const coupon = findCoupon(couponCode);
+    if (!coupon) {
+      setAppliedCoupon(null);
+      setCouponError("Cupom inválido ou inativo.");
+      return;
+    }
+    setAppliedCoupon(coupon);
+    setCouponCode(coupon.code);
+    setCouponError("");
+  };
 
   const handleFinalize = async () => {
     if (paying) return;
@@ -277,6 +347,8 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           customerPhone: phone || undefined,
           customerAddress: address,
           idempotencyKey: `${phone.replace(/\D/g, "")}-${Date.now()}`,
+          couponCode: appliedCoupon?.code,
+          couponDiscount: appliedCoupon ? discount : 0,
         }),
       });
 
@@ -844,6 +916,15 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             <span>{freeShipping ? "Frete grátis Clube Menfi's" : "Taxa de entrega"}</span>
             <span>{fmt(fee)}</span>
           </div>
+          {appliedCoupon && discount > 0 && (
+            <div
+              className="flex justify-between text-xs py-1 font-bold"
+              style={{ color: VERDE }}
+            >
+              <span>Cupom {appliedCoupon.code}</span>
+              <span>- {fmt(discount)}</span>
+            </div>
+          )}
           <div className="flex justify-between items-center pt-2 mt-1">
             <span
               className="font-black uppercase tracking-wider text-sm"
@@ -973,6 +1054,62 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             style={{ background: `${ROSA}80`, color: VERDE }}
           >
             {paymentError}
+          </div>
+        )}
+
+        {checkoutStep === "review" && (
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
+          >
+            <Label>Cupom</Label>
+            <div className="flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(event) => {
+                  setCouponCode(event.target.value);
+                  setCouponError("");
+                }}
+                placeholder="Digite seu cupom"
+                style={inputStyle(Boolean(couponError))}
+              />
+              <button
+                onClick={applyCoupon}
+                className="rounded-xl px-4 text-xs font-black uppercase tracking-wider"
+                style={{ background: VERDE, color: ROSA }}
+              >
+                Aplicar
+              </button>
+            </div>
+            {couponError && (
+              <p className="mt-2 text-[11px] font-bold" style={{ color: "#B91C1C" }}>
+                {couponError}
+              </p>
+            )}
+            {appliedCoupon && (
+              <div
+                className="mt-3 flex items-center justify-between rounded-xl px-3 py-2"
+                style={{ background: `${ROSA}45`, color: VERDE }}
+              >
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide">
+                    {appliedCoupon.code}
+                  </p>
+                  <p className="text-[11px] opacity-65">{appliedCoupon.label}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setAppliedCoupon(null);
+                    setCouponCode("");
+                    setCouponError("");
+                  }}
+                  className="text-[10px] font-black uppercase tracking-wider"
+                  style={{ color: VERDE }}
+                >
+                  Remover
+                </button>
+              </div>
+            )}
           </div>
         )}
 

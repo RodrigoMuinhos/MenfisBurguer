@@ -544,37 +544,124 @@ export function TrackingScreen({
           </div>
         )}
 
-        <div
-          className="rounded-2xl p-4"
-          style={{ background: "#fff", border: `1.5px solid ${ROSA}`, boxShadow: "0 14px 36px rgba(31,61,46,0.07)" }}
-        >
-          <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: VERDE, opacity: 0.42 }}>
-            Precisa de ajuda?
-          </p>
-          <p className="text-base font-black mt-1" style={{ color: VERDE }}>
-            Central de Atendimento Menfi's
-          </p>
-          <p className="text-[11px] leading-relaxed mt-1" style={{ color: VERDE, opacity: 0.58 }}>
-            Estamos acompanhando seu pedido em tempo real.
-          </p>
-          {supportSent && (
-            <p className="text-[11px] font-bold mt-3" style={{ color: "#065F46" }}>
-              {supportSent}
-            </p>
-          )}
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => {
-              setSupportOpen(true);
-              setSelectedTopic(null);
-              setSupportSent("");
-            }}
-            className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-black uppercase tracking-widest"
-            style={{ background: VERDE, color: ROSA, border: "none", fontSize: "0.78rem" }}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div
+            className="rounded-[22px] p-4"
+            style={{ background: "#fff", border: `1.5px solid ${ROSA}`, boxShadow: "0 14px 36px rgba(31,61,46,0.07)" }}
           >
-            <MessageCircle size={16} strokeWidth={2.5} />
-            Solicitar ajuda
-          </motion.button>
+            <p className="text-sm font-black" style={{ color: VERDE }}>
+              Acompanhe sua entrega em tempo real
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed" style={{ color: VERDE, opacity: 0.58 }}>
+              Assim que sair para entrega, você verá o entregador no mapa e o tempo estimado até você.
+            </p>
+            <div
+              className="relative mt-4 h-32 overflow-hidden rounded-2xl"
+              style={{
+                background:
+                  "linear-gradient(135deg, #F7F7F7 25%, #FFFFFF 25%, #FFFFFF 50%, #F7F7F7 50%, #F7F7F7 75%, #FFFFFF 75%)",
+                backgroundSize: "42px 42px",
+              }}
+            >
+              <div className="absolute left-10 top-12 h-0.5 w-[72%] border-t-2 border-dashed" style={{ borderColor: "#EF4C86" }} />
+              <div className="absolute left-8 top-8 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: ROSA }}>
+                <Image src={logoSkull} alt="" width={34} height={34} style={{ mixBlendMode: "multiply" }} />
+              </div>
+              <div className="absolute right-7 top-12 flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "#EF4C86", color: "#fff" }}>
+                <Home size={18} strokeWidth={2.5} />
+              </div>
+              <div className="absolute left-1/2 top-14 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-white" style={{ color: VERDE, boxShadow: "0 8px 18px rgba(0,0,0,0.12)" }}>
+                <Bike size={16} strokeWidth={2.5} />
+              </div>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-xl px-4 py-2 text-center" style={{ background: `${ROSA}85`, color: VERDE }}>
+                <p className="text-[10px] font-bold">Previsão de chegada</p>
+                <p className="text-lg font-black leading-none">12 min</p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="rounded-[22px] p-4"
+            style={{ background: "#fff", border: `1.5px solid ${ROSA}`, boxShadow: "0 14px 36px rgba(31,61,46,0.07)" }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-black" style={{ color: VERDE }}>
+                  Precisa de ajuda?
+                </p>
+                <p className="mt-1 text-[11px]" style={{ color: VERDE, opacity: 0.58 }}>
+                  Escolha uma opção abaixo para falar com a gente.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSupportOpen(true);
+                  setSelectedTopic(null);
+                  setSupportSent("");
+                }}
+                className="rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider"
+                style={{ background: `${ROSA}70`, color: VERDE }}
+              >
+                SAC
+              </button>
+            </div>
+            {supportSent && (
+              <p className="text-[11px] font-bold mt-3" style={{ color: "#065F46" }}>
+                {supportSent}
+              </p>
+            )}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {SUPPORT_TOPICS.slice(0, 6).map((topic) => (
+                <button
+                  key={topic.type}
+                  onClick={() => {
+                    if (topic.type === "TALK_TO_AGENT") {
+                      createSupportTicket(topic.type, topic.reasons[0]);
+                    } else {
+                      setSupportOpen(true);
+                      setSelectedTopic(topic);
+                    }
+                  }}
+                  className="flex items-center gap-2 rounded-xl px-3 py-3 text-left text-[11px] font-bold"
+                  style={{ background: "#fff", border: `1px solid ${ROSA}`, color: VERDE }}
+                >
+                  <span>{topic.icon}</span>
+                  {topic.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="rounded-[22px] p-4"
+          style={{ background: `linear-gradient(90deg, ${ROSA}55, #fff)`, border: `1.5px solid ${ROSA}` }}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#EF4C86", color: "#fff" }}>
+                <MessageCircle size={24} strokeWidth={2.5} />
+              </div>
+              <div>
+                <p className="text-sm font-black" style={{ color: VERDE }}>
+                  Fale direto com a Menfi's
+                </p>
+                <p className="text-[11px]" style={{ color: VERDE, opacity: 0.58 }}>
+                  Nossa equipe está pronta para te atender.
+                </p>
+              </div>
+            </div>
+            <a
+              href={`${WHATSAPP_URL}?text=${whatsappText}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black"
+              style={{ background: "#EF4C86", color: "#fff" }}
+            >
+              <MessageCircle size={20} strokeWidth={2.5} />
+              Chamar no WhatsApp
+            </a>
+          </div>
         </div>
 
         <div className="rounded-2xl p-4" style={{ background: pay.bg, border: `1.5px solid ${pay.border}` }}>
