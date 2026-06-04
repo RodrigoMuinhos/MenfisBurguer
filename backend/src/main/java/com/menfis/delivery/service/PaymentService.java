@@ -32,6 +32,9 @@ public class PaymentService {
   @Value("${menfis.mercado-pago-access-token}")
   private String accessToken;
 
+  @Value("${menfis.environment:local}")
+  private String environment;
+
   @Value("${menfis.frontend-url}")
   private String frontendUrl;
 
@@ -41,10 +44,10 @@ public class PaymentService {
   @Value("${menfis.mercado-pago-webhook-secret:}")
   private String webhookSecret;
 
-  @Value("${menfis.default-payer-email:test_user_br@testuser.com}")
+  @Value("${menfis.default-payer-email:}")
   private String defaultPayerEmail;
 
-  @Value("${menfis.default-card-payer-email:test@testuser.com}")
+  @Value("${menfis.default-card-payer-email:}")
   private String defaultCardPayerEmail;
 
   public PaymentService(JdbcTemplate jdbc, ObjectMapper mapper, OrderService orders, RestClient.Builder builder) {
@@ -58,6 +61,7 @@ public class PaymentService {
     if (accessToken == null || accessToken.isBlank()) {
       throw new IllegalStateException("MERCADO_PAGO_ACCESS_TOKEN is required");
     }
+    validateEnvironment();
     var order = orders.get(orderId);
     String paymentMethod = order.paymentMethod() == null ? "" : order.paymentMethod().toUpperCase();
     if ("PIX".equals(paymentMethod)) {
@@ -83,9 +87,10 @@ public class PaymentService {
         "pending", frontendUrl + "/?payment=pending&orderId=" + encodedOrderId
       ));
     payload.put("statement_descriptor", "MENFISBURGUER");
-    payload.put("payer", Map.of(
-      "email", defaultCardPayerEmail == null || defaultCardPayerEmail.isBlank() ? "test@testuser.com" : defaultCardPayerEmail
-    ));
+    String cardPayerEmail = configuredPayerEmail(defaultCardPayerEmail, "test@testuser.com");
+    if (cardPayerEmail != null) {
+      payload.put("payer", Map.of("email", cardPayerEmail));
+    }
     if (frontendUrl != null && frontendUrl.startsWith("https://")) {
       payload.put("auto_return", "approved");
     }
@@ -111,9 +116,10 @@ public class PaymentService {
     String preferenceId = response.path("id").asText();
     String checkoutUrl = response.path("init_point").asText(null);
     String sandboxUrl = response.path("sandbox_init_point").asText(null);
-    String selectedCheckoutUrl = preferSandboxCheckout() && sandboxUrl != null && !sandboxUrl.isBlank()
-      ? sandboxUrl
-      : (checkoutUrl == null || checkoutUrl.isBlank() ? sandboxUrl : checkoutUrl);
+    String selectedCheckoutUrl = preferSandboxCheckout() ? sandboxUrl : checkoutUrl;
+    if (selectedCheckoutUrl == null || selectedCheckoutUrl.isBlank()) {
+      throw new IllegalStateException("Mercado Pago did not return a checkout URL for " + environment);
+    }
     jdbc.update(
       """
       insert into payments(order_id, provider, provider_preference_id, method, status, amount, checkout_url, raw_payload)
@@ -147,9 +153,10 @@ public class PaymentService {
         "expiration_time", "PT30M"
       ))
     ));
-    payload.put("payer", Map.of(
-      "email", defaultPayerEmail == null || defaultPayerEmail.isBlank() ? "test_user_br@testuser.com" : defaultPayerEmail
-    ));
+    String payerEmail = configuredPayerEmail(defaultPayerEmail, "test_user_br@testuser.com");
+    if (payerEmail != null) {
+      payload.put("payer", Map.of("email", payerEmail));
+    }
 
     JsonNode response = restClient.post()
       .uri("/v1/orders")
@@ -246,7 +253,26 @@ public class PaymentService {
   }
 
   private boolean preferSandboxCheckout() {
-    return frontendUrl == null || !frontendUrl.startsWith("https://");
+    return !isProduction();
+  }
+
+  private boolean isProduction() {
+    return "production".equalsIgnoreCase(environment);
+  }
+
+  private String configuredPayerEmail(String configured, String localDefault) {
+    if (configured != null && !configured.isBlank()) return configured.trim();
+    return isProduction() ? null : localDefault;
+  }
+
+  private void validateEnvironment() {
+    if (!isProduction()) return;
+    if (frontendUrl == null || !frontendUrl.startsWith("https://")) {
+      throw new IllegalStateException("Production FRONTEND_URL must use HTTPS");
+    }
+    if (backendUrl == null || !backendUrl.startsWith("https://")) {
+      throw new IllegalStateException("Production BACKEND_URL must use HTTPS");
+    }
   }
 
   private void processMercadoPagoOrder(String mercadoPagoOrderId) {

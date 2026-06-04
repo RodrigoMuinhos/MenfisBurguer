@@ -17,9 +17,12 @@ spring:
     baseline-on-migrate: true
 
 menfis:
+  environment: ${MENFIS_ENVIRONMENT:${RAILWAY_ENVIRONMENT_NAME:local}}
   backend-url: ${BACKEND_URL:http://localhost:8080}
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   jwt-secret: ${JWT_SECRET:dev-only-change-me-dev-only-change-me}
   mercado-pago-access-token: ${MERCADO_PAGO_ACCESS_TOKEN:${MP_ACCESS_TOKEN:}}
   mercado-pago-webhook-secret: ${MERCADO_PAGO_WEBHOOK_SECRET:}
+  default-payer-email: ${MERCADO_PAGO_PAYER_EMAIL:}
+  default-card-payer-email: ${MERCADO_PAGO_CARD_PAYER_EMAIL:}
   cloudinary-url: ${CLOUDINARY_URL:}
