@@ -88,6 +88,9 @@ function normalizeBackendOrder(raw: any): Order {
     paymentMethod: normalizePaymentMethod(raw.paymentMethod ?? raw.payment_method),
     paymentStatus: raw.paymentStatus ?? raw.payment_status ?? undefined,
     paymentId: raw.paymentId ?? raw.payment_id ?? undefined,
+    pixQrCode: raw.pixQrCode ?? raw.pix_qr_code ?? undefined,
+    pixQrCodeBase64: raw.pixQrCodeBase64 ?? raw.pix_qr_code_base64 ?? undefined,
+    pixTicketUrl: raw.pixTicketUrl ?? raw.pix_ticket_url ?? undefined,
     timestamp: raw.timestamp
       ? Number(raw.timestamp)
       : raw.createdAt
@@ -116,7 +119,19 @@ export default function App() {
         const res = await fetch(`${API_URL}/orders/${encodeURIComponent(lastOrderId)}`, { cache: "no-store" });
         if (!res.ok) return;
         const order = normalizeBackendOrder(await res.json());
-        setOrders((prev) => [order, ...prev.filter((o) => o.id !== order.id)]);
+        setOrders((prev) => {
+          const existing = prev.find((o) => o.id === order.id);
+          return [
+            {
+              ...existing,
+              ...order,
+              pixQrCode: existing?.pixQrCode ?? order.pixQrCode,
+              pixQrCodeBase64: existing?.pixQrCodeBase64 ?? order.pixQrCodeBase64,
+              pixTicketUrl: existing?.pixTicketUrl ?? order.pixTicketUrl,
+            },
+            ...prev.filter((o) => o.id !== order.id),
+          ];
+        });
         return;
       }
 
@@ -166,10 +181,19 @@ export default function App() {
     source.addEventListener("order.updated", (event) => {
       try {
         const order = normalizeBackendOrder(JSON.parse(event.data));
-        setOrders((prev) => [
-          order,
-          ...prev.filter((item) => item.id !== order.id),
-        ]);
+        setOrders((prev) => {
+          const existing = prev.find((item) => item.id === order.id);
+          return [
+            {
+              ...existing,
+              ...order,
+              pixQrCode: existing?.pixQrCode ?? order.pixQrCode,
+              pixQrCodeBase64: existing?.pixQrCodeBase64 ?? order.pixQrCodeBase64,
+              pixTicketUrl: existing?.pixTicketUrl ?? order.pixTicketUrl,
+            },
+            ...prev.filter((item) => item.id !== order.id),
+          ];
+        });
       } catch {
         // invalid event payload: keep polling fallback active
       }
@@ -252,7 +276,20 @@ export default function App() {
     customerPhone?: string,
     customerAddress?: string,
     removedByItemId?: Record<string, string[]>,
+    createdOrder?: Order,
   ) => {
+    if (createdOrder) {
+      setOrders((prev) => [
+        createdOrder,
+        ...prev.filter((o) => o.id !== createdOrder.id),
+      ]);
+      setLastOrderId(createdOrder.id);
+      setCart([]);
+      setScreen("tracking");
+      registerMemberOrder();
+      return;
+    }
+
     const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
     const total = subtotal + (deliveryType === "delivery" ? 5.1 : 0);
 

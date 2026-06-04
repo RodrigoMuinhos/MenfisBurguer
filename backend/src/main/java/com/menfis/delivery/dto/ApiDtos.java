@@ -79,7 +79,19 @@ public class ApiDtos {
 
   public record PixRequest(@NotBlank String orderId) {}
 
-  public record PixResponse(String orderId, String checkoutUrl, String sandboxCheckoutUrl, String preferenceId) {}
+  public record PixResponse(
+    String orderId,
+    String checkoutUrl,
+    String sandboxCheckoutUrl,
+    String preferenceId,
+    String mercadoPagoOrderId,
+    String paymentId,
+    String status,
+    String statusDetail,
+    String ticketUrl,
+    String qrCode,
+    String qrCodeBase64
+  ) {}
 
   public record InventoryItemRequest(
     @NotBlank String id,

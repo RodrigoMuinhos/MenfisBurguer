@@ -170,8 +170,21 @@ public class OrderService {
 
   @Transactional
   public void markPaid(String orderId, String providerPaymentId, String providerStatus) {
-    boolean approved = "approved".equalsIgnoreCase(providerStatus) || "PAID".equalsIgnoreCase(providerStatus);
-    OrderStatus target = approved ? OrderStatus.RECEIVED : OrderStatus.PAYMENT_FAILED;
+    String normalized = providerStatus == null ? "unknown" : providerStatus;
+    boolean approved =
+      "approved".equalsIgnoreCase(normalized) ||
+      "PAID".equalsIgnoreCase(normalized) ||
+      "processed".equalsIgnoreCase(normalized) ||
+      "accredited".equalsIgnoreCase(normalized);
+    boolean failed =
+      "rejected".equalsIgnoreCase(normalized) ||
+      "failed".equalsIgnoreCase(normalized) ||
+      "cancelled".equalsIgnoreCase(normalized) ||
+      "canceled".equalsIgnoreCase(normalized) ||
+      "expired".equalsIgnoreCase(normalized) ||
+      "refunded".equalsIgnoreCase(normalized) ||
+      "charged_back".equalsIgnoreCase(normalized);
+    OrderStatus target = approved ? OrderStatus.RECEIVED : failed ? OrderStatus.PAYMENT_FAILED : OrderStatus.PENDING_PAYMENT;
     String previous = jdbc.queryForObject("select status from orders where id = ?", String.class, orderId);
 
     jdbc.update(
@@ -192,14 +205,14 @@ public class OrderService {
       orderId,
       previous,
       target.name(),
-      approved ? "PAYMENT_APPROVED" : "PAYMENT_FAILED"
+      approved ? "PAYMENT_APPROVED" : failed ? "PAYMENT_FAILED" : "PAYMENT_PENDING"
     );
     audit.log(
       "mercado_pago",
-      approved ? "PAYMENT_APPROVED" : "PAYMENT_FAILED",
+      approved ? "PAYMENT_APPROVED" : failed ? "PAYMENT_FAILED" : "PAYMENT_PENDING",
       "ORDER",
       orderId,
-      Map.of("paymentId", providerPaymentId, "status", providerStatus)
+      Map.of("paymentId", providerPaymentId, "status", normalized)
     );
     events.publish(orderId, get(orderId));
   }

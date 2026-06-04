@@ -211,6 +211,7 @@ export function TrackingScreen({
   const [selectedTopic, setSelectedTopic] = useState<(typeof SUPPORT_TOPICS)[number] | null>(null);
   const [supportSent, setSupportSent] = useState("");
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [pixCopied, setPixCopied] = useState(false);
   const current = order ? STATUS_INDEX[order.status] : -1;
 
   useEffect(() => {
@@ -289,6 +290,21 @@ export function TrackingScreen({
     if (ticket.status === "RESOLVED") return false;
     return Date.now() - new Date(ticket.createdAt).getTime() > 5 * 60000;
   });
+  const showPixPayment =
+    order.paymentMethod === "pix" &&
+    order.status === "aguardando_pagamento" &&
+    Boolean(order.pixQrCode || order.pixQrCodeBase64 || order.pixTicketUrl);
+
+  const copyPixCode = async () => {
+    if (!order.pixQrCode) return;
+    try {
+      await navigator.clipboard.writeText(order.pixQrCode);
+      setPixCopied(true);
+      window.setTimeout(() => setPixCopied(false), 1800);
+    } catch {
+      setPixCopied(false);
+    }
+  };
 
   useEffect(() => {
     if (!API_URL || !order.id) return;
@@ -399,6 +415,83 @@ export function TrackingScreen({
       </div>
 
       <div className="flex-1 flex flex-col px-4 py-4 gap-4">
+        {showPixPayment && (
+          <div
+            className="rounded-[24px] p-4 md:p-5"
+            style={{
+              background: "#fff",
+              border: `1.5px solid ${ROSA}`,
+              boxShadow: "0 18px 48px rgba(101,0,31,0.08)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-black leading-tight" style={{ color: VERDE }}>
+                  Aguardando pagamento Pix
+                </p>
+                <p className="mt-1 text-xs leading-relaxed" style={{ color: VERDE, opacity: 0.62 }}>
+                  Escaneie o QR Code ou copie o código. Assim que o Mercado Pago aprovar, o pedido entra na fila.
+                </p>
+              </div>
+              <QrCode size={28} strokeWidth={2.2} style={{ color: VERDE }} />
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-[180px_1fr] md:items-center">
+              {order.pixQrCodeBase64 && (
+                <div
+                  className="mx-auto flex h-44 w-44 items-center justify-center rounded-2xl p-3"
+                  style={{ background: "#fff", border: `1px solid ${ROSA}` }}
+                >
+                  <img
+                    src={`data:image/png;base64,${order.pixQrCodeBase64}`}
+                    alt="QR Code Pix"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              )}
+              <div className="min-w-0">
+                {order.pixQrCode && (
+                  <>
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: VERDE, opacity: 0.42 }}>
+                      Pix copia e cola
+                    </p>
+                    <div
+                      className="mt-2 rounded-2xl p-3 text-xs leading-relaxed"
+                      style={{
+                        color: VERDE,
+                        background: `${ROSA}22`,
+                        border: `1px solid ${ROSA}`,
+                        wordBreak: "break-all",
+                      }}
+                    >
+                      {order.pixQrCode}
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      onClick={copyPixCode}
+                      className="mt-3 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                      style={{ background: VERDE, color: ROSA, border: "none", cursor: "pointer" }}
+                    >
+                      {pixCopied ? "Código copiado" : "Copiar código Pix"}
+                    </motion.button>
+                  </>
+                )}
+                {order.pixTicketUrl && (
+                  <a
+                    href={order.pixTicketUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 block rounded-2xl px-4 py-3 text-center text-xs font-black uppercase tracking-wider"
+                    style={{ color: VERDE, border: `1.5px solid ${ROSA}`, textDecoration: "none" }}
+                  >
+                    Abrir Pix no Mercado Pago
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div
           className="rounded-[24px] p-4 md:p-5"
           style={{

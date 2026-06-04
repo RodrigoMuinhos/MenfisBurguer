@@ -29,6 +29,9 @@ export interface Order {
   paymentMethod?: "pix" | "cartao";
   paymentStatus?: string;
   paymentId?: string;
+  pixQrCode?: string;
+  pixQrCodeBase64?: string;
+  pixTicketUrl?: string;
   timestamp: number;
   status: OrderStatus;
 }

@@ -18,7 +18,7 @@ import {
   ReceiptText,
   LockKeyhole,
 } from "lucide-react";
-import { CartItem, VERDE, ROSA } from "./types";
+import { CartItem, Order, VERDE, ROSA } from "./types";
 import logoSkull from "@/imports/image-1.png";
 
 type DeliveryType = "retirada" | "delivery";
@@ -98,6 +98,7 @@ interface Props {
     phone?: string,
     address?: string,
     removedByItemId?: Record<string, string[]>,
+    createdOrder?: Order,
   ) => void | Promise<void>;
   goToMenu: () => void;
 }
@@ -364,6 +365,29 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
       });
 
       const data = await paymentRes.json().catch(() => ({}));
+      if (payment === "pix" && (data?.qrCode || data?.qrCodeBase64 || data?.ticketUrl)) {
+        await onPlaceOrder(delivery, phone || undefined, address, removedByItemId, {
+          id: String(createdOrder.id),
+          number: Number(createdOrder.number ?? String(createdOrder.id).replace(/\D/g, "")),
+          items: cart.map((item) => ({ ...item })),
+          removedByItemId,
+          deliveryType: delivery,
+          customerPhone: phone || undefined,
+          customerAddress: address,
+          total: Number(createdOrder.total ?? total),
+          paymentProvider: "mercado_pago",
+          paymentMethod: "pix",
+          paymentStatus: String(data.status ?? createdOrder.paymentStatus ?? "action_required"),
+          paymentId: String(data.paymentId ?? data.mercadoPagoOrderId ?? createdOrder.paymentId ?? ""),
+          pixQrCode: typeof data.qrCode === "string" ? data.qrCode : undefined,
+          pixQrCodeBase64: typeof data.qrCodeBase64 === "string" ? data.qrCodeBase64 : undefined,
+          pixTicketUrl: typeof data.ticketUrl === "string" ? data.ticketUrl : undefined,
+          timestamp: Date.now(),
+          status: "aguardando_pagamento",
+        });
+        return;
+      }
+
       const checkoutUrl =
         typeof data.checkoutUrl === "string" && data.checkoutUrl
           ? data.checkoutUrl
