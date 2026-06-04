@@ -54,6 +54,27 @@ public class ApiDtos {
 
   public record PatchStatusRequest(@NotNull String status, String actor, String reason) {}
 
+  public record SupportTicketRequest(
+    @NotBlank String orderId,
+    @NotBlank String type,
+    @NotBlank String reason,
+    String message,
+    String customerPhone
+  ) {}
+
+  public record SupportTicketResponse(
+    String id,
+    String orderId,
+    String orderStatus,
+    String type,
+    String reason,
+    String message,
+    String customerPhone,
+    String status,
+    OffsetDateTime createdAt,
+    OffsetDateTime resolvedAt
+  ) {}
+
   public record PixRequest(@NotBlank String orderId) {}
 
   public record PixResponse(String orderId, String checkoutUrl, String sandboxCheckoutUrl, String preferenceId) {}

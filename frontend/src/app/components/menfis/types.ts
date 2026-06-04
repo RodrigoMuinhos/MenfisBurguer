@@ -5,7 +5,15 @@ export interface CartItem {
   qty: number;
 }
 
-export type OrderStatus = "recebido" | "preparo" | "pronto" | "entregue";
+export type OrderStatus =
+  | "aguardando_pagamento"
+  | "pagamento_recusado"
+  | "recebido"
+  | "preparo"
+  | "pronto"
+  | "saiu_entrega"
+  | "entregue"
+  | "cancelado";
 export type DeliveryType = "retirada" | "delivery";
 
 export interface Order {

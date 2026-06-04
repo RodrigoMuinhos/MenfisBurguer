@@ -29,11 +29,13 @@ public class OrderService {
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
   private final AuditService audit;
+  private final OrderEventService events;
 
-  public OrderService(JdbcTemplate jdbc, ObjectMapper mapper, AuditService audit) {
+  public OrderService(JdbcTemplate jdbc, ObjectMapper mapper, AuditService audit, OrderEventService events) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.audit = audit;
+    this.events = events;
   }
 
   @Transactional
@@ -104,7 +106,9 @@ public class OrderService {
       "order_created"
     );
     audit.log("system", "ORDER_CREATED", "ORDER", id, Map.of("total", total, "status", status.name()));
-    return get(id);
+    OrderResponse created = get(id);
+    events.publish(id, created);
+    return created;
   }
 
   public OrderResponse get(String id) {
@@ -154,7 +158,9 @@ public class OrderService {
       reason
     );
     audit.log(actor == null ? "system" : actor, "ORDER_STATUS_CHANGED", "ORDER", id, Map.of("from", from, "to", toStatus.name()));
-    return get(id);
+    OrderResponse updated = get(id);
+    events.publish(id, updated);
+    return updated;
   }
 
   @Transactional
@@ -181,9 +187,16 @@ public class OrderService {
       orderId,
       previous,
       target.name(),
-      "payment_webhook"
+      approved ? "PAYMENT_APPROVED" : "PAYMENT_FAILED"
     );
-    audit.log("mercado_pago", "PAYMENT_CONFIRMED", "ORDER", orderId, Map.of("paymentId", providerPaymentId, "status", providerStatus));
+    audit.log(
+      "mercado_pago",
+      approved ? "PAYMENT_APPROVED" : "PAYMENT_FAILED",
+      "ORDER",
+      orderId,
+      Map.of("paymentId", providerPaymentId, "status", providerStatus)
+    );
+    events.publish(orderId, get(orderId));
   }
 
   private PriceResult calculate(List<OrderItemRequest> requestedItems) {

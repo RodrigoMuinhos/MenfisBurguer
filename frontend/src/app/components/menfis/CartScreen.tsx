@@ -7,14 +7,12 @@ import {
   Plus,
   MessageSquare,
   X,
-  Bike,
   UtensilsCrossed,
   CheckCircle2,
   AlertCircle,
   Loader2,
   QrCode,
   CreditCard,
-  ShieldCheck,
   Clock,
   MapPin,
   ReceiptText,
@@ -46,32 +44,19 @@ const ITEM_DESC: Record<string, string> = {
   "extra-queijo": "Queijo extra derretido",
   "extra-ovo": "Ovo adicional no burger",
   "extra-molho": "Porção extra do molho Menfi's",
+  "extra-maionese-barbecue": "Porção extra de maionese barbecue",
+  "extra-maionese-alho-frito": "Porção extra de maionese alho frito",
   batata: "Batata frita 250g",
   cola: "Coca-Cola 350ml gelada",
+  "coca-zero": "Coca-Cola Zero gelada",
+  "guarana-zero": "Guaraná Zero gelado",
+  "agua-com-gas": "Água com gás gelada",
 };
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 const deliveryEta = "25-45 min";
 
-const LGPD_COPY =
-  "Usamos CPF, telefone e endereço somente para identificar o pedido, emitir registros fiscais quando necessário, entregar corretamente e tratar suporte. O pagamento é processado pelo Mercado Pago.";
-
 /* ── Masks ────────────────────────────────────────── */
-function maskCPF(v: string) {
-  return v
-    .replace(/\D/g, "")
-    .slice(0, 11)
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-}
-
-function hideCPF(v: string) {
-  const n = v.replace(/\D/g, "");
-  if (n.length !== 11) return maskCPF(v);
-  return `${n.slice(0, 3)}.***.***-${n.slice(9)}`;
-}
-
 function maskPhone(v: string) {
   return v
     .replace(/\D/g, "")
@@ -85,19 +70,6 @@ function maskCEP(v: string) {
     .replace(/\D/g, "")
     .slice(0, 8)
     .replace(/(\d{5})(\d{1,3})$/, "$1-$2");
-}
-
-/* ── CPF Validator ────────────────────────────────── */
-function validateCPF(raw: string): boolean {
-  const n = raw.replace(/\D/g, "");
-  if (n.length !== 11 || /^(\d)\1+$/.test(n)) return false;
-  const calc = (len: number) => {
-    let s = 0;
-    for (let i = 0; i < len; i++) s += parseInt(n[i]) * (len + 1 - i);
-    const r = (s * 10) % 11;
-    return r >= 10 ? 0 : r;
-  };
-  return calc(9) === parseInt(n[9]) && calc(10) === parseInt(n[10]);
 }
 
 /* ── CEP Lookup ───────────────────────────────────── */
@@ -172,7 +144,6 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
-  const [lgpdAccepted, setLgpdAccepted] = useState(false);
   const [freeShipping, setFreeShipping] = useState(false);
 
   /* Delivery form — pre-fill from localStorage */
@@ -181,16 +152,9 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   const [street, setStreet] = useState<string>(saved.street ?? "");
   const [number, setNumber] = useState<string>(saved.number ?? "");
   const [complement, setComplement] = useState<string>(saved.complement ?? "");
-  const [cpfRaw, setCpfRaw] = useState<string>(saved.cpfRaw ?? saved.cpf ?? "");
-  const [cpf, setCpf] = useState<string>(
-    saved.cpfRaw || saved.cpf ? hideCPF(saved.cpfRaw ?? saved.cpf) : "",
-  );
   const [phone, setPhone] = useState<string>(saved.phone ?? "");
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState(false);
-  const [cpfValid, setCpfValid] = useState<boolean | null>(
-    saved.cpf ? (validateCPF(saved.cpf) ? true : null) : null,
-  );
 
   /* Persist to localStorage whenever any field changes */
   useEffect(() => {
@@ -198,44 +162,15 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!cep && !cpf && !phone) return;
+    if (!cep && !phone) return;
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ cep, street, number, complement, cpfRaw, phone }),
+      JSON.stringify({ cep, street, number, complement, phone }),
     );
     setSavedBadge(true);
     const t = setTimeout(() => setSavedBadge(false), 2000);
     return () => clearTimeout(t);
-  }, [cep, street, number, complement, cpfRaw, phone]);
-
-  useEffect(() => {
-    const cpfDigits = cpfRaw.replace(/\D/g, "");
-    const phoneDigits = phone.replace(/\D/g, "");
-    if (cpfDigits.length !== 11 || phoneDigits.length < 10) return;
-    if (!validateCPF(cpfDigits)) return;
-
-    const controller = new AbortController();
-    const t = setTimeout(() => {
-      fetch("/api/customer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cpf: cpfDigits,
-          phone,
-          cep,
-          street,
-          number,
-          complement,
-        }),
-        signal: controller.signal,
-      }).catch(() => undefined);
-    }, 700);
-
-    return () => {
-      controller.abort();
-      clearTimeout(t);
-    };
-  }, [cep, street, number, complement, cpfRaw, phone]);
+  }, [cep, street, number, complement, phone]);
 
   const toggleRemove = (itemId: string, opt: string) =>
     setRemoved((prev) => {
@@ -267,26 +202,6 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     });
   }, [cep]);
 
-  /* CPF live validation */
-  const handleCPF = (v: string) => {
-    const masked = maskCPF(v);
-    setCpfRaw(masked);
-    setCpf(masked);
-    if (masked.replace(/\D/g, "").length === 11)
-      setCpfValid(validateCPF(masked));
-    else setCpfValid(null);
-  };
-
-  const handleCpfFocus = () => {
-    setCpf(maskCPF(cpfRaw));
-  };
-
-  const handleCpfBlur = () => {
-    if (cpfRaw.replace(/\D/g, "").length === 11 && cpfValid) {
-      setCpf(hideCPF(cpfRaw));
-    }
-  };
-
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const fee = freeShipping ? 0 : 5.1;
   const total = subtotal + fee;
@@ -296,23 +211,17 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     !cepError &&
     street.length > 0 &&
     number.trim().length > 0 &&
-    cpfRaw.replace(/\D/g, "").length === 11 &&
-    cpfValid === true &&
     phone.replace(/\D/g, "").length >= 10;
 
   const missingDelivery = [
     cep.replace(/\D/g, "").length !== 8 || cepError ? "CEP válido" : "",
     !street.length ? "endereço" : "",
     !number.trim().length ? "número" : "",
-    cpfRaw.replace(/\D/g, "").length !== 11 || cpfValid !== true
-      ? "CPF válido"
-      : "",
     phone.replace(/\D/g, "").length < 10 ? "WhatsApp" : "",
-    !lgpdAccepted ? "confirmação LGPD" : "",
   ].filter(Boolean);
 
   const canCreatePayment =
-    deliveryValid && lgpdAccepted && Boolean(payment) && checkoutStep === "review";
+    deliveryValid && Boolean(payment) && checkoutStep === "review";
 
   const handleFinalize = async () => {
     if (paying) return;
@@ -327,7 +236,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     }
 
     if (checkoutStep === "delivery") {
-      if (!deliveryValid || !lgpdAccepted) return;
+      if (!deliveryValid) return;
       setCheckoutStep("payment");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -367,8 +276,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
           paymentMethod: payment.toUpperCase(),
           customerPhone: phone || undefined,
           customerAddress: address,
-          cpf: cpfRaw.replace(/\D/g, ""),
-          idempotencyKey: `${cpfRaw.replace(/\D/g, "")}-${Date.now()}`,
+          idempotencyKey: `${phone.replace(/\D/g, "")}-${Date.now()}`,
         }),
       });
 
@@ -455,10 +363,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
         ? "Dados"
         : checkoutStep === "payment"
         ? "Pagamento"
-        : "Revisão";
+        : "Pagamento";
 
   const nextActionLabel =
-    checkoutStep === "review" ? "Gerar Pix" : "Continuar";
+    checkoutStep === "review" ? "Escolher pagamento" : "Continuar";
 
   /* ── Empty ── */
   if (cart.length === 0) {
@@ -576,7 +484,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             { label: "Sacola", active: ["bag", "delivery", "payment", "review"].includes(checkoutStep) },
             { label: "Dados", active: ["delivery", "payment", "review"].includes(checkoutStep) },
             { label: "Pagamento", active: ["payment", "review"].includes(checkoutStep) },
-            { label: "Pix", active: checkoutStep === "review" },
+            { label: "Finalizar", active: checkoutStep === "review" },
           ].map((step, index) => (
             <div key={step.label}>
               <div
@@ -624,7 +532,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                 className="mt-1 text-[11px] leading-relaxed"
                 style={{ color: VERDE, opacity: 0.62 }}
               >
-                Etapa atual: {stepLabel}. Continue até gerar o Pix pelo Mercado
+                Etapa atual: {stepLabel}. Continue até abrir o pagamento no Mercado
                 Pago.
               </p>
             </div>
@@ -985,55 +893,6 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               </p>
             </div>
           </div>
-          <div
-            className="rounded-2xl p-4"
-            style={{
-              background: "#fff",
-              border: `1.5px solid ${ROSA}`,
-              color: VERDE,
-            }}
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                style={{ background: ROSA }}
-              >
-                <Bike size={18} strokeWidth={2.4} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black uppercase tracking-wider">
-                  Somente delivery
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed opacity-65">
-                  Taxa de R$ 5,10 e prazo médio de 25-45 min, sujeito à
-                  distância e fila da cozinha.
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {["Conferimos", "Cozinha", "Saiu para entrega"].map((step, index) => (
-                <div key={step}>
-                  <div className="flex items-center">
-                    <span
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black"
-                      style={{ background: index === 0 ? VERDE : ROSA, color: index === 0 ? ROSA : VERDE }}
-                    >
-                      {index + 1}
-                    </span>
-                    {index < 2 && (
-                      <span
-                        className="h-1 flex-1 rounded-full"
-                        style={{ background: ROSA }}
-                      />
-                    )}
-                  </div>
-                  <p className="mt-1 text-[9px] font-black uppercase tracking-wider opacity-55">
-                    {step}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
         )}
 
@@ -1131,12 +990,11 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
-                  Tudo pronto para gerar o Pix
+                  Tudo pronto para pagar
                 </p>
                 <p className="mt-1 text-[11px] leading-relaxed" style={{ color: VERDE, opacity: 0.65 }}>
-                  Ao tocar em Gerar Pix, o pedido será registrado no backend,
-                  o pagamento será criado no Mercado Pago e você será enviado
-                  para a tela segura de pagamento.
+                  Ao continuar, o pedido será registrado no backend e você
+                  será enviado para o Mercado Pago para pagar com Pix ou cartão.
                 </p>
               </div>
             </div>
@@ -1157,81 +1015,6 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
             />
             Conectando com o Mercado Pago. Seu pedido ainda não foi enviado para a cozinha.
           </motion.div>
-        )}
-
-        {checkoutStep === "review" && (
-        <div
-          className="rounded-2xl p-4"
-          style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="flex items-center justify-center rounded-xl shrink-0"
-              style={{ width: 36, height: 36, background: `${VERDE}10` }}
-            >
-              <ReceiptText size={17} strokeWidth={2.1} style={{ color: VERDE }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
-                Informações do atendimento
-              </p>
-              <div className="mt-2 grid gap-1.5 text-[11px] leading-relaxed" style={{ color: VERDE, opacity: 0.68 }}>
-                <p>
-                  Delivery:{" "}
-                  {freeShipping
-                    ? "frete grátis aplicado pelo Clube Menfi's"
-                    : `taxa de ${fmt(fee || 5.1)}`}{" "}
-                  e prazo médio de {deliveryEta}, sujeito à distância e fila da cozinha.
-                </p>
-                <p>Conferimos itens, remoções e dados antes de enviar o pedido para produção.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        )}
-
-        {checkoutStep === "delivery" && (
-        <button
-          type="button"
-          onClick={() => setLgpdAccepted((v) => !v)}
-          className="w-full rounded-2xl p-4 text-left"
-          style={{
-            background: lgpdAccepted ? `${ROSA}55` : "#fff",
-            border: `1.5px solid ${lgpdAccepted ? ROSA : `${VERDE}18`}`,
-            cursor: "pointer",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="flex items-center justify-center rounded-lg shrink-0"
-              style={{
-                width: 24,
-                height: 24,
-                marginTop: 1,
-                background: lgpdAccepted ? VERDE : "#fff",
-                border: `1.5px solid ${lgpdAccepted ? VERDE : `${VERDE}28`}`,
-              }}
-            >
-              {lgpdAccepted && (
-                <CheckCircle2 size={14} strokeWidth={2.8} style={{ color: ROSA }} />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <ShieldCheck size={15} strokeWidth={2.2} style={{ color: VERDE }} />
-                <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
-                  LGPD e dados do pedido
-                </p>
-              </div>
-              <p className="text-[11px] leading-relaxed mt-1.5" style={{ color: VERDE, opacity: 0.65 }}>
-                {LGPD_COPY}
-              </p>
-              <p className="text-[10px] font-black uppercase tracking-wider mt-2" style={{ color: VERDE, opacity: lgpdAccepted ? 0.7 : 0.45 }}>
-                {lgpdAccepted ? "Consentimento confirmado" : "Toque para confirmar antes de pagar"}
-              </p>
-            </div>
-          </div>
-        </button>
         )}
 
         {/* ── Formulário delivery ── */}
@@ -1258,14 +1041,6 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                     >
                       <CheckCircle2 size={9} strokeWidth={3} /> Dados salvos
                     </motion.span>
-                  )}
-                  {!savedBadge && saved.cpf && (
-                    <span
-                      className="text-[9px]"
-                      style={{ color: VERDE, opacity: 0.4 }}
-                    >
-                      Dados carregados automaticamente
-                    </span>
                   )}
                 </AnimatePresence>
               </div>
@@ -1356,43 +1131,6 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                 </div>
               )}
 
-              {/* CPF */}
-              <div>
-                <Label>CPF</Label>
-                <div className="relative">
-                  <input
-                    value={cpf}
-                    onChange={(e) => handleCPF(e.target.value)}
-                    onFocus={handleCpfFocus}
-                    onBlur={handleCpfBlur}
-                    placeholder="000.000.000-00"
-                    style={inputStyle(cpfValid === false)}
-                  />
-                  {cpfValid !== null && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {cpfValid ? (
-                        <CheckCircle2
-                          size={16}
-                          strokeWidth={2}
-                          style={{ color: "#16a34a" }}
-                        />
-                      ) : (
-                        <AlertCircle
-                          size={16}
-                          strokeWidth={2}
-                          style={{ color: "#DC2626" }}
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-                {cpfValid === false && (
-                  <p className="text-[10px] mt-1" style={{ color: "#DC2626" }}>
-                    CPF inválido
-                  </p>
-                )}
-              </div>
-
               {/* WhatsApp */}
               <div>
                 <Label>WhatsApp</Label>
@@ -1437,7 +1175,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                   : "Escolher pagamento"
                 : checkoutStep === "payment"
                   ? "Revisar pedido"
-                  : "Enviar para o Mercado Pago"}
+                  : "Escolher no Mercado Pago"}
             </p>
           </div>
           <div className="text-right">

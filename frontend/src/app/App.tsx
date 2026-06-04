@@ -20,6 +20,7 @@ type Screen = "product" | "cart" | "tracking" | "admin" | "admin-login";
 const ADMIN_LOGIN = "04411750317";
 const ADMIN_PASSWORD = "rodrigo123";
 const MEMBER_KEY = "menfis_member";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 function registerMemberOrder() {
   if (typeof window === "undefined") return;
@@ -41,6 +42,63 @@ function registerMemberOrder() {
   }
 }
 
+function normalizeStatus(status: string): OrderStatus {
+  const value = status.toUpperCase();
+  if (value === "PENDING_PAYMENT" || value === "DRAFT") return "aguardando_pagamento";
+  if (value === "AGUARDANDO_PAGAMENTO") return "aguardando_pagamento";
+  if (value === "PAYMENT_FAILED" || value === "CANCELED") return value === "CANCELED" ? "cancelado" : "pagamento_recusado";
+  if (value === "PAGAMENTO_RECUSADO") return "pagamento_recusado";
+  if (value === "RECEIVED" || value === "PAID") return "recebido";
+  if (value === "RECEBIDO") return "recebido";
+  if (value === "PREPARING") return "preparo";
+  if (value === "PREPARO") return "preparo";
+  if (value === "READY") return "pronto";
+  if (value === "PRONTO") return "pronto";
+  if (value === "OUT_FOR_DELIVERY") return "saiu_entrega";
+  if (value === "SAIU_ENTREGA") return "saiu_entrega";
+  if (value === "DELIVERED") return "entregue";
+  if (value === "ENTREGUE") return "entregue";
+  if (value === "CANCELADO") return "cancelado";
+  return "aguardando_pagamento";
+}
+
+function normalizePaymentMethod(value?: string | null): "pix" | "cartao" | undefined {
+  if (!value) return undefined;
+  return value.toUpperCase() === "CARTAO" ? "cartao" : "pix";
+}
+
+function normalizeBackendOrder(raw: any): Order {
+  const items = Array.isArray(raw.items)
+    ? raw.items.map((item: any) => ({
+        id: String(item.productId ?? item.id ?? item.name ?? "item"),
+        name: String(item.name ?? item.productId ?? "Item"),
+        qty: Number(item.quantity ?? item.qty ?? 1),
+        price: Number(item.unitPrice ?? item.price ?? 0),
+      }))
+    : [];
+  return {
+    id: String(raw.id),
+    number: Number((raw.number ?? String(raw.id).replace(/\D/g, "")) || Date.now()),
+    items,
+    deliveryType: String(raw.deliveryType ?? raw.delivery_type).toUpperCase() === "RETIRADA" ? "retirada" : "delivery",
+    customerPhone: raw.customerPhone ?? raw.customer_phone ?? undefined,
+    customerAddress: raw.customerAddress ?? raw.customer_address ?? undefined,
+    total: Number(raw.total ?? 0),
+    paymentProvider: raw.paymentProvider ?? raw.payment_provider ?? undefined,
+    paymentMethod: normalizePaymentMethod(raw.paymentMethod ?? raw.payment_method),
+    paymentStatus: raw.paymentStatus ?? raw.payment_status ?? undefined,
+    paymentId: raw.paymentId ?? raw.payment_id ?? undefined,
+    timestamp: raw.timestamp
+      ? Number(raw.timestamp)
+      : raw.createdAt
+        ? new Date(raw.createdAt).getTime()
+        : raw.created_at
+          ? new Date(raw.created_at).getTime()
+          : Date.now(),
+    status: normalizeStatus(String(raw.status ?? "")),
+  };
+}
+
 export default function App() {
   const [started, setStarted] = useState(false);
   const [screen, setScreen] = useState<Screen>("product");
@@ -54,16 +112,40 @@ export default function App() {
 
   const syncOrders = useCallback(async () => {
     try {
+      if (API_URL && screen === "tracking" && lastOrderId) {
+        const res = await fetch(`${API_URL}/orders/${encodeURIComponent(lastOrderId)}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const order = normalizeBackendOrder(await res.json());
+        setOrders((prev) => [order, ...prev.filter((o) => o.id !== order.id)]);
+        return;
+      }
+
+      if (API_URL && screen === "admin") {
+        const res = await fetch(`${API_URL}/kds/orders`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const rows = [
+          ...(Array.isArray(data.received) ? data.received : []),
+          ...(Array.isArray(data.preparing) ? data.preparing : []),
+          ...(Array.isArray(data.ready) ? data.ready : []),
+        ].map(normalizeBackendOrder);
+        setOrders(rows);
+        return;
+      }
+
       const res = await fetch("/api/orders", { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data.orders)) {
-        setOrders(data.orders);
+        setOrders(data.orders.map((order: any) => ({
+          ...order,
+          status: normalizeStatus(String(order.status ?? "")),
+        })));
       }
     } catch {
       // keep UI running even if backend is temporarily unavailable
     }
-  }, []);
+  }, [lastOrderId, screen]);
 
   useEffect(() => {
     if (!started) return;
@@ -73,6 +155,32 @@ export default function App() {
     const timer = window.setInterval(syncOrders, 10000);
     return () => window.clearInterval(timer);
   }, [screen, started, syncOrders]);
+
+  useEffect(() => {
+    if (!started || screen !== "tracking" || !API_URL || !lastOrderId) return;
+
+    const source = new EventSource(
+      `${API_URL}/orders/${encodeURIComponent(lastOrderId)}/events`,
+    );
+
+    source.addEventListener("order.updated", (event) => {
+      try {
+        const order = normalizeBackendOrder(JSON.parse(event.data));
+        setOrders((prev) => [
+          order,
+          ...prev.filter((item) => item.id !== order.id),
+        ]);
+      } catch {
+        // invalid event payload: keep polling fallback active
+      }
+    });
+
+    source.onerror = () => {
+      source.close();
+    };
+
+    return () => source.close();
+  }, [lastOrderId, screen, started]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -210,13 +318,25 @@ export default function App() {
   const updateOrderStatus = async (id: string, status: OrderStatus) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
     try {
-      const res = await fetch(`/api/orders/${encodeURIComponent(id)}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
+      const res = API_URL
+        ? await fetch(`${API_URL}/kds/orders/${encodeURIComponent(id)}/advance`, {
+            method: "PATCH",
+          })
+        : await fetch(`/api/orders/${encodeURIComponent(id)}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+          });
       if (!res.ok) {
         await syncOrders();
+        return;
+      }
+      if (API_URL) {
+        const updated = normalizeBackendOrder(await res.json());
+        setOrders((prev) => [
+          updated,
+          ...prev.filter((order) => order.id !== updated.id),
+        ]);
       }
     } catch {
       await syncOrders();
@@ -282,7 +402,7 @@ export default function App() {
             orderId={lastOrderId}
             order={orders.find((o) => o.id === lastOrderId)}
             goHome={goHome}
-            autoReturnMs={30000}
+            autoReturnMs={0}
           />
         )}
         {screen === "admin" && (

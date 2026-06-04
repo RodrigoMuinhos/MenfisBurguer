@@ -18,7 +18,6 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
-  Store,
   Trophy,
   UserRound,
   X,
@@ -26,7 +25,6 @@ import {
 import { CartItem, CREME, ROSA, VERDE } from "./types";
 import burgerPhoto from "@/imports/image-9.png";
 import friesPhoto from "@/imports/image-20.png";
-import colaPhoto from "@/imports/image-19.png";
 
 type MenuItem = {
   id: string;
@@ -47,8 +45,9 @@ type BuilderState = {
 
 type CustomizerState = {
   item: MenuItem;
+  meatPoints: string[];
   sauces: string[];
-  drink: string;
+  drinks: string[];
   extras: string[];
   qty: number;
   note: string;
@@ -74,7 +73,6 @@ const MENU_ITEMS: MenuItem[] = [
     image: burgerPhoto,
     tags: ["100g", "Molho da casa", "Brioche"],
     category: "burger",
-    highlight: true,
   },
   {
     id: "double-burger",
@@ -90,7 +88,7 @@ const MENU_ITEMS: MenuItem[] = [
     id: "combo",
     name: "Combo Menfi's",
     eyebrow: "Pedido completo",
-    desc: "Menfi's Burger com Coca-Cola 350ml e batata frita 250g. Ideal para quem quer o pedido fechado.",
+    desc: "Menfi's Burger com Coca-Cola 350ml e batata frita 250g.",
     price: 37.9,
     image: burgerPhoto,
     tags: ["Burger", "Batata", "Refri"],
@@ -148,23 +146,53 @@ const MENU_ITEMS: MenuItem[] = [
     category: "extra",
   },
   {
-    id: "extra-molho",
-    name: "Molho Extra",
+    id: "extra-maionese-barbecue",
+    name: "Maionese Barbecue",
     eyebrow: "Adicional",
-    desc: "Porção extra do molho Menfi's.",
-    price: 2.9,
-    image: "/maionese.jpg",
-    tags: ["Molho da casa"],
+    desc: "Porção extra de maionese barbecue.",
+    price: 2,
+    image: "/EXTRAS/MaioneseBarbecue.jpg",
+    tags: ["Maionese", "Barbecue"],
     category: "extra",
   },
   {
-    id: "cola",
-    name: "Coca-Cola 350ml",
+    id: "extra-maionese-alho-frito",
+    name: "Maionese Alho Frito",
+    eyebrow: "Adicional",
+    desc: "Porção extra de maionese alho frito.",
+    price: 2,
+    image: "/EXTRAS/MaionseAlhoFrito.jpg",
+    tags: ["Maionese", "Alho frito"],
+    category: "extra",
+  },
+  {
+    id: "coca-zero",
+    name: "Coca-Cola Zero",
     eyebrow: "Bebida",
-    desc: "Lata gelada para retirada ou envio junto do pedido.",
-    price: 7.9,
-    image: colaPhoto,
-    tags: ["350ml", "Gelada"],
+    desc: "Refrigerante zero gelado para acompanhar o pedido.",
+    price: 8.9,
+    image: "/EXTRAS/cocazero.jpg",
+    tags: ["Zero", "Gelada"],
+    category: "bebida",
+  },
+  {
+    id: "guarana-zero",
+    name: "Guaraná Zero",
+    eyebrow: "Bebida",
+    desc: "Guaraná zero gelado para acompanhar o pedido.",
+    price: 8.9,
+    image: "/EXTRAS/Gurarana.jpg",
+    tags: ["Zero", "Gelada"],
+    category: "bebida",
+  },
+  {
+    id: "agua-com-gas",
+    name: "Água com gás",
+    eyebrow: "Bebida",
+    desc: "Água com gás gelada.",
+    price: 5.9,
+    image: "/EXTRAS/aguaComGas.png",
+    tags: ["Com gás", "Gelada"],
     category: "bebida",
   },
 ];
@@ -186,21 +214,32 @@ const COMBO_UPGRADE_PRICE = COMBO_PRICE - BURGER_PRICE;
 const MEMBER_KEY = "menfis_member";
 const DELIVERY_STORAGE_KEY = "menfis_cliente";
 
+const MEAT_POINT_OPTIONS = [
+  { label: "Ao ponto", copy: "Centro suculento" },
+  { label: "Bem passada", copy: "Mais firme" },
+  { label: "Mal passada", copy: "Mais vermelha" },
+];
+
 const SAUCE_OPTIONS = [
-  { label: "Maionese Barbecue", icon: "🍖" },
-  { label: "Maionese Alho Frito", icon: "🧄" },
+  { label: "Maionese Barbecue", image: "/EXTRAS/MaioneseBarbecue.jpg" },
+  { label: "Maionese Alho Frito", image: "/EXTRAS/MaionseAlhoFrito.jpg" },
 ];
 
 const DRINK_OPTIONS = [
-  { label: "Coca-Cola Zero", icon: "🥤" },
-  { label: "Guaraná Zero", icon: "🟢" },
-  { label: "Água com gás", icon: "💧" },
+  { id: "coca-zero", label: "Coca-Cola Zero", price: 8.9, image: "/EXTRAS/cocazero.jpg" },
+  { id: "guarana-zero", label: "Guaraná Zero", price: 8.9, image: "/EXTRAS/Gurarana.jpg" },
+  { id: "agua-com-gas", label: "Água com gás", price: 5.9, image: "/EXTRAS/aguaComGas.png" },
 ];
 
 const EXTRA_OPTIONS = [
-  { id: "extra-queijo", label: "Extra queijo", price: 2, icon: "🧀" },
-  { id: "extra-ovo", label: "Ovo", price: 2.5, icon: "🥚" },
-  { id: "batata", label: "Batata frita", price: 15.9, icon: "🍟" },
+  { id: "extra-queijo", label: "Extra queijo", price: 2, image: "/EXTRAS/queijo.jpg" },
+  { id: "extra-ovo", label: "Ovo", price: 2.5, image: "/EXTRAS/ovo.jpg" },
+  { id: "batata", label: "Batata frita", price: 15.9, image: "/EXTRAS/batata.jpg" },
+  { id: "extra-maionese-barbecue", label: "Maionese Barbecue", price: 2, image: "/EXTRAS/MaioneseBarbecue.jpg" },
+  { id: "extra-maionese-alho-frito", label: "Maionese Alho Frito", price: 2, image: "/EXTRAS/MaionseAlhoFrito.jpg" },
+  { id: "coca-zero", label: "Coca-Cola Zero", price: 8.9, image: "/EXTRAS/cocazero.jpg" },
+  { id: "guarana-zero", label: "Guaraná Zero", price: 8.9, image: "/EXTRAS/Gurarana.jpg" },
+  { id: "agua-com-gas", label: "Água com gás", price: 5.9, image: "/EXTRAS/aguaComGas.png" },
 ];
 
 function imageSrc(image?: StaticImageData | string) {
@@ -308,6 +347,8 @@ export function ProductScreen({
     () => MENU_ITEMS.filter((item) => item.category === category),
     [category],
   );
+  const featuredItem =
+    MENU_ITEMS.find((item) => item.id === "combo2") ?? MENU_ITEMS[0];
   const savedDelivery = readSavedDelivery();
   const memberProgress = memberProfile ? memberProfile.orders % 10 : 0;
 
@@ -317,7 +358,7 @@ export function ProductScreen({
     adminTapCountRef.current += 1;
     if (adminTapTimerRef.current) clearTimeout(adminTapTimerRef.current);
 
-    if (adminTapCountRef.current >= 3) {
+    if (adminTapCountRef.current >= 5) {
       adminTapCountRef.current = 0;
       adminTapTimerRef.current = null;
       onAdminOpen?.();
@@ -333,8 +374,9 @@ export function ProductScreen({
   const openCustomizer = (item: MenuItem) => {
     setCustomizer({
       item,
+      meatPoints: [],
       sauces: [],
-      drink: "",
+      drinks: [],
       extras: [],
       qty: 1,
       note: "",
@@ -347,12 +389,15 @@ export function ProductScreen({
 
   const confirmCustomizer = () => {
     if (!customizer) return;
+    const meatRequired = customizer.item.category === "burger" || customizer.item.category === "combo";
+    const requiredCount = customizer.item.id === "combo2" ? 2 : 1;
     const requiresSauce =
       customizer.item.category === "burger" || customizer.item.category === "combo";
     const requiresDrink = customizer.item.category === "combo";
     if (
-      (requiresSauce && customizer.sauces.length < 1) ||
-      (requiresDrink && !customizer.drink)
+      (meatRequired && customizer.meatPoints.length < requiredCount) ||
+      (requiresSauce && customizer.sauces.length < requiredCount) ||
+      (requiresDrink && customizer.drinks.length < requiredCount)
     ) {
       return;
     }
@@ -498,20 +543,6 @@ export function ProductScreen({
           </div>
 
           <button
-            onClick={onAdminOpen}
-            className="flex items-center gap-2 rounded-full px-3 py-3 text-xs font-black uppercase tracking-wider sm:px-4"
-            style={{
-              background: "#fff",
-              color: VERDE,
-              border: `1px solid ${VERDE}18`,
-              cursor: "pointer",
-            }}
-          >
-            <Store size={15} strokeWidth={2.3} />
-            <span className="hidden sm:inline">PDV</span>
-          </button>
-
-          <button
             onClick={goToCart}
             disabled={cartCount === 0}
             className="flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-35"
@@ -613,8 +644,8 @@ export function ProductScreen({
             style={{ background: "#F9D2C5" }}
           >
             <Image
-              src={burgerPhoto}
-              alt="Menfi's Burger"
+              src={featuredItem.image ?? burgerPhoto}
+              alt={featuredItem.name}
               fill
               priority
               sizes="(max-width: 768px) 100vw, 50vw"
@@ -641,11 +672,11 @@ export function ProductScreen({
                       color: ROSA,
                     }}
                   >
-                    Menfi's Burger
+                    {featuredItem.name}
                   </p>
                 </div>
                 <button
-                  onClick={() => addMenuItem(MENU_ITEMS[0])}
+                  onClick={() => addMenuItem(featuredItem)}
                   className="flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider"
                   style={{ background: ROSA, color: VERDE }}
                 >
@@ -1262,6 +1293,8 @@ function ProductCustomizer({
   setState: React.Dispatch<React.SetStateAction<CustomizerState | null>>;
   onConfirm: () => void;
 }) {
+  const needsMeatPoint = state.item.category === "burger" || state.item.category === "combo";
+  const requiredCount = state.item.id === "combo2" ? 2 : 1;
   const needsSauce = state.item.category === "burger" || state.item.category === "combo";
   const needsDrink = state.item.category === "combo";
   const extrasTotal = state.extras.reduce((sum, extraId) => {
@@ -1269,7 +1302,25 @@ function ProductCustomizer({
     return sum + (extra?.price ?? 0);
   }, 0);
   const total = (state.item.price + extrasTotal) * state.qty;
-  const valid = (!needsSauce || state.sauces.length >= 1) && (!needsDrink || state.drink);
+  const valid =
+    (!needsMeatPoint || state.meatPoints.length >= requiredCount) &&
+    (!needsSauce || state.sauces.length >= requiredCount) &&
+    (!needsDrink || state.drinks.length >= requiredCount);
+
+  const toggleLimited = (
+    field: "meatPoints" | "sauces" | "drinks",
+    value: string,
+    max: number,
+  ) => {
+    setState((prev) => {
+      if (!prev) return prev;
+      const current = prev[field];
+      const selected = current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value].slice(-max);
+      return { ...prev, [field]: selected };
+    });
+  };
 
   const toggleExtra = (extraId: string) => {
     setState((prev) => {
@@ -1362,10 +1413,47 @@ function ProductCustomizer({
             </p>
           </div>
 
+          {needsMeatPoint && (
+            <OptionSection
+              title="Ponto da carne"
+              subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
+              required
+            >
+              {MEAT_POINT_OPTIONS.map((point) => {
+                const active = state.meatPoints.includes(point.label);
+                return (
+                  <button
+                    key={point.label}
+                    onClick={() =>
+                      toggleLimited("meatPoints", point.label, requiredCount)
+                    }
+                    className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
+                    style={{ borderColor: `${VERDE}10`, background: "#fff" }}
+                  >
+                    <span>
+                      <span className="block text-sm font-bold">{point.label}</span>
+                      <span className="text-xs text-black/50">{point.copy}</span>
+                    </span>
+                    <span
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-black"
+                      style={{
+                        background: active ? VERDE : "#fff",
+                        border: `2px solid ${active ? VERDE : "#E9D9DF"}`,
+                        color: active ? ROSA : "transparent",
+                      }}
+                    >
+                      ✓
+                    </span>
+                  </button>
+                );
+              })}
+            </OptionSection>
+          )}
+
           {needsSauce && (
             <OptionSection
               title="Molhos para o burger"
-              subtitle="Escolha 1 opção"
+              subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
               required
             >
               {SAUCE_OPTIONS.map((sauce) => {
@@ -1374,20 +1462,13 @@ function ProductCustomizer({
                   <button
                     key={sauce.label}
                     onClick={() =>
-                      setState((prev) =>
-                        prev ? { ...prev, sauces: [sauce.label] } : prev,
-                      )
+                      toggleLimited("sauces", sauce.label, requiredCount)
                     }
                     className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
                     style={{ borderColor: `${VERDE}10`, background: "#fff" }}
                   >
                     <span className="flex items-center gap-3">
-                      <span
-                        className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
-                        style={{ background: "#F4F4F4" }}
-                      >
-                        {sauce.icon}
-                      </span>
+                      <OptionThumb src={sauce.image} alt={sauce.label} />
                       <span className="text-sm font-bold">{sauce.label}</span>
                     </span>
                     <span
@@ -1409,30 +1490,25 @@ function ProductCustomizer({
           {needsDrink && (
             <OptionSection
               title="Aceita uma bebida?"
-              subtitle="Escolha 1 opção"
+              subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
               required
             >
               {DRINK_OPTIONS.map((drink) => {
-                const active = state.drink === drink.label;
+                const active = state.drinks.includes(drink.id);
                 return (
                   <button
-                    key={drink.label}
+                    key={drink.id}
                     onClick={() =>
-                      setState((prev) =>
-                        prev ? { ...prev, drink: drink.label } : prev,
-                      )
+                      toggleLimited("drinks", drink.id, requiredCount)
                     }
                     className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
                     style={{ borderColor: `${VERDE}10`, background: "#fff" }}
                   >
                     <span className="flex items-center gap-3">
-                      <span
-                        className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
-                        style={{ background: "#F4F4F4" }}
-                      >
-                        {drink.icon}
+                      <OptionThumb src={drink.image} alt={drink.label} />
+                      <span>
+                        <span className="block text-sm font-bold">{drink.label}</span>
                       </span>
-                      <span className="text-sm font-bold">{drink.label}</span>
                     </span>
                     <span className="h-7 w-7 rounded-full" style={{ border: `2px solid ${active ? VERDE : "#E9D9DF"}`, background: active ? VERDE : "#fff" }} />
                   </button>
@@ -1452,12 +1528,7 @@ function ProductCustomizer({
                   style={{ borderColor: `${VERDE}10`, background: "#fff" }}
                 >
                   <span className="flex items-center gap-3">
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
-                      style={{ background: "#F4F4F4" }}
-                    >
-                      {extra.icon}
-                    </span>
+                    <OptionThumb src={extra.image} alt={extra.label} />
                     <span>
                       <span className="block text-sm font-bold">{extra.label}</span>
                       <span className="text-xs text-black/50">+ {fmt(extra.price)}</span>
@@ -1556,6 +1627,27 @@ function OptionSection({
       </div>
       {children}
     </section>
+  );
+}
+
+function OptionThumb({ src, alt }: { src: string; alt: string }) {
+  return (
+    <span
+      className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+      style={{ background: "#F4F4F4" }}
+    >
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        style={{
+          display: "block",
+          height: "100%",
+          width: "100%",
+          objectFit: "cover",
+        }}
+      />
+    </span>
   );
 }
 

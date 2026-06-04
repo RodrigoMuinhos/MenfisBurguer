@@ -40,16 +40,24 @@ public class KdsService {
   @Transactional
   public OrderResponse advance(String id, String actor) {
     OrderResponse order = orders.get(id);
-    OrderStatus next = switch (OrderStatus.valueOf(order.status())) {
+    OrderStatus current = OrderStatus.valueOf(order.status());
+    OrderStatus next = switch (current) {
       case RECEIVED -> OrderStatus.PREPARING;
       case PREPARING -> OrderStatus.READY;
       case READY -> order.deliveryType() == DeliveryType.DELIVERY ? OrderStatus.OUT_FOR_DELIVERY : OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> OrderStatus.DELIVERED;
       default -> throw new IllegalArgumentException("order_not_advanceable");
     };
-    if (OrderStatus.valueOf(order.status()) == OrderStatus.RECEIVED) {
+    if (current == OrderStatus.RECEIVED) {
       inventory.deductForOrder(order.id());
     }
-    return orders.changeStatus(id, next, actor == null ? "kds" : actor, "kds_advance");
+    String event = switch (next) {
+      case PREPARING -> "ORDER_ACCEPTED";
+      case READY -> "ORDER_READY";
+      case OUT_FOR_DELIVERY -> "OUT_FOR_DELIVERY";
+      case DELIVERED -> "ORDER_DELIVERED";
+      default -> "ORDER_STATUS_CHANGED";
+    };
+    return orders.changeStatus(id, next, actor == null ? "kds" : actor, event);
   }
 }

@@ -12,30 +12,62 @@ import {
   DollarSign,
   TrendingUp,
   Check,
+  MessageCircle,
 } from "lucide-react";
 import { VERDE, ROSA, Order, OrderStatus } from "./types";
 import { EstoqueView, INITIAL_ITEMS, StockItem, Movement } from "./EstoqueView";
 
-type AdminTab = "cozinha" | "dashboard" | "estoque";
+type AdminTab = "cozinha" | "dashboard" | "estoque" | "suporte";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+
+type SupportTicket = {
+  id: string;
+  orderId: string;
+  orderStatus: string;
+  type: string;
+  reason: string;
+  message?: string;
+  customerPhone?: string;
+  status: string;
+  createdAt: string;
+  resolvedAt?: string;
+};
 
 const STAGE_ORDER: OrderStatus[] = [
   "recebido",
   "preparo",
   "pronto",
+  "saiu_entrega",
   "entregue",
 ];
 
 const STAGE_LABEL: Record<OrderStatus, string> = {
-  recebido: "Recebido",
+  aguardando_pagamento: "Aguardando Pagamento",
+  pagamento_recusado: "Pagamento Recusado",
+  recebido: "Novos Pedidos",
   preparo: "Em Preparo",
   pronto: "Pronto",
+  saiu_entrega: "Saiu para Entrega",
   entregue: "Entregue",
+  cancelado: "Cancelado",
 };
 
 const STAGE_COLOR: Record<
   OrderStatus,
   { bg: string; text: string; border: string; accent: string }
 > = {
+  aguardando_pagamento: {
+    bg: "#FFFBEB",
+    text: "#92400E",
+    border: "#FDE68A",
+    accent: "#F59E0B",
+  },
+  pagamento_recusado: {
+    bg: "#FEF2F2",
+    text: "#991B1B",
+    border: "#FECACA",
+    accent: "#EF4444",
+  },
   recebido: {
     bg: "#FFFBEB",
     text: "#92400E",
@@ -54,19 +86,35 @@ const STAGE_COLOR: Record<
     border: "#6EE7B7",
     accent: "#10B981",
   },
+  saiu_entrega: {
+    bg: "#F5F3FF",
+    text: "#5B21B6",
+    border: "#DDD6FE",
+    accent: "#7C3AED",
+  },
   entregue: {
     bg: `${VERDE}10`,
     text: VERDE,
     border: `${VERDE}30`,
     accent: VERDE,
   },
+  cancelado: {
+    bg: "#F3F4F6",
+    text: "#4B5563",
+    border: "#E5E7EB",
+    accent: "#6B7280",
+  },
 };
 
 const STAGE_ICON: Record<OrderStatus, React.ElementType> = {
+  aguardando_pagamento: Clock,
+  pagamento_recusado: X,
   recebido: Clock,
   preparo: ChefHat,
   pronto: CheckCircle2,
+  saiu_entrega: Bike,
   entregue: Package,
+  cancelado: X,
 };
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -146,6 +194,7 @@ interface Props {
 
 export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
   const [tab, setTab] = useState<AdminTab>("cozinha");
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
 
   /* ── Shared stock state (owned here, passed down to EstoqueView) ── */
   const [stockItems, setStockItems] = useState<StockItem[]>(INITIAL_ITEMS);
@@ -199,10 +248,50 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
     { id: "cozinha", label: "Cozinha", Icon: ChefHat },
     { id: "dashboard", label: "Dashboard", Icon: TrendingUp },
     { id: "estoque", label: "Estoque", Icon: Package },
+    { id: "suporte", label: "Suporte", Icon: MessageCircle },
   ];
 
-  const activeOrders = orders.filter((o) => o.status !== "entregue").length;
+  const activeOrders = orders.filter(
+    (o) => !["entregue", "cancelado", "pagamento_recusado"].includes(o.status),
+  ).length;
   const todayRevenue = orders.reduce((s, o) => s + o.total, 0);
+
+  const syncSupportTickets = async () => {
+    if (!API_URL) return;
+    try {
+      const res = await fetch(`${API_URL}/support/tickets`, { cache: "no-store" });
+      if (!res.ok) return;
+      setSupportTickets(await res.json());
+    } catch {
+      // support panel is optional when backend is offline
+    }
+  };
+
+  useEffect(() => {
+    if (tab !== "suporte") return;
+    syncSupportTickets();
+    const timer = window.setInterval(syncSupportTickets, 10000);
+    return () => window.clearInterval(timer);
+  }, [tab]);
+
+  const resolveSupportTicket = async (id: string) => {
+    setSupportTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === id
+          ? { ...ticket, status: "RESOLVED", resolvedAt: new Date().toISOString() }
+          : ticket,
+      ),
+    );
+    if (!API_URL) return;
+    try {
+      await fetch(`${API_URL}/support/tickets/${encodeURIComponent(id)}/resolve`, {
+        method: "PATCH",
+      });
+      await syncSupportTickets();
+    } catch {
+      await syncSupportTickets();
+    }
+  };
 
   return (
     <div
@@ -315,6 +404,12 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
             setMovements={setStockMovements}
           />
         )}
+        {tab === "suporte" && (
+          <SupportView
+            tickets={supportTickets}
+            onResolve={resolveSupportTicket}
+          />
+        )}
       </div>
     </div>
   );
@@ -366,7 +461,7 @@ function KitchenView({
 
   const advance = (o: Order) => {
     const nextIdx = STAGE_ORDER.indexOf(o.status) + 1;
-    if (nextIdx >= STAGE_ORDER.length) return;
+    if (nextIdx <= 0 || nextIdx >= STAGE_ORDER.length) return;
     if (!canAdvanceOrder(o)) return;
     // Deduct stock only when the kitchen accepts the order (recebido → preparo)
     if (o.status === "recebido") deductStock(o);
@@ -1101,6 +1196,147 @@ function KitchenView({
               4/6 coluna · 8/2 linha · Enter avançar
             </span>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function supportTypeLabel(type: string) {
+  return (
+    {
+      SUPPORT_PAYMENT: "Pagamento",
+      SUPPORT_DELIVERY: "Entrega",
+      ORDER_DELAYED: "Atraso",
+      ORDER_CHANGE_REQUEST: "Alteração",
+      CANCEL_REQUEST: "Cancelamento",
+      DELIVERY_PROBLEM: "Entrega",
+      PAYMENT_ERROR: "Pagamento",
+    }[type] ?? type
+  );
+}
+
+function minutesSince(value: string) {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
+  return minutes < 1 ? "agora" : `${minutes} min`;
+}
+
+function SupportView({
+  tickets,
+  onResolve,
+}: {
+  tickets: SupportTicket[];
+  onResolve: (id: string) => void;
+}) {
+  const pending = tickets.filter((ticket) => ticket.status !== "RESOLVED");
+  const resolved = tickets.filter((ticket) => ticket.status === "RESOLVED");
+  const avgResponse = resolved.length
+    ? Math.round(
+        resolved.reduce((sum, ticket) => {
+          const end = ticket.resolvedAt ? new Date(ticket.resolvedAt).getTime() : Date.now();
+          return sum + Math.max(0, end - new Date(ticket.createdAt).getTime());
+        }, 0) /
+          resolved.length /
+          60000,
+      )
+    : 0;
+
+  const groups = [
+    { label: "Pendentes", value: pending.length },
+    { label: "Resolvidos", value: resolved.length },
+    { label: "SLA médio", value: resolved.length ? `${avgResponse} min` : "-" },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-3 gap-2">
+        {groups.map((group) => (
+          <div
+            key={group.label}
+            className="rounded-2xl p-3"
+            style={{ background: "#fff", border: `1.5px solid ${VERDE}10` }}
+          >
+            <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: VERDE, opacity: 0.42 }}>
+              {group.label}
+            </p>
+            <p
+              className="font-black mt-1"
+              style={{ color: VERDE, fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.35rem" }}
+            >
+              {group.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {tickets.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-16">
+          <MessageCircle size={40} strokeWidth={1.5} style={{ color: VERDE, opacity: 0.18 }} />
+          <p className="text-xs font-black uppercase tracking-widest" style={{ color: VERDE, opacity: 0.35 }}>
+            Nenhum chamado de suporte
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {tickets.map((ticket) => {
+            const isPending = ticket.status !== "RESOLVED";
+            const urgent = isPending && Date.now() - new Date(ticket.createdAt).getTime() > 5 * 60000;
+            return (
+              <div
+                key={ticket.id}
+                className="rounded-2xl p-4"
+                style={{
+                  background: isPending ? "#fff" : `${VERDE}06`,
+                  border: `1.5px solid ${urgent ? "#F59E0B" : ROSA}`,
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full" style={{ background: ROSA, color: VERDE }}>
+                        {supportTypeLabel(ticket.type)}
+                      </span>
+                      {urgent && (
+                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full" style={{ background: "#FFFBEB", color: "#92400E" }}>
+                          +5 min sem resposta
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-black mt-2" style={{ color: VERDE }}>
+                      Pedido {ticket.orderId}
+                    </p>
+                    <p className="text-sm font-bold mt-1" style={{ color: VERDE }}>
+                      {ticket.reason}
+                    </p>
+                    <p className="text-[11px] mt-1" style={{ color: VERDE, opacity: 0.55 }}>
+                      Status pedido: {ticket.orderStatus} · aberto {minutesSince(ticket.createdAt)}
+                    </p>
+                    {ticket.customerPhone && (
+                      <a
+                        href={`https://wa.me/${ticket.customerPhone.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex mt-3 text-xs font-black uppercase tracking-wider"
+                        style={{ color: VERDE }}
+                      >
+                        Abrir WhatsApp
+                      </a>
+                    )}
+                  </div>
+                  {isPending && (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => onResolve(ticket.id)}
+                      className="rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider"
+                      style={{ background: VERDE, color: ROSA, border: "none" }}
+                    >
+                      Resolver
+                    </motion.button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
