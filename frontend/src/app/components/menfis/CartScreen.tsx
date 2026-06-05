@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -218,6 +218,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
   const [phone, setPhone] = useState<string>(saved.phone ?? "");
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState(false);
+  const cepRef = useRef<HTMLInputElement>(null);
+  const streetRef = useRef<HTMLInputElement>(null);
+  const numberRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
 
   /* Persist to localStorage whenever any field changes */
   useEffect(() => {
@@ -287,6 +291,28 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     phone.replace(/\D/g, "").length < 10 ? "WhatsApp" : "",
   ].filter(Boolean);
 
+  const invalidDeliveryFields = {
+    cep: delivery === "delivery" && (cep.replace(/\D/g, "").length !== 8 || cepError),
+    street: delivery === "delivery" && !street.trim().length,
+    number: delivery === "delivery" && !number.trim().length,
+    phone: phone.replace(/\D/g, "").length < 10,
+  };
+
+  const focusFirstMissingDeliveryField = () => {
+    const firstInvalid = (
+      [
+        ["cep", cepRef],
+        ["street", streetRef],
+        ["number", numberRef],
+        ["phone", phoneRef],
+      ] as const
+    ).find(([field]) => invalidDeliveryFields[field]);
+    const input = firstInvalid?.[1].current;
+    if (!input) return;
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => input.focus(), 350);
+  };
+
   const canCreatePayment =
     deliveryValid && Boolean(payment) && checkoutStep === "review";
 
@@ -315,7 +341,10 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
     }
 
     if (checkoutStep === "delivery") {
-      if (!deliveryValid) return;
+      if (!deliveryValid) {
+        focusFirstMissingDeliveryField();
+        return;
+      }
       setCheckoutStep("payment");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -415,9 +444,14 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
       localStorage.setItem("menfis_pending_order_id", String(createdOrder.id));
       window.location.assign(checkoutUrl);
       return;
-    } catch {
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "";
       setPaymentError(
-        "Não foi possível iniciar o checkout Mercado Pago. Verifique os dados e tente novamente.",
+        reason.includes("MERCADO_PAGO_ACCESS_TOKEN")
+          ? "Pagamento indisponível: falta configurar a credencial do Mercado Pago."
+          : reason.includes("order_creation_failed")
+            ? "Não foi possível registrar o pedido. Confira os dados de entrega e tente novamente."
+            : "Não foi possível iniciar o pagamento. Tente novamente em alguns segundos.",
       );
     } finally {
       if (slowTimer) window.clearTimeout(slowTimer);
@@ -1448,10 +1482,12 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                     <Label>CEP</Label>
                     <div className="relative">
                       <input
+                        ref={cepRef}
                         value={cep}
                         onChange={(e) => setCep(maskCEP(e.target.value))}
                         placeholder="00000-000"
-                        style={inputStyle(cepError)}
+                        style={inputStyle(cepError || (submitAttempted && invalidDeliveryFields.cep))}
+                        aria-invalid={cepError || (submitAttempted && invalidDeliveryFields.cep)}
                       />
                       {cepLoading && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -1489,33 +1525,48 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                         CEP não encontrado
                       </p>
                     )}
+                    {!cepError && submitAttempted && invalidDeliveryFields.cep && (
+                      <p className="mt-1 text-[10px] font-bold" style={{ color: "#DC2626" }}>
+                        Preencha um CEP válido com 8 números.
+                      </p>
+                    )}
                   </div>
 
                   {/* Endereço (preenchido pelo CEP) */}
-                  {street.length > 0 && (
-                    <div>
-                      <Label>Endereço</Label>
-                      <input
-                        value={street}
-                        onChange={(e) => setStreet(e.target.value)}
-                        style={inputStyle()}
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <Label>Endereço</Label>
+                    <input
+                      ref={streetRef}
+                      value={street}
+                      onChange={(e) => setStreet(e.target.value)}
+                      placeholder="Rua, bairro e cidade"
+                      style={inputStyle(submitAttempted && invalidDeliveryFields.street)}
+                      aria-invalid={submitAttempted && invalidDeliveryFields.street}
+                    />
+                    {submitAttempted && invalidDeliveryFields.street && (
+                      <p className="mt-1 text-[10px] font-bold" style={{ color: "#DC2626" }}>
+                        Informe o endereço de entrega.
+                      </p>
+                    )}
+                  </div>
 
                   {/* Número + Complemento */}
-                  {street.length > 0 && (
-                    <div className="flex gap-3">
+                  <div className="flex gap-3">
                       <div className="flex-1">
                         <Label>Número</Label>
                         <input
+                          ref={numberRef}
                           value={number}
                           onChange={(e) => setNumber(e.target.value)}
                           placeholder="Ex: 42"
-                          style={inputStyle(
-                            !number && street.length > 0 ? false : undefined,
-                          )}
+                          style={inputStyle(submitAttempted && invalidDeliveryFields.number)}
+                          aria-invalid={submitAttempted && invalidDeliveryFields.number}
                         />
+                        {submitAttempted && invalidDeliveryFields.number && (
+                          <p className="mt-1 text-[10px] font-bold" style={{ color: "#DC2626" }}>
+                            Informe o número.
+                          </p>
+                        )}
                       </div>
                       <div className="flex-1">
                         <Label>Complemento</Label>
@@ -1526,8 +1577,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
                           style={inputStyle()}
                         />
                       </div>
-                    </div>
-                  )}
+                  </div>
                 </>
               )}
 
@@ -1535,11 +1585,18 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
               <div>
                 <Label>WhatsApp</Label>
                 <input
+                  ref={phoneRef}
                   value={phone}
                   onChange={(e) => setPhone(maskPhone(e.target.value))}
                   placeholder="(00) 00000-0000"
-                  style={inputStyle()}
+                  style={inputStyle(submitAttempted && invalidDeliveryFields.phone)}
+                  aria-invalid={submitAttempted && invalidDeliveryFields.phone}
                 />
+                {submitAttempted && invalidDeliveryFields.phone && (
+                  <p className="mt-1 text-[10px] font-bold" style={{ color: "#DC2626" }}>
+                    Informe um WhatsApp válido com DDD.
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
