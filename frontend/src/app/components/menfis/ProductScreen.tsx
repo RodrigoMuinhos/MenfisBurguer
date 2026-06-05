@@ -113,7 +113,7 @@ const MENU_ITEMS: MenuItem[] = [
     id: "combo2",
     name: "Super Combo",
     eyebrow: "Para dividir",
-    desc: "Dois burgers, duas bebidas geladas e batata crocante para dividir sem economizar no sabor.",
+    desc: "Dois burgers, duas bebidas geladas e batata crocante para dividir.",
     price: 59.9,
     originalPrice: 74.9,
     image: burgerPhoto,
@@ -1814,7 +1814,7 @@ function MenuCard({
           </div>
         </div>
 
-        <p className="mt-2 min-h-[54px] text-sm leading-relaxed text-black/58">
+        <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5 text-black/58">
           {item.desc}
         </p>
 
