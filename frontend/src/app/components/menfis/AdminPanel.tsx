@@ -234,15 +234,19 @@ function printOrderReceipts(order: Order) {
   popup.document.write(`
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - 2 vias</title>
     <style>
-      @page { size: 80mm auto; margin: 3mm; }
-      body { margin: 0; font-family: ui-monospace, Consolas, monospace; color: #000; }
-      .receipt { width: 72mm; min-height: 120mm; padding: 3mm 0; page-break-after: always; font-size: 11px; line-height: 1.35; }
+      @page { size: 58mm auto; margin: 0; }
+      * { box-sizing: border-box; }
+      body { width: 48mm; margin: 0; padding: 1mm 0; font-family: "Courier New", ui-monospace, monospace; color: #000; }
+      .receipt { width: 48mm; min-height: 110mm; padding: 2mm 1.5mm; border: 0.6mm solid #000; page-break-after: always; font-size: 9px; line-height: 1.3; }
       .receipt:last-child { page-break-after: auto; }
       .center { text-align: center; } .small { font-size: 10px; }
-      .number { margin: 5mm 0 2mm; padding: 2mm; text-align: center; font-size: 34px; font-weight: 900; border: 2px solid #000; }
-      .row { display: flex; justify-content: space-between; gap: 5mm; margin: 2mm 0; }
-      .total { font-size: 15px; } .alert { margin: 3mm 0; font-weight: 900; }
-      hr { border: 0; border-top: 1px dashed #000; margin: 3mm 0; }
+      .number { margin: 3mm 0 2mm; padding: 1.5mm 0.5mm; text-align: center; font-size: 25px; font-weight: 900; border: 0.8mm solid #000; }
+      .row { display: flex; justify-content: space-between; gap: 2mm; margin: 1.5mm 0; border-bottom: 0.3mm solid #000; padding-bottom: 1mm; }
+      .row span:first-child { max-width: 31mm; overflow-wrap: anywhere; }
+      .row span:last-child { white-space: nowrap; }
+      .total { margin-top: 2mm; padding: 1.5mm 0; border-top: 0.8mm solid #000; border-bottom: 0.8mm solid #000; font-size: 13px; }
+      .alert { margin: 2mm 0; padding: 1.5mm; border: 0.6mm solid #000; font-weight: 900; }
+      hr { border: 0; border-top: 0.5mm dashed #000; margin: 2mm 0; }
     </style></head><body>${copy("VIA ESTABELECIMENTO")}${copy("VIA EMBALAGEM")}
     <script>window.onload=()=>{window.print();}<\/script></body></html>
   `);
