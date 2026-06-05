@@ -32,6 +32,7 @@ type MenuItem = {
   eyebrow: string;
   desc: string;
   price: number;
+  originalPrice?: number;
   image?: StaticImageData | string;
   tags: string[];
   category: "burger" | "combo" | "bebida" | "extra";
@@ -68,8 +69,9 @@ const MENU_ITEMS: MenuItem[] = [
     id: "burger",
     name: "Menfi's Burger",
     eyebrow: "Clássico da casa",
-    desc: "Pão brioche selado, burger 100g, queijo, alface crocante, cebola caramelizada e molho Menfi's.",
-    price: 23.9,
+    desc: "Brioche dourado, burger suculento, queijo derretido, cebola caramelizada e a maionese Menfi's.",
+    price: 21.9,
+    originalPrice: 26.9,
     image: burgerPhoto,
     tags: ["100g", "Molho da casa", "Brioche"],
     category: "burger",
@@ -78,8 +80,9 @@ const MENU_ITEMS: MenuItem[] = [
     id: "double-burger",
     name: "Double Menfi's",
     eyebrow: "Mais carne",
-    desc: "O dobro de burger, queijo derretido, cebola caramelizada e molho Menfi's no brioche.",
-    price: 33.9,
+    desc: "Dois burgers suculentos, queijo derretido e cebola caramelizada no brioche dourado.",
+    price: 29.9,
+    originalPrice: 37.9,
     image: burgerPhoto,
     tags: ["Double", "Mais suculento", "Brioche"],
     category: "burger",
@@ -88,8 +91,9 @@ const MENU_ITEMS: MenuItem[] = [
     id: "combo",
     name: "Combo Menfi's",
     eyebrow: "Pedido completo",
-    desc: "Menfi's Burger com Coca-Cola 350ml e batata frita 250g.",
-    price: 37.9,
+    desc: "Menfi's Burger, batata crocante e bebida gelada: o pedido completo para matar a fome.",
+    price: 34.9,
+    originalPrice: 44.9,
     image: burgerPhoto,
     tags: ["Burger", "Batata", "Refri"],
     category: "combo",
@@ -98,8 +102,9 @@ const MENU_ITEMS: MenuItem[] = [
     id: "double-combo",
     name: "Double Combo Menfi's",
     eyebrow: "Pedido completo",
-    desc: "Double Menfi's com Coca-Cola 350ml e batata frita 250g. Mais burger no combo.",
-    price: 46.9,
+    desc: "Double Menfi's, batata crocante e bebida gelada para uma fome de respeito.",
+    price: 42.9,
+    originalPrice: 54.9,
     image: burgerPhoto,
     tags: ["Double", "Batata", "Refri"],
     category: "combo",
@@ -108,8 +113,9 @@ const MENU_ITEMS: MenuItem[] = [
     id: "combo2",
     name: "Super Combo",
     eyebrow: "Para dividir",
-    desc: "2 burgers, 2 Coca-Cola 350ml e batata frita. Melhor custo por pessoa.",
-    price: 64.9,
+    desc: "Dois burgers, duas bebidas geladas e batata crocante para dividir sem economizar no sabor.",
+    price: 59.9,
+    originalPrice: 74.9,
     image: burgerPhoto,
     tags: ["2 pessoas", "Mais vendido", "Economia"],
     category: "combo",
@@ -1718,6 +1724,9 @@ function MenuCard({
   onMinus: () => void;
 }) {
   const displayPrice = builder ? buildBurger(builder).price : item.price;
+  const discountPercent = item.originalPrice
+    ? Math.round((1 - item.price / item.originalPrice) * 100)
+    : 0;
   return (
     <motion.article
       layout
@@ -1778,17 +1787,31 @@ function MenuCard({
               {item.name}
             </h2>
           </div>
-          <p
-            className="shrink-0"
-            style={{
-              color: VERDE,
-              fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-              fontSize: "1.45rem",
-              lineHeight: 1,
-            }}
-          >
-            {fmt(displayPrice)}
-          </p>
+          <div className="shrink-0 text-right">
+            {item.originalPrice && !builder && (
+              <div className="mb-1 flex items-center justify-end gap-1.5">
+                <span className="text-[10px] font-bold text-black/35 line-through">
+                  {fmt(item.originalPrice)}
+                </span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[9px] font-black"
+                  style={{ background: "#DCFCE7", color: "#166534" }}
+                >
+                  -{discountPercent}%
+                </span>
+              </div>
+            )}
+            <p
+              style={{
+                color: VERDE,
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "1.45rem",
+                lineHeight: 1,
+              }}
+            >
+              {fmt(displayPrice)}
+            </p>
+          </div>
         </div>
 
         <p className="mt-2 min-h-[54px] text-sm leading-relaxed text-black/58">

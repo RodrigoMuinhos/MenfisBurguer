@@ -14,11 +14,14 @@ import {
   Check,
   MessageCircle,
   TicketPercent,
+  ClipboardList,
+  Printer,
+  Phone,
 } from "lucide-react";
 import { VERDE, ROSA, Order, OrderStatus } from "./types";
 import { EstoqueView, INITIAL_ITEMS, StockItem, Movement } from "./EstoqueView";
 
-type AdminTab = "cozinha" | "dashboard" | "estoque" | "suporte" | "cupons";
+type AdminTab = "pedidos" | "cozinha" | "dashboard" | "estoque" | "suporte" | "cupons";
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 const COUPON_STORAGE_KEY = "menfis_coupons";
 
@@ -174,6 +177,78 @@ function elapsed(ts: number) {
   return `${Math.floor(s / 60)}min`;
 }
 
+function customerWhatsappUrl(order: Order) {
+  const phone = order.customerPhone?.replace(/\D/g, "") ?? "";
+  if (!phone) return "";
+  const normalized = phone.startsWith("55") ? phone : `55${phone}`;
+  const message = encodeURIComponent(
+    `Olá! Seu pedido ${order.id} foi aceito pela Menfi's Burger.\n\n` +
+      `Status: ${STAGE_LABEL[order.status]}\n` +
+      `Previsão: 25-45 minutos\n` +
+      `Total: ${fmt(order.total)}\n` +
+      `Entrega/retirada: ${order.customerAddress ?? "dados confirmados"}\n\n` +
+      `Obrigado pela preferência! Acompanhe as atualizações pelo nosso delivery.`,
+  );
+  return `https://wa.me/${normalized}?text=${message}`;
+}
+
+function escapeReceipt(value?: string) {
+  return (value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function printOrderReceipts(order: Order) {
+  const popup = window.open("", "_blank", "width=760,height=900");
+  if (!popup) return;
+  const items = order.items
+    .map(
+      (item) =>
+        `<div class="row"><b>${item.qty}x ${escapeReceipt(item.name)}</b><span>${fmt(item.price * item.qty)}</span></div>`,
+    )
+    .join("");
+  const removed = Object.entries(order.removedByItemId ?? {})
+    .flatMap(([, values]) => values)
+    .filter((value, index, values) => values.indexOf(value) === index);
+  const copy = (label: string) => `
+    <section class="receipt">
+      <div class="center small">MENFI'S BURGER</div>
+      <div class="center"><strong>${escapeReceipt(label)}</strong></div>
+      <div class="number">${escapeReceipt(order.id)}</div>
+      <div class="center">${order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA"}</div>
+      <hr />
+      <div>Data: ${new Date(order.timestamp).toLocaleString("pt-BR")}</div>
+      <div>Telefone: ${escapeReceipt(order.customerPhone || "Não informado")}</div>
+      <div>Endereço: ${escapeReceipt(order.customerAddress || "Não informado")}</div>
+      <hr />
+      <strong>ITENS DO PEDIDO</strong>
+      ${items}
+      ${removed.length ? `<div class="alert">RETIRAR: ${escapeReceipt(removed.join(", "))}</div>` : ""}
+      <hr />
+      <div>Pagamento: ${escapeReceipt(order.paymentMethod?.toUpperCase() || "ATENDIMENTO")} - ${escapeReceipt(order.paymentStatus || "")}</div>
+      <div class="row total"><strong>TOTAL</strong><strong>${fmt(order.total)}</strong></div>
+      <hr />
+      <div class="center small">Obrigado pela preferência!</div>
+    </section>`;
+  popup.document.write(`
+    <!doctype html><html><head><title>${escapeReceipt(order.id)} - 2 vias</title>
+    <style>
+      @page { size: 80mm auto; margin: 3mm; }
+      body { margin: 0; font-family: ui-monospace, Consolas, monospace; color: #000; }
+      .receipt { width: 72mm; min-height: 120mm; padding: 3mm 0; page-break-after: always; font-size: 11px; line-height: 1.35; }
+      .receipt:last-child { page-break-after: auto; }
+      .center { text-align: center; } .small { font-size: 10px; }
+      .number { margin: 5mm 0 2mm; padding: 2mm; text-align: center; font-size: 34px; font-weight: 900; border: 2px solid #000; }
+      .row { display: flex; justify-content: space-between; gap: 5mm; margin: 2mm 0; }
+      .total { font-size: 15px; } .alert { margin: 3mm 0; font-weight: 900; }
+      hr { border: 0; border-top: 1px dashed #000; margin: 3mm 0; }
+    </style></head><body>${copy("VIA ESTABELECIMENTO")}${copy("VIA EMBALAGEM")}
+    <script>window.onload=()=>{window.print();}<\/script></body></html>
+  `);
+  popup.document.close();
+}
+
 function loadStoredCoupons(): Coupon[] {
   try {
     const stored = JSON.parse(localStorage.getItem(COUPON_STORAGE_KEY) ?? "[]");
@@ -229,7 +304,7 @@ interface Props {
 }
 
 export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
-  const [tab, setTab] = useState<AdminTab>("cozinha");
+  const [tab, setTab] = useState<AdminTab>("pedidos");
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [customCoupons, setCustomCoupons] = useState<Coupon[]>(() => loadStoredCoupons());
   const [couponCode, setCouponCode] = useState("");
@@ -285,6 +360,7 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
   };
 
   const tabs: { id: AdminTab; label: string; Icon: React.ElementType }[] = [
+    { id: "pedidos", label: "Pedidos", Icon: ClipboardList },
     { id: "cozinha", label: "Cozinha", Icon: ChefHat },
     { id: "dashboard", label: "Dashboard", Icon: TrendingUp },
     { id: "estoque", label: "Estoque", Icon: Package },
@@ -451,6 +527,7 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
             : { padding: "16px", paddingBottom: "40px" }
         }
       >
+        {tab === "pedidos" && <OrdersView orders={orders} />}
         {tab === "cozinha" && (
           <KitchenView
             orders={orders}
@@ -494,6 +571,111 @@ export function AdminPanel({ orders, updateOrderStatus, onClose }: Props) {
             }
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+function OrdersView({ orders }: { orders: Order[] }) {
+  const [selectedId, setSelectedId] = useState(orders[0]?.id ?? "");
+  const selected = orders.find((order) => order.id === selectedId) ?? orders[0];
+
+  if (!selected) {
+    return <p className="py-12 text-center text-sm font-bold opacity-40">Nenhum pedido registrado.</p>;
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.2fr)]">
+      <div className="flex max-h-[72vh] flex-col gap-2 overflow-y-auto">
+        {orders.map((order) => {
+          const stage = STAGE_COLOR[order.status];
+          return (
+            <button
+              key={order.id}
+              onClick={() => setSelectedId(order.id)}
+              className="rounded-xl p-3 text-left"
+              style={{
+                background: selected.id === order.id ? stage.bg : "#fff",
+                border: `1.5px solid ${selected.id === order.id ? stage.accent : stage.border}`,
+              }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <strong style={{ color: stage.text }}>{order.id}</strong>
+                <span className="text-[10px] font-black uppercase" style={{ color: stage.text }}>
+                  {STAGE_LABEL[order.status]}
+                </span>
+              </div>
+              <p className="mt-1 text-xs font-bold" style={{ color: VERDE }}>
+                {fmt(order.total)} · {order.customerPhone || "Sem telefone"}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="rounded-2xl p-5" style={{ border: `1.5px solid ${ROSA}`, background: "#fff" }}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-2xl font-black" style={{ color: VERDE }}>{selected.id}</p>
+            <p className="text-xs font-black uppercase tracking-wide" style={{ color: STAGE_COLOR[selected.status].text }}>
+              {STAGE_LABEL[selected.status]} · {selected.paymentStatus === "approved" ? "Pagamento aprovado" : "Pagamento pendente"}
+            </p>
+          </div>
+          <button
+            onClick={() => printOrderReceipts(selected)}
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+            style={{ background: VERDE, color: ROSA }}
+          >
+            <Printer size={15} /> Imprimir 2 vias
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl p-3" style={{ background: `${VERDE}08` }}>
+            <p className="text-[10px] font-black uppercase opacity-50">Telefone cadastrado</p>
+            <p className="mt-1 text-sm font-bold">{selected.customerPhone || "Não informado"}</p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: `${VERDE}08` }}>
+            <p className="text-[10px] font-black uppercase opacity-50">Entrega</p>
+            <p className="mt-1 text-sm font-bold">{selected.customerAddress || "Não informado"}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {selected.customerPhone && (
+            <a
+              href={`tel:${selected.customerPhone.replace(/\D/g, "")}`}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+              style={{ border: `1.5px solid ${VERDE}`, color: VERDE }}
+            >
+              <Phone size={15} /> Ligar
+            </a>
+          )}
+          {customerWhatsappUrl(selected) && (
+            <a
+              href={customerWhatsappUrl(selected)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+              style={{ background: "#25D366", color: "#fff" }}
+            >
+              <MessageCircle size={15} /> Enviar confirmação
+            </a>
+          )}
+        </div>
+
+        <div className="mt-5">
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-45">Itens</p>
+          {selected.items.map((item) => (
+            <div key={`${selected.id}-${item.id}`} className="flex justify-between gap-4 border-b py-3 text-sm">
+              <span>{item.qty}x {item.name}</span>
+              <strong>{fmt(item.price * item.qty)}</strong>
+            </div>
+          ))}
+          <div className="mt-3 flex justify-between text-lg font-black">
+            <span>Total</span><span>{fmt(selected.total)}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

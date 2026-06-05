@@ -17,9 +17,8 @@ import {
 
 type Screen = "product" | "cart" | "tracking" | "admin" | "admin-login";
 
-const ADMIN_LOGIN = "04411750317";
-const ADMIN_PASSWORD = "rodrigo123";
 const MEMBER_KEY = "menfis_member";
+const PENDING_ORDER_KEY = "menfis_pending_order_id";
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 function registerMemberOrder() {
@@ -109,41 +108,42 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminToken, setAdminToken] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string>("");
 
+  const loadOrderById = useCallback(async (orderId: string) => {
+    if (!API_URL || !orderId) return;
+    const res = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return;
+    const order = normalizeBackendOrder(await res.json());
+    setOrders((prev) => [
+      { ...prev.find((item) => item.id === order.id), ...order },
+      ...prev.filter((item) => item.id !== order.id),
+    ]);
+    if (order.paymentStatus === "approved") {
+      localStorage.removeItem(PENDING_ORDER_KEY);
+    }
+  }, []);
+
   const syncOrders = useCallback(async () => {
     try {
       if (API_URL && screen === "tracking" && lastOrderId) {
-        const res = await fetch(`${API_URL}/orders/${encodeURIComponent(lastOrderId)}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const order = normalizeBackendOrder(await res.json());
-        setOrders((prev) => {
-          const existing = prev.find((o) => o.id === order.id);
-          return [
-            {
-              ...existing,
-              ...order,
-              pixQrCode: existing?.pixQrCode ?? order.pixQrCode,
-              pixQrCodeBase64: existing?.pixQrCodeBase64 ?? order.pixQrCodeBase64,
-              pixTicketUrl: existing?.pixTicketUrl ?? order.pixTicketUrl,
-            },
-            ...prev.filter((o) => o.id !== order.id),
-          ];
-        });
+        await loadOrderById(lastOrderId);
         return;
       }
 
       if (API_URL && screen === "admin") {
-        const res = await fetch(`${API_URL}/kds/orders`, { cache: "no-store" });
+        const res = await fetch(`${API_URL}/orders`, {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
         if (!res.ok) return;
         const data = await res.json();
-        const rows = [
-          ...(Array.isArray(data.received) ? data.received : []),
-          ...(Array.isArray(data.preparing) ? data.preparing : []),
-          ...(Array.isArray(data.ready) ? data.ready : []),
-        ].map(normalizeBackendOrder);
+        const rows = Array.isArray(data) ? data.map(normalizeBackendOrder) : [];
         setOrders(rows);
         return;
       }
@@ -160,7 +160,7 @@ export default function App() {
     } catch {
       // keep UI running even if backend is temporarily unavailable
     }
-  }, [lastOrderId, screen]);
+  }, [adminToken, lastOrderId, loadOrderById, screen]);
 
   useEffect(() => {
     if (!started) return;
@@ -208,18 +208,21 @@ export default function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const orderId = params.get("orderId");
+    const orderId =
+      params.get("orderId") ||
+      params.get("external_reference")?.replace(/^MENFIS-/, "#") ||
+      localStorage.getItem(PENDING_ORDER_KEY);
 
     if (!orderId) return;
 
     setStarted(true);
     setLastOrderId(orderId);
     setScreen("tracking");
-    syncOrders();
+    loadOrderById(orderId);
 
     const cleanUrl = `${window.location.pathname}${window.location.hash}`;
     window.history.replaceState({}, "", cleanUrl);
-  }, [syncOrders]);
+  }, [loadOrderById]);
 
   const goHome = () => setScreen("product");
 
@@ -235,21 +238,31 @@ export default function App() {
   const closeAdmin = () => {
     setAdminUnlocked(false);
     setAdminPassword("");
+    setAdminToken("");
     setAdminError("");
     goHome();
   };
 
-  const handleAdminLogin = () => {
+  const handleAdminLogin = async () => {
     const user = adminUser.trim();
     const pass = adminPassword.trim();
-    if (user === ADMIN_LOGIN && pass === ADMIN_PASSWORD) {
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login: user, password: pass }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.token) throw new Error("invalid_credentials");
+      setAdminToken(String(data.token));
       setAdminUnlocked(true);
       setAdminError("");
       setAdminPassword("");
       setScreen("admin");
       return;
+    } catch {
+      setAdminError("Login ou senha inválidos.");
     }
-    setAdminError("Login ou senha inválidos.");
   };
 
   const addToCart = (item: Omit<CartItem, "qty">) => {
@@ -358,6 +371,7 @@ export default function App() {
       const res = API_URL
         ? await fetch(`${API_URL}/kds/orders/${encodeURIComponent(id)}/advance`, {
             method: "PATCH",
+            headers: { Authorization: `Bearer ${adminToken}` },
           })
         : await fetch(`/api/orders/${encodeURIComponent(id)}/status`, {
             method: "PATCH",

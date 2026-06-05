@@ -130,6 +130,20 @@ public class OrderService {
     );
   }
 
+  public List<OrderResponse> listRecent() {
+    return jdbc.query(
+      """
+      select id, number, items, delivery_type, customer_phone, customer_address,
+        subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
+        payment_id, status, paid_at, confirmed_at
+      from orders
+      order by created_at desc
+      limit 200
+      """,
+      this::mapOrder
+    );
+  }
+
   public StatusResponse status(String id) {
     return jdbc.queryForObject(
       "select id, status, paid_at, confirmed_at from orders where id = ?",

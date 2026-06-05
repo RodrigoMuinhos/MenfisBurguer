@@ -412,6 +412,7 @@ export function CartScreen({ cart, updateQty, onPlaceOrder, goToMenu }: Props) {
       }
 
       registerMemberOrder();
+      localStorage.setItem("menfis_pending_order_id", String(createdOrder.id));
       window.location.assign(checkoutUrl);
       return;
     } catch {

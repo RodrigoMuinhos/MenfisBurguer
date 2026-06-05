@@ -10,6 +10,8 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 public class AuthService {
@@ -37,5 +39,26 @@ public class AuthService {
       .signWith(key)
       .compact();
     return new LoginResponse(token, "ADMIN");
+  }
+
+  public void requireAdmin(String authorization) {
+    if (authorization == null || !authorization.startsWith("Bearer ")) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "admin_token_required");
+    }
+    try {
+      SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+      var claims = Jwts.parser()
+        .verifyWith(key)
+        .build()
+        .parseSignedClaims(authorization.substring("Bearer ".length()))
+        .getPayload();
+      if (!"ADMIN".equals(claims.get("role", String.class))) {
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "admin_role_required");
+      }
+    } catch (ResponseStatusException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_admin_token");
+    }
   }
 }
