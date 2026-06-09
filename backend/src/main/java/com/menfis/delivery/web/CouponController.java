@@ -28,6 +28,11 @@ public class CouponController {
     return coupons.list();
   }
 
+  @GetMapping("/public")
+  public List<Map<String, Object>> publicActive() {
+    return coupons.listPublicActive();
+  }
+
   @PostMapping
   public Map<String, Object> upsert(@Valid @RequestBody CouponRequest request) {
     return coupons.upsert(request);

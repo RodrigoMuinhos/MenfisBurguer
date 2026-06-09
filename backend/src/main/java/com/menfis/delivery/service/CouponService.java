@@ -30,6 +30,17 @@ public class CouponService {
     );
   }
 
+  public List<Map<String, Object>> listPublicActive() {
+    return jdbc.queryForList(
+      """
+      select code, label, type, value, active
+      from coupons
+      where active = true and test_mode = false
+      order by updated_at desc, code asc
+      """
+    );
+  }
+
   public Map<String, Object> upsert(CouponRequest request) {
     boolean testMode = settings.testModeEnabled();
     Map<String, Object> coupon = jdbc.queryForMap(

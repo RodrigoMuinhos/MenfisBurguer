@@ -48,7 +48,7 @@ export function CheckoutReviewSection({
   setCouponError: (value: string) => void;
   appliedCoupon: Coupon | null;
   setAppliedCoupon: (coupon: Coupon | null) => void;
-  applyCoupon: () => void;
+  applyCoupon: () => void | Promise<void>;
   inputStyle: (err?: boolean) => React.CSSProperties;
   setCheckoutStep: (step: CheckoutStep) => void;
   setKioskKeyboardTarget: (target: KioskKeyboardTarget) => void;
@@ -93,7 +93,7 @@ export function CheckoutReviewSection({
               style={inputStyle(Boolean(couponError))}
             />
             <button
-              onClick={applyCoupon}
+              onClick={() => void applyCoupon()}
               className="rounded-xl px-4 text-xs font-black uppercase tracking-wider"
               style={{ background: VERDE, color: ROSA }}
             >

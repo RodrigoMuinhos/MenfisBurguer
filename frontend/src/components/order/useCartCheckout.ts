@@ -13,6 +13,7 @@ import {
   STORAGE_KEY,
   couponDiscount,
   findCoupon,
+  findCouponFromBackend,
   loadSaved,
   lookupCEP,
   maskPhone,
@@ -246,9 +247,10 @@ export function useCartCheckout({
     Boolean(payment) &&
     (kioskMode ? checkoutStep === "payment" : checkoutStep === "review");
 
-  const applyCoupon = () => {
+  const applyCoupon = async () => {
     closeKioskKeyboard();
-    const coupon = findCoupon(couponCode);
+    const coupon =
+      findCoupon(couponCode) ?? (await findCouponFromBackend(couponCode));
     if (!coupon) {
       setAppliedCoupon(null);
       setCouponError("Cupom inválido ou inativo.");

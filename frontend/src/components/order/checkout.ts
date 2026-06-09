@@ -189,6 +189,50 @@ export function findCoupon(code: string) {
   );
 }
 
+function normalizeCoupon(row: unknown): Coupon | null {
+  if (!row || typeof row !== "object") return null;
+  const data = row as Record<string, unknown>;
+  const code = String(data.code ?? "").trim();
+  const type = String(data.type ?? "");
+  const value = Number(data.value ?? 0);
+  if (!code || !Number.isFinite(value)) return null;
+  if (type !== "percent" && type !== "fixed_total") return null;
+  return {
+    code,
+    label: String(
+      data.label ??
+        (type === "percent"
+          ? `${value}% de desconto`
+          : `Pedido por ${fmt(value)}`),
+    ),
+    type,
+    value,
+    active: data.active !== false,
+  };
+}
+
+export async function findCouponFromBackend(code: string) {
+  const normalized = code.trim().toLowerCase();
+  if (!normalized || !API_URL) return null;
+  try {
+    const response = await fetch(`${API_URL}/coupons/public`, {
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const rows = await response.json();
+    if (!Array.isArray(rows)) return null;
+    const coupons = rows
+      .map(normalizeCoupon)
+      .filter((coupon): coupon is Coupon => Boolean(coupon?.active));
+    localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(coupons));
+    return (
+      coupons.find((coupon) => coupon.code.toLowerCase() === normalized) ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
 export function couponDiscount(
   coupon: Coupon | null,
   grossTotal: number,
