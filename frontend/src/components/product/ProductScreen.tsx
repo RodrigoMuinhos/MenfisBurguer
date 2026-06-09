@@ -349,7 +349,7 @@ export function ProductScreen({
       setMemberError("Falta preencher: aniversário.");
       return;
     }
-    if (!memberProfile && password.length !== 6) {
+    if ((!memberProfile || memberProfile.hasPassword === false) && password.length !== 6) {
       setMemberError("Crie uma senha de 6 dígitos.");
       return;
     }

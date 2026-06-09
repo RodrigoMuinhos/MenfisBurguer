@@ -298,15 +298,17 @@ export function MemberAccessBanner({
   memberProfile: MemberProfile | null;
   onOpen: () => void;
 }) {
+  const needsPassword = Boolean(memberProfile && memberProfile.hasPassword === false);
+
   return (
     <section className="px-4 pt-4">
       <button
         onClick={onOpen}
         className="flex w-full items-center justify-between gap-3 rounded-[24px] p-4 text-left md:p-5"
         style={{
-          background: memberProfile ? VERDE : "#fff",
-          color: memberProfile ? ROSA : VERDE,
-          border: `1px solid ${memberProfile ? VERDE : `${VERDE}12`}`,
+          background: needsPassword ? "#FFFBEB" : memberProfile ? VERDE : "#fff",
+          color: needsPassword ? "#92400E" : memberProfile ? ROSA : VERDE,
+          border: `1px solid ${needsPassword ? "#F59E0B" : memberProfile ? VERDE : `${VERDE}12`}`,
           boxShadow: "0 12px 34px rgba(31,61,46,0.08)",
         }}
       >
@@ -315,7 +317,9 @@ export function MemberAccessBanner({
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
             style={{ background: memberProfile ? `${ROSA}18` : `${ROSA}80` }}
           >
-            {memberProfile ? (
+            {needsPassword ? (
+              <ShieldCheck size={20} strokeWidth={2.4} />
+            ) : memberProfile ? (
               <ShieldCheck size={20} strokeWidth={2.4} />
             ) : (
               <Gift size={20} strokeWidth={2.4} />
@@ -323,7 +327,9 @@ export function MemberAccessBanner({
           </div>
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-wider">
-              {memberProfile
+              {needsPassword
+                ? "Crie sua senha de acesso"
+                : memberProfile
                 ? `${memberProfile.name}, seu perfil Menfi's`
                 : "Cadastre-se e ganhe frete grátis"}
             </p>
@@ -331,7 +337,9 @@ export function MemberAccessBanner({
               className="mt-1 text-xs leading-relaxed"
               style={{ opacity: 0.72 }}
             >
-              {memberProfile
+              {needsPassword
+                ? "Sua conta foi encontrada, mas ainda falta senha de 6 dígitos para manter seus dados protegidos."
+                : memberProfile
                 ? `${memberProfile.orders % 10}/10 pedidos para ganhar um burger. Dados de entrega ficam salvos.`
                 : "Entre no clube Menfi's para receber benefício e acompanhar pedidos pelo WhatsApp."}
             </p>

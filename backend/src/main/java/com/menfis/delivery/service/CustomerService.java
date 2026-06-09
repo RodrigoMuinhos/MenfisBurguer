@@ -288,7 +288,8 @@ public class CustomerService {
       address,
       rs.getLong("order_count"),
       rs.getBigDecimal("total_spent") == null ? BigDecimal.ZERO : rs.getBigDecimal("total_spent"),
-      rs.getObject("last_order_at", OffsetDateTime.class)
+      rs.getObject("last_order_at", OffsetDateTime.class),
+      !isBlank(rs.getString("password_hash"))
     );
   }
 

@@ -26,6 +26,7 @@ export type MemberProfile = {
   birthday?: string;
   avatarUrl?: string;
   defaultAddress?: Record<string, string>;
+  hasPassword?: boolean;
   freeShipping: boolean;
   orders: number;
   rewards: number;
@@ -138,6 +139,7 @@ export function readMemberProfile(): MemberProfile | null {
       birthday: data.birthday ? String(data.birthday) : undefined,
       avatarUrl: data.avatarUrl ? String(data.avatarUrl) : undefined,
       defaultAddress: data.defaultAddress ?? undefined,
+      hasPassword: data.hasPassword === undefined ? true : Boolean(data.hasPassword),
       freeShipping: Boolean(data.freeShipping),
       orders: Number(data.orders ?? data.orderCount ?? 0),
       rewards: Number(data.rewards ?? Math.floor(Number(data.orders ?? 0) / 10)),

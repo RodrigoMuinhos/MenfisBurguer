@@ -81,6 +81,7 @@ function normalizeCustomer(raw: any): MemberProfile {
     birthday: raw.birthday ?? undefined,
     avatarUrl: raw.avatarUrl ?? undefined,
     defaultAddress: raw.defaultAddress ?? undefined,
+    hasPassword: raw.hasPassword === undefined ? true : Boolean(raw.hasPassword),
     freeShipping: orders === 0,
     orders,
     rewards: Math.floor(orders / 10),

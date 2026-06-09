@@ -379,6 +379,25 @@ export function MemberModals({
                     </div>
 
                     <div className="mt-5 grid gap-3">
+                      {memberProfile.hasPassword === false && (
+                        <button
+                          onClick={editMember}
+                          className="rounded-2xl p-4 text-left"
+                          style={{
+                            background: "#FFFBEB",
+                            color: "#92400E",
+                            border: "1.5px solid #F59E0B",
+                          }}
+                        >
+                          <p className="text-xs font-black uppercase tracking-wider">
+                            Crie sua senha
+                          </p>
+                          <p className="mt-1 text-xs font-bold leading-relaxed opacity-80">
+                            Sua conta antiga ainda não tem senha. Atualize os dados e crie 6 dígitos para entrar sem cadastrar de novo.
+                          </p>
+                        </button>
+                      )}
+
                       <div
                         className="rounded-2xl p-4"
                         style={{ background: VERDE, color: ROSA }}

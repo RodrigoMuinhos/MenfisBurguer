@@ -153,7 +153,8 @@ public class ApiDtos {
     Map<String, Object> defaultAddress,
     long orderCount,
     BigDecimal totalSpent,
-    OffsetDateTime lastOrderAt
+    OffsetDateTime lastOrderAt,
+    boolean hasPassword
   ) {}
 
   public record CustomerSessionResponse(String token, String role, CustomerProfileResponse customer) {}
