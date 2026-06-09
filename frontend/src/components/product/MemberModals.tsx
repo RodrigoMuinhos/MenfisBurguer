@@ -84,14 +84,14 @@ export function MemberModals({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[75] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+                  className="fixed inset-0 z-[75] flex items-end justify-center bg-black/45 px-2 py-3 sm:items-center sm:p-4"
                 >
                   <motion.div
                     initial={{ y: 24, scale: 0.98 }}
                     animate={{ y: 0, scale: 1 }}
                     exit={{ y: 24, scale: 0.98 }}
-                    className="w-full max-w-md rounded-[28px] p-5"
-                    style={{ background: "#fff", color: VERDE }}
+                    className="max-h-[calc(100dvh-24px)] w-full max-w-md overflow-y-auto rounded-[22px] p-4 sm:rounded-[28px] sm:p-5"
+                    style={{ background: "#fff", color: VERDE, overscrollBehavior: "contain" }}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -119,23 +119,7 @@ export function MemberModals({
                         </button>
                       )}
                     </div>
-      
-                    <div
-                      className="mt-4 rounded-2xl p-4"
-                      style={{ background: ROSA, color: VERDE }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <UserRound size={17} strokeWidth={2.3} />
-                        <p className="text-xs font-black uppercase tracking-wider">
-                          Identifique-se como no app de delivery
-                        </p>
-                      </div>
-                      <p className="mt-2 text-xs leading-relaxed" style={{ opacity: 0.68 }}>
-                        Guardamos seu email, telefone, endereço principal e aniversário para agilizar
-                        próximos pedidos e avisar benefícios em datas especiais.
-                      </p>
-                    </div>
-      
+
                     <div className="mt-4 grid gap-3">
                       <label className="grid gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
