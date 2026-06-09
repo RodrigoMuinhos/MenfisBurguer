@@ -9,6 +9,6 @@ export const inputStyle = (err?: boolean) => ({
   border: `1.5px solid ${err ? "#DC2626" : ROSA}`,
   color: VERDE,
   fontFamily: "inherit",
-  fontSize: "0.82rem",
+  fontSize: "16px",
   boxSizing: "border-box" as const,
 });

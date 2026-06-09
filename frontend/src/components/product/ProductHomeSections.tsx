@@ -7,6 +7,7 @@ import {
   Plus,
   ShieldCheck,
   ShoppingBag,
+  UserRound,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -86,24 +87,16 @@ export function ProductHeader({
               onClick={onOpenMember}
               className="flex items-center gap-2 rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-wider"
               style={{ background: memberProfile ? ROSA : "#fff", color: VERDE, border: `1px solid ${VERDE}18` }}
+              aria-label={memberProfile ? "Abrir menu do perfil" : "Entrar no delivery"}
             >
               <span
                 className="grid h-8 w-8 place-items-center overflow-hidden rounded-full"
                 style={{ background: "#fff", border: `1.5px solid ${VERDE}` }}
               >
-                <img src={memberProfile?.avatarUrl || "/logo_M_square.png"} alt="" className="h-full w-full object-cover" />
+                <UserRound size={17} strokeWidth={2.6} />
               </span>
               {memberProfile ? "Perfil" : "Entrar"}
             </button>
-            {memberProfile && (
-              <button
-                onClick={onLogoutMember}
-                className="rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-wider"
-                style={{ background: `${VERDE}10`, color: VERDE, border: "none" }}
-              >
-                Sair
-              </button>
-            )}
           </div>
         )}
 

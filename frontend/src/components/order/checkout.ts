@@ -66,11 +66,9 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? ""
 export const ORDER_RUNTIME_MODE: OrderRuntimeMode =
   process.env.NEXT_PUBLIC_ORDER_RUNTIME_MODE === "delivery"
     ? "delivery"
-    : "counter";
-export const DEFAULT_DELIVERY_TYPE: DeliveryType =
-  ORDER_RUNTIME_MODE === "delivery" ? "delivery" : "retirada";
-export const ALLOWED_DELIVERY_TYPES: DeliveryType[] =
-  ORDER_RUNTIME_MODE === "delivery" ? ["delivery"] : ["retirada"];
+    : "delivery";
+export const DEFAULT_DELIVERY_TYPE: DeliveryType = "delivery";
+export const ALLOWED_DELIVERY_TYPES: DeliveryType[] = ["delivery", "retirada"];
 
 export const DEFAULT_COUPONS: Coupon[] = [];
 

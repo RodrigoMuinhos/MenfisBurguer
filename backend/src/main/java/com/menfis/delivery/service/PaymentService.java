@@ -64,9 +64,6 @@ public class PaymentService {
     validateEnvironment();
     var order = orders.get(orderId);
     String paymentMethod = order.paymentMethod() == null ? "" : order.paymentMethod().toUpperCase();
-    if ("PIX".equals(paymentMethod)) {
-      return createPixOrder(order);
-    }
 
     String encodedOrderId = URLEncoder.encode(order.id(), StandardCharsets.UTF_8);
     Map<String, Object> payload = new LinkedHashMap<>();

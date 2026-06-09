@@ -4,7 +4,6 @@ import {
   API_URL,
   Coupon,
   CheckoutStep,
-  DEFAULT_DELIVERY_TYPE,
   DeliveryType,
   KioskKeyboardTarget,
   MEMBER_KEY,
@@ -22,6 +21,7 @@ import {
 } from "./checkout";
 import { submitCheckoutOrder } from "./cartFinalize";
 import { inputStyle } from "./cartInputStyle";
+import { readMemberProfile } from "@/components/product/shared";
 
 export function useCartCheckout({
   cart,
@@ -42,8 +42,17 @@ export function useCartCheckout({
   goToMenu: () => void;
   kioskMode: boolean;
 }) {
+  const memberProfile = kioskMode ? null : readMemberProfile();
+  const memberAddress = memberProfile?.defaultAddress ?? {};
+  const memberStreet = [
+    memberAddress.street,
+    memberAddress.neighborhood,
+    memberAddress.city,
+  ]
+    .filter(Boolean)
+    .join(" - ");
   const [delivery, setDelivery] = useState<DeliveryType>(
-    kioskMode ? "retirada" : DEFAULT_DELIVERY_TYPE,
+    kioskMode ? "retirada" : "delivery",
   );
   const [obsOpen, setObsOpen] = useState<string | null>(null);
   const [removed, setRemoved] = useState<Record<string, Set<string>>>({});
@@ -64,12 +73,22 @@ export function useCartCheckout({
   const [couponError, setCouponError] = useState("");
 
   const saved = kioskMode ? {} : loadSaved();
-  const [cep, setCep] = useState<string>(saved.cep ?? "");
-  const [street, setStreet] = useState<string>(saved.street ?? "");
-  const [number, setNumber] = useState<string>(saved.number ?? "");
-  const [complement, setComplement] = useState<string>(saved.complement ?? "");
-  const [customerName, setCustomerName] = useState<string>("");
-  const [phone, setPhone] = useState<string>(saved.phone ?? "");
+  const [cep, setCep] = useState<string>(memberAddress.cep ?? saved.cep ?? "");
+  const [street, setStreet] = useState<string>(
+    memberStreet || saved.street || "",
+  );
+  const [number, setNumber] = useState<string>(
+    memberAddress.number ?? saved.number ?? "",
+  );
+  const [complement, setComplement] = useState<string>(
+    memberAddress.complement ?? saved.complement ?? "",
+  );
+  const [customerName, setCustomerName] = useState<string>(
+    memberProfile?.name ?? "",
+  );
+  const [phone, setPhone] = useState<string>(
+    maskPhone(memberProfile?.phone ?? saved.phone ?? ""),
+  );
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState(false);
 
@@ -97,6 +116,11 @@ export function useCartCheckout({
     );
     if (checkoutStep === "delivery") setCheckoutStep("payment");
   }, [checkoutStep, kioskMode]);
+
+  useEffect(() => {
+    if (kioskMode) return;
+    setDelivery("delivery");
+  }, [kioskMode]);
 
   useEffect(() => {
     setFreeShipping(Boolean(localStorage.getItem(MEMBER_KEY)));
@@ -127,12 +151,12 @@ export function useCartCheckout({
     if (!cep && !phone) return;
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ cep, street, number, complement, phone }),
+      JSON.stringify({ cep, street, number, complement, phone, customerName }),
     );
     setSavedBadge(true);
     const timer = setTimeout(() => setSavedBadge(false), 2000);
     return () => clearTimeout(timer);
-  }, [cep, street, number, complement, phone, kioskMode]);
+  }, [cep, street, number, complement, phone, customerName, kioskMode]);
 
   useEffect(() => {
     const nums = cep.replace(/\D/g, "");
@@ -165,7 +189,7 @@ export function useCartCheckout({
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const effectiveDelivery = resolveRuntimeDeliveryType(
-    kioskMode ? "retirada" : delivery,
+    kioskMode ? "retirada" : "delivery",
   );
   const fee = effectiveDelivery === "delivery" && !freeShipping ? 5.1 : 0;
   const serviceFee = effectiveDelivery === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
