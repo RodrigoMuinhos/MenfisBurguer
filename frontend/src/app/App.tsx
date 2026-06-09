@@ -397,7 +397,10 @@ function ActiveOrderBanner({
           </span>
         </div>
 
-        <div className="grid grid-cols-5 gap-2">
+        <div
+          className="grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}
+        >
           {STEPS.map((step, index) => {
             const done = index <= current;
             const active = index === current;

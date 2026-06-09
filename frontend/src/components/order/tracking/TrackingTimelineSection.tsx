@@ -48,6 +48,27 @@ export function TrackingTimelineSection({
     : paymentFailed
       ? "Pagamento não aprovado"
       : "Aguardando pagamento";
+  const timelineCopy =
+    waitingPayment
+      ? "Finalize o pagamento pelo Mercado Pago. O pedido só entra na cozinha depois da confirmação."
+      : paymentFailed
+        ? "Esse pagamento não foi aprovado. Tente novamente para enviar o pedido para a cozinha."
+        : order.status === "PAID"
+          ? "Pagamento confirmado. Aguardando a cozinha aceitar o pedido no KDS."
+          : order.status === "IN_PREPARATION"
+            ? "A cozinha aceitou seu pedido e iniciou o preparo."
+            : order.status === "READY"
+              ? "Seu pedido está pronto. A equipe vai liberar a entrega."
+              : order.status === "OUT_FOR_DELIVERY"
+                ? "Seu pedido saiu para entrega e está a caminho."
+                : order.status === "DELIVERED"
+                  ? "Entrega confirmada com segurança. Obrigado por comprar na Menfi's."
+                  : order.status === "CANCELLED"
+                    ? "Este pedido foi cancelado. Fale com a equipe se precisar."
+                    : "Acompanhe aqui a confirmação do pedido.";
+  const progressInset = 100 / (STEPS.length * 2);
+  const progressWidth =
+    current <= 0 ? 0 : (current / (STEPS.length - 1)) * (100 - progressInset * 2);
 
   return (
     <>
@@ -183,11 +204,7 @@ export function TrackingTimelineSection({
               {statusLabel.includes("preparado") ? "Seu pedido está em preparo!" : statusLabel}
             </p>
             <p className="mt-1 text-xs leading-relaxed" style={{ color: VERDE, opacity: 0.62 }}>
-              {waitingPayment
-                ? "Finalize o pagamento pelo Mercado Pago. O pedido só entra na cozinha depois da confirmação."
-                : paymentFailed
-                  ? "Esse pagamento não foi aprovado. Tente novamente para enviar o pedido para a cozinha."
-                  : "Pagamento confirmado. O pedido só aparece como recebido quando a cozinha aceitar no KDS."}
+              {timelineCopy}
             </p>
             <div className="mt-5 flex items-start gap-2">
               <Clock size={17} strokeWidth={2.1} style={{ color: VERDE, opacity: 0.45 }} />
@@ -204,13 +221,23 @@ export function TrackingTimelineSection({
           </div>
         </div>
 
-        <div className="relative mt-8 grid grid-cols-5 gap-1">
-          <div className="absolute left-[10%] right-[10%] top-[30px] h-0.5" style={{ background: "#D9D9D9" }} />
+        <div
+          className="relative mt-8 grid gap-1"
+          style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}
+        >
+          <div
+            className="absolute top-[30px] h-0.5"
+            style={{
+              background: "#D9D9D9",
+              left: `${progressInset}%`,
+              right: `${progressInset}%`,
+            }}
+          />
           <motion.div
             initial={false}
-            animate={{ width: `${Math.min(100, Math.max(0, (current / (STEPS.length - 1)) * 100))}%` }}
-            className="absolute left-[10%] top-[30px] h-0.5"
-            style={{ background: "#EF4C86", maxWidth: "80%" }}
+            animate={{ width: `${Math.max(0, progressWidth)}%` }}
+            className="absolute top-[30px] h-0.5"
+            style={{ background: "#EF4C86", left: `${progressInset}%` }}
           />
           {STEPS.map((step, index) => {
             const done = index <= current;

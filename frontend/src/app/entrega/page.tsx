@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bike, CheckCircle2, KeyRound, LogOut, MapPin, Phone, RefreshCw } from "lucide-react";
+import { Bike, CheckCircle2, KeyRound, LogOut, MapPin, Phone, RefreshCw, User } from "lucide-react";
 import { normalizeBackendOrder } from "@/services/orders/normalize";
 import { Order } from "@/types/order";
 import { CREME, ROSA, VERDE } from "@/utils/theme";
@@ -28,25 +28,35 @@ export default function DeliveryPage() {
 function DeliveryLogin({ onLogin }: { onLogin: (token: string) => void }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loginValue, setLoginValue] = useState("");
+  const [password, setPassword] = useState("");
 
   const login = async () => {
     if (!API_URL) {
       setError("Backend nao configurado.");
       return;
     }
+    if (!loginValue.trim() || !password.trim()) {
+      setError("Informe login e senha do entregador.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}/auth/delivery`, {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login: loginValue.trim(), password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.token) throw new Error("login_failed");
+      if (data.role !== "DELIVERY" && data.role !== "ADMIN") {
+        throw new Error("role_not_allowed");
+      }
       localStorage.setItem(DELIVERY_SESSION_KEY, data.token);
       onLogin(data.token);
     } catch {
-      setError("Nao foi possivel entrar no painel de entrega.");
+      setError("Login ou senha do entregador inválidos.");
     } finally {
       setLoading(false);
     }
@@ -54,7 +64,13 @@ function DeliveryLogin({ onLogin }: { onLogin: (token: string) => void }) {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4" style={{ background: CREME }}>
-      <section className="w-full max-w-sm rounded-[28px] bg-white p-6 shadow-xl">
+      <form
+        className="w-full max-w-sm rounded-[28px] bg-white p-6 shadow-xl"
+        onSubmit={(event) => {
+          event.preventDefault();
+          login();
+        }}
+      >
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full" style={{ background: VERDE, color: ROSA }}>
           <Bike size={36} strokeWidth={2.5} />
         </div>
@@ -69,15 +85,45 @@ function DeliveryLogin({ onLogin }: { onLogin: (token: string) => void }) {
             {error}
           </p>
         )}
+        <label className="mt-5 block text-[10px] font-black uppercase tracking-widest opacity-50" style={{ color: VERDE }}>
+          Login
+        </label>
+        <div className="mt-2 flex items-center gap-2 rounded-2xl px-4 py-3" style={{ border: `1.5px solid ${ROSA}` }}>
+          <User size={18} strokeWidth={2.2} style={{ color: VERDE, opacity: 0.5 }} />
+          <input
+            value={loginValue}
+            onChange={(event) => setLoginValue(event.target.value)}
+            autoComplete="username"
+            inputMode="numeric"
+            className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
+            placeholder="CPF ou login"
+            style={{ color: VERDE }}
+          />
+        </div>
+        <label className="mt-3 block text-[10px] font-black uppercase tracking-widest opacity-50" style={{ color: VERDE }}>
+          Senha
+        </label>
+        <div className="mt-2 flex items-center gap-2 rounded-2xl px-4 py-3" style={{ border: `1.5px solid ${ROSA}` }}>
+          <KeyRound size={18} strokeWidth={2.2} style={{ color: VERDE, opacity: 0.5 }} />
+          <input
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
+            placeholder="Senha"
+            type="password"
+            style={{ color: VERDE }}
+          />
+        </div>
         <button
-          onClick={login}
+          type="submit"
           disabled={loading}
           className="mt-5 w-full rounded-2xl px-4 py-4 text-sm font-black uppercase tracking-widest disabled:opacity-60"
           style={{ background: VERDE, color: ROSA }}
         >
           {loading ? "Entrando" : "Entrar nas entregas"}
         </button>
-      </section>
+      </form>
     </main>
   );
 }
@@ -99,6 +145,11 @@ function DeliveryRoutePanel({ token, onLogout }: { token: string; onLogout: () =
         cache: "no-store",
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem(DELIVERY_SESSION_KEY);
+        onLogout();
+        return;
+      }
       if (!res.ok) throw new Error("load_failed");
       const rows = await res.json();
       const normalized = Array.isArray(rows) ? rows.map(normalizeBackendOrder) : [];

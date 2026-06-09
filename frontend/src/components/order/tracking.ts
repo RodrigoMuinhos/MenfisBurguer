@@ -1,13 +1,14 @@
-import { Bike, CheckCircle2, ChefHat, Clock3, Home } from "lucide-react";
+import { Bike, CheckCircle2, ChefHat, Clock3, Home, PackageCheck } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 
 export const WHATSAPP_URL = "https://wa.me/5585988086691";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 export const STEPS = [
-  { icon: Clock3, label: "Pagamento" },
+  { icon: Clock3, label: "Pagamento aprovado" },
   { icon: CheckCircle2, label: "Pedido recebido" },
   { icon: ChefHat, label: "Em preparo" },
+  { icon: PackageCheck, label: "Pronto para entrega" },
   { icon: Bike, label: "Saiu para entrega" },
   { icon: Home, label: "Entregue" },
 ];
@@ -17,9 +18,9 @@ export const STATUS_INDEX: Record<OrderStatus, number> = {
   PAYMENT_PENDING: 0,
   PAID: 0,
   IN_PREPARATION: 2,
-  READY: 2,
-  OUT_FOR_DELIVERY: 3,
-  DELIVERED: 4,
+  READY: 3,
+  OUT_FOR_DELIVERY: 4,
+  DELIVERED: 5,
   CANCELLED: 0,
 };
 

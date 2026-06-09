@@ -50,7 +50,7 @@ public class OrderController {
 
   @GetMapping("/delivery-route")
   public List<OrderResponse> deliveryRoute(@RequestHeader(name = "Authorization", required = false) String authorization) {
-    auth.requireDelivery(authorization);
+    auth.requireDeliveryOrAdmin(authorization);
     return orders.listDeliveryRoute();
   }
 
@@ -83,7 +83,7 @@ public class OrderController {
       @PathVariable String id,
       @Valid @RequestBody ConfirmDeliveryRequest request,
       @RequestHeader(name = "Authorization", required = false) String authorization) {
-    auth.requireDelivery(authorization);
+    auth.requireDeliveryOrAdmin(authorization);
     return orders.confirmDelivery(id, request.code(), request.actor());
   }
 }

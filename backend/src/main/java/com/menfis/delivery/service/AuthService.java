@@ -46,6 +46,7 @@ public class AuthService {
     AdminCredential admin = findAdminByLogin(normalizedLogin);
     if (admin == null) {
       bootstrapAdminFromEnvironment(normalizedLogin, password);
+      bootstrapDeliveryFromEnvironment(normalizedLogin, password);
       admin = findAdminByLogin(normalizedLogin);
     }
     if (admin == null || !encoder.matches(password, admin.passwordHash())) {
@@ -110,8 +111,37 @@ public class AuthService {
   }
 
   private void bootstrapAdminFromEnvironment(String normalizedLogin, String rawPassword) {
-    String seedLogin = System.getenv("ADMIN_LOGIN");
-    String seedPassword = System.getenv("ADMIN_PASSWORD");
+    bootstrapAccountFromEnvironment(
+      normalizedLogin,
+      rawPassword,
+      System.getenv("ADMIN_LOGIN"),
+      System.getenv("ADMIN_PASSWORD"),
+      System.getenv("ADMIN_NAME"),
+      "ADMIN",
+      "Administrador Menfi's"
+    );
+  }
+
+  private void bootstrapDeliveryFromEnvironment(String normalizedLogin, String rawPassword) {
+    bootstrapAccountFromEnvironment(
+      normalizedLogin,
+      rawPassword,
+      System.getenv("DELIVERY_LOGIN"),
+      System.getenv("DELIVERY_PASSWORD"),
+      System.getenv("DELIVERY_NAME"),
+      "DELIVERY",
+      "Entregador Menfi's"
+    );
+  }
+
+  private void bootstrapAccountFromEnvironment(
+      String normalizedLogin,
+      String rawPassword,
+      String seedLogin,
+      String seedPassword,
+      String seedName,
+      String role,
+      String defaultName) {
     if (seedLogin == null || seedPassword == null) return;
 
     String expectedLogin = seedLogin.trim().toLowerCase(Locale.ROOT);
@@ -128,17 +158,13 @@ public class AuthService {
     jdbc.update(
       """
       insert into admins (name, login, password_hash, role, active)
-      values (?, ?, ?, 'ADMIN', true)
+      values (?, ?, ?, ?, true)
       """,
-      defaultAdminName(),
+      seedName == null || seedName.isBlank() ? defaultName : seedName.trim(),
       expectedLogin,
-      encoder.encode(seedPassword)
+      encoder.encode(seedPassword),
+      role
     );
-  }
-
-  private String defaultAdminName() {
-    String envName = System.getenv("ADMIN_NAME");
-    return envName == null || envName.isBlank() ? "Administrador Menfi's" : envName.trim();
   }
 
   public void requireAdmin(String authorization) {
@@ -147,6 +173,10 @@ public class AuthService {
 
   public void requireDelivery(String authorization) {
     requireRole(authorization, "DELIVERY");
+  }
+
+  public void requireDeliveryOrAdmin(String authorization) {
+    requireAnyRole(authorization, "DELIVERY", "ADMIN");
   }
 
   public long requireCustomer(String authorization) {
@@ -168,6 +198,10 @@ public class AuthService {
   }
 
   private io.jsonwebtoken.Claims requireRole(String authorization, String requiredRole) {
+    return requireAnyRole(authorization, requiredRole);
+  }
+
+  private io.jsonwebtoken.Claims requireAnyRole(String authorization, String... allowedRoles) {
     if (authorization == null || !authorization.startsWith("Bearer ")) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "token_required");
     }
@@ -178,7 +212,15 @@ public class AuthService {
         .build()
         .parseSignedClaims(authorization.substring("Bearer ".length()))
         .getPayload();
-      if (!requiredRole.equals(claims.get("role", String.class))) {
+      String actualRole = claims.get("role", String.class);
+      boolean allowed = false;
+      for (String role : allowedRoles) {
+        if (role.equals(actualRole)) {
+          allowed = true;
+          break;
+        }
+      }
+      if (!allowed) {
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "role_required");
       }
       return claims;
