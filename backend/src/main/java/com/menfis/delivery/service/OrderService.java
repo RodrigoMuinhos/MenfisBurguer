@@ -47,6 +47,11 @@ public class OrderService {
 
   @Transactional
   public OrderResponse create(CreateOrderRequest request) {
+    return create(request, null);
+  }
+
+  @Transactional
+  public OrderResponse create(CreateOrderRequest request, Long authenticatedCustomerId) {
     if (request.idempotencyKey() != null && !request.idempotencyKey().isBlank()) {
       OrderResponse existing = findByIdempotencyKey(request.idempotencyKey());
       if (existing != null) return existing;
@@ -77,7 +82,9 @@ public class OrderService {
     }
     OffsetDateTime confirmedAt = paidKiosk ? OffsetDateTime.now() : null;
     String itemsJson = toJson(price.items());
-    Long customerId = customers.findCustomerIdByPhone(request.customerPhone());
+    Long customerId = authenticatedCustomerId != null
+      ? authenticatedCustomerId
+      : customers.findCustomerIdByPhone(request.customerPhone());
 
     jdbc.update(
       """

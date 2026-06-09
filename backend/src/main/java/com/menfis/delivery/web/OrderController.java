@@ -36,8 +36,10 @@ public class OrderController {
   }
 
   @PostMapping
-  public OrderResponse create(@Valid @RequestBody CreateOrderRequest request) {
-    return orders.create(request);
+  public OrderResponse create(
+      @Valid @RequestBody CreateOrderRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    return orders.create(request, auth.optionalCustomer(authorization));
   }
 
   @GetMapping

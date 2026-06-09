@@ -162,6 +162,11 @@ public class AuthService {
     }
   }
 
+  public Long optionalCustomer(String authorization) {
+    if (authorization == null || authorization.isBlank()) return null;
+    return requireCustomer(authorization);
+  }
+
   private io.jsonwebtoken.Claims requireRole(String authorization, String requiredRole) {
     if (authorization == null || !authorization.startsWith("Bearer ")) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "token_required");

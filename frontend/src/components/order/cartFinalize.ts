@@ -1,4 +1,5 @@
 import { CartItem, Order } from "@/types/order";
+import { MEMBER_TOKEN_KEY } from "@/components/product/shared";
 import {
   API_URL,
   Coupon,
@@ -62,9 +63,16 @@ export async function submitCheckoutOrder({
     setPaying(true);
     setPaymentSlow(false);
     slowTimer = window.setTimeout(() => setPaymentSlow(true), 3500);
+    const customerToken =
+      !kioskMode && typeof window !== "undefined"
+        ? localStorage.getItem(MEMBER_TOKEN_KEY)
+        : "";
     const orderRes = await fetch(`${API_URL}/orders`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(customerToken ? { Authorization: `Bearer ${customerToken}` } : {}),
+      },
       body: JSON.stringify({
         items: cart.map((item) => ({
           productId: item.id,
