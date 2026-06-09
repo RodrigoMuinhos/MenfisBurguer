@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { Clock, CreditCard, QrCode } from "lucide-react";
@@ -40,6 +40,10 @@ export function TrackingScreen({
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [pixCopied, setPixCopied] = useState(false);
   const current = order ? STATUS_INDEX[order.status] : -1;
+  const delayed = order
+    ? (Date.now() - order.timestamp) / 60000 > 50 &&
+      !["DELIVERED", "CANCELLED"].includes(order.status)
+    : false;
 
   useEffect(() => {
     if (!orderPlaced || !order || !goHome || autoReturnMs <= 0) return;
@@ -50,6 +54,27 @@ export function TrackingScreen({
 
     return () => window.clearTimeout(timer);
   }, [autoReturnMs, goHome, order, orderPlaced]);
+
+  useEffect(() => {
+    if (!API_URL || !order?.id) return;
+
+    const syncTickets = async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/support/tickets/order/${encodeURIComponent(order.id)}`,
+          { cache: "no-store" },
+        );
+        if (!res.ok) return;
+        setSupportTickets(await res.json());
+      } catch {
+        // ticket sync is advisory; main tracking keeps running
+      }
+    };
+
+    syncTickets();
+    const timer = window.setInterval(syncTickets, 30000);
+    return () => window.clearInterval(timer);
+  }, [order?.id]);
 
   if (!orderPlaced || !order) {
     return (
@@ -100,13 +125,9 @@ export function TrackingScreen({
   });
   const pay = paymentInfo(order);
   const PayIcon = order.paymentMethod === "pix" ? QrCode : CreditCard;
-  const statusCopy = STATUS_COPY[order.status];
+  const statusCopy = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
   const stepTimes = STEPS.map((_, index) => (index <= current ? timeStr : "-"));
   const canRequestChange = order.status === "PAID";
-  const delayed = useMemo(() => {
-    const elapsedMinutes = (Date.now() - order.timestamp) / 60000;
-    return elapsedMinutes > 50 && !["DELIVERED", "CANCELLED"].includes(order.status);
-  }, [order.status, order.timestamp]);
   const whatsappText = encodeURIComponent(
     `Olá, preciso de ajuda com meu pedido.\n\nPedido: ${order.id}\nStatus atual: ${statusCopy.label}\nGostaria de uma atualização.`,
   );
@@ -132,27 +153,6 @@ export function TrackingScreen({
       setPixCopied(false);
     }
   };
-
-  useEffect(() => {
-    if (!API_URL || !order.id) return;
-
-    const syncTickets = async () => {
-      try {
-        const res = await fetch(
-          `${API_URL}/support/tickets/order/${encodeURIComponent(order.id)}`,
-          { cache: "no-store" },
-        );
-        if (!res.ok) return;
-        setSupportTickets(await res.json());
-      } catch {
-        // ticket sync is advisory; main tracking keeps running
-      }
-    };
-
-    syncTickets();
-    const timer = window.setInterval(syncTickets, 30000);
-    return () => window.clearInterval(timer);
-  }, [order.id]);
 
   const createSupportTicket = async (type: string, reason: string) => {
     if (type === "ORDER_CHANGE_REQUEST" && !canRequestChange) {
