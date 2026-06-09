@@ -99,6 +99,13 @@ export default function App({ mode }: { mode?: AppMode }) {
   }, [adminOnlyMode, appMode, loadOrderById]);
 
   const goHome = () => setScreen("product");
+  const activeOrder = lastOrderId
+    ? orders.find((order) => order.id === lastOrderId)
+    : undefined;
+  const visibleActiveOrder =
+    activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
+      ? activeOrder
+      : undefined;
 
   const openInstalledAdmin = async () => {
     const desktopWindow = window as typeof window & {
@@ -138,6 +145,9 @@ export default function App({ mode }: { mode?: AppMode }) {
     createdOrder?: Order,
   ) => {
     if (createdOrder) {
+      if (!kioskMode) {
+        localStorage.setItem(PENDING_ORDER_KEY, createdOrder.id);
+      }
       setOrders((prev) => [
         createdOrder,
         ...prev.filter((o) => o.id !== createdOrder.id),
@@ -271,9 +281,9 @@ export default function App({ mode }: { mode?: AppMode }) {
       <div className="flex-1 overflow-auto">
         {screen === "product" && (
           <>
-          {!kioskMode && lastOrderId && orders.find((o) => o.id === lastOrderId) && (
+          {!kioskMode && visibleActiveOrder && (
             <ActiveOrderBanner
-              order={orders.find((o) => o.id === lastOrderId)!}
+              order={visibleActiveOrder}
               onOpen={() => setScreen("tracking")}
             />
           )}
@@ -286,6 +296,12 @@ export default function App({ mode }: { mode?: AppMode }) {
             onAdminOpen={kioskMode ? openInstalledAdmin : openAdmin}
             onOpenIdleScreen={openKioskIdleScreen}
             kioskMode={kioskMode}
+            activeOrder={visibleActiveOrder}
+            onOpenActiveOrder={() => setScreen("tracking")}
+            onRepeatOrder={(items) => {
+              setCart(items.map((item) => ({ ...item, qty: Math.max(1, item.qty || 1) })));
+              setScreen("cart");
+            }}
           />
           </>
         )}

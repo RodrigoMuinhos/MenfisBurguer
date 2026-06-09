@@ -207,6 +207,28 @@ public class OrderService {
     );
   }
 
+  public List<OrderResponse> listForCustomer(long customerId) {
+    return jdbc.query(
+      """
+      select o.id, o.number, o.items, o.channel, o.delivery_type, o.customer_name, o.customer_phone, o.customer_address,
+        o.subtotal, o.delivery_fee, o.total, o.payment_provider, o.payment_method, o.payment_status,
+        o.payment_id, o.status, o.paid_at, o.confirmed_at
+      from orders o
+      join customers c on c.id = ?
+      where o.test_mode = ?
+        and (
+          o.customer_id = c.id
+          or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits
+        )
+      order by o.created_at desc nulls last, o.number desc
+      limit 50
+      """,
+      this::mapOrder,
+      customerId,
+      settings.testModeEnabled()
+    );
+  }
+
 
   @Transactional
   public OrderResponse changeStatus(String id, OrderStatus toStatus, String actor, String reason) {

@@ -5,6 +5,8 @@ import {
   Coupon,
   DeliveryType,
   PaymentMethod,
+  SUPPORT_WHATSAPP_URL,
+  fmt,
   registerMemberOrder,
   resolveRuntimeDeliveryType,
   wait,
@@ -154,7 +156,7 @@ export async function submitCheckoutOrder({
     }
 
     if (payment === "whatsapp") {
-      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, {
+      const whatsappOrder: Order = {
         id: String(createdOrder.id),
         number: Number(
           createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
@@ -171,7 +173,9 @@ export async function submitCheckoutOrder({
         paymentStatus: "awaiting_whatsapp",
         timestamp: Date.now(),
         status: "PAYMENT_PENDING",
-      });
+      };
+      openWhatsappReceipt(whatsappOrder);
+      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
       return;
     }
 
@@ -261,4 +265,62 @@ export async function submitCheckoutOrder({
     setPaymentSlow(false);
     setPaying(false);
   }
+}
+
+function openWhatsappReceipt(order: Order) {
+  const line = "=================================";
+  const now = new Date(order.timestamp);
+  const date = now.toLocaleDateString("pt-BR");
+  const time = now.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const items = order.items
+    .map((item) => {
+      const name = `${item.qty}x ${item.name}`.slice(0, 24);
+      return `${name.padEnd(24, " ")} ${fmt(item.price * item.qty)}`;
+    })
+    .join("\n");
+  const text = [
+    line,
+    "MENFI'S BURGUER",
+    "",
+    `Pedido ${order.id}`,
+    "",
+    "Item                         Valor",
+    "",
+    items,
+    "",
+    "-----",
+    "",
+    `TOTAL                 ${fmt(order.total)}`,
+    "",
+    "Forma de Pagamento:",
+    "(X) PIX",
+    "( ) Cartão",
+    "( ) Dinheiro",
+    "",
+    `Data: ${date}`,
+    `Hora: ${time}`,
+    "",
+    line,
+    "MENFI'S BURGUER",
+    "",
+    "Obrigado pela preferência!",
+    "",
+    "Feito na hora.",
+    "Ingredientes selecionados.",
+    "Sabor que marca.",
+    "",
+    "WhatsApp:",
+    "(85) 98808-6691",
+    "",
+    line,
+    `TOTAL: ${fmt(order.total)}`,
+  ].join("\n");
+  window.open(
+    `${SUPPORT_WHATSAPP_URL}?text=${encodeURIComponent(text)}`,
+    "_blank",
+    "noopener,noreferrer",
+  );
 }

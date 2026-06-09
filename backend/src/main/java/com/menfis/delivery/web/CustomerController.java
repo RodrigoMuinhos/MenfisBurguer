@@ -4,8 +4,10 @@ import com.menfis.delivery.dto.ApiDtos.CustomerProfileRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerProfileResponse;
 import com.menfis.delivery.dto.ApiDtos.CustomerLoginRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerSessionResponse;
+import com.menfis.delivery.dto.ApiDtos.OrderResponse;
 import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.CustomerService;
+import com.menfis.delivery.service.OrderService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CustomerController {
   private final CustomerService customers;
   private final AuthService auth;
+  private final OrderService orders;
 
-  public CustomerController(CustomerService customers, AuthService auth) {
+  public CustomerController(CustomerService customers, AuthService auth, OrderService orders) {
     this.customers = customers;
     this.auth = auth;
+    this.orders = orders;
   }
 
   @PostMapping("/session")
@@ -40,6 +44,11 @@ public class CustomerController {
   @GetMapping("/me")
   public CustomerProfileResponse me(@RequestHeader(name = "Authorization", required = false) String authorization) {
     return customers.profile(auth.requireCustomer(authorization));
+  }
+
+  @GetMapping("/orders")
+  public List<OrderResponse> orders(@RequestHeader(name = "Authorization", required = false) String authorization) {
+    return orders.listForCustomer(auth.requireCustomer(authorization));
   }
 
   @GetMapping("/crm")

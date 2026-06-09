@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import type { HTMLInputTypeAttribute } from "react";
+import { useEffect, useState, type HTMLInputTypeAttribute } from "react";
 import {
   Gift,
   Headphones,
@@ -12,8 +12,11 @@ import {
   X,
 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
-import { MemberProfile } from "./shared";
-import { SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
+import { CartItem, Order } from "@/types/order";
+import { MEMBER_TOKEN_KEY, MemberProfile } from "./shared";
+import { API_URL, SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
+import { STATUS_COPY, fmt } from "@/components/order/tracking";
+import { normalizeBackendOrder } from "@/services/orders/normalize";
 
 export function MemberModals({
   loginOpen,
@@ -63,6 +66,9 @@ export function MemberModals({
   logoutMember,
   closeLogin,
   closeProfile,
+  activeOrder,
+  onOpenActiveOrder,
+  onRepeatOrder,
 }: {
   loginOpen: boolean;
   profileOpen: boolean;
@@ -111,8 +117,35 @@ export function MemberModals({
   logoutMember: () => void;
   closeLogin: () => void;
   closeProfile: () => void;
+  activeOrder?: Order | null;
+  onOpenActiveOrder?: () => void;
+  onRepeatOrder?: (items: CartItem[]) => void;
 }) {
   const canCloseLogin = Boolean(memberProfile);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  useEffect(() => {
+    if (!profileOpen || !memberProfile || !API_URL || typeof window === "undefined") return;
+    const token = localStorage.getItem(MEMBER_TOKEN_KEY);
+    if (!token) return;
+    const controller = new AbortController();
+    setOrdersLoading(true);
+    void fetch(`${API_URL}/customers/orders`, {
+      cache: "no-store",
+      signal: controller.signal,
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => {
+        setCustomerOrders(
+          Array.isArray(rows) ? rows.map(normalizeBackendOrder) : [],
+        );
+      })
+      .catch(() => setCustomerOrders([]))
+      .finally(() => setOrdersLoading(false));
+    return () => controller.abort();
+  }, [memberProfile, profileOpen]);
 
   return (
     <>
@@ -439,7 +472,42 @@ export function MemberModals({
                       </div>
 
                       <ProfileMenuButton icon={UserCog} label="Dados cadastrais" onClick={editMember} />
-                      <ProfileMenuButton icon={PackageSearch} label="Acompanhe seu pedido" onClick={closeProfile} />
+                      {activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status) ? (
+                        <ActiveProfileOrderCard
+                          order={activeOrder}
+                          onOpen={() => {
+                            closeProfile();
+                            onOpenActiveOrder?.();
+                          }}
+                        />
+                      ) : (
+                        <ProfileMenuButton icon={PackageSearch} label="Acompanhe seu pedido" onClick={closeProfile} />
+                      )}
+                      <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-black uppercase tracking-wider">
+                            Meus pedidos
+                          </p>
+                          {ordersLoading && <Loader2 size={15} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />}
+                        </div>
+                        <div className="mt-3 grid gap-2">
+                          {!ordersLoading && customerOrders.length === 0 && (
+                            <p className="text-xs font-bold opacity-55">
+                              Nenhum pedido encontrado neste perfil.
+                            </p>
+                          )}
+                          {customerOrders.slice(0, 8).map((order) => (
+                            <OrderHistoryRow
+                              key={order.id}
+                              order={order}
+                              onRepeat={() => {
+                                closeProfile();
+                                onRepeatOrder?.(order.items);
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
                       <ProfileMenuLink icon={Headphones} label="SAC" href={SUPPORT_WHATSAPP_URL} />
                       <button
                         onClick={logoutMember}
@@ -495,6 +563,82 @@ function ProfileInput({
         style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
       />
     </label>
+  );
+}
+
+function ActiveProfileOrderCard({
+  order,
+  onOpen,
+}: {
+  order: Order;
+  onOpen: () => void;
+}) {
+  const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full rounded-2xl p-4 text-left"
+      style={{ background: VERDE, color: ROSA }}
+    >
+      <div className="flex items-start gap-3">
+        <PackageSearch size={20} strokeWidth={2.5} className="mt-0.5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-wider opacity-70">
+            Acompanhe seu pedido
+          </p>
+          <p className="mt-1 text-lg font-black leading-none">
+            {order.id} · {status.label}
+          </p>
+          <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed opacity-75">
+            {order.items.map((item) => `${item.qty}x ${item.name}`).join(" · ")}
+          </p>
+          <p className="mt-2 text-sm font-black">{fmt(order.total)}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function OrderHistoryRow({
+  order,
+  onRepeat,
+}: {
+  order: Order;
+  onRepeat: () => void;
+}) {
+  const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+  const date = new Date(order.timestamp).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+  return (
+    <div
+      className="rounded-xl p-3"
+      style={{ background: "#fff", border: `1px solid ${VERDE}12` }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-black leading-tight">
+            Pedido {order.id}
+          </p>
+          <p className="mt-1 text-[11px] font-bold uppercase tracking-wide opacity-55">
+            {status.label} · {date}
+          </p>
+          <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed opacity-70">
+            {order.items.map((item) => `${item.qty}x ${item.name}`).join(" · ")}
+          </p>
+        </div>
+        <p className="shrink-0 text-sm font-black">{fmt(order.total)}</p>
+      </div>
+      <button
+        onClick={onRepeat}
+        disabled={order.items.length === 0}
+        className="mt-3 w-full rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-wider disabled:opacity-40"
+        style={{ background: `${VERDE}10`, color: VERDE }}
+      >
+        Pedir novamente
+      </button>
+    </div>
   );
 }
 

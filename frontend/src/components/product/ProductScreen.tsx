@@ -12,7 +12,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { CartItem } from "@/types/order";
+import { CartItem, Order } from "@/types/order";
 import { CREME, ROSA, VERDE } from "@/utils/theme";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { MenuItem } from "@/features/catalog/types";
@@ -69,6 +69,9 @@ interface Props {
   onAdminOpen?: () => boolean | void | Promise<boolean | void>;
   onOpenIdleScreen?: () => void;
   kioskMode?: boolean;
+  activeOrder?: Order | null;
+  onOpenActiveOrder?: () => void;
+  onRepeatOrder?: (items: CartItem[]) => void;
 }
 
 export function ProductScreen({
@@ -79,6 +82,9 @@ export function ProductScreen({
   onAdminOpen,
   onOpenIdleScreen,
   kioskMode = false,
+  activeOrder,
+  onOpenActiveOrder,
+  onRepeatOrder,
 }: Props) {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>(
     "combo",
@@ -599,6 +605,9 @@ export function ProductScreen({
           if (memberProfile) setLoginOpen(false);
         }}
         closeProfile={() => setProfileOpen(false)}
+        activeOrder={activeOrder}
+        onOpenActiveOrder={onOpenActiveOrder}
+        onRepeatOrder={onRepeatOrder}
       />
 
       <AnimatePresence>

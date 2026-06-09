@@ -34,14 +34,14 @@ export function useOrderSync({
       { ...prev.find((item) => item.id === order.id), ...order },
       ...prev.filter((item) => item.id !== order.id),
     ]);
-    if (order.paymentStatus === "approved") {
+    if (order.status === "DELIVERED" || order.status === "CANCELLED") {
       localStorage.removeItem(PENDING_ORDER_KEY);
     }
   }, []);
 
   const syncOrders = useCallback(async () => {
     try {
-      if (API_URL && screen === "tracking" && lastOrderId) {
+      if (API_URL && (screen === "tracking" || screen === "product") && lastOrderId) {
         await loadOrderById(lastOrderId);
         return;
       }
@@ -89,7 +89,7 @@ export function useOrderSync({
 
   useEffect(() => {
     if (!started) return;
-    if (screen !== "admin" && screen !== "tracking") return;
+    if (screen !== "admin" && screen !== "tracking" && !(screen === "product" && lastOrderId)) return;
 
     syncOrders();
     const timer = window.setInterval(syncOrders, 10000);
