@@ -15,8 +15,6 @@ export function MemberModals({
   setMemberPhone,
   memberBirthday,
   setMemberBirthday,
-  memberBirthYear,
-  setMemberBirthYear,
   memberCep,
   setMemberCep,
   memberStreet,
@@ -52,8 +50,6 @@ export function MemberModals({
   setMemberPhone: (value: string) => void;
   memberBirthday: string;
   setMemberBirthday: (value: string) => void;
-  memberBirthYear: string;
-  setMemberBirthYear: (value: string) => void;
   memberCep: string;
   setMemberCep: (value: string) => void;
   memberStreet: string;
@@ -179,33 +175,18 @@ export function MemberModals({
                           style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
                         />
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <label className="grid gap-1">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
-                            Aniversário
-                          </span>
-                          <input
-                            value={memberBirthday}
-                            onChange={(e) => setMemberBirthday(e.target.value)}
-                            type="date"
-                            className="rounded-2xl px-4 py-3 text-sm outline-none"
-                            style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
-                          />
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
-                            Ano nasc.
-                          </span>
-                          <input
-                            value={memberBirthYear}
-                            onChange={(e) => setMemberBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                            placeholder="1990"
-                            inputMode="numeric"
-                            className="rounded-2xl px-4 py-3 text-sm outline-none"
-                            style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
-                          />
-                        </label>
-                      </div>
+                      <label className="grid gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
+                          Aniversário
+                        </span>
+                        <input
+                          value={memberBirthday}
+                          onChange={(e) => setMemberBirthday(e.target.value)}
+                          type="date"
+                          className="rounded-2xl px-4 py-3 text-sm outline-none"
+                          style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
+                        />
+                      </label>
                       <div className="grid grid-cols-[0.8fr_1.2fr] gap-2">
                         <ProfileInput label="CEP" value={memberCep} onChange={setMemberCep} placeholder="00000-000" />
                         <ProfileInput label="Bairro" value={memberNeighborhood} onChange={setMemberNeighborhood} placeholder="Bairro" />

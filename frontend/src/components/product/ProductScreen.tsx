@@ -96,7 +96,6 @@ export function ProductScreen({
   const [memberEmail, setMemberEmail] = useState("");
   const [memberPhone, setMemberPhone] = useState("");
   const [memberBirthday, setMemberBirthday] = useState("");
-  const [memberBirthYear, setMemberBirthYear] = useState("");
   const [memberCep, setMemberCep] = useState("");
   const [memberStreet, setMemberStreet] = useState("");
   const [memberNumber, setMemberNumber] = useState("");
@@ -142,6 +141,32 @@ export function ProductScreen({
       setLoginOpen(true);
     });
   }, [kioskMode]);
+
+  useEffect(() => {
+    if (kioskMode) return;
+    const cepDigits = memberCep.replace(/\D/g, "");
+    if (cepDigits.length !== 8) return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void fetch(`https://viacep.com.br/ws/${cepDigits}/json/`, {
+        signal: controller.signal,
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data) => {
+          if (!data || data.erro) return;
+          setMemberStreet(String(data.logradouro ?? ""));
+          setMemberNeighborhood(String(data.bairro ?? ""));
+          setMemberCity(String(data.localidade ?? ""));
+        })
+        .catch(() => {});
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [kioskMode, memberCep]);
 
   const qty = (id: string) => cart.find((item) => item.id === id)?.qty ?? 0;
 
@@ -271,7 +296,6 @@ export function ProductScreen({
       setMemberEmail(memberProfile.email ?? "");
       setMemberPhone(memberProfile.phone);
       setMemberBirthday(memberProfile.birthday ?? "");
-      setMemberBirthYear(memberProfile.birthYear ? String(memberProfile.birthYear) : "");
       const address = memberProfile.defaultAddress ?? {};
       setMemberCep(String(address.cep ?? ""));
       setMemberStreet(String(address.street ?? ""));
@@ -302,7 +326,6 @@ export function ProductScreen({
         email,
         phone,
         birthday: memberBirthday || undefined,
-        birthYear: memberBirthYear ? Number(memberBirthYear) : undefined,
         cep: memberCep,
         street: memberStreet,
         number: memberNumber,
@@ -439,8 +462,6 @@ export function ProductScreen({
         setMemberPhone={setMemberPhone}
         memberBirthday={memberBirthday}
         setMemberBirthday={setMemberBirthday}
-        memberBirthYear={memberBirthYear}
-        setMemberBirthYear={setMemberBirthYear}
         memberCep={memberCep}
         setMemberCep={setMemberCep}
         memberStreet={memberStreet}

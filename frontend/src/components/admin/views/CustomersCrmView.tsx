@@ -9,7 +9,6 @@ export type CrmCustomer = {
   phone?: string;
   email?: string;
   birthday?: string;
-  birth_year?: number;
   order_count?: number | string;
   total_spent?: number | string;
   last_order_at?: string;
@@ -90,7 +89,11 @@ export function CustomersCrmView({ customers }: { customers: CrmCustomer[] }) {
                 {customer.birthday ? formatDate(customer.birthday) : "Sem aniversário"}
               </span>
               <span style={{ color: isBirthdaySoon(customer.birthday) ? "#16A34A" : `${VERDE}88` }}>
-                {isBirthdaySoon(customer.birthday) ? "Data especial chegando" : customer.birth_year ? `Nasc. ${customer.birth_year}` : "Ano não informado"}
+                {isBirthdaySoon(customer.birthday)
+                  ? "Data especial chegando"
+                  : customer.birthday
+                    ? "Aniversário cadastrado"
+                    : "Sem aniversário"}
               </span>
               <span className="opacity-55">
                 Último pedido: {customer.last_order_at ? formatDate(customer.last_order_at) : "-"}

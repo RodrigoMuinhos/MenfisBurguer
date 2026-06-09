@@ -35,8 +35,8 @@ public class CustomerService {
     if (id == null) {
       id = jdbc.queryForObject(
         """
-        insert into customers (name, phone, phone_digits, email, birthday, birth_year, last_login_at, updated_at)
-        values (?, ?, ?, ?, ?, ?, now(), now())
+        insert into customers (name, phone, phone_digits, email, birthday, last_login_at, updated_at)
+        values (?, ?, ?, ?, ?, now(), now())
         returning id
         """,
         Long.class,
@@ -44,13 +44,12 @@ public class CustomerService {
         request.phone(),
         phoneDigits,
         clean(request.email()),
-        request.birthday(),
-        request.birthYear()
+        request.birthday()
       );
     } else {
       jdbc.update(
         """
-        update customers set name = ?, phone = ?, email = ?, birthday = ?, birth_year = ?,
+        update customers set name = ?, phone = ?, email = ?, birthday = ?,
           last_login_at = now(), updated_at = now()
         where id = ?
         """,
@@ -58,7 +57,6 @@ public class CustomerService {
         request.phone(),
         clean(request.email()),
         request.birthday(),
-        request.birthYear(),
         id
       );
     }
@@ -94,7 +92,6 @@ public class CustomerService {
           c.phone,
           c.email,
           c.birthday,
-          c.birth_year,
           c.last_login_at,
           c.updated_at
         from customers c
@@ -117,7 +114,6 @@ public class CustomerService {
         p.phone,
         p.email,
         p.birthday,
-        p.birth_year,
         p.last_login_at,
         coalesce(os.order_count, 0) as order_count,
         coalesce(os.total_spent, 0) as total_spent,
@@ -130,7 +126,7 @@ public class CustomerService {
       from profiles p
       left join order_stats os on os.phone_digits = p.phone_digits
       left join addresses a on a.customer_id = p.id and a.is_default = true
-      group by p.id, p.name, p.phone, p.email, p.birthday, p.birth_year, p.last_login_at, p.updated_at, os.order_count, os.total_spent, os.last_order_at
+      group by p.id, p.name, p.phone, p.email, p.birthday, p.last_login_at, p.updated_at, os.order_count, os.total_spent, os.last_order_at
       order by os.last_order_at desc nulls last, p.updated_at desc
       limit 500
       """
@@ -191,7 +187,6 @@ public class CustomerService {
       rs.getString("phone"),
       rs.getString("email"),
       rs.getObject("birthday", java.time.LocalDate.class),
-      rs.getObject("birth_year", Integer.class),
       rs.getString("avatar_url"),
       address,
       rs.getLong("order_count"),

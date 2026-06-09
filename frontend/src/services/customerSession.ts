@@ -7,7 +7,6 @@ type CustomerPayload = {
   phone: string;
   email?: string;
   birthday?: string;
-  birthYear?: number;
   cep?: string;
   street?: string;
   number?: string;
@@ -58,7 +57,6 @@ function normalizeCustomer(raw: any): MemberProfile {
     phone: String(raw.phone ?? ""),
     email: raw.email ?? undefined,
     birthday: raw.birthday ?? undefined,
-    birthYear: raw.birthYear ?? undefined,
     avatarUrl: raw.avatarUrl ?? undefined,
     defaultAddress: raw.defaultAddress ?? undefined,
     freeShipping: orders === 0,

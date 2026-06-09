@@ -24,7 +24,6 @@ export type MemberProfile = {
   email?: string;
   phone: string;
   birthday?: string;
-  birthYear?: number;
   avatarUrl?: string;
   defaultAddress?: Record<string, string>;
   freeShipping: boolean;
@@ -137,7 +136,6 @@ export function readMemberProfile(): MemberProfile | null {
       email: data.email ? String(data.email) : undefined,
       phone: String(data.phone ?? ""),
       birthday: data.birthday ? String(data.birthday) : undefined,
-      birthYear: data.birthYear ? Number(data.birthYear) : undefined,
       avatarUrl: data.avatarUrl ? String(data.avatarUrl) : undefined,
       defaultAddress: data.defaultAddress ?? undefined,
       freeShipping: Boolean(data.freeShipping),
