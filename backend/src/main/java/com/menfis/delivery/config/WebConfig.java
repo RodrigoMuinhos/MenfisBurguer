@@ -15,6 +15,8 @@ public class WebConfig implements WebMvcConfigurer {
     registry.addMapping("/**")
       .allowedOriginPatterns(
         frontendUrl,
+        "https://menfisburguer.com.br",
+        "https://www.menfisburguer.com.br",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://192.168.*.*:3000",
