@@ -98,6 +98,7 @@ export function ProductScreen({
   const [memberCpf, setMemberCpf] = useState("");
   const [memberPhone, setMemberPhone] = useState("");
   const [memberPassword, setMemberPassword] = useState("");
+  const [memberPasswordConfirm, setMemberPasswordConfirm] = useState("");
   const [memberLogin, setMemberLogin] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [memberAuthMode, setMemberAuthMode] = useState<"register" | "login">("register");
@@ -303,6 +304,7 @@ export function ProductScreen({
       setMemberCpf("");
       setMemberPhone(memberProfile.phone);
       setMemberPassword("");
+      setMemberPasswordConfirm("");
       setMemberBirthday(memberProfile.birthday ?? "");
       const address = memberProfile.defaultAddress ?? {};
       setMemberCep(String(address.cep ?? ""));
@@ -324,6 +326,7 @@ export function ProductScreen({
     const phone = memberPhone.trim();
     const cpfDigits = memberCpf.replace(/\D/g, "");
     const password = memberPassword.trim();
+    const confirmPassword = memberPasswordConfirm.trim();
     setMemberError("");
     if (!name) {
       setMemberError("Falta preencher: nome.");
@@ -349,8 +352,16 @@ export function ProductScreen({
       setMemberError("Falta preencher: aniversário.");
       return;
     }
-    if ((!memberProfile || memberProfile.hasPassword === false) && password.length !== 6) {
-      setMemberError("Crie uma senha de 6 dígitos.");
+    if (password.length !== 6) {
+      setMemberError("Falta preencher: senha de 6 dígitos.");
+      return;
+    }
+    if (confirmPassword.length !== 6) {
+      setMemberError("Falta preencher: confirmar senha com 6 dígitos.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMemberError("A confirmação da senha não confere.");
       return;
     }
     if (!memberCep.replace(/\D/g, "")) {
@@ -380,7 +391,8 @@ export function ProductScreen({
         name,
         email,
         cpf: cpfDigits,
-        password: password || undefined,
+        password,
+        confirmPassword,
         phone,
         birthday: memberBirthday || undefined,
         cep: memberCep,
@@ -438,6 +450,7 @@ export function ProductScreen({
     setMemberCpf("");
     setMemberPhone("");
     setMemberPassword("");
+    setMemberPasswordConfirm("");
     setMemberAuthMode("login");
     setLoginOpen(true);
   };
@@ -550,6 +563,8 @@ export function ProductScreen({
         setMemberPhone={setMemberPhone}
         memberPassword={memberPassword}
         setMemberPassword={setMemberPassword}
+        memberPasswordConfirm={memberPasswordConfirm}
+        setMemberPasswordConfirm={setMemberPasswordConfirm}
         memberLogin={memberLogin}
         setMemberLogin={setMemberLogin}
         loginPassword={loginPassword}

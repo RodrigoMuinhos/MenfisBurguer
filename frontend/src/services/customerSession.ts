@@ -8,6 +8,7 @@ type CustomerPayload = {
   email: string;
   cpf?: string;
   password?: string;
+  confirmPassword?: string;
   birthday?: string;
   cep?: string;
   street?: string;

@@ -133,6 +133,7 @@ public class ApiDtos {
     @NotBlank @Email String email,
     String cpf,
     String password,
+    String confirmPassword,
     LocalDate birthday,
     String cep,
     String street,

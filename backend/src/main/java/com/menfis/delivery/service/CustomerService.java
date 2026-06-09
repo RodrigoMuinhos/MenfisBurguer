@@ -35,18 +35,21 @@ public class CustomerService {
     String cpfDigits = digits(request.cpf());
     String email = clean(request.email());
     String password = request.password() == null ? "" : request.password().trim();
+    String confirmPassword = request.confirmPassword() == null ? "" : request.confirmPassword().trim();
     if (phoneDigits.length() < 10 || isBlank(request.name()) || isBlank(request.email())) {
       throw new IllegalArgumentException("customer_name_phone_email_required");
     }
     if (!cpfDigits.isBlank() && cpfDigits.length() != 11) {
       throw new IllegalArgumentException("customer_cpf_invalid");
     }
-
-    Long id = findCustomerId(cpfDigits, email, phoneDigits);
-    boolean creating = id == null;
-    if (creating && password.length() != 6) {
+    if (password.length() != 6) {
       throw new IllegalArgumentException("customer_password_required");
     }
+    if (!password.equals(confirmPassword)) {
+      throw new IllegalArgumentException("customer_password_confirmation_mismatch");
+    }
+
+    Long id = findCustomerId(cpfDigits, email, phoneDigits);
 
     if (id == null) {
       id = jdbc.queryForObject(
@@ -79,9 +82,7 @@ public class CustomerService {
         request.birthday(),
         id
       );
-      if (password.length() == 6) {
-        jdbc.update("update customers set password_hash = ?, updated_at = now() where id = ?", encoder.encode(password), id);
-      }
+      jdbc.update("update customers set password_hash = ?, updated_at = now() where id = ?", encoder.encode(password), id);
     }
 
     saveDefaultAddress(id, request);

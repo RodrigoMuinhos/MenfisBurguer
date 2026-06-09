@@ -29,6 +29,8 @@ export function MemberModals({
   setMemberPhone,
   memberPassword,
   setMemberPassword,
+  memberPasswordConfirm,
+  setMemberPasswordConfirm,
   memberLogin,
   setMemberLogin,
   loginPassword,
@@ -75,6 +77,8 @@ export function MemberModals({
   setMemberPhone: (value: string) => void;
   memberPassword: string;
   setMemberPassword: (value: string) => void;
+  memberPasswordConfirm: string;
+  setMemberPasswordConfirm: (value: string) => void;
   memberLogin: string;
   setMemberLogin: (value: string) => void;
   loginPassword: string;
@@ -249,10 +253,19 @@ export function MemberModals({
                         />
                       </label>
                       <ProfileInput
-                        label={memberProfile ? "Nova senha (opcional)" : "Senha"}
+                        label="Senha"
                         value={memberPassword}
                         onChange={(value) => setMemberPassword(value.replace(/\D/g, "").slice(0, 6))}
                         placeholder="6 dígitos"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={6}
+                      />
+                      <ProfileInput
+                        label="Confirmar senha"
+                        value={memberPasswordConfirm}
+                        onChange={(value) => setMemberPasswordConfirm(value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="Repita os 6 dígitos"
                         type="password"
                         inputMode="numeric"
                         maxLength={6}
