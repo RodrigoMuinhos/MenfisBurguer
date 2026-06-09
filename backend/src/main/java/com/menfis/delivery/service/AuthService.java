@@ -70,16 +70,20 @@ public class AuthService {
   }
 
   public LoginResponse customerSession(long customerId) {
-    return new LoginResponse(issueToken("customer:" + customerId, "CUSTOMER"), "CUSTOMER");
+    return new LoginResponse(issueToken("customer:" + customerId, "CUSTOMER", 60L * 60L * 24L * 180L), "CUSTOMER");
   }
 
   private String issueToken(String subject, String role) {
+    return issueToken(subject, role, 60L * 60L * 12L);
+  }
+
+  private String issueToken(String subject, String role, long ttlSeconds) {
     SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     return Jwts.builder()
       .subject(subject)
       .claim("role", role)
       .issuedAt(Date.from(Instant.now()))
-      .expiration(Date.from(Instant.now().plusSeconds(60 * 60 * 12)))
+      .expiration(Date.from(Instant.now().plusSeconds(ttlSeconds)))
       .signWith(key)
       .compact();
   }

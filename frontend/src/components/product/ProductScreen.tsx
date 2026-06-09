@@ -42,6 +42,7 @@ import {
   requiredCustomizerCount,
 } from "./shared";
 import {
+  loginCustomerSession,
   loadCustomerSession,
   logoutCustomerSession,
   saveCustomerSession,
@@ -94,7 +95,12 @@ export function ProductScreen({
   const [profileOpen, setProfileOpen] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
+  const [memberCpf, setMemberCpf] = useState("");
   const [memberPhone, setMemberPhone] = useState("");
+  const [memberPassword, setMemberPassword] = useState("");
+  const [memberLogin, setMemberLogin] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [memberAuthMode, setMemberAuthMode] = useState<"register" | "login">("register");
   const [memberBirthday, setMemberBirthday] = useState("");
   const [memberCep, setMemberCep] = useState("");
   const [memberStreet, setMemberStreet] = useState("");
@@ -294,7 +300,9 @@ export function ProductScreen({
     if (memberProfile) {
       setMemberName(memberProfile.name);
       setMemberEmail(memberProfile.email ?? "");
+      setMemberCpf("");
       setMemberPhone(memberProfile.phone);
+      setMemberPassword("");
       setMemberBirthday(memberProfile.birthday ?? "");
       const address = memberProfile.defaultAddress ?? {};
       setMemberCep(String(address.cep ?? ""));
@@ -306,6 +314,7 @@ export function ProductScreen({
       setMemberReference(String(address.reference ?? ""));
     }
     setProfileOpen(false);
+    setMemberAuthMode("register");
     setLoginOpen(true);
   };
 
@@ -313,9 +322,55 @@ export function ProductScreen({
     const name = memberName.trim();
     const email = memberEmail.trim().toLowerCase();
     const phone = memberPhone.trim();
+    const cpfDigits = memberCpf.replace(/\D/g, "");
+    const password = memberPassword.trim();
     setMemberError("");
-    if (!name || !email || !isEmail(email) || phone.replace(/\D/g, "").length < 10) {
-      setMemberError("Preencha nome, email válido e WhatsApp para cadastrar.");
+    if (!name) {
+      setMemberError("Falta preencher: nome.");
+      return;
+    }
+    if (!email) {
+      setMemberError("Falta preencher: email.");
+      return;
+    }
+    if (!isEmail(email)) {
+      setMemberError("Informe um email válido.");
+      return;
+    }
+    if (cpfDigits.length !== 11) {
+      setMemberError("Falta preencher: CPF com 11 números.");
+      return;
+    }
+    if (phone.replace(/\D/g, "").length < 10) {
+      setMemberError("Falta preencher: WhatsApp com DDD.");
+      return;
+    }
+    if (!memberBirthday) {
+      setMemberError("Falta preencher: aniversário.");
+      return;
+    }
+    if (!memberProfile && password.length !== 6) {
+      setMemberError("Crie uma senha de 6 dígitos.");
+      return;
+    }
+    if (!memberCep.replace(/\D/g, "")) {
+      setMemberError("Falta preencher: CEP.");
+      return;
+    }
+    if (!memberStreet.trim()) {
+      setMemberError("Falta preencher: rua.");
+      return;
+    }
+    if (!memberNumber.trim()) {
+      setMemberError("Falta preencher: número.");
+      return;
+    }
+    if (!memberNeighborhood.trim()) {
+      setMemberError("Falta preencher: bairro.");
+      return;
+    }
+    if (!memberCity.trim()) {
+      setMemberError("Falta preencher: cidade.");
       return;
     }
 
@@ -324,6 +379,8 @@ export function ProductScreen({
       const profile = await saveCustomerSession({
         name,
         email,
+        cpf: cpfDigits,
+        password: password || undefined,
         phone,
         birthday: memberBirthday || undefined,
         cep: memberCep,
@@ -341,7 +398,33 @@ export function ProductScreen({
       localStorage.removeItem(MEMBER_KEY);
       setMemberProfile(null);
       setLoginOpen(true);
-      setMemberError("Não foi possível cadastrar no backend. Verifique a conexão e tente novamente.");
+      setMemberError("Não foi possível cadastrar. Confira os dados e tente novamente.");
+    } finally {
+      setMemberSaving(false);
+    }
+  };
+
+  const loginMember = async () => {
+    const login = memberLogin.trim();
+    const password = loginPassword.trim();
+    setMemberError("");
+    if (!login) {
+      setMemberError("Falta preencher: email ou CPF.");
+      return;
+    }
+    if (password.length !== 6) {
+      setMemberError("Falta preencher: senha de 6 dígitos.");
+      return;
+    }
+    setMemberSaving(true);
+    try {
+      const profile = await loginCustomerSession({ login, password });
+      setMemberProfile(profile);
+      setLoginOpen(false);
+      setMemberLogin("");
+      setLoginPassword("");
+    } catch {
+      setMemberError("Email/CPF ou senha inválidos.");
     } finally {
       setMemberSaving(false);
     }
@@ -352,7 +435,10 @@ export function ProductScreen({
     setMemberProfile(null);
     setMemberName("");
     setMemberEmail("");
+    setMemberCpf("");
     setMemberPhone("");
+    setMemberPassword("");
+    setMemberAuthMode("login");
     setLoginOpen(true);
   };
 
@@ -458,8 +544,18 @@ export function ProductScreen({
         setMemberName={setMemberName}
         memberEmail={memberEmail}
         setMemberEmail={setMemberEmail}
+        memberCpf={memberCpf}
+        setMemberCpf={setMemberCpf}
         memberPhone={memberPhone}
         setMemberPhone={setMemberPhone}
+        memberPassword={memberPassword}
+        setMemberPassword={setMemberPassword}
+        memberLogin={memberLogin}
+        setMemberLogin={setMemberLogin}
+        loginPassword={loginPassword}
+        setLoginPassword={setLoginPassword}
+        memberAuthMode={memberAuthMode}
+        setMemberAuthMode={setMemberAuthMode}
         memberBirthday={memberBirthday}
         setMemberBirthday={setMemberBirthday}
         memberCep={memberCep}
@@ -481,6 +577,7 @@ export function ProductScreen({
         memberProgress={memberProgress}
         savedDelivery={savedDelivery}
         saveMember={saveMember}
+        loginMember={loginMember}
         editMember={editMember}
         logoutMember={logoutMember}
         closeLogin={() => {

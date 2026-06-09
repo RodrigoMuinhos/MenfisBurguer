@@ -131,6 +131,8 @@ public class ApiDtos {
     @NotBlank String name,
     @NotBlank String phone,
     @NotBlank @Email String email,
+    String cpf,
+    String password,
     LocalDate birthday,
     String cep,
     String street,
@@ -155,4 +157,6 @@ public class ApiDtos {
   ) {}
 
   public record CustomerSessionResponse(String token, String role, CustomerProfileResponse customer) {}
+
+  public record CustomerLoginRequest(@NotBlank String login, @NotBlank String password) {}
 }

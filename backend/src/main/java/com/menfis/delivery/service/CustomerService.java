@@ -1,5 +1,6 @@
 package com.menfis.delivery.service;
 
+import com.menfis.delivery.dto.ApiDtos.CustomerLoginRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerProfileRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerProfileResponse;
 import com.menfis.delivery.dto.ApiDtos.CustomerSessionResponse;
@@ -8,9 +9,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,52 +21,90 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomerService {
   private final JdbcTemplate jdbc;
   private final AuthService auth;
+  private final PasswordEncoder encoder;
 
-  public CustomerService(JdbcTemplate jdbc, AuthService auth) {
+  public CustomerService(JdbcTemplate jdbc, AuthService auth, PasswordEncoder encoder) {
     this.jdbc = jdbc;
     this.auth = auth;
+    this.encoder = encoder;
   }
 
   @Transactional
   public CustomerSessionResponse upsertSession(CustomerProfileRequest request) {
     String phoneDigits = digits(request.phone());
+    String cpfDigits = digits(request.cpf());
+    String email = clean(request.email());
+    String password = request.password() == null ? "" : request.password().trim();
     if (phoneDigits.length() < 10 || isBlank(request.name()) || isBlank(request.email())) {
       throw new IllegalArgumentException("customer_name_phone_email_required");
     }
+    if (!cpfDigits.isBlank() && cpfDigits.length() != 11) {
+      throw new IllegalArgumentException("customer_cpf_invalid");
+    }
 
-    Long id = findCustomerIdByPhone(phoneDigits);
+    Long id = findCustomerId(cpfDigits, email, phoneDigits);
+    boolean creating = id == null;
+    if (creating && password.length() != 6) {
+      throw new IllegalArgumentException("customer_password_required");
+    }
+
     if (id == null) {
       id = jdbc.queryForObject(
         """
-        insert into customers (name, phone, phone_digits, email, birthday, last_login_at, updated_at)
-        values (?, ?, ?, ?, ?, now(), now())
+        insert into customers (name, phone, phone_digits, email, cpf, birthday, password_hash, last_login_at, updated_at)
+        values (?, ?, ?, ?, ?, ?, ?, now(), now())
         returning id
         """,
         Long.class,
         request.name().trim(),
         request.phone(),
         phoneDigits,
-        clean(request.email()),
-        request.birthday()
+        email,
+        cpfDigits.isBlank() ? null : cpfDigits,
+        request.birthday(),
+        encoder.encode(password)
       );
     } else {
       jdbc.update(
         """
-        update customers set name = ?, phone = ?, email = ?, birthday = ?,
+        update customers set name = ?, phone = ?, phone_digits = ?, email = ?, cpf = coalesce(?, cpf), birthday = ?,
           last_login_at = now(), updated_at = now()
         where id = ?
         """,
         request.name().trim(),
         request.phone(),
-        clean(request.email()),
+        phoneDigits,
+        email,
+        cpfDigits.isBlank() ? null : cpfDigits,
         request.birthday(),
         id
       );
+      if (password.length() == 6) {
+        jdbc.update("update customers set password_hash = ?, updated_at = now() where id = ?", encoder.encode(password), id);
+      }
     }
 
     saveDefaultAddress(id, request);
     CustomerProfileResponse profile = profile(id);
     return new CustomerSessionResponse(auth.customerSession(id).token(), "CUSTOMER", profile);
+  }
+
+  @Transactional
+  public CustomerSessionResponse login(CustomerLoginRequest request) {
+    String login = request.login() == null ? "" : request.login().trim().toLowerCase(Locale.ROOT);
+    String cpfDigits = digits(login);
+    String password = request.password() == null ? "" : request.password().trim();
+    if (login.isBlank() || password.length() != 6) {
+      throw new IllegalArgumentException("invalid_customer_credentials");
+    }
+
+    CustomerCredential credential = findCredential(login, cpfDigits);
+    if (credential == null || credential.passwordHash() == null || !encoder.matches(password, credential.passwordHash())) {
+      throw new IllegalArgumentException("invalid_customer_credentials");
+    }
+    jdbc.update("update customers set last_login_at = now(), updated_at = now() where id = ?", credential.id());
+    CustomerProfileResponse profile = profile(credential.id());
+    return new CustomerSessionResponse(auth.customerSession(credential.id()).token(), "CUSTOMER", profile);
   }
 
   public CustomerProfileResponse profile(long customerId) {
@@ -147,6 +188,62 @@ public class CustomerService {
     }
   }
 
+  private Long findCustomerId(String cpfDigits, String email, String phoneDigits) {
+    if (!cpfDigits.isBlank()) {
+      Long id = findCustomerIdByCpf(cpfDigits);
+      if (id != null) return id;
+    }
+    if (!isBlank(email)) {
+      Long id = findCustomerIdByEmail(email);
+      if (id != null) return id;
+    }
+    return findCustomerIdByPhone(phoneDigits);
+  }
+
+  private Long findCustomerIdByCpf(String cpfDigits) {
+    try {
+      return jdbc.queryForObject(
+        "select id from customers where cpf = ? order by last_login_at desc nulls last, updated_at desc nulls last, id desc limit 1",
+        Long.class,
+        cpfDigits
+      );
+    } catch (EmptyResultDataAccessException ex) {
+      return null;
+    }
+  }
+
+  private Long findCustomerIdByEmail(String email) {
+    try {
+      return jdbc.queryForObject(
+        "select id from customers where lower(email) = lower(?) order by last_login_at desc nulls last, updated_at desc nulls last, id desc limit 1",
+        Long.class,
+        email
+      );
+    } catch (EmptyResultDataAccessException ex) {
+      return null;
+    }
+  }
+
+  private CustomerCredential findCredential(String login, String cpfDigits) {
+    try {
+      return jdbc.queryForObject(
+        """
+        select id, password_hash
+        from customers
+        where lower(email) = lower(?) or (? <> '' and cpf = ?)
+        order by last_login_at desc nulls last, updated_at desc nulls last, id desc
+        limit 1
+        """,
+        (rs, rowNum) -> new CustomerCredential(rs.getLong("id"), rs.getString("password_hash")),
+        login,
+        cpfDigits,
+        cpfDigits
+      );
+    } catch (EmptyResultDataAccessException ex) {
+      return null;
+    }
+  }
+
   private void saveDefaultAddress(long customerId, CustomerProfileRequest request) {
     if (isBlank(request.cep()) && isBlank(request.street()) && isBlank(request.number())) return;
     jdbc.update("update addresses set is_default = false where customer_id = ?", customerId);
@@ -206,4 +303,6 @@ public class CustomerService {
   private boolean isBlank(String value) {
     return value == null || value.trim().isBlank();
   }
+
+  private record CustomerCredential(long id, String passwordHash) {}
 }

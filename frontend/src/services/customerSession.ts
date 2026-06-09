@@ -5,7 +5,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 type CustomerPayload = {
   name: string;
   phone: string;
-  email?: string;
+  email: string;
+  cpf?: string;
+  password?: string;
   birthday?: string;
   cep?: string;
   street?: string;
@@ -14,6 +16,11 @@ type CustomerPayload = {
   neighborhood?: string;
   city?: string;
   reference?: string;
+};
+
+type LoginPayload = {
+  login: string;
+  password: string;
 };
 
 export async function saveCustomerSession(payload: CustomerPayload) {
@@ -25,6 +32,21 @@ export async function saveCustomerSession(payload: CustomerPayload) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.customer || !data.token) throw new Error(data.error || "customer_save_failed");
+  const profile = normalizeCustomer(data.customer);
+  localStorage.setItem(MEMBER_TOKEN_KEY, data.token);
+  localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+  return profile;
+}
+
+export async function loginCustomerSession(payload: LoginPayload) {
+  if (!API_URL) throw new Error("api_missing");
+  const res = await fetch(`${API_URL}/customers/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.customer || !data.token) throw new Error(data.error || "customer_login_failed");
   const profile = normalizeCustomer(data.customer);
   localStorage.setItem(MEMBER_TOKEN_KEY, data.token);
   localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));

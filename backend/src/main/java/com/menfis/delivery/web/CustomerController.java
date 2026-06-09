@@ -2,6 +2,7 @@ package com.menfis.delivery.web;
 
 import com.menfis.delivery.dto.ApiDtos.CustomerProfileRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerProfileResponse;
+import com.menfis.delivery.dto.ApiDtos.CustomerLoginRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerSessionResponse;
 import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.CustomerService;
@@ -29,6 +30,11 @@ public class CustomerController {
   @PostMapping("/session")
   public CustomerSessionResponse session(@Valid @RequestBody CustomerProfileRequest request) {
     return customers.upsertSession(request);
+  }
+
+  @PostMapping("/login")
+  public CustomerSessionResponse login(@Valid @RequestBody CustomerLoginRequest request) {
+    return customers.login(request);
   }
 
   @GetMapping("/me")

@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
+import type { HTMLInputTypeAttribute } from "react";
 import {
   Gift,
   Headphones,
@@ -22,8 +23,18 @@ export function MemberModals({
   setMemberName,
   memberEmail,
   setMemberEmail,
+  memberCpf,
+  setMemberCpf,
   memberPhone,
   setMemberPhone,
+  memberPassword,
+  setMemberPassword,
+  memberLogin,
+  setMemberLogin,
+  loginPassword,
+  setLoginPassword,
+  memberAuthMode,
+  setMemberAuthMode,
   memberBirthday,
   setMemberBirthday,
   memberCep,
@@ -45,6 +56,7 @@ export function MemberModals({
   memberProgress,
   savedDelivery,
   saveMember,
+  loginMember,
   editMember,
   logoutMember,
   closeLogin,
@@ -57,8 +69,18 @@ export function MemberModals({
   setMemberName: (value: string) => void;
   memberEmail: string;
   setMemberEmail: (value: string) => void;
+  memberCpf: string;
+  setMemberCpf: (value: string) => void;
   memberPhone: string;
   setMemberPhone: (value: string) => void;
+  memberPassword: string;
+  setMemberPassword: (value: string) => void;
+  memberLogin: string;
+  setMemberLogin: (value: string) => void;
+  loginPassword: string;
+  setLoginPassword: (value: string) => void;
+  memberAuthMode: "register" | "login";
+  setMemberAuthMode: (value: "register" | "login") => void;
   memberBirthday: string;
   setMemberBirthday: (value: string) => void;
   memberCep: string;
@@ -80,6 +102,7 @@ export function MemberModals({
   memberProgress: number;
   savedDelivery: Record<string, string>;
   saveMember: () => void;
+  loginMember: () => void;
   editMember: () => void;
   logoutMember: () => void;
   closeLogin: () => void;
@@ -122,7 +145,7 @@ export function MemberModals({
                             lineHeight: 0.95,
                           }}
                         >
-                          Crie seu perfil Menfi's
+                          {memberAuthMode === "login" ? "Entre no perfil Menfi's" : "Crie seu perfil Menfi's"}
                         </h2>
                       </div>
                       {canCloseLogin && (
@@ -136,6 +159,48 @@ export function MemberModals({
                       )}
                     </div>
 
+                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl p-1" style={{ background: "#FFF8F2" }}>
+                      <button
+                        onClick={() => setMemberAuthMode("register")}
+                        className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wider"
+                        style={{
+                          background: memberAuthMode === "register" ? VERDE : "transparent",
+                          color: memberAuthMode === "register" ? ROSA : VERDE,
+                        }}
+                      >
+                        Cadastrar
+                      </button>
+                      <button
+                        onClick={() => setMemberAuthMode("login")}
+                        className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wider"
+                        style={{
+                          background: memberAuthMode === "login" ? VERDE : "transparent",
+                          color: memberAuthMode === "login" ? ROSA : VERDE,
+                        }}
+                      >
+                        Já tenho conta
+                      </button>
+                    </div>
+
+                    {memberAuthMode === "login" ? (
+                      <div className="mt-4 grid gap-3">
+                        <ProfileInput
+                          label="Email ou CPF"
+                          value={memberLogin}
+                          onChange={setMemberLogin}
+                          placeholder="voce@email.com ou CPF"
+                        />
+                        <ProfileInput
+                          label="Senha"
+                          value={loginPassword}
+                          onChange={(value) => setLoginPassword(value.replace(/\D/g, "").slice(0, 6))}
+                          placeholder="6 dígitos"
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={6}
+                        />
+                      </div>
+                    ) : (
                     <div className="mt-4 grid gap-3">
                       <label className="grid gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
@@ -162,6 +227,14 @@ export function MemberModals({
                           style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
                         />
                       </label>
+                      <ProfileInput
+                        label="CPF"
+                        value={memberCpf}
+                        onChange={(value) => setMemberCpf(value.replace(/\D/g, "").slice(0, 11))}
+                        placeholder="00000000000"
+                        inputMode="numeric"
+                        maxLength={11}
+                      />
                       <label className="grid gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
                           WhatsApp
@@ -175,6 +248,15 @@ export function MemberModals({
                           style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
                         />
                       </label>
+                      <ProfileInput
+                        label={memberProfile ? "Nova senha (opcional)" : "Senha"}
+                        value={memberPassword}
+                        onChange={(value) => setMemberPassword(value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="6 dígitos"
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={6}
+                      />
                       <label className="grid gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
                           Aniversário
@@ -201,6 +283,7 @@ export function MemberModals({
                         <ProfileInput label="Referência" value={memberReference} onChange={setMemberReference} placeholder="Próximo a..." />
                       </div>
                     </div>
+                    )}
       
                     {memberError && (
                       <p
@@ -212,7 +295,7 @@ export function MemberModals({
                     )}
       
                     <button
-                      onClick={saveMember}
+                      onClick={memberAuthMode === "login" ? loginMember : saveMember}
                       disabled={memberSaving}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-wider"
                       style={{
@@ -221,7 +304,13 @@ export function MemberModals({
                         opacity: memberSaving ? 0.76 : 1,
                       }}
                     >
-                      {memberSaving ? "Cadastrando" : "Cadastrar"}
+                      {memberSaving
+                        ? memberAuthMode === "login"
+                          ? "Entrando"
+                          : "Cadastrando"
+                        : memberAuthMode === "login"
+                          ? "Entrar"
+                          : "Cadastrar"}
                       {memberSaving ? (
                         <Loader2
                           size={16}
@@ -346,11 +435,17 @@ function ProfileInput({
   value,
   onChange,
   placeholder,
+  type = "text",
+  inputMode,
+  maxLength,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  type?: HTMLInputTypeAttribute;
+  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
+  maxLength?: number;
 }) {
   return (
     <label className="grid min-w-0 gap-1">
@@ -361,6 +456,9 @@ function ProfileInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        type={type}
+        inputMode={inputMode}
+        maxLength={maxLength}
         className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
         style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
       />
