@@ -197,5 +197,6 @@ function paymentMethodLabel(order: Order) {
   if (order.paymentMethod === "pix") return "Pix aprovado";
   if (order.paymentMethod === "cartao") return "Cartão";
   if (order.paymentMethod === "pagar_na_entrega") return "Pagar na entrega";
+  if (order.paymentMethod === "whatsapp") return "Pago WhatsApp";
   return "Pagamento local";
 }

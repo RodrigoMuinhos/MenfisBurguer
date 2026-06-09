@@ -1,7 +1,12 @@
 import { CartItem } from "@/types/order";
 
 export type DeliveryType = "retirada" | "delivery";
-export type PaymentMethod = "pix" | "cartao" | "presencial" | "pagar_na_entrega";
+export type PaymentMethod =
+  | "pix"
+  | "cartao"
+  | "presencial"
+  | "pagar_na_entrega"
+  | "whatsapp";
 export type CheckoutStep = "bag" | "delivery" | "customer" | "payment" | "review";
 export type KioskKeyboardTarget = "name" | "phone" | "coupon" | null;
 export type OrderRuntimeMode = "counter" | "delivery";

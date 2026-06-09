@@ -151,6 +151,15 @@ export function paymentInfo(order: Order) {
       border: "#FDE68A",
     };
   }
+  if (order.paymentMethod === "whatsapp") {
+    return {
+      label: "Pagamento por WhatsApp",
+      copy: "O atendimento vai combinar o pagamento e liberar o pedido para a cozinha.",
+      color: "#065F46",
+      bg: "#ECFDF5",
+      border: "#6EE7B7",
+    };
+  }
   const rejected = ["rejected", "cancelled", "refunded", "charged_back"].includes(status);
   const approved = status === "approved";
   const pending =

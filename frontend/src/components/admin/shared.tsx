@@ -167,6 +167,14 @@ export function paymentBadge(order: Order) {
       border: "#FDE68A",
     };
   }
+  if (order.paymentMethod === "whatsapp") {
+    return {
+      label: "Pagar por WhatsApp",
+      bg: "#ECFDF5",
+      text: "#065F46",
+      border: "#6EE7B7",
+    };
+  }
   if (status === "approved") {
     return { label: "Pago", bg: "#ECFDF5", text: "#065F46", border: "#6EE7B7" };
   }

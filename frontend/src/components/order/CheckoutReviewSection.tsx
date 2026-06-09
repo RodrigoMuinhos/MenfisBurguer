@@ -158,7 +158,9 @@ export function CheckoutReviewSection({
                   ? "Ao confirmar, seu pedido será enviado direto para a cozinha."
                   : payment === "pagar_na_entrega"
                     ? "Ao continuar, o pedido será enviado para a cozinha e o pagamento será feito no recebimento."
-                    : "Ao continuar, o pedido será registrado no backend e você será enviado para o Mercado Pago para pagar com Pix ou cartão."}
+                    : payment === "whatsapp"
+                      ? "Ao continuar, o pedido será enviado ao atendimento. A equipe chamará no WhatsApp, receberá o pagamento e liberará para a cozinha."
+                      : "Ao continuar, o pedido será registrado no backend e você será enviado para o Mercado Pago para pagar com Pix ou cartão."}
               </p>
             </div>
           </div>

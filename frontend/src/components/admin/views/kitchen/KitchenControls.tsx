@@ -128,6 +128,8 @@ export function KitchenControls({
                 ? "Cartão"
                 : selectedOrder.paymentMethod === "pagar_na_entrega"
                   ? "Na entrega"
+                  : selectedOrder.paymentMethod === "whatsapp"
+                    ? "WhatsApp"
                   : "Atendimento"}
           </span>
         </div>

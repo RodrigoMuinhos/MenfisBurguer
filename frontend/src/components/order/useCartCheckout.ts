@@ -452,7 +452,9 @@ export function useCartCheckout({
       : checkoutStep === "review"
       ? kioskMode
         ? "Ir para pagamento"
-        : "Fazer pagamento"
+        : payment === "whatsapp"
+          ? "Enviar para atendimento"
+          : "Fazer pagamento"
       : "Continuar";
 
   const clearCart = () => {

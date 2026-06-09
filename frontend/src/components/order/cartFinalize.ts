@@ -153,6 +153,28 @@ export async function submitCheckoutOrder({
       return;
     }
 
+    if (payment === "whatsapp") {
+      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, {
+        id: String(createdOrder.id),
+        number: Number(
+          createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
+        ),
+        channel: "DELIVERY",
+        items: cart.map((item) => ({ ...item })),
+        removedByItemId,
+        deliveryType: effectiveDelivery,
+        customerName: customerName.trim() || undefined,
+        customerPhone: phone || undefined,
+        customerAddress: address,
+        total: Number(createdOrder.total ?? total),
+        paymentMethod: "whatsapp",
+        paymentStatus: "awaiting_whatsapp",
+        timestamp: Date.now(),
+        status: "PAYMENT_PENDING",
+      });
+      return;
+    }
+
     const paymentRes = await fetch(`${API_URL}/payments/pix`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -4,5 +4,6 @@ public enum PaymentMethod {
   PIX,
   CARTAO,
   PRESENCIAL,
-  PAGAR_NA_ENTREGA
+  PAGAR_NA_ENTREGA,
+  WHATSAPP
 }

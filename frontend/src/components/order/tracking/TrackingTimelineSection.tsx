@@ -44,6 +44,7 @@ export function TrackingTimelineSection({
     ].includes(paymentStatus) || order.status === "CANCELLED";
   const paymentApproved = paymentStatus === "approved";
   const waitingPayment = order.status === "PAYMENT_PENDING" && !paymentApproved && !paymentFailed;
+  const whatsappPayment = order.paymentMethod === "whatsapp";
   const paymentLabel = paymentApproved
     ? "Pagamento aprovado"
     : paymentFailed
@@ -51,7 +52,9 @@ export function TrackingTimelineSection({
       : "Aguardando pagamento";
   const timelineCopy =
     waitingPayment
-      ? "Finalize o pagamento pelo Mercado Pago. O pedido só entra na cozinha depois da confirmação."
+      ? whatsappPayment
+        ? "Seu pedido foi enviado ao atendimento. A equipe vai chamar no WhatsApp, receber o pagamento e liberar para a cozinha."
+        : "Finalize o pagamento pelo Mercado Pago. O pedido só entra na cozinha depois da confirmação."
       : paymentFailed
         ? "Esse pagamento não foi aprovado. Tente novamente para enviar o pedido para a cozinha."
         : order.status === "PAID"
@@ -94,7 +97,9 @@ export function TrackingTimelineSection({
               <p className="mt-1 text-xs font-bold leading-relaxed opacity-75">
                 {paymentFailed
                   ? "O Mercado Pago não aprovou esse pagamento. Você pode tentar pagar novamente."
-                  : "O pedido foi criado, mas ainda não foi pago. Para enviar para a cozinha, finalize pelo Mercado Pago."}
+                  : whatsappPayment
+                    ? "O pedido foi criado e está com o atendimento. A equipe vai chamar no WhatsApp para receber e liberar para a cozinha."
+                    : "O pedido foi criado, mas ainda não foi pago. Para enviar para a cozinha, finalize pelo Mercado Pago."}
               </p>
               {retryPaymentError && (
                 <p className="mt-2 rounded-xl px-3 py-2 text-xs font-black" style={{ background: "#fff" }}>
@@ -102,14 +107,16 @@ export function TrackingTimelineSection({
                 </p>
               )}
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <button
-                  onClick={onRetryPayment}
-                  disabled={retryingPayment}
-                  className="rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55"
-                  style={{ background: VERDE, color: ROSA }}
-                >
-                  {retryingPayment ? "Abrindo Mercado Pago" : "Tentar novamente"}
-                </button>
+                {!whatsappPayment && (
+                  <button
+                    onClick={onRetryPayment}
+                    disabled={retryingPayment}
+                    className="rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55"
+                    style={{ background: VERDE, color: ROSA }}
+                  >
+                    {retryingPayment ? "Abrindo Mercado Pago" : "Tentar novamente"}
+                  </button>
+                )}
                 <a
                   href={`${WHATSAPP_URL}?text=${paymentHelpText}`}
                   target="_blank"

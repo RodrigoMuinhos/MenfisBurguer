@@ -65,7 +65,9 @@ export function CartStickyCta({
                             ? "Ir para pagamento"
                             : payment === "pagar_na_entrega"
                               ? "Enviar pedido"
-                              : "Fazer pagamento"}
+                              : payment === "whatsapp"
+                                ? "Enviar ao atendimento"
+                                : "Fazer pagamento"}
                   </p>
                 </div>
                 <div className="text-right">
@@ -114,7 +116,9 @@ export function CartStickyCta({
                   {paying
                     ? kioskMode
                       ? "ENVIANDO PEDIDO"
-                      : "INICIANDO PAGAMENTO"
+                      : payment === "whatsapp"
+                        ? "ENVIANDO AO ATENDIMENTO"
+                        : "INICIANDO PAGAMENTO"
                     : nextActionLabel}{" "}
                   - {fmt(total)}
                 </span>

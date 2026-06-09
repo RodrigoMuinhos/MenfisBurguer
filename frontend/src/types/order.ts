@@ -16,7 +16,8 @@ export type PaymentMethod =
   | "cartao"
   | "dinheiro"
   | "presencial"
-  | "pagar_na_entrega";
+  | "pagar_na_entrega"
+  | "whatsapp";
 
 export interface CartItem {
   id: string;

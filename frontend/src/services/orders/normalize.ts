@@ -34,6 +34,7 @@ function normalizePaymentMethod(value?: string | null): PaymentMethod | undefine
   const normalized = value.toUpperCase();
   if (normalized === "PRESENCIAL") return "presencial";
   if (normalized === "PAGAR_NA_ENTREGA") return "pagar_na_entrega";
+  if (normalized === "WHATSAPP") return "whatsapp";
   if (normalized === "DINHEIRO") return "dinheiro";
   return normalized === "CARTAO" ? "cartao" : "pix";
 }

@@ -190,6 +190,8 @@ export function PaymentStepSection({
                                 ? "Escolha a forma de pagamento"
                                 : payment === "pagar_na_entrega"
                                   ? "Pagamento no recebimento"
+                                  : payment === "whatsapp"
+                                    ? "Pagamento pelo atendimento"
                                   : "Pagamento seguro"}
                             </p>
                             <p
@@ -200,6 +202,8 @@ export function PaymentStepSection({
                                 ? "Se for PIX, confira os dados abaixo. Se for cartão, aguarde o atendente levar a maquininha."
                                 : payment === "pagar_na_entrega"
                                   ? "Seu pedido será preparado e você pagará quando receber."
+                                  : payment === "whatsapp"
+                                    ? "A equipe chamará no WhatsApp para receber e liberar seu pedido para a cozinha."
                                   : "Você finaliza pelo Mercado Pago e acompanha a confirmação do pedido."}
                             </p>
                           </div>
@@ -210,23 +214,29 @@ export function PaymentStepSection({
                           <div
                             className={`grid gap-3 ${
                               payOnDeliveryEnabled
-                                ? "md:grid-cols-3"
-                                : "md:grid-cols-2"
+                                ? "md:grid-cols-4"
+                                : "md:grid-cols-3"
                             }`}
                           >
                             {(
                               [
                                 {
                                   id: "pix",
-                                  label: "Pix",
-                                  copy: "Aprovação rápida",
+                                  label: "Mercado Pago Pix",
+                                  copy: "Pagar online agora",
                                   Icon: QrCode,
                                 },
                                 {
                                   id: "cartao",
-                                  label: "Cartão",
-                                  copy: "Crédito ou débito",
+                                  label: "Mercado Pago Cartão",
+                                  copy: "Crédito ou débito online",
                                   Icon: CreditCard,
+                                },
+                                {
+                                  id: "whatsapp" as PaymentMethod,
+                                  label: "Pagar por WhatsApp",
+                                  copy: "Atendente combina e libera",
+                                  Icon: MessageCircle,
                                 },
                                 ...(payOnDeliveryEnabled
                                   ? [

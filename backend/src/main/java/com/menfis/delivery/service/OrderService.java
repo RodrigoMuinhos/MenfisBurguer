@@ -71,6 +71,7 @@ public class OrderService {
       throw new IllegalArgumentException("pay_on_delivery_disabled");
     }
     boolean payOnDelivery = request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA;
+    boolean payByWhatsapp = request.paymentMethod() == PaymentMethod.WHATSAPP;
     OrderChannel channel = request.channel() == null
       ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
       : request.channel();
@@ -106,13 +107,13 @@ public class OrderService {
       price.subtotal(),
       deliveryFee,
       total,
-      paidKiosk || request.paymentMethod() == PaymentMethod.PRESENCIAL || payOnDelivery
+      paidKiosk || request.paymentMethod() == PaymentMethod.PRESENCIAL || payOnDelivery || payByWhatsapp
         ? null
         : "MERCADO_PAGO",
       request.paymentMethod().name(),
       paidKiosk
         ? "approved"
-        : payOnDelivery ? "awaiting_delivery" : "pending",
+        : payOnDelivery ? "awaiting_delivery" : payByWhatsapp ? "awaiting_whatsapp" : "pending",
       System.currentTimeMillis(),
       status.name(),
       cleanIdempotency(request.idempotencyKey()),
