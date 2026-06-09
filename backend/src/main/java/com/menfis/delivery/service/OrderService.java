@@ -390,6 +390,7 @@ public class OrderService {
       case IN_PREPARATION -> to == OrderStatus.READY;
       case READY -> to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> to == OrderStatus.DELIVERED;
+      case CANCELLED -> to == OrderStatus.PAID;
       default -> false;
     };
   }

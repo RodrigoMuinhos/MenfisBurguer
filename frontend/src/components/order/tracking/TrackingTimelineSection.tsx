@@ -1,10 +1,10 @@
 import Image from "next/image";
 import { motion } from "motion/react";
-import { AlertCircle, Clock, QrCode } from "lucide-react";
+import { AlertCircle, Clock, MessageCircle, QrCode } from "lucide-react";
 import logoSkull from "@/imports/image-1.png";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
-import { STEPS } from "../tracking";
+import { STEPS, WHATSAPP_URL } from "../tracking";
 
 export function TrackingTimelineSection({
   order,
@@ -32,15 +32,16 @@ export function TrackingTimelineSection({
   onRetryPayment: () => void;
 }) {
   const paymentStatus = String(order.paymentStatus ?? "").toLowerCase();
-  const paymentFailed = [
-    "rejected",
-    "failed",
-    "cancelled",
-    "canceled",
-    "expired",
-    "refunded",
-    "charged_back",
-  ].includes(paymentStatus);
+  const paymentFailed =
+    [
+      "rejected",
+      "failed",
+      "cancelled",
+      "canceled",
+      "expired",
+      "refunded",
+      "charged_back",
+    ].includes(paymentStatus) || order.status === "CANCELLED";
   const paymentApproved = paymentStatus === "approved";
   const waitingPayment = order.status === "PAYMENT_PENDING" && !paymentApproved && !paymentFailed;
   const paymentLabel = paymentApproved
@@ -69,6 +70,9 @@ export function TrackingTimelineSection({
   const progressInset = 100 / (STEPS.length * 2);
   const progressWidth =
     current <= 0 ? 0 : (current / (STEPS.length - 1)) * (100 - progressInset * 2);
+  const paymentHelpText = encodeURIComponent(
+    `Olá, preciso de ajuda com o pagamento do pedido ${order.id}.`,
+  );
 
   return (
     <>
@@ -97,14 +101,26 @@ export function TrackingTimelineSection({
                   {retryPaymentError}
                 </p>
               )}
-              <button
-                onClick={onRetryPayment}
-                disabled={retryingPayment}
-                className="mt-3 rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55"
-                style={{ background: VERDE, color: ROSA }}
-              >
-                {retryingPayment ? "Abrindo Mercado Pago" : "Tentar pagamento novamente"}
-              </button>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <button
+                  onClick={onRetryPayment}
+                  disabled={retryingPayment}
+                  className="rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55"
+                  style={{ background: VERDE, color: ROSA }}
+                >
+                  {retryingPayment ? "Abrindo Mercado Pago" : "Tentar novamente"}
+                </button>
+                <a
+                  href={`${WHATSAPP_URL}?text=${paymentHelpText}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-wider"
+                  style={{ background: "#25D366", color: "#fff", textDecoration: "none" }}
+                >
+                  <MessageCircle size={16} strokeWidth={2.4} />
+                  Falar com atendente
+                </a>
+              </div>
             </div>
           </div>
         </div>

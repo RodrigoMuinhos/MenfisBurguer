@@ -36,6 +36,20 @@ export function OrdersView({
   const selected =
     filteredOrders.find((order) => order.id === selectedId) ??
     filteredOrders[0];
+  const selectedPaymentStatus = String(selected?.paymentStatus ?? "").toLowerCase();
+  const paymentRejected = [
+    "rejected",
+    "failed",
+    "cancelled",
+    "canceled",
+    "expired",
+    "refunded",
+    "charged_back",
+  ].includes(selectedPaymentStatus);
+  const canReleasePayment =
+    selected &&
+    (selected.status === "PAYMENT_PENDING" ||
+      (selected.status === "CANCELLED" && selected.paymentProvider === "mercado_pago" && paymentRejected));
 
   if (!selected) {
     return (
@@ -161,7 +175,16 @@ export function OrdersView({
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {(selected.status === "PAYMENT_PENDING" || selected.status === "PAID") && (
+            {canReleasePayment && (
+              <button
+                onClick={() => updateOrderStatus(selected.id, "PAID")}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+                style={{ background: "#16A34A", color: "#fff" }}
+              >
+                <Check size={15} /> Liberar pagamento
+              </button>
+            )}
+            {selected.status === "PAID" && (
               <button
                 onClick={() => updateOrderStatus(selected.id, "IN_PREPARATION")}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
