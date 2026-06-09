@@ -244,7 +244,7 @@ export function OrdersView({
                 <MessageCircle size={15} /> Enviar confirmação
               </a>
             )}
-            {selected.status === "READY" && orderReadyWhatsappUrl(selected) && (
+            {selected.status === "READY" && (
               <button
                 onClick={() =>
                   updateOrderStatus(
@@ -257,6 +257,15 @@ export function OrdersView({
               >
                 <BellRing size={15} />
                 {selected.deliveryType === "delivery" ? "Saiu para entrega" : "Finalizar entregue"}
+              </button>
+            )}
+            {selected.status === "OUT_FOR_DELIVERY" && (
+              <button
+                onClick={() => updateOrderStatus(selected.id, "DELIVERED")}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+                style={{ background: "#16A34A", color: "#fff" }}
+              >
+                <Check size={15} /> Entregue
               </button>
             )}
             {selected.status === "READY" && orderReadyWhatsappUrl(selected) && (

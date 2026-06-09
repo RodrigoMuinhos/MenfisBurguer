@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type ElementType } from "react";
 import {
   ChefHat,
   ClipboardList,
+  Bike,
   MessageCircle,
   Package,
-  Settings,
   TicketPercent,
   TrendingUp,
   Users,
@@ -40,7 +40,7 @@ import {
 } from "./adminBackend";
 import { useAdminBackend } from "./useAdminBackend";
 
-export type AdminTab = "pedidos" | "cozinha" | "dashboard" | "estoque" | "clientes" | "suporte" | "cupons" | "config";
+export type AdminTab = "pedidos" | "cozinha" | "entrega" | "dashboard" | "estoque" | "clientes" | "suporte" | "cupons" | "config";
 
 interface Props {
   orders: Order[];
@@ -121,12 +121,12 @@ export function AdminPanel({
   const tabs: { id: AdminTab; label: string; Icon: ElementType }[] = [
     { id: "pedidos", label: "Pedidos", Icon: ClipboardList },
     { id: "cozinha", label: "Cozinha", Icon: ChefHat },
+    { id: "entrega", label: "Entrega", Icon: Bike },
     { id: "dashboard", label: "Dashboard", Icon: TrendingUp },
     { id: "estoque", label: "Estoque", Icon: Package },
     { id: "clientes", label: "Clientes", Icon: Users },
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
     { id: "cupons", label: "Cupons", Icon: TicketPercent },
-    { id: "config", label: "Config", Icon: Settings },
   ];
 
   const activeOrders = orders.filter(
@@ -143,6 +143,11 @@ export function AdminPanel({
     pedidos: activeOrders,
     cozinha: orders.filter((order) =>
       ["PAID", "IN_PREPARATION", "READY"].includes(order.status),
+    ).length,
+    entrega: orders.filter(
+      (order) =>
+        order.deliveryType === "delivery" &&
+        ["READY", "OUT_FOR_DELIVERY"].includes(order.status),
     ).length,
     estoque: stockItems.filter((item) => item.qty <= item.minQty).length,
     clientes: crmCustomers.length,
@@ -422,7 +427,13 @@ export function AdminPanel({
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      {!kitchenOnly && <AdminHeader activeOrders={activeOrders} onClose={onClose} />}
+      {!kitchenOnly && (
+        <AdminHeader
+          activeOrders={activeOrders}
+          onClose={onClose}
+          onOpenConfig={() => setTab("config")}
+        />
+      )}
       {!kitchenOnly && (
         <AdminTabs
           tabs={tabs}
@@ -476,6 +487,16 @@ export function AdminPanel({
             onSaveItem={persistStockItem}
             onMoveItem={persistStockMovement}
             onDeleteItem={persistStockDelete}
+          />
+        )}
+        {tab === "entrega" && (
+          <OrdersView
+            orders={orders.filter(
+              (order) =>
+                order.deliveryType === "delivery" &&
+                ["READY", "OUT_FOR_DELIVERY"].includes(order.status),
+            )}
+            updateOrderStatus={updateOrderStatus}
           />
         )}
         {tab === "clientes" && <CustomersCrmView customers={crmCustomers} />}

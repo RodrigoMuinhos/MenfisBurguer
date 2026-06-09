@@ -1,5 +1,5 @@
-import type { ElementType } from "react";
-import { BellRing, Check, LogOut } from "lucide-react";
+import { useState, type ElementType } from "react";
+import { BellRing, Check, LogOut, Settings } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import type { AdminTab } from "./AdminPanel";
@@ -14,13 +14,17 @@ type AdminTabItem = {
 export function AdminHeader({
   activeOrders,
   onClose,
+  onOpenConfig,
 }: {
   activeOrders: number;
   onClose: () => void;
+  onOpenConfig: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div
-      className="flex items-center gap-3 px-4 pt-5 pb-4"
+      className="relative flex items-center gap-3 px-4 pb-4 pt-5"
       style={{ background: VERDE, borderBottom: `2px solid ${ROSA}22` }}
     >
       <img
@@ -55,19 +59,47 @@ export function AdminHeader({
           {activeOrders !== 1 ? "s" : ""}
         </p>
       </div>
-      <button
-        onClick={onClose}
-        className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider"
-        style={{
-          background: `${ROSA}20`,
-          border: "none",
-          color: ROSA,
-          cursor: "pointer",
-        }}
-      >
-        <LogOut size={16} strokeWidth={2.5} />
-        Sair
-      </button>
+      <div className="relative">
+        <button
+          onClick={() => setMenuOpen((open) => !open)}
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full"
+          aria-label="Configurações"
+          style={{
+            background: `${ROSA}20`,
+            border: "none",
+            color: ROSA,
+            cursor: "pointer",
+          }}
+        >
+          <Settings size={20} strokeWidth={2.5} />
+        </button>
+        {menuOpen && (
+          <div
+            className="absolute right-0 top-14 z-50 grid w-52 gap-2 rounded-2xl p-2 shadow-2xl"
+            style={{ background: "#fff", border: `1px solid ${VERDE}18` }}
+          >
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                onOpenConfig();
+              }}
+              className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-black uppercase tracking-wider"
+              style={{ background: "#FFF8F2", color: VERDE }}
+            >
+              <Settings size={16} strokeWidth={2.5} />
+              Configurações
+            </button>
+            <button
+              onClick={onClose}
+              className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-xs font-black uppercase tracking-wider"
+              style={{ background: "#FEF2F2", color: "#991B1B" }}
+            >
+              <LogOut size={16} strokeWidth={2.5} />
+              Sair
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
