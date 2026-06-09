@@ -22,4 +22,14 @@ public class AuthController {
   public LoginResponse login(@Valid @RequestBody LoginRequest request) {
     return auth.login(request.login(), request.password());
   }
+
+  @PostMapping("/kds")
+  public LoginResponse kds() {
+    return auth.kdsSession();
+  }
+
+  @PostMapping("/delivery")
+  public LoginResponse delivery() {
+    return auth.deliverySession();
+  }
 }

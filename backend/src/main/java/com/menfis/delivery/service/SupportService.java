@@ -108,7 +108,7 @@ public class SupportService {
         'Ticket automático: pedido ainda não entregue após 50 minutos.', o.customer_phone
       from orders o
       where o.created_at < now() - interval '50 minutes'
-        and o.status in ('RECEIVED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY')
+        and o.status in ('PAID', 'IN_PREPARATION', 'READY', 'OUT_FOR_DELIVERY')
         and not exists (
           select 1 from support_tickets st
           where st.order_id = o.id and st.type = 'ORDER_DELAYED'

@@ -1,13 +1,16 @@
 package com.menfis.delivery.dto;
 
 import com.menfis.delivery.domain.DeliveryType;
+import com.menfis.delivery.domain.OrderChannel;
 import com.menfis.delivery.domain.PaymentMethod;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -23,8 +26,10 @@ public class ApiDtos {
 
   public record CreateOrderRequest(
     @NotEmpty List<@Valid OrderItemRequest> items,
+    OrderChannel channel,
     @NotNull DeliveryType deliveryType,
     @NotNull PaymentMethod paymentMethod,
+    String customerName,
     String customerPhone,
     String customerAddress,
     String cpf,
@@ -37,7 +42,9 @@ public class ApiDtos {
     String id,
     long number,
     List<Map<String, Object>> items,
+    OrderChannel channel,
     DeliveryType deliveryType,
+    String customerName,
     String customerPhone,
     String customerAddress,
     BigDecimal subtotal,
@@ -55,6 +62,8 @@ public class ApiDtos {
   public record StatusResponse(String id, String status, OffsetDateTime paidAt, OffsetDateTime confirmedAt) {}
 
   public record PatchStatusRequest(@NotNull String status, String actor, String reason) {}
+
+  public record ConfirmDeliveryRequest(@NotBlank String code, String actor) {}
 
   public record SupportTicketRequest(
     @NotBlank String orderId,
@@ -98,12 +107,54 @@ public class ApiDtos {
     @NotBlank String name,
     @NotBlank String unit,
     @NotNull BigDecimal quantity,
-    @NotNull BigDecimal minQuantity
+    @NotNull BigDecimal minQuantity,
+    BigDecimal unitCost,
+    LocalDate entryDate,
+    LocalDate expiryDate
   ) {}
 
   public record StockMovementRequest(@NotBlank String type, @NotNull BigDecimal quantity, String note) {}
 
+  public record CouponRequest(
+    @NotBlank String code,
+    @NotBlank String label,
+    @NotBlank String type,
+    @NotNull BigDecimal value,
+    Boolean active
+  ) {}
+
   public record LoginRequest(@NotBlank String login, @NotBlank String password) {}
 
   public record LoginResponse(String token, String role) {}
+
+  public record CustomerProfileRequest(
+    @NotBlank String name,
+    @NotBlank String phone,
+    @NotBlank @Email String email,
+    LocalDate birthday,
+    Integer birthYear,
+    String cep,
+    String street,
+    String number,
+    String complement,
+    String neighborhood,
+    String city,
+    String reference
+  ) {}
+
+  public record CustomerProfileResponse(
+    long id,
+    String name,
+    String phone,
+    String email,
+    LocalDate birthday,
+    Integer birthYear,
+    String avatarUrl,
+    Map<String, Object> defaultAddress,
+    long orderCount,
+    BigDecimal totalSpent,
+    OffsetDateTime lastOrderAt
+  ) {}
+
+  public record CustomerSessionResponse(String token, String role, CustomerProfileResponse customer) {}
 }

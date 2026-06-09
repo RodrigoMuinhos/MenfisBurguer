@@ -14,25 +14,29 @@ public class KdsService {
   private final JdbcTemplate jdbc;
   private final OrderService orders;
   private final InventoryService inventory;
+  private final SettingsService settings;
 
-  public KdsService(JdbcTemplate jdbc, OrderService orders, InventoryService inventory) {
+  public KdsService(JdbcTemplate jdbc, OrderService orders, InventoryService inventory, SettingsService settings) {
     this.jdbc = jdbc;
     this.orders = orders;
     this.inventory = inventory;
+    this.settings = settings;
   }
 
   public Map<String, List<OrderResponse>> board() {
     List<OrderResponse> rows = jdbc.queryForList(
       """
       select id from orders
-      where status in ('RECEIVED', 'PREPARING', 'READY')
+      where status in ('PAID', 'IN_PREPARATION', 'READY')
+        and test_mode = ?
       order by confirmed_at asc nulls last, number asc
-      """
+      """,
+      settings.testModeEnabled()
     ).stream().map(row -> orders.get((String) row.get("id"))).toList();
 
     return Map.of(
-      "received", rows.stream().filter(o -> o.status().equals("RECEIVED")).toList(),
-      "preparing", rows.stream().filter(o -> o.status().equals("PREPARING")).toList(),
+      "paid", rows.stream().filter(o -> o.status().equals("PAID")).toList(),
+      "inPreparation", rows.stream().filter(o -> o.status().equals("IN_PREPARATION")).toList(),
       "ready", rows.stream().filter(o -> o.status().equals("READY")).toList()
     );
   }
@@ -42,17 +46,17 @@ public class KdsService {
     OrderResponse order = orders.get(id);
     OrderStatus current = OrderStatus.valueOf(order.status());
     OrderStatus next = switch (current) {
-      case RECEIVED -> OrderStatus.PREPARING;
-      case PREPARING -> OrderStatus.READY;
+      case PAID -> OrderStatus.IN_PREPARATION;
+      case IN_PREPARATION -> OrderStatus.READY;
       case READY -> order.deliveryType() == DeliveryType.DELIVERY ? OrderStatus.OUT_FOR_DELIVERY : OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> OrderStatus.DELIVERED;
       default -> throw new IllegalArgumentException("order_not_advanceable");
     };
-    if (current == OrderStatus.RECEIVED) {
+    if (current == OrderStatus.PAID) {
       inventory.deductForOrder(order.id());
     }
     String event = switch (next) {
-      case PREPARING -> "ORDER_ACCEPTED";
+      case IN_PREPARATION -> "ORDER_ACCEPTED";
       case READY -> "ORDER_READY";
       case OUT_FOR_DELIVERY -> "OUT_FOR_DELIVERY";
       case DELIVERED -> "ORDER_DELIVERED";

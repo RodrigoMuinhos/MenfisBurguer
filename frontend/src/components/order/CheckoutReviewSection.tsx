@@ -1,0 +1,240 @@
+import { Loader2, MessageCircle, QrCode } from "lucide-react";
+import { motion } from "motion/react";
+import { ROSA, VERDE } from "@/utils/theme";
+import {
+  CheckoutStep,
+  Coupon,
+  KioskKeyboardTarget,
+  PaymentMethod,
+  SUPPORT_WHATSAPP_URL,
+} from "./checkout";
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      className="mb-2 text-[10px] font-black uppercase tracking-widest"
+      style={{ color: VERDE, opacity: 0.55 }}
+    >
+      {children}
+    </p>
+  );
+}
+
+export function CheckoutReviewSection({
+  checkoutStep,
+  kioskMode,
+  payment,
+  paymentError,
+  paymentSlow,
+  couponCode,
+  setCouponCode,
+  couponError,
+  setCouponError,
+  appliedCoupon,
+  setAppliedCoupon,
+  applyCoupon,
+  inputStyle,
+  setCheckoutStep,
+  setKioskKeyboardTarget,
+}: {
+  checkoutStep: CheckoutStep;
+  kioskMode: boolean;
+  payment: PaymentMethod;
+  paymentError: string;
+  paymentSlow: boolean;
+  couponCode: string;
+  setCouponCode: (value: string) => void;
+  couponError: string;
+  setCouponError: (value: string) => void;
+  appliedCoupon: Coupon | null;
+  setAppliedCoupon: (coupon: Coupon | null) => void;
+  applyCoupon: () => void;
+  inputStyle: (err?: boolean) => React.CSSProperties;
+  setCheckoutStep: (step: CheckoutStep) => void;
+  setKioskKeyboardTarget: (target: KioskKeyboardTarget) => void;
+}) {
+  const supportText = encodeURIComponent(
+    "Olá, preciso de ajuda para finalizar meu pedido Menfi's.",
+  );
+
+  return (
+    <>
+      {paymentError && (
+        <div
+          className="rounded-xl px-3 py-2 text-[11px] font-semibold"
+          style={{ background: `${ROSA}80`, color: VERDE }}
+        >
+          {paymentError}
+        </div>
+      )}
+
+      {(checkoutStep === "bag" || checkoutStep === "review") && (
+        <div
+          className="rounded-2xl p-4"
+          style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
+        >
+          <SectionLabel>Cupom</SectionLabel>
+          <div className="flex gap-2">
+            <input
+              value={couponCode}
+              onFocus={() => {
+                if (kioskMode) setKioskKeyboardTarget("coupon");
+              }}
+              onClick={() => {
+                if (kioskMode) setKioskKeyboardTarget("coupon");
+              }}
+              onChange={(event) => {
+                setCouponCode(event.target.value);
+                setCouponError("");
+              }}
+              placeholder="Digite seu cupom"
+              inputMode={kioskMode ? "none" : "text"}
+              autoComplete="off"
+              style={inputStyle(Boolean(couponError))}
+            />
+            <button
+              onClick={applyCoupon}
+              className="rounded-xl px-4 text-xs font-black uppercase tracking-wider"
+              style={{ background: VERDE, color: ROSA }}
+            >
+              Aplicar
+            </button>
+          </div>
+          {couponError && (
+            <p className="mt-2 text-[11px] font-bold" style={{ color: "#B91C1C" }}>
+              {couponError}
+            </p>
+          )}
+          {appliedCoupon && (
+            <div
+              className="mt-3 flex items-center justify-between rounded-xl px-3 py-2"
+              style={{ background: `${ROSA}45`, color: VERDE }}
+            >
+              <div>
+                <p className="text-xs font-black uppercase tracking-wide">
+                  {appliedCoupon.code}
+                </p>
+                <p className="text-[11px] opacity-65">{appliedCoupon.label}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setAppliedCoupon(null);
+                  setCouponCode("");
+                  setCouponError("");
+                }}
+                className="text-[10px] font-black uppercase tracking-wider"
+                style={{ color: VERDE }}
+              >
+                Remover
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {checkoutStep === "review" && (
+        <div
+          className={`rounded-2xl p-5 ${kioskMode ? "" : "mx-auto max-w-3xl"}`}
+          style={{ background: "#fff", border: `1.5px solid ${VERDE}20` }}
+        >
+          <div
+            className={`flex items-start gap-3 ${kioskMode ? "" : "justify-center text-center"}`}
+          >
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: ROSA, color: VERDE }}
+            >
+              <QrCode size={18} strokeWidth={2.4} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
+                {kioskMode ? "Envio direto para cozinha" : "Tudo pronto para pagar"}
+              </p>
+              <p
+                className="mt-1 text-[11px] leading-relaxed"
+                style={{ color: VERDE, opacity: 0.65 }}
+              >
+                {kioskMode
+                  ? "Ao confirmar, seu pedido será enviado direto para a cozinha."
+                  : payment === "pagar_na_entrega"
+                    ? "Ao continuar, o pedido será enviado para a cozinha e o pagamento será feito no recebimento."
+                    : "Ao continuar, o pedido será registrado no backend e você será enviado para o Mercado Pago para pagar com Pix ou cartão."}
+              </p>
+            </div>
+          </div>
+          <div className={`mt-4 grid gap-2 ${kioskMode ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+            <button
+              onClick={() => setCheckoutStep("bag")}
+              className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
+              style={{
+                background: `${VERDE}08`,
+                color: VERDE,
+                border: `1px solid ${VERDE}14`,
+              }}
+            >
+              Alterar pedido
+            </button>
+            {kioskMode ? (
+              <button
+                onClick={() => setCheckoutStep("customer")}
+                className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
+                style={{
+                  background: `${VERDE}08`,
+                  color: VERDE,
+                  border: `1px solid ${VERDE}14`,
+                }}
+              >
+                Alterar dados
+              </button>
+            ) : (
+              <button
+                onClick={() => setCheckoutStep("delivery")}
+                className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
+                style={{
+                  background: `${VERDE}08`,
+                  color: VERDE,
+                  border: `1px solid ${VERDE}14`,
+                }}
+              >
+                Alterar entrega
+              </button>
+            )}
+            {!kioskMode && (
+              <a
+                href={`${SUPPORT_WHATSAPP_URL}?text=${supportText}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
+                style={{
+                  background: VERDE,
+                  color: ROSA,
+                  border: `1px solid ${VERDE}`,
+                }}
+              >
+                <MessageCircle size={15} strokeWidth={2.4} />
+                WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {paymentSlow && !kioskMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold"
+          style={{ background: `${ROSA}80`, color: VERDE }}
+        >
+          <Loader2
+            size={15}
+            strokeWidth={2.4}
+            style={{ animation: "spin 1s linear infinite" }}
+          />
+          Conectando com o Mercado Pago. Seu pedido ainda não foi enviado para a
+          cozinha.
+        </motion.div>
+      )}
+    </>
+  );
+}

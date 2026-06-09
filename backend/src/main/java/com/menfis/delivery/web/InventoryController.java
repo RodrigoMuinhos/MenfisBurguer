@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +29,11 @@ public class InventoryController {
     return inventory.list();
   }
 
+  @GetMapping("/movements")
+  public List<Map<String, Object>> movements() {
+    return inventory.movements();
+  }
+
   @PostMapping("/items")
   public Map<String, Object> create(@Valid @RequestBody InventoryItemRequest request) {
     return inventory.upsert(request);
@@ -35,11 +41,25 @@ public class InventoryController {
 
   @PatchMapping("/items/{id}")
   public Map<String, Object> update(@PathVariable String id, @Valid @RequestBody InventoryItemRequest request) {
-    return inventory.upsert(new InventoryItemRequest(id, request.name(), request.unit(), request.quantity(), request.minQuantity()));
+    return inventory.upsert(new InventoryItemRequest(
+      id,
+      request.name(),
+      request.unit(),
+      request.quantity(),
+      request.minQuantity(),
+      request.unitCost(),
+      request.entryDate(),
+      request.expiryDate()
+    ));
   }
 
   @PostMapping("/items/{id}/movement")
   public Map<String, Object> movement(@PathVariable String id, @Valid @RequestBody StockMovementRequest request) {
     return inventory.movement(id, request);
+  }
+
+  @DeleteMapping("/items/{id}")
+  public void delete(@PathVariable String id) {
+    inventory.delete(id);
   }
 }

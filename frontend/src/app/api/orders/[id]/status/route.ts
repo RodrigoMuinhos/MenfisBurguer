@@ -3,13 +3,14 @@ import { ensureOrdersSchema, getPool } from "../../../_lib/db";
 
 export const runtime = "nodejs";
 
-const VALID_STATUS = new Set(["recebido", "preparo", "pronto", "entregue"]);
+const VALID_STATUS = new Set(["PAID", "IN_PREPARATION", "READY", "DELIVERED"]);
 
 type DbOrderRow = {
   id: string;
   number: string | number;
   items: unknown;
   removed_by_item_id: Record<string, string[]> | null;
+  channel: "DELIVERY" | "KIOSK";
   delivery_type: "retirada" | "delivery";
   customer_phone: string | null;
   customer_address: string | null;
@@ -19,7 +20,7 @@ type DbOrderRow = {
   payment_status: string;
   payment_id: string | null;
   timestamp: string | number;
-  status: "recebido" | "preparo" | "pronto" | "entregue";
+  status: "PAID" | "IN_PREPARATION" | "READY" | "DELIVERED";
 };
 
 function mapOrder(row: DbOrderRow) {
@@ -28,6 +29,7 @@ function mapOrder(row: DbOrderRow) {
     number: Number(row.number),
     items: Array.isArray(row.items) ? row.items : [],
     removedByItemId: row.removed_by_item_id ?? undefined,
+    channel: row.channel,
     deliveryType: row.delivery_type,
     customerPhone: row.customer_phone ?? undefined,
     customerAddress: row.customer_address ?? undefined,
@@ -58,13 +60,17 @@ export async function PATCH(
   const result = await getPool().query<DbOrderRow>(
     `
       update orders
-      set status = $2, updated_at = now()
+      set
+        status = $2,
+        payment_status = case when $2 = 'PAID' then 'approved' else payment_status end,
+        updated_at = now()
       where id = $1
       returning
         id,
         number,
         items,
         removed_by_item_id,
+        channel,
         delivery_type,
         customer_phone,
         customer_address,

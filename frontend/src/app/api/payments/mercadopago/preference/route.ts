@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         $7,
         'pending',
         $8,
-        'recebido',
+        'PAID',
         now()
       from next_number
       returning id

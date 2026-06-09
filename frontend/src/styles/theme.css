@@ -2,6 +2,14 @@
 
 :root {
   --font-size: 16px;
+  --menfis-green: #65001F;
+  --menfis-pink: #FFBACF;
+  --menfis-cream: #FFE9EC;
+  --menfis-surface: #FFF8F2;
+  --menfis-success: #16A34A;
+  --menfis-danger: #DC2626;
+  --menfis-font-body: "Inter", system-ui, sans-serif;
+  --menfis-font-display: "Bebas Neue", "Arial Black", sans-serif;
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
@@ -126,6 +134,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--menfis-font-body);
   }
 
   /**

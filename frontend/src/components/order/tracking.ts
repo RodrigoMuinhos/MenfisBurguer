@@ -1,0 +1,191 @@
+import { Bike, CheckCircle2, ChefHat, CreditCard, Home } from "lucide-react";
+import { Order, OrderStatus } from "@/types/order";
+
+export const WHATSAPP_URL = "https://wa.me/5585988086691";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+
+export const STEPS = [
+  { icon: CreditCard, label: "Pagamento aprovado" },
+  { icon: CheckCircle2, label: "Pedido recebido" },
+  { icon: ChefHat, label: "Em preparo" },
+  { icon: Bike, label: "Saiu para entrega" },
+  { icon: Home, label: "Entregue" },
+];
+
+export const STATUS_INDEX: Record<OrderStatus, number> = {
+  CREATED: 0,
+  PAYMENT_PENDING: 0,
+  PAID: 0,
+  IN_PREPARATION: 2,
+  READY: 2,
+  OUT_FOR_DELIVERY: 3,
+  DELIVERED: 4,
+  CANCELLED: 0,
+};
+
+export const STATUS_COPY: Record<
+  OrderStatus,
+  { label: string; copy: string; eta: string }
+> = {
+  CREATED: {
+    label: "Pedido criado",
+    copy: "Estamos aguardando o inicio do pagamento.",
+    eta: "Aguardando pagamento",
+  },
+  PAYMENT_PENDING: {
+    label: "Aguardando confirmacao",
+    copy: "Seu pedido foi enviado. Um atendente vai confirmar o recebimento.",
+    eta: "Aguardando atendente",
+  },
+  PAID: {
+    label: "Pagamento aprovado",
+    copy: "Pagamento confirmado. Aguardando a cozinha aceitar o pedido.",
+    eta: "25-30 min",
+  },
+  IN_PREPARATION: {
+    label: "Seu pedido esta sendo preparado",
+    copy: "A cozinha recebeu seu pedido pelo KDS e iniciou o preparo.",
+    eta: "20-25 min",
+  },
+  READY: {
+    label: "Pedido pronto para sair",
+    copy: "Estamos organizando a saida para entrega.",
+    eta: "15-20 min",
+  },
+  OUT_FOR_DELIVERY: {
+    label: "Seu pedido saiu para entrega",
+    copy: "O entregador esta a caminho do seu endereco.",
+    eta: "10-15 min",
+  },
+  DELIVERED: {
+    label: "Pedido entregue",
+    copy: "Obrigado pelo pedido. Bom apetite!",
+    eta: "Entregue",
+  },
+  CANCELLED: {
+    label: "Pedido cancelado",
+    copy: "Este pedido foi cancelado. Fale com o atendimento se precisar.",
+    eta: "Cancelado",
+  },
+};
+
+export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+
+export function deliveryConfirmationCode(order: Order) {
+  const numeric = String(order.number || order.id.replace(/\D/g, "") || "0");
+  return numeric.slice(-4).padStart(4, "0");
+}
+
+export const SUPPORT_TOPICS = [
+  {
+    type: "SUPPORT_PAYMENT",
+    label: "Problema com pagamento",
+    icon: "💳",
+    reasons: [
+      "Meu PIX foi pago mas nao confirmou",
+      "Meu cartao foi cobrado",
+      "Pagamento recusado",
+      "Outro problema de pagamento",
+    ],
+  },
+  {
+    type: "SUPPORT_DELIVERY",
+    label: "Problema na entrega",
+    icon: "🚴",
+    reasons: [
+      "Entregador nao chegou",
+      "Endereco incorreto",
+      "Nao consigo localizar o entregador",
+      "Outro problema na entrega",
+    ],
+  },
+  {
+    type: "ORDER_DELAYED",
+    label: "Pedido atrasado",
+    icon: "⏰",
+    reasons: ["Meu pedido passou do prazo estimado"],
+  },
+  {
+    type: "ORDER_CHANGE_REQUEST",
+    label: "Alterar pedido",
+    icon: "✏️",
+    reasons: ["Remover ingrediente", "Adicionar observacao", "Trocar bebida", "Outra alteracao"],
+  },
+  {
+    type: "CANCEL_REQUEST",
+    label: "Cancelar pedido",
+    icon: "❌",
+    reasons: ["Quero cancelar meu pedido"],
+  },
+  {
+    type: "TALK_TO_AGENT",
+    label: "Falar com atendente",
+    icon: "📞",
+    reasons: ["Quero falar com a equipe"],
+  },
+] as const;
+
+export type SupportTicket = {
+  id: string;
+  orderId: string;
+  type: string;
+  reason: string;
+  status: string;
+  createdAt: string;
+};
+
+export function paymentInfo(order: Order) {
+  const status = (order.paymentStatus ?? "not_required").toLowerCase();
+  if (order.paymentMethod === "pagar_na_entrega") {
+    return {
+      label: "Pagamento na entrega",
+      copy: "O pedido foi confirmado. O pagamento sera feito no recebimento.",
+      color: "#92400E",
+      bg: "#FFFBEB",
+      border: "#FDE68A",
+    };
+  }
+  const rejected = ["rejected", "cancelled", "refunded", "charged_back"].includes(status);
+  const approved =
+    status === "approved" ||
+    !["PAYMENT_PENDING", "CANCELLED", "CANCELLED"].includes(order.status);
+  const pending = order.paymentProvider === "mercado_pago" && !approved && !rejected;
+
+  if (approved) {
+    return {
+      label: "Pagamento aprovado",
+      copy: "Mercado Pago confirmou o pagamento automaticamente.",
+      color: "#065F46",
+      bg: "#ECFDF5",
+      border: "#6EE7B7",
+    };
+  }
+
+  if (rejected || order.status === "CANCELLED") {
+    return {
+      label: "Pagamento nao aprovado",
+      copy: "O Mercado Pago nao liberou este pagamento.",
+      color: "#991B1B",
+      bg: "#FEF2F2",
+      border: "#FECACA",
+    };
+  }
+
+  if (pending) {
+    return {
+      label: "Aguardando Mercado Pago",
+      copy: "Assim que o pagamento for confirmado, o pedido segue para preparo.",
+      color: "#92400E",
+      bg: "#FFFBEB",
+      border: "#FDE68A",
+    };
+  }
+
+  return {
+    label: "Pagamento nao necessario",
+    copy: "Este pedido nao depende de pagamento online.",
+    color: "#4B5563",
+    bg: "#F3F4F6",
+    border: "#E5E7EB",
+  };
+}

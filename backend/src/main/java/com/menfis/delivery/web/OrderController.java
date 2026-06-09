@@ -1,6 +1,7 @@
 package com.menfis.delivery.web;
 
 import com.menfis.delivery.domain.OrderStatus;
+import com.menfis.delivery.dto.ApiDtos.ConfirmDeliveryRequest;
 import com.menfis.delivery.dto.ApiDtos.CreateOrderRequest;
 import com.menfis.delivery.dto.ApiDtos.OrderResponse;
 import com.menfis.delivery.dto.ApiDtos.PatchStatusRequest;
@@ -45,6 +46,12 @@ public class OrderController {
     return orders.listRecent();
   }
 
+  @GetMapping("/delivery-route")
+  public List<OrderResponse> deliveryRoute(@RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireDelivery(authorization);
+    return orders.listDeliveryRoute();
+  }
+
   @GetMapping("/{id}")
   public OrderResponse get(@PathVariable String id) {
     return orders.get(id);
@@ -67,5 +74,14 @@ public class OrderController {
       @RequestHeader(name = "Authorization", required = false) String authorization) {
     auth.requireAdmin(authorization);
     return orders.changeStatus(id, OrderStatus.valueOf(request.status()), request.actor(), request.reason());
+  }
+
+  @PatchMapping("/{id}/delivery-confirmation")
+  public OrderResponse confirmDelivery(
+      @PathVariable String id,
+      @Valid @RequestBody ConfirmDeliveryRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireDelivery(authorization);
+    return orders.confirmDelivery(id, request.code(), request.actor());
   }
 }

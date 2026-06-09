@@ -1,0 +1,38 @@
+{
+  "name": "menfis-burger-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.cjs",
+  "description": "Totem e painel administrativo da Menfis Burger",
+  "author": "Menfis Burger",
+  "build": {
+    "appId": "com.menfisburguer.desktop",
+    "electronVersion": "42.3.3",
+    "productName": "Menfis Burger",
+    "artifactName": "Menfis-Burger-Setup-${version}.${ext}",
+    "directories": {
+      "output": "../dist-electron"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "kiosk-app",
+        "to": "kiosk-app"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Menfis Burger"
+    }
+  }
+}

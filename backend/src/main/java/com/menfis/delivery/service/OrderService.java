@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.menfis.delivery.domain.DeliveryType;
+import com.menfis.delivery.domain.OrderChannel;
 import com.menfis.delivery.domain.OrderStatus;
 import com.menfis.delivery.domain.PaymentMethod;
 import com.menfis.delivery.dto.ApiDtos.CreateOrderRequest;
@@ -32,12 +33,16 @@ public class OrderService {
   private final ObjectMapper mapper;
   private final AuditService audit;
   private final OrderEventService events;
+  private final SettingsService settings;
+  private final CustomerService customers;
 
-  public OrderService(JdbcTemplate jdbc, ObjectMapper mapper, AuditService audit, OrderEventService events) {
+  public OrderService(JdbcTemplate jdbc, ObjectMapper mapper, AuditService audit, OrderEventService events, SettingsService settings, CustomerService customers) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.audit = audit;
     this.events = events;
+    this.settings = settings;
+    this.customers = customers;
   }
 
   @Transactional
@@ -49,42 +54,66 @@ public class OrderService {
 
     long number = jdbc.queryForObject("select nextval('order_number_seq')", Long.class);
     String id = "#" + number;
+    boolean testMode = settings.testModeEnabled();
     PriceResult price = calculate(request.items());
     BigDecimal deliveryFee = request.deliveryType() == DeliveryType.DELIVERY ? DELIVERY_FEE : BigDecimal.ZERO;
-    BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(SERVICE_FEE);
+    BigDecimal serviceFee = request.deliveryType() == DeliveryType.DELIVERY ? SERVICE_FEE : BigDecimal.ZERO;
+    BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(serviceFee);
     CouponResult coupon = applyCoupon(request.couponCode(), request.couponDiscount(), grossTotal);
     BigDecimal total = grossTotal.subtract(coupon.discount()).max(new BigDecimal("1.00"));
-    OrderStatus status = request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderStatus.RECEIVED : OrderStatus.PENDING_PAYMENT;
-    OffsetDateTime confirmedAt = status == OrderStatus.RECEIVED ? OffsetDateTime.now() : null;
+    if (request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA
+        && (request.channel() != OrderChannel.DELIVERY || !settings.payOnDeliveryEnabled())) {
+      throw new IllegalArgumentException("pay_on_delivery_disabled");
+    }
+    boolean payOnDelivery = request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA;
+    OrderChannel channel = request.channel() == null
+      ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
+      : request.channel();
+    boolean paidKiosk = channel == OrderChannel.KIOSK;
+    OrderStatus status = payOnDelivery || paidKiosk ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
+    if (channel == OrderChannel.KIOSK
+        && (isBlank(request.customerName()) || normalizedPhone(request.customerPhone()).length() < 10)) {
+      throw new IllegalArgumentException("kiosk_customer_required");
+    }
+    OffsetDateTime confirmedAt = paidKiosk ? OffsetDateTime.now() : null;
     String itemsJson = toJson(price.items());
+    Long customerId = customers.findCustomerIdByPhone(request.customerPhone());
 
     jdbc.update(
       """
       insert into orders (
-        id, number, items, delivery_type, customer_phone, customer_address,
+        id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
-        timestamp, status, idempotency_key, confirmed_at, coupon_code, discount_total, updated_at
+        timestamp, status, idempotency_key, confirmed_at, coupon_code, discount_total, test_mode, customer_id, updated_at
       )
-      values (?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+      values (?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
       """,
       id,
       number,
       itemsJson,
+      channel.name(),
       request.deliveryType().name(),
+      request.customerName() == null ? null : request.customerName().trim(),
       request.customerPhone(),
       request.customerAddress(),
       price.subtotal(),
       deliveryFee,
       total,
-      request.paymentMethod() == PaymentMethod.PRESENCIAL ? null : "MERCADO_PAGO",
+      paidKiosk || request.paymentMethod() == PaymentMethod.PRESENCIAL || payOnDelivery
+        ? null
+        : "MERCADO_PAGO",
       request.paymentMethod().name(),
-      request.paymentMethod() == PaymentMethod.PRESENCIAL ? "not_required" : "pending",
+      paidKiosk
+        ? "approved"
+        : payOnDelivery ? "awaiting_delivery" : "pending",
       System.currentTimeMillis(),
       status.name(),
       cleanIdempotency(request.idempotencyKey()),
       confirmedAt,
       coupon.code(),
-      coupon.discount()
+      coupon.discount(),
+      testMode,
+      customerId
     );
 
     for (Map<String, Object> item : price.items()) {
@@ -120,7 +149,7 @@ public class OrderService {
   public OrderResponse get(String id) {
     return jdbc.queryForObject(
       """
-      select id, number, items, delivery_type, customer_phone, customer_address,
+      select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
         payment_id, status, paid_at, confirmed_at
       from orders where id = ?
@@ -133,14 +162,17 @@ public class OrderService {
   public List<OrderResponse> listRecent() {
     return jdbc.query(
       """
-      select id, number, items, delivery_type, customer_phone, customer_address,
+      select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
         payment_id, status, paid_at, confirmed_at
       from orders
+      where test_mode = ?
       order by created_at desc
       limit 200
       """,
       this::mapOrder
+      ,
+      settings.testModeEnabled()
     );
   }
 
@@ -152,6 +184,22 @@ public class OrderService {
     );
   }
 
+  public List<OrderResponse> listDeliveryRoute() {
+    return jdbc.query(
+      """
+      select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
+        subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
+        payment_id, status, paid_at, confirmed_at
+      from orders
+      where delivery_type = 'DELIVERY' and status = 'OUT_FOR_DELIVERY' and test_mode = ?
+      order by updated_at asc, created_at asc
+      """,
+      (rs, rowNum) -> mapOrder(rs, rowNum),
+      settings.testModeEnabled()
+    );
+  }
+
+
   @Transactional
   public OrderResponse changeStatus(String id, OrderStatus toStatus, String actor, String reason) {
     String from = jdbc.queryForObject("select status from orders where id = ?", String.class, id);
@@ -162,9 +210,13 @@ public class OrderService {
     jdbc.update(
       """
       update orders set status = ?, updated_at = now(),
-        confirmed_at = case when ? = 'RECEIVED' and confirmed_at is null then now() else confirmed_at end
+        payment_status = case when ? in ('PAID', 'IN_PREPARATION') then 'approved' else payment_status end,
+        paid_at = case when ? in ('PAID', 'IN_PREPARATION') and paid_at is null then now() else paid_at end,
+        confirmed_at = case when ? in ('PAID', 'IN_PREPARATION') and confirmed_at is null then now() else confirmed_at end
       where id = ?
       """,
+      toStatus.name(),
+      toStatus.name(),
       toStatus.name(),
       toStatus.name(),
       id
@@ -184,6 +236,24 @@ public class OrderService {
   }
 
   @Transactional
+  public OrderResponse confirmDelivery(String id, String code, String actor) {
+    Map<String, Object> row = jdbc.queryForMap(
+      "select number, status, delivery_type from orders where id = ?",
+      id
+    );
+    OrderStatus current = OrderStatus.valueOf(String.valueOf(row.get("status")));
+    DeliveryType deliveryType = DeliveryType.valueOf(String.valueOf(row.get("delivery_type")));
+    if (deliveryType != DeliveryType.DELIVERY || current != OrderStatus.OUT_FOR_DELIVERY) {
+      throw new IllegalArgumentException("delivery_confirmation_not_available");
+    }
+    String expected = deliveryConfirmationCode(Number.class.cast(row.get("number")).longValue());
+    if (code == null || !expected.equals(code.replaceAll("\\D", ""))) {
+      throw new IllegalArgumentException("invalid_delivery_code");
+    }
+    return changeStatus(id, OrderStatus.DELIVERED, actor == null ? "motoboy" : actor, "delivery_code_confirmed");
+  }
+
+  @Transactional
   public void markPaid(String orderId, String providerPaymentId, String providerStatus) {
     String normalized = providerStatus == null ? "unknown" : providerStatus;
     boolean approved =
@@ -199,7 +269,7 @@ public class OrderService {
       "expired".equalsIgnoreCase(normalized) ||
       "refunded".equalsIgnoreCase(normalized) ||
       "charged_back".equalsIgnoreCase(normalized);
-    OrderStatus target = approved ? OrderStatus.RECEIVED : failed ? OrderStatus.PAYMENT_FAILED : OrderStatus.PENDING_PAYMENT;
+    OrderStatus target = approved ? OrderStatus.PAID : failed ? OrderStatus.CANCELLED : OrderStatus.PAYMENT_PENDING;
     String previous = jdbc.queryForObject("select status from orders where id = ?", String.class, orderId);
 
     jdbc.update(
@@ -266,22 +336,26 @@ public class OrderService {
     }
 
     String code = rawCode.trim();
-    String normalized = code.toLowerCase();
-    if (normalized.equals("mob10")) {
-      BigDecimal discount = grossTotal.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
-      return new CouponResult(code, discount);
-    }
-
-    if (normalized.equals("marianazinha")) {
-      BigDecimal discount = grossTotal.subtract(new BigDecimal("1.00")).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
-      return new CouponResult(code, discount);
-    }
-
-    if (requestedDiscount != null && requestedDiscount.compareTo(BigDecimal.ZERO) > 0) {
-      BigDecimal discount = requestedDiscount
-        .min(grossTotal.subtract(new BigDecimal("1.00")).max(BigDecimal.ZERO))
-        .setScale(2, RoundingMode.HALF_UP);
-      return new CouponResult(code, discount);
+    try {
+      Map<String, Object> coupon = jdbc.queryForMap(
+        "select code, type, value from coupons where lower(code) = lower(?) and active = true and test_mode = ?",
+        code,
+        settings.testModeEnabled()
+      );
+      BigDecimal value = (BigDecimal) coupon.get("value");
+      String type = String.valueOf(coupon.get("type"));
+      BigDecimal discount = "percent".equalsIgnoreCase(type)
+        ? grossTotal.multiply(value).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP)
+        : grossTotal.subtract(value).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+      discount = discount.min(grossTotal.subtract(new BigDecimal("1.00")).max(BigDecimal.ZERO)).setScale(2, RoundingMode.HALF_UP);
+      return new CouponResult(String.valueOf(coupon.get("code")), discount);
+    } catch (EmptyResultDataAccessException ignored) {
+      if (requestedDiscount != null && requestedDiscount.compareTo(BigDecimal.ZERO) > 0) {
+        BigDecimal discount = requestedDiscount
+          .min(grossTotal.subtract(new BigDecimal("1.00")).max(BigDecimal.ZERO))
+          .setScale(2, RoundingMode.HALF_UP);
+        return new CouponResult(code, discount);
+      }
     }
 
     return new CouponResult(null, BigDecimal.ZERO);
@@ -289,7 +363,12 @@ public class OrderService {
 
   private OrderResponse findByIdempotencyKey(String key) {
     try {
-      String id = jdbc.queryForObject("select id from orders where idempotency_key = ?", String.class, cleanIdempotency(key));
+      String id = jdbc.queryForObject(
+        "select id from orders where idempotency_key = ? and test_mode = ?",
+        String.class,
+        cleanIdempotency(key),
+        settings.testModeEnabled()
+      );
       return id == null ? null : get(id);
     } catch (EmptyResultDataAccessException e) {
       return null;
@@ -298,14 +377,18 @@ public class OrderService {
 
   private boolean canTransition(OrderStatus from, OrderStatus to) {
     return switch (from) {
-      case PENDING_PAYMENT -> to == OrderStatus.PAID || to == OrderStatus.RECEIVED || to == OrderStatus.PAYMENT_FAILED || to == OrderStatus.CANCELED;
-      case PAID -> to == OrderStatus.RECEIVED;
-      case RECEIVED -> to == OrderStatus.PREPARING || to == OrderStatus.CANCELED;
-      case PREPARING -> to == OrderStatus.READY;
+      case CREATED -> to == OrderStatus.PAYMENT_PENDING || to == OrderStatus.CANCELLED;
+      case PAYMENT_PENDING -> to == OrderStatus.PAID || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
+      case PAID -> to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
+      case IN_PREPARATION -> to == OrderStatus.READY;
       case READY -> to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> to == OrderStatus.DELIVERED;
       default -> false;
     };
+  }
+
+  private String deliveryConfirmationCode(long number) {
+    return String.format("%04d", number % 10000);
   }
 
   private OrderResponse mapOrder(ResultSet rs, int rowNum) throws SQLException {
@@ -313,7 +396,9 @@ public class OrderService {
       rs.getString("id"),
       rs.getLong("number"),
       readItems(rs.getString("items")),
+      OrderChannel.valueOf(rs.getString("channel").toUpperCase()),
       DeliveryType.valueOf(rs.getString("delivery_type").toUpperCase()),
+      rs.getString("customer_name"),
       rs.getString("customer_phone"),
       rs.getString("customer_address"),
       rs.getBigDecimal("subtotal"),
@@ -352,6 +437,14 @@ public class OrderService {
 
   private String cleanIdempotency(String value) {
     return value == null || value.isBlank() ? UUID.randomUUID().toString() : value.trim();
+  }
+
+  private boolean isBlank(String value) {
+    return value == null || value.trim().isBlank();
+  }
+
+  private String normalizedPhone(String value) {
+    return value == null ? "" : value.replaceAll("\\D", "");
   }
 
   private record PriceResult(BigDecimal subtotal, List<Map<String, Object>> items) {}

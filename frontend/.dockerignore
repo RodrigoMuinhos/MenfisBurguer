@@ -10,5 +10,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 coverage
+dist
+dist-*
+out
+release
 *.local
 *.log

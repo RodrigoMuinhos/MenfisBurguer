@@ -1,14 +1,12 @@
 package com.menfis.delivery.domain;
 
 public enum OrderStatus {
-  DRAFT,
-  PENDING_PAYMENT,
+  CREATED,
+  PAYMENT_PENDING,
   PAID,
-  RECEIVED,
-  PREPARING,
+  IN_PREPARATION,
   READY,
   OUT_FOR_DELIVERY,
   DELIVERED,
-  CANCELED,
-  PAYMENT_FAILED
+  CANCELLED
 }

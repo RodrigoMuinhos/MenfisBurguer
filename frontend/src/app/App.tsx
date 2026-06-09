@@ -1,213 +1,84 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { SplashScreen } from "./components/menfis/SplashScreen";
-import { ProductScreen } from "./components/menfis/ProductScreen";
-import { CartScreen } from "./components/menfis/CartScreen";
-import { TrackingScreen } from "./components/menfis/TrackingScreen";
-import { AdminPanel } from "./components/menfis/AdminPanel";
+import { useEffect, useState } from "react";
+import { SplashScreen } from "@/components/product/SplashScreen";
+import { ProductScreen } from "@/components/product/ProductScreen";
+import { CartScreen } from "@/components/order/CartScreen";
+import { TrackingScreen } from "@/components/order/TrackingScreen";
+import { AdminPanel } from "@/components/admin/AdminPanel";
+import { CartItem, Order } from "@/types/order";
+import { CREME } from "@/utils/theme";
 import {
-  CartItem,
-  Order,
-  OrderStatus,
-  CREME,
-  VERDE,
-  ROSA,
-} from "./components/menfis/types";
+  AppMode,
+  CACHE_VERSION,
+  PENDING_ORDER_KEY,
+  Screen,
+  registerMemberOrder,
+  resolveAppMode,
+} from "./appState";
+import { useAdminSession } from "./hooks/useAdminSession";
+import { useKioskIdle } from "./hooks/useKioskIdle";
+import { useOrderSync } from "./hooks/useOrderSync";
+import { AdminLoginScreen } from "./AdminLoginScreen";
+import { KioskIdleOverlays } from "./KioskIdleOverlays";
+import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
 
-type Screen = "product" | "cart" | "tracking" | "admin" | "admin-login";
-
-const MEMBER_KEY = "menfis_member";
-const PENDING_ORDER_KEY = "menfis_pending_order_id";
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
-
-function registerMemberOrder() {
-  if (typeof window === "undefined") return;
-  try {
-    const raw = localStorage.getItem(MEMBER_KEY);
-    if (!raw) return;
-    const member = JSON.parse(raw);
-    const counted = Number(member.orders ?? 0) + 1;
-    localStorage.setItem(
-      MEMBER_KEY,
-      JSON.stringify({
-        ...member,
-        orders: counted,
-        rewards: Math.floor(counted / 10),
-      }),
-    );
-  } catch {
-    // perfil local opcional
-  }
-}
-
-function normalizeStatus(status: string): OrderStatus {
-  const value = status.toUpperCase();
-  if (value === "PENDING_PAYMENT" || value === "DRAFT") return "aguardando_pagamento";
-  if (value === "AGUARDANDO_PAGAMENTO") return "aguardando_pagamento";
-  if (value === "PAYMENT_FAILED" || value === "CANCELED") return value === "CANCELED" ? "cancelado" : "pagamento_recusado";
-  if (value === "PAGAMENTO_RECUSADO") return "pagamento_recusado";
-  if (value === "RECEIVED" || value === "PAID") return "recebido";
-  if (value === "RECEBIDO") return "recebido";
-  if (value === "PREPARING") return "preparo";
-  if (value === "PREPARO") return "preparo";
-  if (value === "READY") return "pronto";
-  if (value === "PRONTO") return "pronto";
-  if (value === "OUT_FOR_DELIVERY") return "saiu_entrega";
-  if (value === "SAIU_ENTREGA") return "saiu_entrega";
-  if (value === "DELIVERED") return "entregue";
-  if (value === "ENTREGUE") return "entregue";
-  if (value === "CANCELADO") return "cancelado";
-  return "aguardando_pagamento";
-}
-
-function normalizePaymentMethod(value?: string | null): "pix" | "cartao" | undefined {
-  if (!value) return undefined;
-  return value.toUpperCase() === "CARTAO" ? "cartao" : "pix";
-}
-
-function normalizeBackendOrder(raw: any): Order {
-  const items = Array.isArray(raw.items)
-    ? raw.items.map((item: any) => ({
-        id: String(item.productId ?? item.id ?? item.name ?? "item"),
-        name: String(item.name ?? item.productId ?? "Item"),
-        qty: Number(item.quantity ?? item.qty ?? 1),
-        price: Number(item.unitPrice ?? item.price ?? 0),
-      }))
-    : [];
-  return {
-    id: String(raw.id),
-    number: Number((raw.number ?? String(raw.id).replace(/\D/g, "")) || Date.now()),
-    items,
-    deliveryType: String(raw.deliveryType ?? raw.delivery_type).toUpperCase() === "RETIRADA" ? "retirada" : "delivery",
-    customerPhone: raw.customerPhone ?? raw.customer_phone ?? undefined,
-    customerAddress: raw.customerAddress ?? raw.customer_address ?? undefined,
-    total: Number(raw.total ?? 0),
-    paymentProvider: raw.paymentProvider ?? raw.payment_provider ?? undefined,
-    paymentMethod: normalizePaymentMethod(raw.paymentMethod ?? raw.payment_method),
-    paymentStatus: raw.paymentStatus ?? raw.payment_status ?? undefined,
-    paymentId: raw.paymentId ?? raw.payment_id ?? undefined,
-    pixQrCode: raw.pixQrCode ?? raw.pix_qr_code ?? undefined,
-    pixQrCodeBase64: raw.pixQrCodeBase64 ?? raw.pix_qr_code_base64 ?? undefined,
-    pixTicketUrl: raw.pixTicketUrl ?? raw.pix_ticket_url ?? undefined,
-    timestamp: raw.timestamp
-      ? Number(raw.timestamp)
-      : raw.createdAt
-        ? new Date(raw.createdAt).getTime()
-        : raw.created_at
-          ? new Date(raw.created_at).getTime()
-          : Date.now(),
-    status: normalizeStatus(String(raw.status ?? "")),
-  };
-}
-
-export default function App() {
-  const [started, setStarted] = useState(false);
-  const [screen, setScreen] = useState<Screen>("product");
-  const [adminUser, setAdminUser] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [adminError, setAdminError] = useState("");
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
-  const [adminToken, setAdminToken] = useState("");
+export default function App({ mode }: { mode?: AppMode }) {
+  const appMode = resolveAppMode(mode);
+  const adminOnlyMode = appMode === "admin" || appMode === "kds";
+  const kioskMode = appMode === "kiosk";
+  const [started, setStarted] = useState(() => {
+    return appMode === "admin" || appMode === "kds";
+  });
+  const [screen, setScreen] = useState<Screen>(() => {
+    if (appMode === "kds") return "admin";
+    if (appMode === "admin") return "admin-login";
+    return "product";
+  });
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
   const [lastOrderId, setLastOrderId] = useState<string>("");
+  const {
+    adminUser,
+    adminPassword,
+    adminError,
+    adminToken,
+    setAdminUser,
+    setAdminPassword,
+    setAdminError,
+    openAdmin,
+    closeAdmin,
+    handleAdminLogin,
+  } = useAdminSession({ adminOnlyMode, appMode, setScreen });
+  const { orders, setOrders, loadOrderById, updateOrderStatus } = useOrderSync({
+    adminToken,
+    lastOrderId,
+    screen,
+    started,
+  });
+  const {
+    showIdlePrompt,
+    showIdleScreen,
+    resetKioskActivity,
+    openKioskIdleScreen,
+  } = useKioskIdle({ kioskMode, screen, started, setCart, setScreen });
 
-  const loadOrderById = useCallback(async (orderId: string) => {
-    if (!API_URL || !orderId) return;
-    const res = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return;
-    const order = normalizeBackendOrder(await res.json());
-    setOrders((prev) => [
-      { ...prev.find((item) => item.id === order.id), ...order },
-      ...prev.filter((item) => item.id !== order.id),
-    ]);
-    if (order.paymentStatus === "approved") {
-      localStorage.removeItem(PENDING_ORDER_KEY);
+  useEffect(() => {
+    if (localStorage.getItem("menfis_cache_version") === CACHE_VERSION) return;
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem("menfis_cache_version", CACHE_VERSION);
+    if ("caches" in window) {
+      void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
     }
   }, []);
 
-  const syncOrders = useCallback(async () => {
-    try {
-      if (API_URL && screen === "tracking" && lastOrderId) {
-        await loadOrderById(lastOrderId);
-        return;
-      }
-
-      if (API_URL && screen === "admin") {
-        const res = await fetch(`${API_URL}/orders`, {
-          cache: "no-store",
-          headers: { Authorization: `Bearer ${adminToken}` },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const rows = Array.isArray(data) ? data.map(normalizeBackendOrder) : [];
-        setOrders(rows);
-        return;
-      }
-
-      const res = await fetch("/api/orders", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data.orders)) {
-        setOrders(data.orders.map((order: any) => ({
-          ...order,
-          status: normalizeStatus(String(order.status ?? "")),
-        })));
-      }
-    } catch {
-      // keep UI running even if backend is temporarily unavailable
-    }
-  }, [adminToken, lastOrderId, loadOrderById, screen]);
-
-  useEffect(() => {
-    if (!started) return;
-    if (screen !== "admin" && screen !== "tracking") return;
-
-    syncOrders();
-    const timer = window.setInterval(syncOrders, 10000);
-    return () => window.clearInterval(timer);
-  }, [screen, started, syncOrders]);
-
-  useEffect(() => {
-    if (!started || screen !== "tracking" || !API_URL || !lastOrderId) return;
-
-    const source = new EventSource(
-      `${API_URL}/orders/${encodeURIComponent(lastOrderId)}/events`,
-    );
-
-    source.addEventListener("order.updated", (event) => {
-      try {
-        const order = normalizeBackendOrder(JSON.parse(event.data));
-        setOrders((prev) => {
-          const existing = prev.find((item) => item.id === order.id);
-          return [
-            {
-              ...existing,
-              ...order,
-              pixQrCode: existing?.pixQrCode ?? order.pixQrCode,
-              pixQrCodeBase64: existing?.pixQrCodeBase64 ?? order.pixQrCodeBase64,
-              pixTicketUrl: existing?.pixTicketUrl ?? order.pixTicketUrl,
-            },
-            ...prev.filter((item) => item.id !== order.id),
-          ];
-        });
-      } catch {
-        // invalid event payload: keep polling fallback active
-      }
-    });
-
-    source.onerror = () => {
-      source.close();
-    };
-
-    return () => source.close();
-  }, [lastOrderId, screen, started]);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    if (adminOnlyMode) {
+      setStarted(true);
+      setScreen(appMode === "kds" ? "admin" : "admin-login");
+      return;
+    }
     const orderId =
       params.get("orderId") ||
       params.get("external_reference")?.replace(/^MENFIS-/, "#") ||
@@ -220,48 +91,23 @@ export default function App() {
     setScreen("tracking");
     loadOrderById(orderId);
 
-    const cleanUrl = `${window.location.pathname}${window.location.hash}`;
+    const cleanUrl =
+      appMode === "kiosk" && params.get("kiosk") === "1"
+        ? `${window.location.pathname}?kiosk=1${window.location.hash}`
+        : `${window.location.pathname}${window.location.hash}`;
     window.history.replaceState({}, "", cleanUrl);
-  }, [loadOrderById]);
+  }, [adminOnlyMode, appMode, loadOrderById]);
 
   const goHome = () => setScreen("product");
 
-  const openAdmin = () => {
-    setAdminError("");
-    if (adminUnlocked) {
-      setScreen("admin");
-      return;
-    }
-    setScreen("admin-login");
-  };
-
-  const closeAdmin = () => {
-    setAdminUnlocked(false);
-    setAdminPassword("");
-    setAdminToken("");
-    setAdminError("");
-    goHome();
-  };
-
-  const handleAdminLogin = async () => {
-    const user = adminUser.trim();
-    const pass = adminPassword.trim();
+  const openInstalledAdmin = async () => {
+    const desktopWindow = window as typeof window & {
+      menfisDesktop?: { openAdmin: () => Promise<boolean> };
+    };
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login: user, password: pass }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.token) throw new Error("invalid_credentials");
-      setAdminToken(String(data.token));
-      setAdminUnlocked(true);
-      setAdminError("");
-      setAdminPassword("");
-      setScreen("admin");
-      return;
+      return await (desktopWindow.menfisDesktop?.openAdmin?.() ?? false);
     } catch {
-      setAdminError("Login ou senha inválidos.");
+      return false;
     }
   };
 
@@ -298,7 +144,8 @@ export default function App() {
       ]);
       setLastOrderId(createdOrder.id);
       setCart([]);
-      setScreen("tracking");
+      setScreen(kioskMode ? "product" : "tracking");
+      resetKioskActivity();
       registerMemberOrder();
       return;
     }
@@ -346,6 +193,7 @@ export default function App() {
     const newOrder: Order = {
       id: `#${fallbackNumber}`,
       number: fallbackNumber,
+      channel: kioskMode ? "KIOSK" : "DELIVERY",
       items: [...cart],
       removedByItemId:
         removedByItemId && Object.keys(removedByItemId).length > 0
@@ -356,42 +204,14 @@ export default function App() {
       customerAddress,
       total,
       timestamp: Date.now(),
-      status: "recebido",
+      status: "PAID",
     };
     setOrders((prev) => [...prev, newOrder]);
     setLastOrderId(newOrder.id);
     setCart([]);
-    setScreen("tracking");
+    setScreen(kioskMode ? "product" : "tracking");
+    resetKioskActivity();
     registerMemberOrder();
-  };
-
-  const updateOrderStatus = async (id: string, status: OrderStatus) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
-    try {
-      const res = API_URL
-        ? await fetch(`${API_URL}/kds/orders/${encodeURIComponent(id)}/advance`, {
-            method: "PATCH",
-            headers: { Authorization: `Bearer ${adminToken}` },
-          })
-        : await fetch(`/api/orders/${encodeURIComponent(id)}/status`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status }),
-          });
-      if (!res.ok) {
-        await syncOrders();
-        return;
-      }
-      if (API_URL) {
-        const updated = normalizeBackendOrder(await res.json());
-        setOrders((prev) => [
-          updated,
-          ...prev.filter((order) => order.id !== updated.id),
-        ]);
-      }
-    } catch {
-      await syncOrders();
-    }
   };
 
   if (!started) {
@@ -401,6 +221,41 @@ export default function App() {
         style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
       >
         <SplashScreen onStart={() => setStarted(true)} />
+      </div>
+    );
+  }
+
+  if (adminOnlyMode) {
+    return (
+      <div
+        className="size-full flex flex-col"
+        style={{
+          fontFamily: "'Inter', system-ui, sans-serif",
+          background: CREME,
+        }}
+      >
+        <div className="flex-1 overflow-auto">
+          {screen === "admin" || appMode === "kds" ? (
+            <AdminPanel
+              orders={orders}
+              updateOrderStatus={updateOrderStatus}
+              onClose={closeAdmin}
+              initialTab={appMode === "kds" ? "cozinha" : "pedidos"}
+              adminToken={adminToken}
+              kitchenOnly={appMode === "kds"}
+            />
+          ) : (
+            <AdminLoginScreen
+              username={adminUser}
+              password={adminPassword}
+              error={adminError}
+              onChangeUsername={setAdminUser}
+              onChangePassword={setAdminPassword}
+              onSubmit={handleAdminLogin}
+              onBack={() => setScreen("admin-login")}
+            />
+          )}
+        </div>
       </div>
     );
   }
@@ -415,14 +270,24 @@ export default function App() {
     >
       <div className="flex-1 overflow-auto">
         {screen === "product" && (
+          <>
+          {!kioskMode && lastOrderId && orders.find((o) => o.id === lastOrderId) && (
+            <ActiveOrderBanner
+              order={orders.find((o) => o.id === lastOrderId)!}
+              onOpen={() => setScreen("tracking")}
+            />
+          )}
           <ProductScreen
             cart={cart}
             addToCart={addToCart}
             updateQty={updateQty}
             goToCart={() => setScreen("cart")}
             goBack={goHome}
-            onAdminOpen={openAdmin}
+            onAdminOpen={kioskMode ? openInstalledAdmin : openAdmin}
+            onOpenIdleScreen={openKioskIdleScreen}
+            kioskMode={kioskMode}
           />
+          </>
         )}
         {screen === "admin-login" && (
           <AdminLoginScreen
@@ -442,9 +307,11 @@ export default function App() {
         {screen === "cart" && (
           <CartScreen
             cart={cart}
+            addToCart={addToCart}
             updateQty={updateQty}
             onPlaceOrder={handlePlaceOrder}
             goToMenu={goHome}
+            kioskMode={kioskMode}
           />
         )}
         {screen === "tracking" && (
@@ -453,7 +320,7 @@ export default function App() {
             orderId={lastOrderId}
             order={orders.find((o) => o.id === lastOrderId)}
             goHome={goHome}
-            autoReturnMs={0}
+            autoReturnMs={kioskMode ? 20000 : 0}
           />
         )}
         {screen === "admin" && (
@@ -461,161 +328,102 @@ export default function App() {
             orders={orders}
             updateOrderStatus={updateOrderStatus}
             onClose={closeAdmin}
+            initialTab="pedidos"
+            adminToken={adminToken}
           />
         )}
       </div>
-    </div>
+
+      <KioskIdleOverlays
+        kioskMode={kioskMode}
+        showIdlePrompt={showIdlePrompt}
+        showIdleScreen={showIdleScreen}
+        screen={screen}
+        onActivity={resetKioskActivity}
+      />    </div>
   );
 }
 
-function AdminLoginScreen({
-  username,
-  password,
-  error,
-  onChangeUsername,
-  onChangePassword,
-  onSubmit,
-  onBack,
+function ActiveOrderBanner({
+  order,
+  onOpen,
 }: {
-  username: string;
-  password: string;
-  error: string;
-  onChangeUsername: (value: string) => void;
-  onChangePassword: (value: string) => void;
-  onSubmit: () => void;
-  onBack: () => void;
+  order: Order;
+  onOpen: () => void;
 }) {
+  const current = STATUS_INDEX[order.status] ?? 0;
+  const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAID;
+
   return (
-    <div
-      className="min-h-full flex items-center justify-center px-4 py-8"
-      style={{ background: CREME }}
+    <button
+      onClick={onOpen}
+      className="sticky top-0 z-40 w-full border-0 px-4 py-4 text-left"
+      style={{
+        background: "#65001F",
+        color: "#FFB3CC",
+        boxShadow: "0 16px 36px rgba(101,0,31,0.28)",
+      }}
     >
-      <div
-        className="w-full max-w-sm rounded-[28px] p-6"
-        style={{
-          background: "#fff",
-          boxShadow: "0 16px 40px rgba(0,0,0,0.08)",
-        }}
-      >
-        <div
-          className="mx-auto mb-4 flex items-center justify-center rounded-full"
-          style={{
-            position: "relative",
-            width: 128,
-            height: 128,
-            background: `${VERDE}10`,
-            border: `2px solid ${VERDE}24`,
-            boxShadow: "0 14px 30px rgba(0,0,0,0.08)",
-            overflow: "hidden",
-            borderRadius: 999,
-          }}
-        >
-          <div
-            aria-label="Menfi's Burger"
-            style={{
-              width: 88,
-              height: 88,
-              borderRadius: "50%",
-              background: VERDE,
-              color: ROSA,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-              fontSize: "3.25rem",
-              lineHeight: 1,
-              boxShadow: "0 12px 22px rgba(31,61,46,0.28)",
-            }}
-          >
-            M
-          </div>
-        </div>
-        <p
-          className="font-black uppercase tracking-[0.2em] text-center"
-          style={{
-            color: VERDE,
-            fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-            fontSize: "1.8rem",
-            lineHeight: 1,
-          }}
-        >
-          Acesso Admin
-        </p>
-        <p
-          className="text-center mt-2 text-xs"
-          style={{ color: VERDE, opacity: 0.55 }}
-        >
-          Digite seu login e senha para abrir o painel.
-        </p>
-
-        <div className="mt-6 flex flex-col gap-3">
-          <label className="flex flex-col gap-1">
-            <span
-              className="text-[10px] font-black uppercase tracking-widest"
-              style={{ color: VERDE, opacity: 0.45 }}
-            >
-              Login
-            </span>
-            <input
-              value={username}
-              onChange={(e) => onChangeUsername(e.target.value)}
-              autoComplete="username"
-              className="rounded-2xl px-4 py-3 outline-none"
-              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
-              inputMode="numeric"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span
-              className="text-[10px] font-black uppercase tracking-widest"
-              style={{ color: VERDE, opacity: 0.45 }}
-            >
-              Senha
-            </span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => onChangePassword(e.target.value)}
-              autoComplete="current-password"
-              className="rounded-2xl px-4 py-3 outline-none"
-              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onSubmit();
+      <div className="mx-auto flex max-w-6xl flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-widest opacity-75">
+              Pedido em andamento
+            </p>
+            <p
+              className="truncate font-black"
+              style={{
+                fontFamily: "var(--menfis-font-display)",
+                fontSize: "1.75rem",
+                lineHeight: 1,
+                letterSpacing: "0.04em",
               }}
-            />
-          </label>
-
-          {error && (
-            <div
-              className="rounded-2xl px-4 py-3 text-sm font-semibold"
-              style={{ background: `${ROSA}70`, color: VERDE }}
             >
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={onSubmit}
-            className="rounded-2xl px-4 py-3 font-black uppercase tracking-[0.16em]"
-            style={{ background: VERDE, color: ROSA }}
+              {order.id} · {order.customerName || "Cliente"}
+            </p>
+            <p className="mt-1 text-xs font-bold opacity-80">
+              {status.copy} · estimativa {status.eta}
+            </p>
+          </div>
+          <span
+            className="shrink-0 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-wide"
+            style={{ background: "#FFB3CC", color: "#65001F" }}
           >
-            Entrar
-          </button>
+            {status.label}
+          </span>
+        </div>
 
-          <button
-            onClick={onBack}
-            className="rounded-2xl px-4 py-3 font-black uppercase tracking-[0.12em]"
-            style={{
-              background: "transparent",
-              color: VERDE,
-              border: `1.5px solid ${VERDE}18`,
-            }}
-          >
-            Voltar
-          </button>
+        <div className="grid grid-cols-5 gap-2">
+          {STEPS.map((step, index) => {
+            const done = index <= current;
+            const active = index === current;
+            const Icon = step.icon;
+            return (
+              <div key={step.label} className="min-w-0">
+                <div
+                  className="mb-1 h-1.5 rounded-full"
+                  style={{ background: done ? "#FFB3CC" : "rgba(255,179,204,0.22)" }}
+                />
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                    style={{
+                      background: active ? "#FFB3CC" : done ? "rgba(255,179,204,0.3)" : "rgba(255,255,255,0.08)",
+                      color: active ? "#65001F" : "#FFB3CC",
+                      border: `1px solid ${done ? "#FFB3CC" : "rgba(255,179,204,0.24)"}`,
+                    }}
+                  >
+                    <Icon size={14} strokeWidth={2.5} />
+                  </span>
+                  <span className="truncate text-[10px] font-black uppercase tracking-wide opacity-90">
+                    {step.label}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

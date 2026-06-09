@@ -12,7 +12,9 @@ public class OrderEntity {
   @Id
   public String id;
   public Long number;
+  public String channel;
   public String deliveryType;
+  public String customerName;
   public String customerPhone;
   public String customerAddress;
   public BigDecimal subtotal;
