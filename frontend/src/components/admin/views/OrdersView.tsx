@@ -131,7 +131,7 @@ export function OrdersView({
             </div>
             <button
               onClick={() => printOrderReceipts(selected)}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
               style={{ background: VERDE, color: ROSA }}
             >
               <Printer size={15} /> Imprimir via
@@ -174,11 +174,11 @@ export function OrdersView({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="admin-order-actions mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {canReleasePayment && (
               <button
                 onClick={() => updateOrderStatus(selected.id, "PAID")}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
                 style={{ background: "#16A34A", color: "#fff" }}
               >
                 <Check size={15} /> Liberar pagamento
@@ -301,6 +301,20 @@ export function OrdersView({
               <span>{fmt(selected.total)}</span>
             </div>
           </div>
+          <style>{`
+            .admin-order-actions > * {
+              min-height: 48px;
+              width: 100%;
+              justify-content: center;
+              text-align: center;
+              padding-left: 12px;
+              padding-right: 12px;
+              line-height: 1.05;
+            }
+            .admin-order-actions svg {
+              flex-shrink: 0;
+            }
+          `}</style>
         </div>
       </div>
     </div>
