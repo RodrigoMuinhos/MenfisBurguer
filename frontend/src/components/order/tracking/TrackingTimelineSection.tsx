@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Clock, CreditCard, QrCode } from "lucide-react";
+import { AlertCircle, Clock, QrCode } from "lucide-react";
 import logoSkull from "@/imports/image-1.png";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -15,6 +15,9 @@ export function TrackingTimelineSection({
   showPixPayment,
   pixCopied,
   onCopyPixCode,
+  retryingPayment,
+  retryPaymentError,
+  onRetryPayment,
 }: {
   order: Order;
   current: number;
@@ -24,9 +27,68 @@ export function TrackingTimelineSection({
   showPixPayment: boolean;
   pixCopied: boolean;
   onCopyPixCode: () => void;
+  retryingPayment: boolean;
+  retryPaymentError: string;
+  onRetryPayment: () => void;
 }) {
+  const paymentStatus = String(order.paymentStatus ?? "").toLowerCase();
+  const paymentFailed = [
+    "rejected",
+    "failed",
+    "cancelled",
+    "canceled",
+    "expired",
+    "refunded",
+    "charged_back",
+  ].includes(paymentStatus);
+  const paymentApproved = paymentStatus === "approved";
+  const waitingPayment = order.status === "PAYMENT_PENDING" && !paymentApproved && !paymentFailed;
+  const paymentLabel = paymentApproved
+    ? "Pagamento aprovado"
+    : paymentFailed
+      ? "Pagamento não aprovado"
+      : "Aguardando pagamento";
+
   return (
     <>
+      {(waitingPayment || paymentFailed) && (
+        <div
+          className="rounded-[24px] p-4 md:p-5"
+          style={{
+            background: paymentFailed ? "#FEF2F2" : "#FFFBEB",
+            border: `1.5px solid ${paymentFailed ? "#FECACA" : "#FDE68A"}`,
+            color: paymentFailed ? "#991B1B" : "#92400E",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <AlertCircle size={22} strokeWidth={2.4} className="mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black uppercase tracking-wide">
+                {paymentFailed ? "Pagamento não confirmado" : "Pagamento pendente"}
+              </p>
+              <p className="mt-1 text-xs font-bold leading-relaxed opacity-75">
+                {paymentFailed
+                  ? "O Mercado Pago não aprovou esse pagamento. Você pode tentar pagar novamente."
+                  : "O pedido foi criado, mas ainda não foi pago. Para enviar para a cozinha, finalize pelo Mercado Pago."}
+              </p>
+              {retryPaymentError && (
+                <p className="mt-2 rounded-xl px-3 py-2 text-xs font-black" style={{ background: "#fff" }}>
+                  {retryPaymentError}
+                </p>
+              )}
+              <button
+                onClick={onRetryPayment}
+                disabled={retryingPayment}
+                className="mt-3 rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55"
+                style={{ background: VERDE, color: ROSA }}
+              >
+                {retryingPayment ? "Abrindo Mercado Pago" : "Tentar pagamento novamente"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showPixPayment && (
         <div
           className="rounded-[24px] p-4 md:p-5"
@@ -121,8 +183,11 @@ export function TrackingTimelineSection({
               {statusLabel.includes("preparado") ? "Seu pedido está em preparo!" : statusLabel}
             </p>
             <p className="mt-1 text-xs leading-relaxed" style={{ color: VERDE, opacity: 0.62 }}>
-              Primeiro confirmamos o pagamento. O pedido só aparece como recebido
-              quando a cozinha aceitar no KDS.
+              {waitingPayment
+                ? "Finalize o pagamento pelo Mercado Pago. O pedido só entra na cozinha depois da confirmação."
+                : paymentFailed
+                  ? "Esse pagamento não foi aprovado. Tente novamente para enviar o pedido para a cozinha."
+                  : "Pagamento confirmado. O pedido só aparece como recebido quando a cozinha aceitar no KDS."}
             </p>
             <div className="mt-5 flex items-start gap-2">
               <Clock size={17} strokeWidth={2.1} style={{ color: VERDE, opacity: 0.45 }} />
@@ -176,7 +241,7 @@ export function TrackingTimelineSection({
                   />
                 </motion.div>
                 <p className="mt-2 text-[10px] font-black leading-tight" style={{ color: "#111" }}>
-                  {step.label}
+                  {index === 0 ? paymentLabel : step.label}
                 </p>
                 <p className="mt-1 text-[10px]" style={{ color: "#666" }}>
                   {stepTimes[index]}

@@ -39,6 +39,8 @@ export function TrackingScreen({
   const [supportSent, setSupportSent] = useState("");
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [pixCopied, setPixCopied] = useState(false);
+  const [retryingPayment, setRetryingPayment] = useState(false);
+  const [retryPaymentError, setRetryPaymentError] = useState("");
   const current = order ? STATUS_INDEX[order.status] : -1;
   const delayed = order
     ? (Date.now() - order.timestamp) / 60000 > 50 &&
@@ -154,6 +156,35 @@ export function TrackingScreen({
     }
   };
 
+  const retryPayment = async () => {
+    if (!order?.id || !API_URL || retryingPayment) return;
+    setRetryingPayment(true);
+    setRetryPaymentError("");
+    try {
+      const res = await fetch(`${API_URL}/payments/pix`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const checkoutUrl =
+        typeof data.checkoutUrl === "string" && data.checkoutUrl
+          ? data.checkoutUrl
+          : typeof data.sandboxCheckoutUrl === "string" && data.sandboxCheckoutUrl
+            ? data.sandboxCheckoutUrl
+            : "";
+      if (!res.ok || !checkoutUrl) {
+        throw new Error(data?.error || "checkout_creation_failed");
+      }
+      localStorage.setItem("menfis_pending_order_id", order.id);
+      window.location.assign(checkoutUrl);
+    } catch {
+      setRetryPaymentError("Não foi possível abrir o Mercado Pago. Tente novamente.");
+    } finally {
+      setRetryingPayment(false);
+    }
+  };
+
   const createSupportTicket = async (type: string, reason: string) => {
     if (type === "ORDER_CHANGE_REQUEST" && !canRequestChange) {
       setSupportSent("Alterações só podem ser solicitadas antes do preparo começar.");
@@ -251,6 +282,9 @@ export function TrackingScreen({
           showPixPayment={showPixPayment}
           pixCopied={pixCopied}
           onCopyPixCode={copyPixCode}
+          retryingPayment={retryingPayment}
+          retryPaymentError={retryPaymentError}
+          onRetryPayment={retryPayment}
         />
         <TrackingSupportSection
           order={order}

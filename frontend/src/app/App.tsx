@@ -352,7 +352,11 @@ function ActiveOrderBanner({
   onOpen: () => void;
 }) {
   const current = STATUS_INDEX[order.status] ?? 0;
-  const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAID;
+  const status =
+    order.status === "PAYMENT_PENDING" &&
+    String(order.paymentStatus ?? "").toLowerCase() !== "approved"
+      ? STATUS_COPY.PAYMENT_PENDING
+      : STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
 
   return (
     <button

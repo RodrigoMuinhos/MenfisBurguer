@@ -1,11 +1,11 @@
-import { Bike, CheckCircle2, ChefHat, CreditCard, Home } from "lucide-react";
+import { Bike, CheckCircle2, ChefHat, Clock3, Home } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 
 export const WHATSAPP_URL = "https://wa.me/5585988086691";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 export const STEPS = [
-  { icon: CreditCard, label: "Pagamento aprovado" },
+  { icon: Clock3, label: "Pagamento" },
   { icon: CheckCircle2, label: "Pedido recebido" },
   { icon: ChefHat, label: "Em preparo" },
   { icon: Bike, label: "Saiu para entrega" },
@@ -33,9 +33,9 @@ export const STATUS_COPY: Record<
     eta: "Aguardando pagamento",
   },
   PAYMENT_PENDING: {
-    label: "Aguardando confirmacao",
-    copy: "Seu pedido foi enviado. Um atendente vai confirmar o recebimento.",
-    eta: "Aguardando atendente",
+    label: "Aguardando pagamento",
+    copy: "Seu pedido foi criado, mas o Mercado Pago ainda não confirmou o pagamento.",
+    eta: "Pague para enviar",
   },
   PAID: {
     label: "Pagamento aprovado",
@@ -136,6 +136,11 @@ export type SupportTicket = {
 
 export function paymentInfo(order: Order) {
   const status = (order.paymentStatus ?? "not_required").toLowerCase();
+  const onlinePayment =
+    order.paymentProvider === "mercado_pago" ||
+    order.paymentProvider === "MERCADO_PAGO" ||
+    order.paymentMethod === "pix" ||
+    order.paymentMethod === "cartao";
   if (order.paymentMethod === "pagar_na_entrega") {
     return {
       label: "Pagamento na entrega",
@@ -146,10 +151,13 @@ export function paymentInfo(order: Order) {
     };
   }
   const rejected = ["rejected", "cancelled", "refunded", "charged_back"].includes(status);
-  const approved =
-    status === "approved" ||
-    !["PAYMENT_PENDING", "CANCELLED", "CANCELLED"].includes(order.status);
-  const pending = order.paymentProvider === "mercado_pago" && !approved && !rejected;
+  const approved = status === "approved";
+  const pending =
+    onlinePayment &&
+    !approved &&
+    !rejected &&
+    order.status !== "CANCELLED" &&
+    order.status !== "DELIVERED";
 
   if (approved) {
     return {
