@@ -223,24 +223,24 @@ export function TrackingScreen({
   }, []);
 
   useEffect(() => {
-    if (!showDeliveryReview || !goHome) return;
+    if (!showDeliveryReview || !isKioskMobReview || !goHome) return;
 
     const promptTimer = window.setTimeout(() => {
       setIdlePromptOpen(true);
     }, 20000);
 
     return () => window.clearTimeout(promptTimer);
-  }, [goHome, reviewActivityTick, showDeliveryReview]);
+  }, [goHome, isKioskMobReview, reviewActivityTick, showDeliveryReview]);
 
   useEffect(() => {
-    if (!showDeliveryReview || !idlePromptOpen || !goHome) return;
+    if (!showDeliveryReview || !isKioskMobReview || !idlePromptOpen || !goHome) return;
 
     const exitTimer = window.setTimeout(() => {
       goHome();
     }, 10000);
 
     return () => window.clearTimeout(exitTimer);
-  }, [goHome, idlePromptOpen, showDeliveryReview]);
+  }, [goHome, idlePromptOpen, isKioskMobReview, showDeliveryReview]);
 
   const finishReview = (mode: "done" | "later") => {
     const savedReview: KioskReview = {
@@ -332,7 +332,7 @@ export function TrackingScreen({
         onKeyDown={markReviewActivity}
       >
         <div className="w-full max-w-md rounded-[24px] bg-white p-5" style={{ color: VERDE, border: `1.5px solid ${VERDE}12` }}>
-          {idlePromptOpen && (
+          {isKioskMobReview && idlePromptOpen && (
             <div
               className="mb-4 rounded-2xl p-4"
               style={{ background: "#FFF2C8", border: "1.5px solid #D89B22", color: "#8A4B00" }}
@@ -341,14 +341,24 @@ export function TrackingScreen({
               <p className="mt-1 text-xs font-bold opacity-75">
                 Se ninguém responder, a tela volta ao cardápio em 10 segundos.
               </p>
-              <button
-                type="button"
-                onClick={markReviewActivity}
-                className="mt-3 w-full rounded-xl px-4 py-3 text-xs font-black uppercase"
-                style={{ background: VERDE, color: ROSA }}
-              >
-                Sim, estou aqui
-              </button>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={markReviewActivity}
+                  className="rounded-xl px-4 py-3 text-xs font-black uppercase"
+                  style={{ background: VERDE, color: ROSA }}
+                >
+                  Continuar
+                </button>
+                <button
+                  type="button"
+                  onClick={goHome}
+                  className="rounded-xl px-4 py-3 text-xs font-black uppercase"
+                  style={{ background: "#fff", color: "#8A4B00", border: "1px solid #D89B22" }}
+                >
+                  Voltar ao menu
+                </button>
+              </div>
             </div>
           )}
           <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-45">Pedido entregue</p>
