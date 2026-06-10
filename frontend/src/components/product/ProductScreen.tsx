@@ -153,6 +153,11 @@ export function ProductScreen({
     MENU_ITEMS.find((item) => item.id === "chicken-super-combo") ??
     MENU_ITEMS[0];
   const savedDelivery = readSavedDelivery();
+  const kioskMobLoggedIn =
+    String(memberProfile?.name ?? "")
+      .trim()
+      .toUpperCase()
+      .replace(/_/g, "-") === "KIOSK-MOB";
 
   useEffect(() => {
     if (kioskMode) return;
@@ -235,7 +240,7 @@ export function ProductScreen({
   };
 
   const handleIdleShortcutTap = () => {
-    if (!kioskMode || !onOpenIdleScreen) return;
+    if (!kioskMobLoggedIn || !onOpenIdleScreen) return;
     idleShortcutTapCountRef.current += 1;
     if (idleShortcutTimerRef.current) clearTimeout(idleShortcutTimerRef.current);
 

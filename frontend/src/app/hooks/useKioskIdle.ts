@@ -30,13 +30,12 @@ export function useKioskIdle({
   }, []);
 
   const openKioskIdleScreen = useCallback(() => {
-    if (!kioskMode) return;
     setCart([]);
     setScreen("product");
     setShowIdlePrompt(false);
     setShowIdleScreen(true);
     lastInteractionRef.current = Date.now();
-  }, [kioskMode, setCart, setScreen]);
+  }, [setCart, setScreen]);
 
   useEffect(() => {
     if (!started || !kioskMode) return;

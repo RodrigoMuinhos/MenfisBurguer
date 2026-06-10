@@ -71,7 +71,7 @@ export function KioskIdleOverlays({
       </AnimatePresence>
 
       <AnimatePresence>
-        {kioskMode && showIdleScreen && !hidden && (
+        {showIdleScreen && !hidden && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
