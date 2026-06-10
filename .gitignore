@@ -13,10 +13,6 @@ node_modules/
 .next/
 out/
 dist/
-dist-electron/
-.electron-app/
-frontend/electron/kiosk-app/
-frontend/electron-admin/admin-app/
 build/
 
 # Logs

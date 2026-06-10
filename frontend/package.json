@@ -5,13 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "build:desktop": "node scripts/clean-app-builds.cjs desktop && next build && node scripts/prepare-kiosk.cjs && electron-builder --projectDir electron --win nsis",
-    "build:apps": "npm run build:desktop",
-    "build:admin": "node scripts/clean-app-builds.cjs admin && next build && node scripts/prepare-kiosk.cjs && electron-builder --projectDir electron-admin --win portable",
-    "build:kiosk": "node scripts/clean-app-builds.cjs kiosk && next build && node scripts/prepare-kiosk.cjs && electron-builder --projectDir electron --win portable",
     "dev": "next dev",
-    "dev:admin": "node scripts/dev-local.cjs admin",
-    "dev:kiosk": "node scripts/dev-local.cjs kiosk",
     "test:e2e:kds": "node scripts/e2e-kds-flow.cjs",
     "test:e2e": "node scripts/e2e-operation.cjs",
     "start": "next start"
@@ -32,8 +26,6 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
-    "electron": "^42.3.3",
-    "electron-builder": "^26.8.1",
     "playwright-core": "^1.60.0",
     "tailwindcss": "4.1.12",
     "typescript": "^5.8.3"
