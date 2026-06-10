@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useCallback, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowLeft, Clock, Star } from "lucide-react";
@@ -16,6 +16,49 @@ import {
 } from "./tracking";
 import { TrackingSupportSection } from "./tracking/TrackingSupportSection";
 import { TrackingTimelineSection } from "./tracking/TrackingTimelineSection";
+
+const KIOSK_REVIEWS_KEY = "menfis_kiosk_mob_reviews";
+
+type KioskReview = {
+  orderId: string;
+  rating: number;
+  comment: string;
+  at: number;
+  customerName: string;
+};
+
+function isKioskReview(value: unknown): value is KioskReview {
+  if (!value || typeof value !== "object") return false;
+  const review = value as Partial<KioskReview>;
+  return (
+    typeof review.orderId === "string" &&
+    typeof review.rating === "number" &&
+    typeof review.comment === "string" &&
+    typeof review.at === "number" &&
+    typeof review.customerName === "string"
+  );
+}
+
+function sortKioskReviews(reviews: KioskReview[]) {
+  return [...reviews].sort((a, b) => {
+    if (b.rating !== a.rating) return b.rating - a.rating;
+    if (b.comment.length !== a.comment.length) return b.comment.length - a.comment.length;
+    return b.at - a.at;
+  });
+}
+
+function reviewAlreadyDone(reviewKey: string) {
+  if (typeof window === "undefined") return false;
+  const stored = localStorage.getItem(reviewKey);
+  if (!stored) return false;
+  if (stored === "done") return true;
+  try {
+    const parsed = JSON.parse(stored) as { mode?: string };
+    return parsed.mode === "done";
+  } catch {
+    return false;
+  }
+}
 
 interface Props {
   orderPlaced: boolean;
@@ -42,6 +85,9 @@ export function TrackingScreen({
   const [rating, setRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewHandled, setReviewHandled] = useState(false);
+  const [idlePromptOpen, setIdlePromptOpen] = useState(false);
+  const [reviewActivityTick, setReviewActivityTick] = useState(0);
+  const [kioskReviews, setKioskReviews] = useState<KioskReview[]>([]);
   const current = order ? STATUS_INDEX[order.status] : -1;
   const delayed = order
     ? (Date.now() - order.timestamp) / 60000 > 50 &&
@@ -83,7 +129,21 @@ export function TrackingScreen({
     setRating(0);
     setReviewComment("");
     setReviewHandled(false);
+    setIdlePromptOpen(false);
   }, [order?.id]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const parsed = JSON.parse(localStorage.getItem(KIOSK_REVIEWS_KEY) ?? "[]");
+      if (Array.isArray(parsed)) {
+        setKioskReviews(sortKioskReviews(parsed.filter(isKioskReview)));
+      }
+    } catch {
+      setKioskReviews([]);
+    }
+  }, []);
 
   if (!orderPlaced || !order) {
     return (
@@ -153,10 +213,48 @@ export function TrackingScreen({
   const showDeliveryReview =
     order.status === "DELIVERED" &&
     !reviewHandled &&
-    typeof window !== "undefined" &&
-    localStorage.getItem(reviewKey) !== "done";
+    !reviewAlreadyDone(reviewKey);
+  const isKioskMobReview =
+    String(order.customerName ?? "").trim().toUpperCase() === "KIOSK-MOB";
+
+  const markReviewActivity = useCallback(() => {
+    setIdlePromptOpen(false);
+    setReviewActivityTick((value) => value + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!showDeliveryReview || !goHome) return;
+
+    const promptTimer = window.setTimeout(() => {
+      setIdlePromptOpen(true);
+    }, 20000);
+
+    return () => window.clearTimeout(promptTimer);
+  }, [goHome, reviewActivityTick, showDeliveryReview]);
+
+  useEffect(() => {
+    if (!showDeliveryReview || !idlePromptOpen || !goHome) return;
+
+    const exitTimer = window.setTimeout(() => {
+      goHome();
+    }, 10000);
+
+    return () => window.clearTimeout(exitTimer);
+  }, [goHome, idlePromptOpen, showDeliveryReview]);
 
   const finishReview = (mode: "done" | "later") => {
+    const savedReview: KioskReview = {
+      orderId: String(order.id),
+      rating,
+      comment: reviewComment.trim(),
+      at: Date.now(),
+      customerName:
+        String(order.customerName ?? "").trim() &&
+        String(order.customerName ?? "").trim().toUpperCase() !== "KIOSK-MOB"
+          ? String(order.customerName).trim()
+          : `Pedido ${order.id}`,
+    };
+
     try {
       localStorage.setItem(
         reviewKey,
@@ -167,6 +265,17 @@ export function TrackingScreen({
           at: Date.now(),
         }),
       );
+      if (mode === "done" && rating > 0 && isKioskMobReview) {
+        const previous = JSON.parse(localStorage.getItem(KIOSK_REVIEWS_KEY) ?? "[]");
+        const next = sortKioskReviews([
+          ...(Array.isArray(previous) ? previous.filter(isKioskReview) : []).filter(
+            (item) => item.orderId !== savedReview.orderId,
+          ),
+          savedReview,
+        ]);
+        localStorage.setItem(KIOSK_REVIEWS_KEY, JSON.stringify(next));
+        setKioskReviews(next);
+      }
     } catch {
       // A avaliacao local nao bloqueia o retorno ao inicio.
     }
@@ -216,8 +325,32 @@ export function TrackingScreen({
 
   if (showDeliveryReview) {
     return (
-      <div className="flex min-h-full items-center justify-center px-4 py-6" style={{ background: "#FFF8F2" }}>
+      <div
+        className="flex min-h-full items-center justify-center px-4 py-6"
+        style={{ background: "#FFF8F2" }}
+        onPointerDown={markReviewActivity}
+        onKeyDown={markReviewActivity}
+      >
         <div className="w-full max-w-md rounded-[24px] bg-white p-5" style={{ color: VERDE, border: `1.5px solid ${VERDE}12` }}>
+          {idlePromptOpen && (
+            <div
+              className="mb-4 rounded-2xl p-4"
+              style={{ background: "#FFF2C8", border: "1.5px solid #D89B22", color: "#8A4B00" }}
+            >
+              <p className="text-sm font-black uppercase">Tem alguém aí?</p>
+              <p className="mt-1 text-xs font-bold opacity-75">
+                Se ninguém responder, a tela volta ao cardápio em 10 segundos.
+              </p>
+              <button
+                type="button"
+                onClick={markReviewActivity}
+                className="mt-3 w-full rounded-xl px-4 py-3 text-xs font-black uppercase"
+                style={{ background: VERDE, color: ROSA }}
+              >
+                Sim, estou aqui
+              </button>
+            </div>
+          )}
           <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-45">Pedido entregue</p>
           <h2 className="mt-2 text-2xl font-black">Como foi sua experiencia?</h2>
           <div className="mt-5 flex justify-center gap-2">
@@ -225,7 +358,10 @@ export function TrackingScreen({
               <button
                 key={value}
                 type="button"
-                onClick={() => setRating(value)}
+                onClick={() => {
+                  markReviewActivity();
+                  setRating(value);
+                }}
                 className="flex h-12 w-12 items-center justify-center rounded-full"
                 style={{ background: value <= rating ? VERDE : "#FFF8F2", color: value <= rating ? ROSA : VERDE }}
                 aria-label={`${value} estrelas`}
@@ -236,7 +372,10 @@ export function TrackingScreen({
           </div>
           <textarea
             value={reviewComment}
-            onChange={(event) => setReviewComment(event.target.value.slice(0, 240))}
+            onChange={(event) => {
+              markReviewActivity();
+              setReviewComment(event.target.value.slice(0, 240));
+            }}
             className="mt-5 h-28 w-full resize-none rounded-2xl p-4 text-sm outline-none"
             style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
           />
@@ -259,6 +398,30 @@ export function TrackingScreen({
               Avaliar agora
             </button>
           </div>
+          {isKioskMobReview && kioskReviews.length > 0 && (
+            <div className="mt-5 border-t pt-4" style={{ borderColor: `${VERDE}14` }}>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45">
+                Avaliacoes do balcao
+              </p>
+              <div className="mt-3 grid gap-2">
+                {kioskReviews.slice(0, 8).map((item) => (
+                  <div
+                    key={`${item.orderId}-${item.at}`}
+                    className="rounded-2xl p-3"
+                    style={{ background: "#FFF8F2", border: `1px solid ${VERDE}10` }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-black uppercase">{item.customerName}</p>
+                      <p className="text-xs font-black">{item.rating}/5</p>
+                    </div>
+                    {item.comment && (
+                      <p className="mt-1 text-xs leading-relaxed opacity-70">{item.comment}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
