@@ -1,4 +1,5 @@
 import type { ElementType } from "react";
+import { deliveryConfirmationCode } from "@/components/order/tracking";
 import {
   Bike,
   CheckCircle2,
@@ -245,6 +246,7 @@ export function orderReadyWhatsappUrl(order: Order) {
   const message = encodeURIComponent(
     `Olá, ${order.customerName || "cliente"}! ` +
       `Seu pedido ${order.id} da Menfi's Burger está pronto. ` +
+      `Código de entrega/retirada: ${deliveryConfirmationCode(order)}. ` +
       `${order.deliveryType === "delivery" ? "Nossa equipe dará sequência à entrega." : "Pode retirar no balcão."} ` +
       `Obrigado pela preferência!`,
   );
@@ -273,6 +275,7 @@ export function printOrderReceipts(order: Order) {
       <div class="center small">MENFI'S BURGER</div>
       <div class="center"><strong>VIA DO PEDIDO</strong></div>
       <div class="number">${escapeReceipt(order.id)}</div>
+      <div class="center"><strong>CODIGO: ${escapeReceipt(deliveryConfirmationCode(order))}</strong></div>
       <div class="center">${order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA"}</div>
       <hr />
       <div>Data: ${new Date(order.timestamp).toLocaleString("pt-BR")}</div>

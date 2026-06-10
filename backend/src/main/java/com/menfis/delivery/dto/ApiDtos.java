@@ -41,6 +41,7 @@ public class ApiDtos {
   public record OrderResponse(
     String id,
     long number,
+    String deliveryCode,
     List<Map<String, Object>> items,
     OrderChannel channel,
     DeliveryType deliveryType,

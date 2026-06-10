@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BellRing, Check, MessageCircle, Phone, Printer, XCircle } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
+import { deliveryConfirmationCode } from "@/components/order/tracking";
 import {
   customerWhatsappUrl,
   fmt,
@@ -138,7 +139,7 @@ export function OrdersView({
             </button>
           </div>
 
-          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          <div className="mt-5 grid gap-2 sm:grid-cols-4">
             <div
               className="rounded-xl p-3"
               style={{ background: `${VERDE}08` }}
@@ -170,6 +171,17 @@ export function OrdersView({
               </p>
               <p className="mt-1 text-sm font-bold">
                 {selected.customerAddress || "Não informado"}
+              </p>
+            </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ background: `${VERDE}08` }}
+            >
+              <p className="text-[10px] font-black uppercase opacity-50">
+                Codigo
+              </p>
+              <p className="mt-1 text-sm font-bold">
+                {deliveryConfirmationCode(selected)}
               </p>
             </div>
           </div>

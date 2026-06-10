@@ -277,7 +277,8 @@ public class OrderService {
       throw new IllegalArgumentException("delivery_confirmation_not_available");
     }
     String expected = deliveryConfirmationCode(Number.class.cast(row.get("number")).longValue());
-    if (code == null || !expected.equals(code.replaceAll("\\D", ""))) {
+    String provided = code == null ? "" : code.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+    if (!expected.equals(provided)) {
       throw new IllegalArgumentException("invalid_delivery_code");
     }
     return changeStatus(id, OrderStatus.DELIVERED, actor == null ? "motoboy" : actor, "delivery_code_confirmed");
@@ -419,13 +420,18 @@ public class OrderService {
   }
 
   private String deliveryConfirmationCode(long number) {
-    return String.format("%04d", number % 10000);
+    String letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    char first = letters.charAt((int) (number % letters.length()));
+    char second = letters.charAt((int) ((number / letters.length()) % letters.length()));
+    long digits = Math.floorMod(number * 73 + 19, 100);
+    return "%c%c%02d".formatted(first, second, digits);
   }
 
   private OrderResponse mapOrder(ResultSet rs, int rowNum) throws SQLException {
     return new OrderResponse(
       rs.getString("id"),
       rs.getLong("number"),
+      deliveryConfirmationCode(rs.getLong("number")),
       readItems(rs.getString("items")),
       OrderChannel.valueOf(rs.getString("channel").toUpperCase()),
       DeliveryType.valueOf(rs.getString("delivery_type").toUpperCase()),

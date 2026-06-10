@@ -124,6 +124,8 @@ export function MemberModals({
   const canCloseLogin = Boolean(memberProfile);
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [registerStep, setRegisterStep] = useState<1 | 2>(1);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     if (!profileOpen || !memberProfile || !API_URL || typeof window === "undefined") return;
@@ -146,6 +148,12 @@ export function MemberModals({
       .finally(() => setOrdersLoading(false));
     return () => controller.abort();
   }, [memberProfile, profileOpen]);
+
+  useEffect(() => {
+    if (memberAuthMode === "login") return;
+    setRegisterStep(1);
+    setTermsAccepted(false);
+  }, [memberAuthMode, loginOpen]);
 
   return (
     <>
@@ -225,20 +233,19 @@ export function MemberModals({
                           label="Email ou CPF"
                           value={memberLogin}
                           onChange={setMemberLogin}
-                          placeholder="voce@email.com ou CPF"
                         />
                         <ProfileInput
                           label="Senha"
                           value={loginPassword}
                           onChange={(value) => setLoginPassword(value.replace(/\D/g, "").slice(0, 6))}
-                          placeholder="6 dígitos"
                           type="password"
                           inputMode="numeric"
                           maxLength={6}
                         />
                       </div>
                     ) : (
-                    <div className="mt-4 grid gap-3">
+                    <>
+                    <div className={registerStep === 1 ? "mt-4 grid gap-3" : "hidden"}>
                       <label className="grid gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
                           Nome
@@ -246,7 +253,6 @@ export function MemberModals({
                         <input
                           value={memberName}
                           onChange={(e) => setMemberName(e.target.value)}
-                          placeholder="Seu nome"
                           className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
                           style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
                         />
@@ -258,28 +264,27 @@ export function MemberModals({
                         <input
                           value={memberEmail}
                           onChange={(e) => setMemberEmail(e.target.value)}
-                          placeholder="voce@email.com"
                           inputMode="email"
                           className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
                           style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
                         />
                       </label>
-                      <ProfileInput
-                        label="CPF"
-                        value={memberCpf}
-                        onChange={(value) => setMemberCpf(value.replace(/\D/g, "").slice(0, 11))}
-                        placeholder="00000000000"
-                        inputMode="numeric"
-                        maxLength={11}
-                      />
-                      <label className="grid gap-1">
+                      <div className="hidden">
+                        <ProfileInput
+                          label="CPF"
+                          value={memberCpf}
+                          onChange={(value) => setMemberCpf(value.replace(/\D/g, "").slice(0, 11))}
+                          inputMode="numeric"
+                          maxLength={11}
+                        />
+                      </div>
+                      <label className="hidden gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
                           WhatsApp
                         </span>
                         <input
                           value={memberPhone}
                           onChange={(e) => setMemberPhone(e.target.value)}
-                          placeholder="(00) 00000-0000"
                           inputMode="tel"
                           className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
                           style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
@@ -289,7 +294,6 @@ export function MemberModals({
                         label="Senha"
                         value={memberPassword}
                         onChange={(value) => setMemberPassword(value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="6 dígitos"
                         type="password"
                         inputMode="numeric"
                         maxLength={6}
@@ -298,7 +302,6 @@ export function MemberModals({
                         label="Confirmar senha"
                         value={memberPasswordConfirm}
                         onChange={(value) => setMemberPasswordConfirm(value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="Repita os 6 dígitos"
                         type="password"
                         inputMode="numeric"
                         maxLength={6}
@@ -315,20 +318,49 @@ export function MemberModals({
                           style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
                         />
                       </label>
-                      <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
-                        <ProfileInput label="CEP" value={memberCep} onChange={setMemberCep} placeholder="00000-000" />
-                        <ProfileInput label="Bairro" value={memberNeighborhood} onChange={setMemberNeighborhood} placeholder="Bairro" />
+                      <div className="hidden grid-cols-1 gap-2 min-[390px]:grid-cols-2">
+                        <ProfileInput label="CEP" value={memberCep} onChange={setMemberCep} />
+                        <ProfileInput label="Bairro" value={memberNeighborhood} onChange={setMemberNeighborhood} />
                       </div>
-                      <ProfileInput label="Rua" value={memberStreet} onChange={setMemberStreet} placeholder="Rua principal" />
-                      <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
-                        <ProfileInput label="Número" value={memberNumber} onChange={setMemberNumber} placeholder="728" />
-                        <ProfileInput label="Complemento" value={memberComplement} onChange={setMemberComplement} placeholder="Casa, ap..." />
+                      <div className="hidden">
+                        <ProfileInput label="Rua" value={memberStreet} onChange={setMemberStreet} />
                       </div>
-                      <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
-                        <ProfileInput label="Cidade" value={memberCity} onChange={setMemberCity} placeholder="Fortaleza" />
-                        <ProfileInput label="Referência" value={memberReference} onChange={setMemberReference} placeholder="Próximo a..." />
+                      <div className="hidden grid-cols-1 gap-2 min-[390px]:grid-cols-2">
+                        <ProfileInput label="Número" value={memberNumber} onChange={setMemberNumber} />
+                        <ProfileInput label="Complemento" value={memberComplement} onChange={setMemberComplement} />
+                      </div>
+                      <div className="hidden grid-cols-1 gap-2 min-[390px]:grid-cols-2">
+                        <ProfileInput label="Cidade" value={memberCity} onChange={setMemberCity} />
+                        <ProfileInput label="Referência" value={memberReference} onChange={setMemberReference} />
                       </div>
                     </div>
+                    {registerStep === 2 && (
+                      <div className="mt-4 grid gap-3">
+                        <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                          <p className="font-black uppercase tracking-wider opacity-60">Confirmacao</p>
+                          <p className="mt-2">Telefone: {memberPhone || "pendente"}</p>
+                          <p>E-mail: {memberEmail || "pendente"}</p>
+                        </div>
+                        <label className="flex items-start gap-3 rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                          <input
+                            type="checkbox"
+                            checked={termsAccepted}
+                            onChange={(event) => setTermsAccepted(event.target.checked)}
+                            className="mt-0.5 h-4 w-4"
+                          />
+                          <span>Aceito os termos de uso e autorizo contato sobre meus pedidos por telefone, e-mail e WhatsApp.</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setRegisterStep(1)}
+                          className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                          style={{ background: `${VERDE}08`, color: VERDE }}
+                        >
+                          Voltar aos dados
+                        </button>
+                      </div>
+                    )}
+                    </>
                     )}
       
                     {memberError && (
@@ -341,13 +373,23 @@ export function MemberModals({
                     )}
       
                     <button
-                      onClick={memberAuthMode === "login" ? loginMember : saveMember}
-                      disabled={memberSaving}
+                      onClick={
+                        memberAuthMode === "login"
+                          ? loginMember
+                          : registerStep === 1
+                            ? () => setRegisterStep(2)
+                            : saveMember
+                      }
+                      disabled={memberSaving || (memberAuthMode === "register" && registerStep === 2 && !termsAccepted)}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-wider"
                       style={{
                         background: VERDE,
                         color: ROSA,
-                        opacity: memberSaving ? 0.76 : 1,
+                        opacity:
+                          memberSaving ||
+                          (memberAuthMode === "register" && registerStep === 2 && !termsAccepted)
+                            ? 0.56
+                            : 1,
                       }}
                     >
                       {memberSaving
@@ -356,7 +398,9 @@ export function MemberModals({
                           : "Cadastrando"
                         : memberAuthMode === "login"
                           ? "Entrar"
-                          : "Cadastrar"}
+                          : registerStep === 1
+                            ? "Continuar"
+                            : "Cadastrar"}
                       {memberSaving ? (
                         <Loader2
                           size={16}
@@ -542,7 +586,7 @@ function ProfileInput({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  placeholder?: string;
   type?: HTMLInputTypeAttribute;
   inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
   maxLength?: number;

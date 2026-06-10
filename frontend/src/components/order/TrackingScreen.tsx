@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Clock, CreditCard, QrCode } from "lucide-react";
+import { Clock, CreditCard, QrCode, Star } from "lucide-react";
 import logoSkull from "@/imports/image-1.png";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -41,6 +41,9 @@ export function TrackingScreen({
   const [pixCopied, setPixCopied] = useState(false);
   const [retryingPayment, setRetryingPayment] = useState(false);
   const [retryPaymentError, setRetryPaymentError] = useState("");
+  const [rating, setRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewHandled, setReviewHandled] = useState(false);
   const current = order ? STATUS_INDEX[order.status] : -1;
   const delayed = order
     ? (Date.now() - order.timestamp) / 60000 > 50 &&
@@ -76,6 +79,12 @@ export function TrackingScreen({
     syncTickets();
     const timer = window.setInterval(syncTickets, 30000);
     return () => window.clearInterval(timer);
+  }, [order?.id]);
+
+  useEffect(() => {
+    setRating(0);
+    setReviewComment("");
+    setReviewHandled(false);
   }, [order?.id]);
 
   if (!orderPlaced || !order) {
@@ -144,6 +153,30 @@ export function TrackingScreen({
     order.paymentMethod === "pix" &&
     order.status === "PAYMENT_PENDING" &&
     Boolean(order.pixQrCode || order.pixQrCodeBase64 || order.pixTicketUrl);
+  const reviewKey = `menfis_review_${order.id}`;
+  const showDeliveryReview =
+    order.status === "DELIVERED" &&
+    !reviewHandled &&
+    typeof window !== "undefined" &&
+    localStorage.getItem(reviewKey) !== "done";
+
+  const finishReview = (mode: "done" | "later") => {
+    try {
+      localStorage.setItem(
+        reviewKey,
+        JSON.stringify({
+          mode,
+          rating,
+          comment: reviewComment.trim(),
+          at: Date.now(),
+        }),
+      );
+    } catch {
+      // A avaliacao local nao bloqueia o retorno ao inicio.
+    }
+    setReviewHandled(true);
+    goHome?.();
+  };
 
   const copyPixCode = async () => {
     if (!order.pixQrCode) return;
@@ -184,6 +217,56 @@ export function TrackingScreen({
       setRetryingPayment(false);
     }
   };
+
+  if (showDeliveryReview) {
+    return (
+      <div className="flex min-h-full items-center justify-center px-4 py-6" style={{ background: "#FFF8F2" }}>
+        <div className="w-full max-w-md rounded-[24px] bg-white p-5" style={{ color: VERDE, border: `1.5px solid ${VERDE}12` }}>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-45">Pedido entregue</p>
+          <h2 className="mt-2 text-2xl font-black">Como foi sua experiencia?</h2>
+          <div className="mt-5 flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setRating(value)}
+                className="flex h-12 w-12 items-center justify-center rounded-full"
+                style={{ background: value <= rating ? VERDE : "#FFF8F2", color: value <= rating ? ROSA : VERDE }}
+                aria-label={`${value} estrelas`}
+              >
+                <Star size={22} fill={value <= rating ? "currentColor" : "none"} />
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={reviewComment}
+            onChange={(event) => setReviewComment(event.target.value.slice(0, 240))}
+            className="mt-5 h-28 w-full resize-none rounded-2xl p-4 text-sm outline-none"
+            style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
+          />
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => finishReview("later")}
+              className="rounded-2xl px-4 py-3 text-xs font-black uppercase"
+              style={{ background: "#FFF8F2", color: VERDE }}
+            >
+              Lembrar depois
+            </button>
+            <button
+              type="button"
+              onClick={() => finishReview("done")}
+              disabled={rating === 0}
+              className="rounded-2xl px-4 py-3 text-xs font-black uppercase disabled:opacity-45"
+              style={{ background: VERDE, color: ROSA }}
+            >
+              Avaliar agora
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const createSupportTicket = async (type: string, reason: string) => {
     if (type === "ORDER_CHANGE_REQUEST" && !canRequestChange) {

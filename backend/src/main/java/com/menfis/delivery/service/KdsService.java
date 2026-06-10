@@ -1,6 +1,5 @@
 package com.menfis.delivery.service;
 
-import com.menfis.delivery.domain.DeliveryType;
 import com.menfis.delivery.domain.OrderStatus;
 import com.menfis.delivery.dto.ApiDtos.OrderResponse;
 import java.util.List;
@@ -48,7 +47,6 @@ public class KdsService {
     OrderStatus next = switch (current) {
       case PAID -> OrderStatus.IN_PREPARATION;
       case IN_PREPARATION -> OrderStatus.READY;
-      case READY -> order.deliveryType() == DeliveryType.DELIVERY ? OrderStatus.OUT_FOR_DELIVERY : OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> OrderStatus.DELIVERED;
       default -> throw new IllegalArgumentException("order_not_advanceable");
     };

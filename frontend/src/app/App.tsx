@@ -22,6 +22,8 @@ import { useOrderSync } from "./hooks/useOrderSync";
 import { AdminLoginScreen } from "./AdminLoginScreen";
 import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
+import { deliveryConfirmationCode } from "@/services/orders/normalize";
+import { MEMBER_KEY, MEMBER_TOKEN_KEY } from "@/components/product/shared";
 
 export default function App({ mode }: { mode?: AppMode }) {
   const appMode = resolveAppMode(mode);
@@ -64,8 +66,14 @@ export default function App({ mode }: { mode?: AppMode }) {
 
   useEffect(() => {
     if (localStorage.getItem("menfis_cache_version") === CACHE_VERSION) return;
+    const memberToken = localStorage.getItem(MEMBER_TOKEN_KEY);
+    const memberProfile = localStorage.getItem(MEMBER_KEY);
+    const pendingOrderId = localStorage.getItem(PENDING_ORDER_KEY);
     localStorage.clear();
     sessionStorage.clear();
+    if (memberToken) localStorage.setItem(MEMBER_TOKEN_KEY, memberToken);
+    if (memberProfile) localStorage.setItem(MEMBER_KEY, memberProfile);
+    if (pendingOrderId) localStorage.setItem(PENDING_ORDER_KEY, pendingOrderId);
     localStorage.setItem("menfis_cache_version", CACHE_VERSION);
     if ("caches" in window) {
       void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
@@ -203,6 +211,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     const newOrder: Order = {
       id: `#${fallbackNumber}`,
       number: fallbackNumber,
+      deliveryCode: deliveryConfirmationCode({ number: fallbackNumber }),
       channel: kioskMode ? "KIOSK" : "DELIVERY",
       items: [...cart],
       removedByItemId:

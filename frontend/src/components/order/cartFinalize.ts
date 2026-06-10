@@ -1,5 +1,6 @@
 import { CartItem, Order } from "@/types/order";
 import { MEMBER_TOKEN_KEY } from "@/components/product/shared";
+import { deliveryConfirmationCode } from "@/services/orders/normalize";
 import {
   API_URL,
   Coupon,
@@ -103,6 +104,7 @@ export async function submitCheckoutOrder({
         number: Number(
           createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
         ),
+        deliveryCode: createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
         channel: "KIOSK",
         items: cart.map((item) => ({ ...item })),
         removedByItemId,
@@ -139,6 +141,7 @@ export async function submitCheckoutOrder({
         number: Number(
           createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
         ),
+        deliveryCode: createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
         channel: "DELIVERY",
         items: cart.map((item) => ({ ...item })),
         removedByItemId,
@@ -161,6 +164,7 @@ export async function submitCheckoutOrder({
         number: Number(
           createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
         ),
+        deliveryCode: createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
         channel: "DELIVERY",
         items: cart.map((item) => ({ ...item })),
         removedByItemId,
@@ -200,6 +204,7 @@ export async function submitCheckoutOrder({
           number: Number(
             createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
           ),
+          deliveryCode: createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
           channel: "DELIVERY",
           items: cart.map((item) => ({ ...item })),
           removedByItemId,
@@ -313,7 +318,7 @@ function openWhatsappReceipt(order: Order) {
     "Sabor que marca.",
     "",
     "WhatsApp:",
-    "(85) 98808-6691",
+    "(85) 99788-3764",
     "",
     line,
     `TOTAL: ${fmt(order.total)}`,

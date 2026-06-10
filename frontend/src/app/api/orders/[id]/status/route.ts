@@ -3,7 +3,7 @@ import { ensureOrdersSchema, getPool } from "../../../_lib/db";
 
 export const runtime = "nodejs";
 
-const VALID_STATUS = new Set(["PAID", "IN_PREPARATION", "READY", "DELIVERED"]);
+const VALID_STATUS = new Set(["PAID", "IN_PREPARATION", "READY", "OUT_FOR_DELIVERY", "DELIVERED"]);
 
 type DbOrderRow = {
   id: string;
@@ -20,13 +20,15 @@ type DbOrderRow = {
   payment_status: string;
   payment_id: string | null;
   timestamp: string | number;
-  status: "PAID" | "IN_PREPARATION" | "READY" | "DELIVERED";
+  status: "PAID" | "IN_PREPARATION" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED";
 };
 
 function mapOrder(row: DbOrderRow) {
+  const number = Number(row.number);
   return {
     id: row.id,
-    number: Number(row.number),
+    number,
+    deliveryCode: deliveryConfirmationCode(number),
     items: Array.isArray(row.items) ? row.items : [],
     removedByItemId: row.removed_by_item_id ?? undefined,
     channel: row.channel,
@@ -41,6 +43,15 @@ function mapOrder(row: DbOrderRow) {
     timestamp: Number(row.timestamp),
     status: row.status,
   };
+}
+
+function deliveryConfirmationCode(number: number) {
+  const seed = Number.isFinite(number) && number > 0 ? number : Date.now();
+  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const a = letters[seed % letters.length];
+  const b = letters[Math.floor(seed / letters.length) % letters.length];
+  const digits = String((seed * 73 + 19) % 100).padStart(2, "0");
+  return `${a}${b}${digits}`;
 }
 
 export async function PATCH(

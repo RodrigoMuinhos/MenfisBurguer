@@ -1,6 +1,7 @@
-import { BellRing, MessageCircle } from "lucide-react";
+import { BellRing, MessageCircle, Printer } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
+import { deliveryConfirmationCode } from "@/components/order/tracking";
 import { fmt, paymentBadge, STAGE_LABEL } from "../../shared";
 
 type ProductKind = "burger" | "chicken" | "bacon";
@@ -18,6 +19,7 @@ export function OrderDetail({
   compact = false,
   onSendConfirmation,
   onSendReady,
+  onPrintMotoboy,
 }: {
   order: Order;
   production: Array<{ id: string; title: string; possible: number; cost: number; limiting?: string; time: string }>;
@@ -25,6 +27,7 @@ export function OrderDetail({
   compact?: boolean;
   onSendConfirmation: () => void;
   onSendReady: () => void;
+  onPrintMotoboy: () => void;
 }) {
   const kind = primaryKind(order);
   const style = PRODUCT_STYLE[kind];
@@ -85,6 +88,15 @@ export function OrderDetail({
             disabled={!["IN_PREPARATION", "READY"].includes(order.status) || Boolean(busyAction)}
             onClick={onSendReady}
           />
+          {order.status === "READY" && (
+            <ActionButton
+              label="Via motoboy"
+              sublabel={`Codigo ${deliveryConfirmationCode(order)}`}
+              Icon={Printer}
+              disabled={Boolean(busyAction)}
+              onClick={onPrintMotoboy}
+            />
+          )}
         </div>
       </div>
 
@@ -99,6 +111,7 @@ export function OrderDetail({
         <InfoBox label="Cliente" value={order.customerName || "Não informado"} />
         <InfoBox label="Telefone" value={order.customerPhone || "Não informado"} />
         <InfoBox label="Tipo" value={`${order.channel} · ${order.deliveryType === "delivery" ? "Entrega" : "Retirada"}`} />
+        <InfoBox label="Codigo" value={deliveryConfirmationCode(order)} />
         <InfoBox label="Pagamento" value={`${paymentMethodLabel(order)} · ${pay.label}`} />
       </div>
 

@@ -44,14 +44,6 @@ export function useCartCheckout({
   kioskMode: boolean;
 }) {
   const memberProfile = kioskMode ? null : readMemberProfile();
-  const memberAddress = memberProfile?.defaultAddress ?? {};
-  const memberStreet = [
-    memberAddress.street,
-    memberAddress.neighborhood,
-    memberAddress.city,
-  ]
-    .filter(Boolean)
-    .join(" - ");
   const [delivery, setDelivery] = useState<DeliveryType>(
     kioskMode ? "retirada" : "delivery",
   );
@@ -74,15 +66,15 @@ export function useCartCheckout({
   const [couponError, setCouponError] = useState("");
 
   const saved = kioskMode ? {} : loadSaved();
-  const [cep, setCep] = useState<string>(memberAddress.cep ?? saved.cep ?? "");
+  const [cep, setCep] = useState<string>(saved.cep ?? "");
   const [street, setStreet] = useState<string>(
-    memberStreet || saved.street || "",
+    saved.street || "",
   );
   const [number, setNumber] = useState<string>(
-    memberAddress.number ?? saved.number ?? "",
+    saved.number ?? "",
   );
   const [complement, setComplement] = useState<string>(
-    memberAddress.complement ?? saved.complement ?? "",
+    saved.complement ?? "",
   );
   const [customerName, setCustomerName] = useState<string>(
     memberProfile?.name ?? "",

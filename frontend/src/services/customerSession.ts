@@ -1,4 +1,9 @@
-import { MemberProfile, MEMBER_KEY, MEMBER_TOKEN_KEY } from "@/components/product/shared";
+import {
+  MemberProfile,
+  MEMBER_KEY,
+  MEMBER_TOKEN_KEY,
+  readMemberProfile,
+} from "@/components/product/shared";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
@@ -56,15 +61,20 @@ export async function loginCustomerSession(payload: LoginPayload) {
 
 export async function loadCustomerSession() {
   const token = localStorage.getItem(MEMBER_TOKEN_KEY);
-  if (!API_URL || !token) return null;
-  const res = await fetch(`${API_URL}/customers/me`, {
-    cache: "no-store",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return null;
-  const profile = normalizeCustomer(await res.json());
-  localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
-  return profile;
+  const cachedProfile = readMemberProfile();
+  if (!API_URL || !token) return cachedProfile;
+  try {
+    const res = await fetch(`${API_URL}/customers/me`, {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return cachedProfile;
+    const profile = normalizeCustomer(await res.json());
+    localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+    return profile;
+  } catch {
+    return cachedProfile;
+  }
 }
 
 export function logoutCustomerSession() {

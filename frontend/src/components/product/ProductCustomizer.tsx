@@ -58,14 +58,12 @@ export function ProductCustomizer({
     setState((prev) => {
       if (!prev) return prev;
       const current = prev[field];
-      const selectedCount = current.filter((item) => item === value).length;
+      const isSelected = current.includes(value);
       let selected = current;
-      if (selectedCount >= max) {
+      if (isSelected) {
         selected = current.filter((item) => item !== value);
       } else if (current.length < max) {
         selected = [...current, value];
-      } else if (selectedCount > 0) {
-        selected = current.filter((item) => item !== value);
       }
       return { ...prev, [field]: selected };
     });

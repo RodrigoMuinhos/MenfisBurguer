@@ -15,6 +15,7 @@ import {
   fmt,
   MENU_STOCK_MAP,
   orderReadyWhatsappUrl,
+  printOrderReceipts,
 } from "../shared";
 import { Metric, OrderDetail } from "./kitchen/KitchenOrderDetail";
 import { KitchenStageColumn, primaryKind } from "./kitchen/KitchenKanban";
@@ -317,12 +318,9 @@ export function KitchenView({
               compact={compact}
               onSelect={setSelectedId}
               onAction={(order) =>
-                runStatusAction(
-                  order,
-                  order.deliveryType === "delivery" ? "OUT_FOR_DELIVERY" : "DELIVERED",
-                  order.deliveryType === "delivery" ? "route" : "deliver",
-                  orderReadyWhatsappUrl(order),
-                )
+                order.deliveryType === "delivery"
+                  ? runStatusAction(order, "OUT_FOR_DELIVERY", "route")
+                  : runStatusAction(order, "DELIVERED", "deliver")
               }
             />
           </div>
@@ -352,19 +350,13 @@ export function KitchenView({
                 )
               }
               onSendReady={() =>
-                runStatusAction(
-                  selectedOrder,
-                  selectedOrder.status === "READY"
-                    ? selectedOrder.deliveryType === "delivery"
-                      ? "OUT_FOR_DELIVERY"
-                      : "DELIVERED"
-                    : "READY",
-                  selectedOrder.status === "READY" && selectedOrder.deliveryType === "delivery"
-                    ? "route"
-                    : "ready",
-                  orderReadyWhatsappUrl(selectedOrder),
-                )
+                selectedOrder.status === "READY"
+                  ? selectedOrder.deliveryType === "delivery"
+                    ? runStatusAction(selectedOrder, "OUT_FOR_DELIVERY", "route")
+                    : runStatusAction(selectedOrder, "DELIVERED", "deliver")
+                  : runStatusAction(selectedOrder, "READY", "ready", orderReadyWhatsappUrl(selectedOrder))
               }
+              onPrintMotoboy={() => printOrderReceipts(selectedOrder)}
             />
           ) : (
             <div style={{ padding: 40, textAlign: "center", opacity: 0.45 }}>

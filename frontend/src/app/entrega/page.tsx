@@ -96,7 +96,6 @@ function DeliveryLogin({ onLogin }: { onLogin: (token: string) => void }) {
             autoComplete="username"
             inputMode="numeric"
             className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
-            placeholder="CPF ou login"
             style={{ color: VERDE }}
           />
         </div>
@@ -110,7 +109,6 @@ function DeliveryLogin({ onLogin }: { onLogin: (token: string) => void }) {
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
             className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
-            placeholder="Senha"
             type="password"
             style={{ color: VERDE }}
           />
@@ -320,9 +318,8 @@ function DeliveryDetails({
         </div>
         <input
           value={code}
-          onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 4))}
-          placeholder="0000"
-          inputMode="numeric"
+          onChange={(event) => setCode(event.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 4))}
+          inputMode="text"
           className="mt-3 w-full rounded-2xl px-4 py-4 text-center text-3xl font-black tracking-widest outline-none"
           style={{ border: `1.5px solid ${ROSA}`, color: VERDE }}
         />

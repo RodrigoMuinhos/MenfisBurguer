@@ -1,7 +1,7 @@
 import { Bike, CheckCircle2, ChefHat, Clock3, Home, PackageCheck } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 
-export const WHATSAPP_URL = "https://wa.me/5585988086691";
+export const WHATSAPP_URL = "https://wa.me/5585997883764";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 export const STEPS = [
@@ -73,8 +73,13 @@ export const STATUS_COPY: Record<
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
 export function deliveryConfirmationCode(order: Order) {
-  const numeric = String(order.number || order.id.replace(/\D/g, "") || "0");
-  return numeric.slice(-4).padStart(4, "0");
+  if (order.deliveryCode) return order.deliveryCode;
+  const seed = Number(order.number || order.id.replace(/\D/g, "") || Date.now());
+  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const a = letters[seed % letters.length];
+  const b = letters[Math.floor(seed / letters.length) % letters.length];
+  const digits = String((seed * 73 + 19) % 100).padStart(2, "0");
+  return `${a}${b}${digits}`;
 }
 
 export const SUPPORT_TOPICS = [

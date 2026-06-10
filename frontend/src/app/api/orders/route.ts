@@ -22,9 +22,11 @@ type DbOrderRow = {
 };
 
 function mapOrder(row: DbOrderRow) {
+  const number = Number(row.number);
   return {
     id: row.id,
-    number: Number(row.number),
+    number,
+    deliveryCode: deliveryConfirmationCode(number),
     items: Array.isArray(row.items) ? row.items : [],
     removedByItemId: row.removed_by_item_id ?? undefined,
     channel: row.channel,
@@ -39,6 +41,15 @@ function mapOrder(row: DbOrderRow) {
     timestamp: Number(row.timestamp),
     status: row.status,
   };
+}
+
+function deliveryConfirmationCode(number: number) {
+  const seed = Number.isFinite(number) && number > 0 ? number : Date.now();
+  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const a = letters[seed % letters.length];
+  const b = letters[Math.floor(seed / letters.length) % letters.length];
+  const digits = String((seed * 73 + 19) % 100).padStart(2, "0");
+  return `${a}${b}${digits}`;
 }
 
 export async function GET() {

@@ -312,14 +312,6 @@ export function ProductScreen({
       setMemberPassword("");
       setMemberPasswordConfirm("");
       setMemberBirthday(memberProfile.birthday ?? "");
-      const address = memberProfile.defaultAddress ?? {};
-      setMemberCep(String(address.cep ?? ""));
-      setMemberStreet(String(address.street ?? ""));
-      setMemberNumber(String(address.number ?? ""));
-      setMemberComplement(String(address.complement ?? ""));
-      setMemberNeighborhood(String(address.neighborhood ?? ""));
-      setMemberCity(String(address.city ?? ""));
-      setMemberReference(String(address.reference ?? ""));
     }
     setProfileOpen(false);
     setMemberAuthMode("register");
@@ -330,7 +322,6 @@ export function ProductScreen({
     const name = memberName.trim();
     const email = memberEmail.trim().toLowerCase();
     const phone = memberPhone.trim();
-    const cpfDigits = memberCpf.replace(/\D/g, "");
     const password = memberPassword.trim();
     const confirmPassword = memberPasswordConfirm.trim();
     setMemberError("");
@@ -346,16 +337,8 @@ export function ProductScreen({
       setMemberError("Informe um email válido.");
       return;
     }
-    if (cpfDigits.length !== 11) {
-      setMemberError("Falta preencher: CPF com 11 números.");
-      return;
-    }
     if (phone.replace(/\D/g, "").length < 10) {
       setMemberError("Falta preencher: WhatsApp com DDD.");
-      return;
-    }
-    if (!memberBirthday) {
-      setMemberError("Falta preencher: aniversário.");
       return;
     }
     if (password.length !== 6) {
@@ -370,44 +353,14 @@ export function ProductScreen({
       setMemberError("A confirmação da senha não confere.");
       return;
     }
-    if (!memberCep.replace(/\D/g, "")) {
-      setMemberError("Falta preencher: CEP.");
-      return;
-    }
-    if (!memberStreet.trim()) {
-      setMemberError("Falta preencher: rua.");
-      return;
-    }
-    if (!memberNumber.trim()) {
-      setMemberError("Falta preencher: número.");
-      return;
-    }
-    if (!memberNeighborhood.trim()) {
-      setMemberError("Falta preencher: bairro.");
-      return;
-    }
-    if (!memberCity.trim()) {
-      setMemberError("Falta preencher: cidade.");
-      return;
-    }
-
     setMemberSaving(true);
     try {
       const profile = await saveCustomerSession({
         name,
         email,
-        cpf: cpfDigits,
         password,
         confirmPassword,
         phone,
-        birthday: memberBirthday || undefined,
-        cep: memberCep,
-        street: memberStreet,
-        number: memberNumber,
-        complement: memberComplement,
-        neighborhood: memberNeighborhood,
-        city: memberCity,
-        reference: memberReference,
       });
       setMemberProfile(profile);
       setLoginOpen(false);

@@ -29,6 +29,7 @@ export interface CartItem {
 export interface Order {
   id: string;
   number: number;
+  deliveryCode?: string;
   channel: OrderChannel;
   items: CartItem[];
   removedByItemId?: Record<string, string[]>;

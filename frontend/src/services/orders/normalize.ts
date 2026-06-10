@@ -66,6 +66,8 @@ export function normalizeBackendOrder(raw: any): Order {
     number: Number(
       (raw.number ?? String(raw.id).replace(/\D/g, "")) || Date.now(),
     ),
+    deliveryCode:
+      raw.deliveryCode ?? raw.delivery_code ?? deliveryConfirmationCode(raw),
     channel:
       String(raw.channel ?? "").toUpperCase() === "KIOSK" ||
       (deliveryType === "retirada" &&
@@ -97,4 +99,14 @@ export function normalizeBackendOrder(raw: any): Order {
           : Date.now(),
     status,
   };
+}
+
+export function deliveryConfirmationCode(raw: { number?: unknown; id?: unknown }) {
+  const number = Number(raw.number ?? String(raw.id ?? "").replace(/\D/g, ""));
+  const seed = Number.isFinite(number) && number > 0 ? number : Date.now();
+  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const a = letters[seed % letters.length];
+  const b = letters[Math.floor(seed / letters.length) % letters.length];
+  const digits = String((seed * 73 + 19) % 100).padStart(2, "0");
+  return `${a}${b}${digits}`;
 }

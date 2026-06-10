@@ -63,7 +63,7 @@ export const PICKUP_ADDRESS = "Rua Doutor Gilberto Studart, 728";
 export const SERVICE_FEE = 0.99;
 export const KIOSK_PIX_CODE =
   "00020126330014br.gov.bcb.pix0111044117503175204000053039865802BR5922RODRIGO ARAUJO MUINHOS6009FORTALEZA62070503***63044AEB";
-export const SUPPORT_WHATSAPP_URL = "https://wa.me/5585988086691";
+export const SUPPORT_WHATSAPP_URL = "https://wa.me/5585997883764";
 export const STORAGE_KEY = "menfis_cliente";
 export const MEMBER_KEY = "menfis_member";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
