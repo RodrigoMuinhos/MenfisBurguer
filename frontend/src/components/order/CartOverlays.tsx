@@ -8,6 +8,7 @@ export function CartOverlays({
   kioskSuccessOpen,
   paying,
   kioskMode,
+  counterServiceMode = false,
   paymentSlow,
   kioskKeyboardOpen,
   kioskKeyboardTarget,
@@ -19,6 +20,7 @@ export function CartOverlays({
   kioskSuccessOpen: boolean;
   paying: boolean;
   kioskMode: boolean;
+  counterServiceMode?: boolean;
   paymentSlow: boolean;
   kioskKeyboardOpen: boolean;
   kioskKeyboardTarget: KioskKeyboardTarget;
@@ -120,12 +122,14 @@ export function CartOverlays({
                       />
                     </div>
                     <p className="text-sm font-black uppercase tracking-wide">
-                      {kioskMode
+                      {kioskMode || counterServiceMode
                         ? "Enviando pedido para a equipe"
                         : "Conectando ao pagamento"}
                     </p>
                     <p className="mt-2 text-xs leading-relaxed opacity-65">
-                      {kioskMode
+                      {counterServiceMode
+                        ? "Estamos registrando o pedido do balcão e preparando a impressão da via."
+                        : kioskMode
                         ? "Aguarde enquanto registramos o pedido para confirmação do atendente."
                         : "Estamos registrando seu pedido e abrindo o Mercado Pago. Se demorar, aguarde mais alguns segundos."}
                     </p>

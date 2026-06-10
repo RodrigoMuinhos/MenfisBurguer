@@ -7,7 +7,7 @@ import { CartScreen } from "@/components/order/CartScreen";
 import { TrackingScreen } from "@/components/order/TrackingScreen";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { CartItem, Order } from "@/types/order";
-import { CREME } from "@/utils/theme";
+import { CREME, ROSA, VERDE } from "@/utils/theme";
 import {
   AppMode,
   APP_SCREEN_KEY,
@@ -45,7 +45,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       const stored = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
       if (
         stored &&
-        ["product", "cart", "tracking", "admin", "admin-login"].includes(stored)
+        ["product", "cart", "tracking", "queue", "admin", "admin-login"].includes(stored)
       ) {
         return stored;
       }
@@ -151,16 +151,36 @@ export default function App({ mode }: { mode?: AppMode }) {
   const goHome = () => setScreen("product");
   const leaveTrackingToMenu = () => {
     localStorage.removeItem(PENDING_ORDER_KEY);
-    setLastOrderId("");
+    const selectedOrder = orders.find((order) => order.id === lastOrderId);
+    if (!isKioskMobOrder(selectedOrder)) {
+      setLastOrderId("");
+    }
     setScreen("product");
   };
   const activeOrder = lastOrderId
     ? orders.find((order) => order.id === lastOrderId)
     : undefined;
+  const kioskMobQueue = orders.filter(
+    (order) => isKioskMobOrder(order) && !["DELIVERED", "CANCELLED"].includes(order.status),
+  );
+  const kioskMobSession = isKioskMobSession();
+  const primaryKioskMobOrder = kioskMobQueue[0];
   const visibleActiveOrder =
-    activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
+    activeOrder && !isKioskMobOrder(activeOrder) && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
       ? activeOrder
       : undefined;
+
+  useEffect(() => {
+    if (screen !== "queue") return;
+    const ids = kioskMobQueue.map((order) => order.id);
+    if (ids.length === 0) return;
+    const syncQueue = () => {
+      ids.forEach((id) => void loadOrderById(id));
+    };
+    syncQueue();
+    const timer = window.setInterval(syncQueue, 3500);
+    return () => window.clearInterval(timer);
+  }, [kioskMobQueue.map((order) => order.id).join("|"), loadOrderById, screen]);
 
   const openInstalledAdmin = async () => {
     const desktopWindow = window as typeof window & {
@@ -200,7 +220,8 @@ export default function App({ mode }: { mode?: AppMode }) {
     createdOrder?: Order,
   ) => {
     if (createdOrder) {
-      if (!kioskMode) {
+      const kioskMobOrder = isKioskMobOrder(createdOrder);
+      if (!kioskMode && !kioskMobOrder) {
         localStorage.setItem(PENDING_ORDER_KEY, createdOrder.id);
       }
       setOrders((prev) => [
@@ -210,7 +231,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       setLastOrderId(createdOrder.id);
       setCart([]);
       localStorage.removeItem(CART_STORAGE_KEY);
-      setScreen(kioskMode ? "product" : "tracking");
+      setScreen(kioskMode || kioskMobOrder ? "product" : "tracking");
       resetKioskActivity();
       registerMemberOrder();
       return;
@@ -247,7 +268,7 @@ export default function App({ mode }: { mode?: AppMode }) {
           setLastOrderId(created.id);
           setCart([]);
           localStorage.removeItem(CART_STORAGE_KEY);
-          setScreen("tracking");
+          setScreen(isKioskMobOrder(created) ? "product" : "tracking");
           registerMemberOrder();
           return;
         }
@@ -278,7 +299,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     setLastOrderId(newOrder.id);
     setCart([]);
     localStorage.removeItem(CART_STORAGE_KEY);
-    setScreen(kioskMode ? "product" : "tracking");
+    setScreen(kioskMode || isKioskMobOrder(newOrder) ? "product" : "tracking");
     resetKioskActivity();
     registerMemberOrder();
   };
@@ -355,8 +376,8 @@ export default function App({ mode }: { mode?: AppMode }) {
             onAdminOpen={kioskMode ? openInstalledAdmin : openAdmin}
             onOpenIdleScreen={openKioskIdleScreen}
             kioskMode={kioskMode}
-            activeOrder={visibleActiveOrder}
-            onOpenActiveOrder={() => setScreen("tracking")}
+            activeOrder={kioskMobSession ? primaryKioskMobOrder : visibleActiveOrder}
+            onOpenActiveOrder={() => setScreen(kioskMobSession ? "queue" : "tracking")}
             onRepeatOrder={(items) => {
               setCart(items.map((item) => ({ ...item, qty: Math.max(1, item.qty || 1) })));
               setScreen("cart");
@@ -398,6 +419,16 @@ export default function App({ mode }: { mode?: AppMode }) {
             autoReturnMs={kioskMode ? 20000 : 0}
           />
         )}
+        {screen === "queue" && (
+          <KioskMobQueueScreen
+            orders={kioskMobQueue}
+            onBack={goHome}
+            onSelect={(order) => {
+              setLastOrderId(order.id);
+              setScreen("tracking");
+            }}
+          />
+        )}
         {screen === "admin" && (
           <AdminPanel
             orders={orders}
@@ -416,6 +447,92 @@ export default function App({ mode }: { mode?: AppMode }) {
         screen={screen}
         onActivity={resetKioskActivity}
       />    </div>
+  );
+}
+
+function normalizeKioskMobName(value?: string) {
+  return String(value ?? "").trim().toUpperCase().replace(/_/g, "-");
+}
+
+function isKioskMobOrder(order?: Order | null) {
+  return normalizeKioskMobName(order?.customerName) === "KIOSK-MOB";
+}
+
+function isKioskMobSession() {
+  if (typeof window === "undefined") return false;
+  try {
+    const profile = JSON.parse(localStorage.getItem(MEMBER_KEY) ?? "{}") as { name?: string };
+    return normalizeKioskMobName(profile.name) === "KIOSK-MOB";
+  } catch {
+    return false;
+  }
+}
+
+function KioskMobQueueScreen({
+  orders,
+  onBack,
+  onSelect,
+}: {
+  orders: Order[];
+  onBack: () => void;
+  onSelect: (order: Order) => void;
+}) {
+  const sorted = [...orders].sort((a, b) => a.timestamp - b.timestamp);
+
+  return (
+    <div className="min-h-full px-4 py-5" style={{ background: "#FFF8F2", color: VERDE }}>
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-5 rounded-2xl px-5 py-3 text-xs font-black uppercase"
+        style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}18` }}
+      >
+        Voltar ao menu
+      </button>
+      <div className="rounded-3xl p-5" style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}>
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-45">Fila do balcão</p>
+        <h1 className="mt-1 text-3xl font-black">Pedidos KIOSK-MOB</h1>
+        <p className="mt-1 text-xs font-bold opacity-60">
+          Cada pessoa gera um pedido separado. Toque em um pedido para acompanhar.
+        </p>
+        <div className="mt-5 grid gap-3">
+          {sorted.length === 0 ? (
+            <div className="rounded-2xl p-5 text-center text-sm font-black" style={{ background: "#FFF8F2" }}>
+              Nenhum pedido ativo no balcão.
+            </div>
+          ) : (
+            sorted.map((order, index) => {
+              const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+              return (
+                <button
+                  key={order.id}
+                  type="button"
+                  onClick={() => onSelect(order)}
+                  className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl p-4 text-left"
+                  style={{ background: "#FFF8F2", border: `1.5px solid ${VERDE}14` }}
+                >
+                  <span
+                    className="flex h-11 w-11 items-center justify-center rounded-full text-lg font-black"
+                    style={{ background: VERDE, color: ROSA }}
+                  >
+                    {index + 1}
+                  </span>
+                  <span>
+                    <span className="block text-xl font-black">{order.id}</span>
+                    <span className="mt-0.5 block text-xs font-bold opacity-65">
+                      Código {deliveryConfirmationCode(order)} · {new Date(order.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </span>
+                  <span className="rounded-full px-3 py-2 text-[10px] font-black uppercase" style={{ background: ROSA, color: VERDE }}>
+                    {status.label}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

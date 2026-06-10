@@ -395,6 +395,7 @@ export function printOrderReceipts(order: Order) {
       <div class="center"><strong>VIA DO PEDIDO</strong></div>
       <div class="number">${escapeReceipt(order.id)}</div>
       <div class="center">${isKioskMobOrder(order) ? "BALCÃO" : order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA"}</div>
+      <div class="code">Código: <strong>${escapeReceipt(deliveryConfirmationCode(order))}</strong></div>
       <hr />
       <div>Data: ${new Date(order.timestamp).toLocaleString("pt-BR")}</div>
       <div>Cliente: ${escapeReceipt(order.customerName || "Não informado")}</div>
@@ -416,16 +417,18 @@ export function printOrderReceipts(order: Order) {
     <style>
       @page { size: 58mm auto; margin: 0; }
       * { box-sizing: border-box; }
-      body { width: 56mm; margin: 0; padding: 1mm; font-family: "Courier New", ui-monospace, monospace; color: #000; font-weight: 700; }
-      .receipt { width: 54mm; padding: 1.5mm; border: 0.5mm solid #000; font-size: 11px; line-height: 1.3; }
+      html, body { margin: 0; padding: 0; background: #fff; }
+      body { width: 48mm; margin: 0 auto; padding: 1mm 0; font-family: "Courier New", ui-monospace, monospace; color: #000; font-weight: 700; overflow: hidden; }
+      .receipt { width: 48mm; padding: 0; border: 0; font-size: 10px; line-height: 1.25; overflow: hidden; }
       .center { text-align: center; } .small { font-size: 11px; }
-      .number { margin: 3mm 0 2mm; padding: 1.5mm 1mm; text-align: center; font-size: 28px; font-weight: 900; border: 0.7mm solid #000; letter-spacing: 0.06em; }
-      .row { display: flex; justify-content: space-between; gap: 2mm; margin: 1.5mm 0; border-bottom: 0.3mm solid #000; padding-bottom: 1mm; }
-      .row b { max-width: 34mm; overflow-wrap: anywhere; }
-      .row span:last-child { white-space: nowrap; }
-      .components { margin: 0 0 1.5mm 2mm; font-size: 10px; font-weight: 700; }
-      .note { margin: 1mm 0 1.5mm; font-size: 10px; }
-      .total { margin-top: 2mm; padding: 1.5mm 0; border-top: 0.7mm solid #000; border-bottom: 0.7mm solid #000; font-size: 15px; }
+      .number { margin: 2mm 0 1.5mm; padding: 1mm 0; text-align: center; font-size: 26px; font-weight: 900; border-top: 0.6mm solid #000; border-bottom: 0.6mm solid #000; letter-spacing: 0.06em; }
+      .code { margin-top: 1mm; text-align: center; font-size: 13px; }
+      .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.5mm; margin: 1.2mm 0; border-bottom: 0.25mm solid #000; padding-bottom: 0.8mm; align-items: start; }
+      .row b { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+      .row span:last-child { white-space: nowrap; font-size: 9px; }
+      .components { margin: 0 0 1.5mm 1.5mm; font-size: 9px; font-weight: 700; overflow-wrap: anywhere; }
+      .note { margin: 1mm 0 1.5mm; font-size: 9px; overflow-wrap: anywhere; }
+      .total { margin-top: 2mm; padding: 1.2mm 0; border-top: 0.6mm solid #000; border-bottom: 0.6mm solid #000; font-size: 13px; }
       .alert { margin: 1.5mm 0; padding: 1mm; border: 0.5mm solid #000; font-weight: 900; }
       hr { border: 0; border-top: 0.4mm dashed #000; margin: 2mm 0; }
       strong { font-weight: 900; }

@@ -262,6 +262,7 @@ export function CartScreen({
         kioskSuccessOpen={kioskSuccessOpen}
         paying={paying}
         kioskMode={kioskMode}
+        counterServiceMode={counterServiceMode}
         paymentSlow={paymentSlow}
         kioskKeyboardOpen={kioskKeyboardOpen}
         kioskKeyboardTarget={kioskKeyboardTarget}

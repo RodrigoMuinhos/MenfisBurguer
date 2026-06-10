@@ -1,6 +1,6 @@
 import { Order, OrderStatus } from "@/types/order";
 
-export type Screen = "product" | "cart" | "tracking" | "admin" | "admin-login";
+export type Screen = "product" | "cart" | "tracking" | "queue" | "admin" | "admin-login";
 export type AppMode = "kiosk" | "delivery" | "admin" | "kds";
 
 export const MEMBER_KEY = "menfis_member";

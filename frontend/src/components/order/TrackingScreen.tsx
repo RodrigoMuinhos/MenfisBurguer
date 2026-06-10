@@ -13,6 +13,7 @@ import {
   SUPPORT_TOPICS,
   SupportTicket,
   WHATSAPP_URL,
+  deliveryConfirmationCode,
 } from "./tracking";
 import { TrackingSupportSection } from "./tracking/TrackingSupportSection";
 import { TrackingTimelineSection } from "./tracking/TrackingTimelineSection";
@@ -215,7 +216,7 @@ export function TrackingScreen({
     !reviewHandled &&
     !reviewAlreadyDone(reviewKey);
   const isKioskMobReview =
-    String(order.customerName ?? "").trim().toUpperCase() === "KIOSK-MOB";
+    String(order.customerName ?? "").trim().toUpperCase().replace(/_/g, "-") === "KIOSK-MOB";
 
   const markReviewActivity = useCallback(() => {
     setIdlePromptOpen(false);
@@ -250,7 +251,7 @@ export function TrackingScreen({
       at: Date.now(),
       customerName:
         String(order.customerName ?? "").trim() &&
-        String(order.customerName ?? "").trim().toUpperCase() !== "KIOSK-MOB"
+        String(order.customerName ?? "").trim().toUpperCase().replace(/_/g, "-") !== "KIOSK-MOB"
           ? String(order.customerName).trim()
           : `Pedido ${order.id}`,
     };
@@ -538,6 +539,7 @@ export function TrackingScreen({
         <TrackingTimelineSection
           order={order}
           current={current}
+          counterServiceMode={isKioskMobReview}
           statusLabel={statusCopy.label}
           statusEta={statusCopy.eta}
           stepTimes={stepTimes}
@@ -548,21 +550,40 @@ export function TrackingScreen({
           retryPaymentError={retryPaymentError}
           onRetryPayment={retryPayment}
         />
-        <TrackingSupportSection
-          order={order}
-          delayed={delayed}
-          staleTicket={staleTicket}
-          whatsappText={whatsappText}
-          delayedWhatsappText={delayedWhatsappText}
-          supportSent={supportSent}
-          supportOpen={supportOpen}
-          selectedTopic={selectedTopic}
-          canRequestChange={canRequestChange}
-          setSupportOpen={setSupportOpen}
-          setSelectedTopic={setSelectedTopic}
-          setSupportSent={setSupportSent}
-          createSupportTicket={createSupportTicket}
-        />
+        {isKioskMobReview ? (
+          <div className="rounded-[22px] p-4" style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}>
+            <p className="text-sm font-black" style={{ color: VERDE }}>Controle da fila</p>
+            <p className="mt-1 text-[11px] leading-relaxed" style={{ color: VERDE, opacity: 0.62 }}>
+              Use este código para chamar a pessoa no balcão quando o pedido ficar pronto.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl p-3" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-45">Pedido</p>
+                <p className="mt-1 text-2xl font-black">{order.id}</p>
+              </div>
+              <div className="rounded-2xl p-3" style={{ background: `${ROSA}55`, border: `1.5px solid ${VERDE}` }}>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Código</p>
+                <p className="mt-1 text-2xl font-black tracking-widest">{deliveryConfirmationCode(order)}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <TrackingSupportSection
+            order={order}
+            delayed={delayed}
+            staleTicket={staleTicket}
+            whatsappText={whatsappText}
+            delayedWhatsappText={delayedWhatsappText}
+            supportSent={supportSent}
+            supportOpen={supportOpen}
+            selectedTopic={selectedTopic}
+            canRequestChange={canRequestChange}
+            setSupportOpen={setSupportOpen}
+            setSelectedTopic={setSelectedTopic}
+            setSupportSent={setSupportSent}
+            createSupportTicket={createSupportTicket}
+          />
+        )}
       </div>
     </div>
   );

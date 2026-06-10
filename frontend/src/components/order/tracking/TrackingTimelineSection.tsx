@@ -9,6 +9,7 @@ import { STEPS, WHATSAPP_URL } from "../tracking";
 export function TrackingTimelineSection({
   order,
   current,
+  counterServiceMode = false,
   statusLabel,
   statusEta,
   stepTimes,
@@ -21,6 +22,7 @@ export function TrackingTimelineSection({
 }: {
   order: Order;
   current: number;
+  counterServiceMode?: boolean;
   statusLabel: string;
   statusEta: string;
   stepTimes: string[];
@@ -68,8 +70,16 @@ export function TrackingTimelineSection({
           : method === "cartao"
             ? "Cartão Mercado Pago"
             : "Pagamento Presencial com Atendente";
+  const steps = counterServiceMode ? STEPS.slice(0, 4) : STEPS;
+  const displayCurrent = Math.min(current, steps.length - 1);
   const timelineCopy =
-    waitingPayment
+    counterServiceMode
+      ? order.status === "READY"
+        ? "Pedido pronto para servir no balcão."
+        : order.status === "DELIVERED"
+          ? "Pedido servido no balcão."
+          : "Acompanhe a fila do balcão e aguarde o pedido ficar pronto."
+      : waitingPayment
       ? whatsappPayment
         ? "Seu pedido foi enviado ao atendimento. A equipe vai chamar no WhatsApp, receber o pagamento e liberar para a cozinha."
         : "Finalize o pagamento pelo Mercado Pago. O pedido só entra na cozinha depois da confirmação."
@@ -88,9 +98,9 @@ export function TrackingTimelineSection({
                   : order.status === "CANCELLED"
                     ? "Este pedido foi cancelado. Fale com a equipe se precisar."
                     : "Acompanhe aqui a confirmação do pedido.";
-  const progressInset = 100 / (STEPS.length * 2);
+  const progressInset = 100 / (steps.length * 2);
   const progressWidth =
-    current <= 0 ? 0 : (current / (STEPS.length - 1)) * (100 - progressInset * 2);
+    displayCurrent <= 0 ? 0 : (displayCurrent / (steps.length - 1)) * (100 - progressInset * 2);
   const paymentHelpText = encodeURIComponent(
     `Olá, preciso de ajuda com o pagamento do pedido ${order.id}.`,
   );
@@ -272,7 +282,7 @@ export function TrackingTimelineSection({
 
         <div
           className="relative mt-8 grid gap-1"
-          style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
         >
           <div
             className="absolute top-[30px] h-0.5"
@@ -288,9 +298,9 @@ export function TrackingTimelineSection({
             className="absolute top-[30px] h-0.5"
             style={{ background: "#EF4C86", left: `${progressInset}%` }}
           />
-          {STEPS.map((step, index) => {
-            const done = index <= current;
-            const active = index === current;
+          {steps.map((step, index) => {
+            const done = index <= displayCurrent;
+            const active = index === displayCurrent;
             const Icon = step.icon;
             return (
               <div key={step.label} className="relative z-10 flex flex-col items-center text-center">
