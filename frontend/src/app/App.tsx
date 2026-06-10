@@ -11,6 +11,7 @@ import { CREME } from "@/utils/theme";
 import {
   AppMode,
   APP_SCREEN_KEY,
+  ADMIN_SESSION_KEY,
   CACHE_VERSION,
   CART_STORAGE_KEY,
   PENDING_ORDER_KEY,
@@ -36,7 +37,10 @@ export default function App({ mode }: { mode?: AppMode }) {
   });
   const [screen, setScreen] = useState<Screen>(() => {
     if (appMode === "kds") return "admin";
-    if (appMode === "admin") return "admin-login";
+    if (appMode === "admin") {
+      if (typeof window === "undefined") return "admin-login";
+      return localStorage.getItem(ADMIN_SESSION_KEY) ? "admin" : "admin-login";
+    }
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
       if (
@@ -118,7 +122,11 @@ export default function App({ mode }: { mode?: AppMode }) {
     const params = new URLSearchParams(window.location.search);
     if (adminOnlyMode) {
       setStarted(true);
-      setScreen(appMode === "kds" ? "admin" : "admin-login");
+      setScreen(
+        appMode === "kds" || localStorage.getItem(ADMIN_SESSION_KEY)
+          ? "admin"
+          : "admin-login",
+      );
       return;
     }
     const orderId =
