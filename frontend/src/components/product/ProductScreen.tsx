@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ChefHat,
@@ -8,9 +8,12 @@ import {
   Plus,
   ShoppingBag,
   Sparkles,
-  Trophy,
   UserRound,
   X,
+  Clock3,
+  Heart,
+  Home,
+  PackageSearch,
 } from "lucide-react";
 import { CartItem, Order } from "@/types/order";
 import { CREME, ROSA, VERDE } from "@/utils/theme";
@@ -101,6 +104,9 @@ export function ProductScreen({
     return !localStorage.getItem(MEMBER_TOKEN_KEY) || !readMemberProfile();
   });
   const [profileOpen, setProfileOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [memberCpf, setMemberCpf] = useState("");
@@ -142,7 +148,6 @@ export function ProductScreen({
   const featuredItem =
     MENU_ITEMS.find((item) => item.id === "combo2") ?? MENU_ITEMS[0];
   const savedDelivery = readSavedDelivery();
-  const memberProgress = memberProfile ? memberProfile.orders % 10 : 0;
 
   useEffect(() => {
     if (kioskMode) return;
@@ -263,10 +268,22 @@ export function ProductScreen({
     }
 
     for (let i = 0; i < customizer.qty; i += 1) {
+      const drinkLabels = customizer.drinks
+        .map((drinkId) => DRINK_OPTIONS.find((option) => option.id === drinkId)?.label)
+        .filter(Boolean) as string[];
+      const components = [
+        customizer.item.name,
+        ...drinkLabels,
+        ...(customizer.item.category === "combo" ? ["Batata Frita 250g"] : []),
+        ...customizer.sauces,
+      ];
       addToCart({
-        id: customizer.item.id,
+        id: `${customizer.item.id}-${Date.now()}-${i}`,
+        productId: customizer.item.id,
         name: customizer.item.name.toUpperCase(),
         price: customizer.item.price,
+        components,
+        note: customizer.note.trim() || undefined,
       });
       customizer.drinks.forEach((drinkId) => {
         const drink = DRINK_OPTIONS.find((option) => option.id === drinkId);
@@ -318,6 +335,22 @@ export function ProductScreen({
     setProfileOpen(false);
     setMemberAuthMode("register");
     setLoginOpen(true);
+  };
+
+  const openHistory = () => {
+    if (!memberProfile) {
+      setLoginOpen(true);
+      return;
+    }
+    setHistoryOpen(true);
+  };
+
+  const openNotifications = () => {
+    if (!memberProfile) {
+      setLoginOpen(true);
+      return;
+    }
+    setNotificationsOpen(true);
   };
 
   const saveMember = async () => {
@@ -479,6 +512,7 @@ export function ProductScreen({
         goToCart={goToCart}
         memberProfile={memberProfile}
         onOpenMember={openMemberAccess}
+        onOpenNotifications={openNotifications}
         onLogoutMember={logoutMember}
       />
 
@@ -524,42 +558,48 @@ export function ProductScreen({
           backdropFilter: "blur(18px)",
         }}
       >
-        <div className="flex w-full items-center gap-3 px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
-              Total do pedido
-            </p>
-            <p
-              style={{
-                color: VERDE,
-                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                fontSize: "2rem",
-                lineHeight: 1,
-              }}
+        {cartCount > 0 && (
+          <div className="flex w-full items-center gap-3 px-4 pt-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
+                Total do pedido
+              </p>
+              <p
+                style={{
+                  color: VERDE,
+                  fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                  fontSize: "1.75rem",
+                  lineHeight: 1,
+                }}
+              >
+                {fmt(cartTotal)}
+              </p>
+            </div>
+            <button
+              onClick={goToCart}
+              className="flex min-h-12 items-center gap-2 rounded-2xl px-5 text-xs font-black uppercase tracking-wider"
+              style={{ background: VERDE, color: ROSA, border: "none" }}
             >
-              {cartCount > 0 ? fmt(cartTotal) : "R$ 0,00"}
-            </p>
+              <ShoppingBag size={17} strokeWidth={2.4} />
+              Fechar pedido
+            </button>
           </div>
-          <button
-            onClick={goToCart}
-            disabled={cartCount === 0}
-            className="flex min-h-14 items-center gap-2 rounded-2xl px-5 text-xs font-black uppercase tracking-wider disabled:opacity-35"
-            style={{
-              background: cartCount > 0 ? VERDE : `${VERDE}20`,
-              color: cartCount > 0 ? ROSA : `${VERDE}70`,
-              cursor: cartCount > 0 ? "pointer" : "default",
-              border: "none",
-            }}
-          >
-            <ShoppingBag size={17} strokeWidth={2.4} />
-            Fechar pedido
-          </button>
+        )}
+        <div className="grid grid-cols-5 gap-1 px-2 pb-2 pt-2">
+          <BottomNavButton icon={Home} label="Início" active onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
+          <BottomNavButton icon={PackageSearch} label="Pedidos" active={Boolean(activeOrder)} onClick={() => activeOrder ? onOpenActiveOrder?.() : openHistory()} />
+          <BottomNavButton icon={Heart} label="Favoritos" onClick={() => setFavoritesOpen(true)} />
+          <BottomNavButton icon={Clock3} label="Histórico" onClick={openHistory} />
+          <BottomNavButton icon={UserRound} label="Perfil" onClick={openMemberAccess} />
         </div>
       </div>
 
       <MemberModals
         loginOpen={loginOpen}
         profileOpen={profileOpen}
+        historyOpen={historyOpen}
+        notificationsOpen={notificationsOpen}
+        favoritesOpen={favoritesOpen}
         memberProfile={memberProfile}
         memberName={memberName}
         setMemberName={setMemberName}
@@ -597,7 +637,6 @@ export function ProductScreen({
         setMemberReference={setMemberReference}
         memberError={memberError}
         memberSaving={memberSaving}
-        memberProgress={memberProgress}
         savedDelivery={savedDelivery}
         saveMember={saveMember}
         loginMember={loginMember}
@@ -609,6 +648,9 @@ export function ProductScreen({
           if (memberProfile) setLoginOpen(false);
         }}
         closeProfile={() => setProfileOpen(false)}
+        closeHistory={() => setHistoryOpen(false)}
+        closeNotifications={() => setNotificationsOpen(false)}
+        closeFavorites={() => setFavoritesOpen(false)}
         activeOrder={activeOrder}
         onOpenActiveOrder={onOpenActiveOrder}
         onRepeatOrder={onRepeatOrder}
@@ -645,6 +687,33 @@ export function ProductScreen({
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+function BottomNavButton({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: ElementType;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-black"
+      style={{
+        color: active ? VERDE : `${VERDE}75`,
+        background: active ? `${ROSA}55` : "transparent",
+      }}
+    >
+      <Icon size={18} strokeWidth={2.4} />
+      <span>{label}</span>
+    </button>
   );
 }
 

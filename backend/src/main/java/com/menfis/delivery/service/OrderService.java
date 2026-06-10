@@ -16,6 +16,7 @@ import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -348,14 +349,23 @@ public class OrderService {
       }
       BigDecimal unitPrice = unit.add(addonsTotal);
       BigDecimal total = unitPrice.multiply(BigDecimal.valueOf(item.quantity()));
-      return Map.<String, Object>of(
-        "productId", product.get("id"),
-        "name", product.get("name"),
-        "quantity", item.quantity(),
-        "unitPrice", unitPrice,
-        "totalPrice", total,
-        "addonIds", item.addonIds() == null ? List.of() : item.addonIds()
-      );
+      Map<String, Object> row = new LinkedHashMap<>();
+      row.put("productId", product.get("id"));
+      row.put("id", product.get("id"));
+      row.put("name", product.get("name"));
+      row.put("quantity", item.quantity());
+      row.put("qty", item.quantity());
+      row.put("unitPrice", unitPrice);
+      row.put("price", unitPrice);
+      row.put("totalPrice", total);
+      row.put("addonIds", item.addonIds() == null ? List.of() : item.addonIds());
+      if (item.metadata() != null) {
+        Object components = item.metadata().get("components");
+        Object note = item.metadata().get("note");
+        if (components != null) row.put("components", components);
+        if (note != null) row.put("note", note);
+      }
+      return row;
     }).toList();
     BigDecimal subtotal = priced.stream().map(row -> (BigDecimal) row.get("totalPrice")).reduce(BigDecimal.ZERO, BigDecimal::add);
     return new PriceResult(subtotal, priced);

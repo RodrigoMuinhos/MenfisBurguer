@@ -12,6 +12,7 @@ import { ROSA, VERDE } from "@/utils/theme";
 import { StockItem } from "../EstoqueView";
 import {
   customerWhatsappUrl,
+  copyOrderTxt,
   fmt,
   MENU_STOCK_MAP,
   orderReadyWhatsappUrl,
@@ -357,6 +358,7 @@ export function KitchenView({
                   : runStatusAction(selectedOrder, "READY", "ready", orderReadyWhatsappUrl(selectedOrder))
               }
               onPrintMotoboy={() => printOrderReceipts(selectedOrder)}
+              onGenerateTxt={() => void copyOrderTxt(selectedOrder)}
             />
           ) : (
             <div style={{ padding: 40, textAlign: "center", opacity: 0.45 }}>

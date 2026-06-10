@@ -47,9 +47,14 @@ export function normalizeBackendOrder(raw: any): Order {
   const items = Array.isArray(raw.items)
     ? raw.items.map((item: any) => ({
         id: String(item.productId ?? item.id ?? item.name ?? "item"),
+        productId: item.productId ? String(item.productId) : undefined,
         name: String(item.name ?? item.productId ?? "Item"),
         qty: Number(item.quantity ?? item.qty ?? 1),
         price: Number(item.unitPrice ?? item.price ?? 0),
+        components: Array.isArray(item.components)
+          ? item.components.map((component: unknown) => String(component))
+          : undefined,
+        note: item.note ? String(item.note) : undefined,
       }))
     : [];
   const deliveryType =

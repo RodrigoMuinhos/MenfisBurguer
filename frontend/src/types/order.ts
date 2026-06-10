@@ -25,9 +25,12 @@ export type PaymentMethod =
 
 export interface CartItem {
   id: string;
+  productId?: string;
   name: string;
   price: number;
   qty: number;
+  components?: string[];
+  note?: string;
 }
 
 export interface Order {

@@ -79,8 +79,12 @@ export async function submitCheckoutOrder({
       },
       body: JSON.stringify({
         items: cart.map((item) => ({
-          productId: item.id,
+          productId: item.productId ?? item.id,
           quantity: item.qty,
+          metadata: {
+            components: item.components ?? [],
+            note: item.note ?? "",
+          },
         })),
         channel: effectiveChannel,
         deliveryType: effectiveDelivery.toUpperCase(),

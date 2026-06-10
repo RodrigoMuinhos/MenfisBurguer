@@ -4,6 +4,18 @@ import { fmt } from "./checkout";
 const WHATSAPP_DISPLAY = "(85) 99788-3764";
 const LINE = "=================================";
 
+const DEFAULT_COMPOSITION: Record<string, string[]> = {
+  combo: ["Menfi's Burger", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "double-combo": ["Double Menfi's", "Coca-Cola 350ml", "Batata Frita 250g"],
+  combo2: ["2x Menfi's Burger", "2 bebidas", "Batata Frita 250g"],
+  "bacon-combo": ["Menfi's Bacon", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "double-bacon-combo": ["Double Menfi's Bacon", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "bacon-super-combo": ["2x Menfi's Bacon", "2 bebidas", "Batata Frita 250g"],
+  "chicken-combo": ["Menfi's Chicken", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "double-chicken-combo": ["Double Menfi's Chicken", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "chicken-super-combo": ["2x Menfi's Chicken", "2 bebidas", "Batata Frita 250g"],
+};
+
 type ReceiptInput = {
   id?: string;
   items: CartItem[];
@@ -20,9 +32,16 @@ export function buildWhatsappReceipt(input: ReceiptInput) {
     minute: "2-digit",
   });
   const items = input.items
-    .map((item) => {
+    .flatMap((item) => {
       const name = `${item.qty}x ${titleCaseItem(item.name)}`.slice(0, 27);
-      return `${name.padEnd(29, " ")} ${fmt(item.price * item.qty)}`;
+      const components = item.components?.length
+        ? item.components
+        : DEFAULT_COMPOSITION[item.productId ?? item.id] ?? [];
+      return [
+        `${name.padEnd(29, " ")} ${fmt(item.price * item.qty)}`,
+        ...components.map((component) => `* ${component}`),
+        ...(item.note ? ["Observacao:", item.note] : []),
+      ];
     })
     .join("\n");
   const method = input.paymentMethod ?? "pix";

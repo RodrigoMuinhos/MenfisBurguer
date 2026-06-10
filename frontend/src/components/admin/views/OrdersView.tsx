@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { BellRing, Check, MessageCircle, Phone, Printer, XCircle } from "lucide-react";
+import { BellRing, Check, FileText, MessageCircle, Phone, Printer, XCircle } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { deliveryConfirmationCode } from "@/components/order/tracking";
 import {
   customerWhatsappUrl,
+  copyOrderTxt,
   fmt,
   orderReadyWhatsappUrl,
   paymentMethodLabel,
@@ -129,13 +130,22 @@ export function OrdersView({
                 {STAGE_LABEL[selected.status]} · {paymentStatusLabel(selected)}
               </p>
             </div>
-            <button
-              onClick={() => printOrderReceipts(selected)}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
-              style={{ background: VERDE, color: ROSA }}
-            >
-              <Printer size={15} /> Imprimir via
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => printOrderReceipts(selected)}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
+                style={{ background: VERDE, color: ROSA }}
+              >
+                <Printer size={15} /> Imprimir via
+              </button>
+              <button
+                onClick={() => void copyOrderTxt(selected)}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
+                style={{ background: `${VERDE}10`, color: VERDE, border: `1.5px solid ${VERDE}20` }}
+              >
+                <FileText size={15} /> Gerar TXT
+              </button>
+            </div>
           </div>
 
           <div className="mt-5 grid gap-2 sm:grid-cols-4">

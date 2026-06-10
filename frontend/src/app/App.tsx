@@ -10,7 +10,9 @@ import { CartItem, Order } from "@/types/order";
 import { CREME } from "@/utils/theme";
 import {
   AppMode,
+  APP_SCREEN_KEY,
   CACHE_VERSION,
+  CART_STORAGE_KEY,
   PENDING_ORDER_KEY,
   Screen,
   registerMemberOrder,
@@ -35,9 +37,26 @@ export default function App({ mode }: { mode?: AppMode }) {
   const [screen, setScreen] = useState<Screen>(() => {
     if (appMode === "kds") return "admin";
     if (appMode === "admin") return "admin-login";
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
+      if (
+        stored &&
+        ["product", "cart", "tracking", "admin", "admin-login"].includes(stored)
+      ) {
+        return stored;
+      }
+    }
     return "product";
   });
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [lastOrderId, setLastOrderId] = useState<string>("");
   const {
     adminUser,
@@ -69,16 +88,31 @@ export default function App({ mode }: { mode?: AppMode }) {
     const memberToken = localStorage.getItem(MEMBER_TOKEN_KEY);
     const memberProfile = localStorage.getItem(MEMBER_KEY);
     const pendingOrderId = localStorage.getItem(PENDING_ORDER_KEY);
+    const adminSession = localStorage.getItem("menfis_admin_session");
+    const cartState = localStorage.getItem(CART_STORAGE_KEY);
+    const appScreen = localStorage.getItem(APP_SCREEN_KEY);
     localStorage.clear();
-    sessionStorage.clear();
     if (memberToken) localStorage.setItem(MEMBER_TOKEN_KEY, memberToken);
     if (memberProfile) localStorage.setItem(MEMBER_KEY, memberProfile);
     if (pendingOrderId) localStorage.setItem(PENDING_ORDER_KEY, pendingOrderId);
+    if (adminSession) localStorage.setItem("menfis_admin_session", adminSession);
+    if (cartState) localStorage.setItem(CART_STORAGE_KEY, cartState);
+    if (appScreen) localStorage.setItem(APP_SCREEN_KEY, appScreen);
     localStorage.setItem("menfis_cache_version", CACHE_VERSION);
     if ("caches" in window) {
       void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
     }
   }, []);
+
+  useEffect(() => {
+    if (adminOnlyMode) return;
+    localStorage.setItem(APP_SCREEN_KEY, screen);
+  }, [adminOnlyMode, screen]);
+
+  useEffect(() => {
+    if (kioskMode) return;
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  }, [cart, kioskMode]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -162,6 +196,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       ]);
       setLastOrderId(createdOrder.id);
       setCart([]);
+      localStorage.removeItem(CART_STORAGE_KEY);
       setScreen(kioskMode ? "product" : "tracking");
       resetKioskActivity();
       registerMemberOrder();
@@ -198,6 +233,7 @@ export default function App({ mode }: { mode?: AppMode }) {
           ]);
           setLastOrderId(created.id);
           setCart([]);
+          localStorage.removeItem(CART_STORAGE_KEY);
           setScreen("tracking");
           registerMemberOrder();
           return;
@@ -228,6 +264,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     setOrders((prev) => [...prev, newOrder]);
     setLastOrderId(newOrder.id);
     setCart([]);
+    localStorage.removeItem(CART_STORAGE_KEY);
     setScreen(kioskMode ? "product" : "tracking");
     resetKioskActivity();
     registerMemberOrder();

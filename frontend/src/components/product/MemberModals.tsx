@@ -1,12 +1,13 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState, type HTMLInputTypeAttribute } from "react";
+import { useEffect, useState, type ElementType, type HTMLInputTypeAttribute, type ReactNode } from "react";
 import {
   Gift,
   Headphones,
+  KeyRound,
   Loader2,
   LogOut,
+  MapPin,
   PackageSearch,
-  Trophy,
   UserCog,
   UserRound,
   X,
@@ -21,6 +22,9 @@ import { normalizeBackendOrder } from "@/services/orders/normalize";
 export function MemberModals({
   loginOpen,
   profileOpen,
+  historyOpen,
+  notificationsOpen,
+  favoritesOpen,
   memberProfile,
   memberName,
   setMemberName,
@@ -58,7 +62,6 @@ export function MemberModals({
   setMemberReference,
   memberError,
   memberSaving,
-  memberProgress,
   savedDelivery,
   saveMember,
   loginMember,
@@ -68,12 +71,18 @@ export function MemberModals({
   logoutMember,
   closeLogin,
   closeProfile,
+  closeHistory,
+  closeNotifications,
+  closeFavorites,
   activeOrder,
   onOpenActiveOrder,
   onRepeatOrder,
 }: {
   loginOpen: boolean;
   profileOpen: boolean;
+  historyOpen: boolean;
+  notificationsOpen: boolean;
+  favoritesOpen: boolean;
   memberProfile: MemberProfile | null;
   memberName: string;
   setMemberName: (value: string) => void;
@@ -111,7 +120,6 @@ export function MemberModals({
   setMemberReference: (value: string) => void;
   memberError: string;
   memberSaving: boolean;
-  memberProgress: number;
   savedDelivery: Record<string, string>;
   saveMember: () => void;
   loginMember: () => void;
@@ -126,6 +134,9 @@ export function MemberModals({
   logoutMember: () => void;
   closeLogin: () => void;
   closeProfile: () => void;
+  closeHistory: () => void;
+  closeNotifications: () => void;
+  closeFavorites: () => void;
   activeOrder?: Order | null;
   onOpenActiveOrder?: () => void;
   onRepeatOrder?: (items: CartItem[]) => void;
@@ -146,7 +157,12 @@ export function MemberModals({
   );
 
   useEffect(() => {
-    if (!profileOpen || !memberProfile || !API_URL || typeof window === "undefined") return;
+    if (
+      (!profileOpen && !historyOpen && !notificationsOpen) ||
+      !memberProfile ||
+      !API_URL ||
+      typeof window === "undefined"
+    ) return;
     const token = localStorage.getItem(MEMBER_TOKEN_KEY);
     if (!token) return;
     const controller = new AbortController();
@@ -165,7 +181,7 @@ export function MemberModals({
       .catch(() => setCustomerOrders([]))
       .finally(() => setOrdersLoading(false));
     return () => controller.abort();
-  }, [memberProfile, profileOpen]);
+  }, [historyOpen, memberProfile, notificationsOpen, profileOpen]);
 
   useEffect(() => {
     if (memberAuthMode === "login") return;
@@ -589,54 +605,16 @@ export function MemberModals({
                     </div>
 
                     <div className="mt-5 grid gap-3">
-                      {memberProfile.hasPassword === false && (
-                        <button
-                          onClick={editMember}
-                          className="rounded-2xl p-4 text-left"
-                          style={{
-                            background: "#FFFBEB",
-                            color: "#92400E",
-                            border: "1.5px solid #F59E0B",
-                          }}
-                        >
-                          <p className="text-xs font-black uppercase tracking-wider">
-                            Crie sua senha
-                          </p>
-                          <p className="mt-1 text-xs font-bold leading-relaxed opacity-80">
-                            Sua conta antiga ainda não tem senha. Atualize os dados e crie 6 dígitos para entrar sem cadastrar de novo.
-                          </p>
-                        </button>
-                      )}
+                      <ProfileSection title="Minha conta">
+                        <InfoLine label="Nome" value={memberProfile.name} />
+                        <InfoLine label="Telefone" value={memberProfile.phone || "Não informado"} />
+                        <InfoLine label="E-mail" value={memberProfile.email || "Não informado"} />
+                      </ProfileSection>
 
-                      <div
-                        className="rounded-2xl p-4"
-                        style={{ background: VERDE, color: ROSA }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Trophy size={18} strokeWidth={2.3} />
-                          <p className="text-xs font-black uppercase tracking-wider">
-                            Bônus Menfi's
-                          </p>
-                        </div>
-                        <p className="mt-2 text-xs leading-relaxed opacity-75">
-                          A cada 10 pedidos no perfil, você ganha 1 burger.
-                        </p>
-                        <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/18">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${Math.max(8, memberProgress * 10)}%`,
-                              background: ROSA,
-                            }}
-                          />
-                        </div>
-                        <p className="mt-2 text-xs font-black">
-                          {memberProgress}/10 pedidos · {memberProfile.rewards} bônus
-                        </p>
-                      </div>
-
-                      <ProfileMenuButton icon={UserCog} label="Dados cadastrais" onClick={editMember} />
-                      {hasActiveOrder && activeOrder ? (
+                      <ProfileMenuButton icon={UserCog} label="Editar dados da conta" onClick={editMember} />
+                      <ProfileMenuButton icon={MapPin} label="Gerenciar endereços" onClick={editMember} />
+                      <ProfileMenuButton icon={KeyRound} label="Alterar senha / recuperar acesso" onClick={editMember} />
+                      {hasActiveOrder && activeOrder && (
                         <ActiveProfileOrderCard
                           order={activeOrder}
                           onOpen={() => {
@@ -644,37 +622,11 @@ export function MemberModals({
                             onOpenActiveOrder?.();
                           }}
                         />
-                      ) : (
-                        <ProfileMenuButton icon={PackageSearch} label="Acompanhe seu pedido" onClick={closeProfile} />
                       )}
-                      {!hasActiveOrder && (
-                        <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-xs font-black uppercase tracking-wider">
-                              Meus pedidos
-                            </p>
-                            {ordersLoading && <Loader2 size={15} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />}
-                          </div>
-                          <div className="mt-3 grid gap-2">
-                            {!ordersLoading && customerOrders.length === 0 && (
-                              <p className="text-xs font-bold opacity-55">
-                                Nenhum pedido encontrado neste perfil.
-                              </p>
-                            )}
-                            {customerOrders.slice(0, 8).map((order) => (
-                              <OrderHistoryRow
-                                key={order.id}
-                                order={order}
-                                onRepeat={() => {
-                                  closeProfile();
-                                  onRepeatOrder?.(order.items);
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <ProfileMenuLink icon={Headphones} label="SAC" href={SUPPORT_WHATSAPP_URL} />
+                      <ProfileMenuLink icon={Headphones} label="Falar com o suporte" href={SUPPORT_WHATSAPP_URL} />
+                      <div className="rounded-2xl p-4 text-xs font-black" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                        WhatsApp: (85) 99788-3764
+                      </div>
                       <button
                         onClick={logoutMember}
                         className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
@@ -690,6 +642,80 @@ export function MemberModals({
                     </div>
                   </motion.div>
                 </motion.div>
+              )}
+
+              {historyOpen && memberProfile && (
+                <SidePanel title="Histórico de pedidos" onClose={closeHistory}>
+                  <div className="grid gap-2">
+                    {ordersLoading && (
+                      <div className="flex justify-center py-8">
+                        <Loader2 size={22} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />
+                      </div>
+                    )}
+                    {!ordersLoading && customerOrders.length === 0 && (
+                      <p className="rounded-2xl p-4 text-xs font-bold opacity-60" style={{ background: "#FFF8F2" }}>
+                        Nenhum pedido encontrado neste perfil.
+                      </p>
+                    )}
+                    {customerOrders.map((order) => (
+                      <OrderHistoryRow
+                        key={order.id}
+                        order={order}
+                        onRepeat={() => {
+                          closeHistory();
+                          onRepeatOrder?.(order.items);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </SidePanel>
+              )}
+
+              {notificationsOpen && memberProfile && (
+                <SidePanel title="Notificações" onClose={closeNotifications}>
+                  <div className="grid gap-3">
+                    {hasActiveOrder && activeOrder ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          closeNotifications();
+                          onOpenActiveOrder?.();
+                        }}
+                        className="rounded-2xl p-4 text-left"
+                        style={{ background: VERDE, color: ROSA }}
+                      >
+                        <p className="text-xs font-black uppercase tracking-wider">Pedido em andamento</p>
+                        <p className="mt-1 text-lg font-black">{activeOrder.id} · {(STATUS_COPY[activeOrder.status] ?? STATUS_COPY.PAYMENT_PENDING).label}</p>
+                        <p className="mt-1 text-xs font-bold opacity-75">Toque para acompanhar a linha do tempo.</p>
+                      </button>
+                    ) : (
+                      <div className="rounded-2xl p-4 text-xs font-bold" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                        Nenhuma notificação nova.
+                      </div>
+                    )}
+                    <a
+                      href={SUPPORT_WHATSAPP_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-3 rounded-2xl p-4 text-xs font-black uppercase tracking-wider"
+                      style={{ background: "#FFF8F2", color: VERDE, border: `1px solid ${VERDE}12` }}
+                    >
+                      <Headphones size={18} strokeWidth={2.4} />
+                      Chat com atendimento
+                    </a>
+                    <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
+                      Aqui ficam os avisos que o sistema envia: pagamento, preparo, pedido pronto, entrega e conversas com atendimento.
+                    </div>
+                  </div>
+                </SidePanel>
+              )}
+
+              {favoritesOpen && (
+                <SidePanel title="Favoritos" onClose={closeFavorites}>
+                  <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                    Seus favoritos aparecerão aqui para pedir de novo mais rápido.
+                  </div>
+                </SidePanel>
               )}
             </AnimatePresence>
     </>
@@ -810,12 +836,74 @@ function OrderHistoryRow({
   );
 }
 
+function SidePanel({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[75] flex justify-end bg-black/45"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ x: 420 }}
+        animate={{ x: 0 }}
+        exit={{ x: 420 }}
+        transition={{ type: "spring", stiffness: 320, damping: 32 }}
+        className="h-full w-full max-w-[380px] overflow-y-auto overflow-x-hidden p-4"
+        style={{ background: "#fff", color: VERDE, boxShadow: "-24px 0 70px rgba(0,0,0,0.22)" }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-black uppercase tracking-wider">{title}</h2>
+          <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: `${VERDE}08`, color: VERDE }}>
+            <X size={18} strokeWidth={2.4} />
+          </button>
+        </div>
+        <div className="mt-4">{children}</div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ProfileSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+      <p className="text-xs font-black uppercase tracking-wider">{title}</p>
+      <div className="mt-3 grid gap-2">{children}</div>
+    </div>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-wider opacity-45">{label}</p>
+      <p className="mt-0.5 text-sm font-bold">{value}</p>
+    </div>
+  );
+}
+
 function ProfileMenuButton({
   icon: Icon,
   label,
   onClick,
 }: {
-  icon: typeof UserCog;
+  icon: ElementType;
   label: string;
   onClick: () => void;
 }) {
@@ -836,7 +924,7 @@ function ProfileMenuLink({
   label,
   href,
 }: {
-  icon: typeof UserCog;
+  icon: ElementType;
   label: string;
   href: string;
 }) {

@@ -59,7 +59,11 @@ export function AdminPanel({
   adminToken,
   kitchenOnly = false,
 }: Props) {
-  const [tab, setTab] = useState<AdminTab>(initialTab);
+  const [tab, setTab] = useState<AdminTab>(() => {
+    if (kitchenOnly || typeof window === "undefined") return initialTab;
+    const stored = localStorage.getItem("menfis_admin_tab") as AdminTab | null;
+    return stored ?? initialTab;
+  });
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<CrmCustomer[]>([]);
   const [customCoupons, setCustomCoupons] = useState<Coupon[]>(() =>
@@ -157,6 +161,11 @@ export function AdminPanel({
       (coupon) => coupon.active !== false,
     ).length,
   };
+
+  useEffect(() => {
+    if (kitchenOnly) return;
+    localStorage.setItem("menfis_admin_tab", tab);
+  }, [kitchenOnly, tab]);
 
   const {
     adminDataError,

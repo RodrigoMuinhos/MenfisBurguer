@@ -1,4 +1,4 @@
-import { BellRing, MessageCircle, Printer } from "lucide-react";
+import { BellRing, FileText, MessageCircle, Printer } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { deliveryConfirmationCode } from "@/components/order/tracking";
@@ -26,6 +26,7 @@ export function OrderDetail({
   onSendConfirmation,
   onSendReady,
   onPrintMotoboy,
+  onGenerateTxt,
 }: {
   order: Order;
   production: Array<{ id: string; title: string; possible: number; cost: number; limiting?: string; time: string }>;
@@ -34,6 +35,7 @@ export function OrderDetail({
   onSendConfirmation: () => void;
   onSendReady: () => void;
   onPrintMotoboy: () => void;
+  onGenerateTxt: () => void;
 }) {
   const kind = primaryKind(order);
   const style = PRODUCT_STYLE[kind];
@@ -97,12 +99,19 @@ export function OrderDetail({
           {order.status === "READY" && (
             <ActionButton
               label="Via motoboy"
-              sublabel={`Codigo ${deliveryConfirmationCode(order)}`}
+              sublabel="Imprimir pedido"
               Icon={Printer}
               disabled={Boolean(busyAction)}
               onClick={onPrintMotoboy}
             />
           )}
+          <ActionButton
+            label="Gerar TXT"
+            sublabel="Copiar pedido"
+            Icon={FileText}
+            disabled={Boolean(busyAction)}
+            onClick={onGenerateTxt}
+          />
         </div>
       </div>
 

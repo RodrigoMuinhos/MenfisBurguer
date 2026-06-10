@@ -1,5 +1,6 @@
 import Image from "next/image";
 import {
+  Bell,
   Bike,
   ChevronRight,
   Flame,
@@ -21,6 +22,7 @@ export function ProductHeader({
   goToCart,
   memberProfile,
   onOpenMember,
+  onOpenNotifications,
   onLogoutMember,
 }: {
   kioskMode: boolean;
@@ -29,6 +31,7 @@ export function ProductHeader({
   goToCart: () => void;
   memberProfile?: MemberProfile | null;
   onOpenMember?: () => void;
+  onOpenNotifications?: () => void;
   onLogoutMember?: () => void;
 }) {
   return (
@@ -83,6 +86,18 @@ export function ProductHeader({
 
         {!kioskMode && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={onOpenNotifications}
+              className="relative flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}18` }}
+              aria-label="Abrir notificações"
+            >
+              <Bell size={20} strokeWidth={2.6} />
+              <span
+                className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full"
+                style={{ background: ROSA, border: "2px solid #fff" }}
+              />
+            </button>
             <button
               onClick={onOpenMember}
               className="flex h-12 w-12 items-center justify-center rounded-full"

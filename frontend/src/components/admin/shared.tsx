@@ -294,13 +294,78 @@ export function escapeReceipt(value?: string) {
     .replaceAll(">", "&gt;");
 }
 
+const DEFAULT_COMPOSITION: Record<string, string[]> = {
+  combo: ["Menfi's Burger", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "double-combo": ["Double Menfi's", "Coca-Cola 350ml", "Batata Frita 250g"],
+  combo2: ["2x Menfi's Burger", "2 bebidas", "Batata Frita 250g"],
+  "bacon-combo": ["Menfi's Bacon", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "double-bacon-combo": ["Double Menfi's Bacon", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "bacon-super-combo": ["2x Menfi's Bacon", "2 bebidas", "Batata Frita 250g"],
+  "chicken-combo": ["Menfi's Chicken", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "double-chicken-combo": ["Double Menfi's Chicken", "Coca-Cola 350ml", "Batata Frita 250g"],
+  "chicken-super-combo": ["2x Menfi's Chicken", "2 bebidas", "Batata Frita 250g"],
+};
+
+function itemComponents(item: Order["items"][number]) {
+  if (item.components?.length) return item.components;
+  return DEFAULT_COMPOSITION[item.productId ?? item.id] ?? [];
+}
+
+function itemNote(item: Order["items"][number]) {
+  return item.note?.trim() || "";
+}
+
+function receiptItemHtml(item: Order["items"][number]) {
+  const components = itemComponents(item);
+  const note = itemNote(item);
+  return `
+    <div class="item">
+      <div class="row"><b>${item.qty}x ${escapeReceipt(item.name)}</b><span>${fmt(item.price * item.qty)}</span></div>
+      ${components.length ? `<div class="components">${components.map((component) => `<div>* ${escapeReceipt(component)}</div>`).join("")}</div>` : ""}
+      ${note ? `<div class="note"><b>Obs:</b> ${escapeReceipt(note)}</div>` : ""}
+    </div>`;
+}
+
+export function buildOrderTxt(order: Order) {
+  const lines = [
+    "MENFI'S BURGER",
+    "",
+    `Pedido ${order.id}`,
+    "",
+    `Cliente: ${order.customerName || "Não informado"}`,
+    `Telefone: ${order.customerPhone || "Não informado"}`,
+    "",
+    "ITENS",
+    "",
+  ];
+  order.items.forEach((item) => {
+    lines.push(`${item.qty}x ${item.name}`);
+    itemComponents(item).forEach((component) => lines.push(`* ${component}`));
+    if (itemNote(item)) {
+      lines.push("", "Observação:", itemNote(item));
+    }
+    lines.push("");
+  });
+  lines.push("Pagamento:", paymentMethodLabel(order), "", "Total:", fmt(order.total));
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+export async function copyOrderTxt(order: Order) {
+  const text = buildOrderTxt(order);
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+    return false;
+  }
+}
+
 export function printOrderReceipts(order: Order) {
-  const items = order.items
-    .map(
-      (item) =>
-        `<div class="row"><b>${item.qty}x ${escapeReceipt(item.name)}</b><span>${fmt(item.price * item.qty)}</span></div>`,
-    )
-    .join("");
+  const items = order.items.map(receiptItemHtml).join("");
   const removed = Object.entries(order.removedByItemId ?? {})
     .flatMap(([, values]) => values)
     .filter((value, index, values) => values.indexOf(value) === index);
@@ -309,7 +374,6 @@ export function printOrderReceipts(order: Order) {
       <div class="center small">MENFI'S BURGER</div>
       <div class="center"><strong>VIA DO PEDIDO</strong></div>
       <div class="number">${escapeReceipt(order.id)}</div>
-      <div class="center"><strong>CODIGO: ${escapeReceipt(deliveryConfirmationCode(order))}</strong></div>
       <div class="center">${order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA"}</div>
       <hr />
       <div>Data: ${new Date(order.timestamp).toLocaleString("pt-BR")}</div>
@@ -330,18 +394,20 @@ export function printOrderReceipts(order: Order) {
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
     <style>
-      @page { size: 80mm auto; margin: 0; }
+      @page { size: 58mm auto; margin: 0; }
       * { box-sizing: border-box; }
-      body { width: 76mm; margin: 0; padding: 2mm; font-family: "Courier New", ui-monospace, monospace; color: #000; font-weight: 700; }
-      .receipt { width: 72mm; padding: 2mm; border: 0.7mm solid #000; font-size: 13px; line-height: 1.35; }
-      .center { text-align: center; } .small { font-size: 13px; }
-      .number { margin: 4mm 0 3mm; padding: 2mm 1mm; text-align: center; font-size: 34px; font-weight: 900; border: 0.9mm solid #000; letter-spacing: 0.08em; }
-      .row { display: flex; justify-content: space-between; gap: 3mm; margin: 2mm 0; border-bottom: 0.3mm solid #000; padding-bottom: 1.5mm; }
-      .row span:first-child { max-width: 48mm; overflow-wrap: anywhere; }
+      body { width: 56mm; margin: 0; padding: 1mm; font-family: "Courier New", ui-monospace, monospace; color: #000; font-weight: 700; }
+      .receipt { width: 54mm; padding: 1.5mm; border: 0.5mm solid #000; font-size: 11px; line-height: 1.3; }
+      .center { text-align: center; } .small { font-size: 11px; }
+      .number { margin: 3mm 0 2mm; padding: 1.5mm 1mm; text-align: center; font-size: 28px; font-weight: 900; border: 0.7mm solid #000; letter-spacing: 0.06em; }
+      .row { display: flex; justify-content: space-between; gap: 2mm; margin: 1.5mm 0; border-bottom: 0.3mm solid #000; padding-bottom: 1mm; }
+      .row b { max-width: 34mm; overflow-wrap: anywhere; }
       .row span:last-child { white-space: nowrap; }
-      .total { margin-top: 3mm; padding: 2mm 0; border-top: 0.9mm solid #000; border-bottom: 0.9mm solid #000; font-size: 18px; }
-      .alert { margin: 2mm 0; padding: 1.5mm; border: 0.6mm solid #000; font-weight: 900; }
-      hr { border: 0; border-top: 0.5mm dashed #000; margin: 2.5mm 0; }
+      .components { margin: 0 0 1.5mm 2mm; font-size: 10px; font-weight: 700; }
+      .note { margin: 1mm 0 1.5mm; font-size: 10px; }
+      .total { margin-top: 2mm; padding: 1.5mm 0; border-top: 0.7mm solid #000; border-bottom: 0.7mm solid #000; font-size: 15px; }
+      .alert { margin: 1.5mm 0; padding: 1mm; border: 0.5mm solid #000; font-weight: 900; }
+      hr { border: 0; border-top: 0.4mm dashed #000; margin: 2mm 0; }
       strong { font-weight: 900; }
     </style></head><body>${receipt}
     <script>window.onload=()=>{window.print();}<\/script></body></html>
