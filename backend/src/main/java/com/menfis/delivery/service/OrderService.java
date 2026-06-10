@@ -61,9 +61,15 @@ public class OrderService {
     long number = jdbc.queryForObject("select nextval('order_number_seq')", Long.class);
     String id = "#" + number;
     boolean testMode = settings.testModeEnabled();
+    OrderChannel channel = request.channel() == null
+      ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
+      : request.channel();
+    boolean kioskLocalCustomer = "KIOSK-MOB".equalsIgnoreCase(String.valueOf(request.customerName()).trim());
     PriceResult price = calculate(request.items());
-    BigDecimal deliveryFee = request.deliveryType() == DeliveryType.DELIVERY ? DELIVERY_FEE : BigDecimal.ZERO;
-    BigDecimal serviceFee = request.deliveryType() == DeliveryType.DELIVERY ? SERVICE_FEE : BigDecimal.ZERO;
+    boolean chargeDeliveryFees =
+      request.deliveryType() == DeliveryType.DELIVERY && channel != OrderChannel.KIOSK && !kioskLocalCustomer;
+    BigDecimal deliveryFee = chargeDeliveryFees ? DELIVERY_FEE : BigDecimal.ZERO;
+    BigDecimal serviceFee = chargeDeliveryFees ? SERVICE_FEE : BigDecimal.ZERO;
     BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(serviceFee);
     CouponResult coupon = applyCoupon(request.couponCode(), request.couponDiscount(), grossTotal);
     BigDecimal total = grossTotal.subtract(coupon.discount()).max(new BigDecimal("1.00"));
@@ -73,9 +79,6 @@ public class OrderService {
     }
     boolean payOnDelivery = request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA;
     boolean payByWhatsapp = request.paymentMethod() == PaymentMethod.WHATSAPP;
-    OrderChannel channel = request.channel() == null
-      ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
-      : request.channel();
     boolean paidKiosk = channel == OrderChannel.KIOSK;
     OrderStatus status = payOnDelivery || paidKiosk ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
     if (channel == OrderChannel.KIOSK

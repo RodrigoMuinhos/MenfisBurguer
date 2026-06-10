@@ -141,6 +141,11 @@ export default function App({ mode }: { mode?: AppMode }) {
   }, [adminOnlyMode, appMode, loadOrderById]);
 
   const goHome = () => setScreen("product");
+  const leaveTrackingToMenu = () => {
+    localStorage.removeItem(PENDING_ORDER_KEY);
+    setLastOrderId("");
+    setScreen("product");
+  };
   const activeOrder = lastOrderId
     ? orders.find((order) => order.id === lastOrderId)
     : undefined;
@@ -381,7 +386,7 @@ export default function App({ mode }: { mode?: AppMode }) {
             orderPlaced={Boolean(lastOrderId)}
             orderId={lastOrderId}
             order={orders.find((o) => o.id === lastOrderId)}
-            goHome={goHome}
+            goHome={leaveTrackingToMenu}
             autoReturnMs={kioskMode ? 20000 : 0}
           />
         )}

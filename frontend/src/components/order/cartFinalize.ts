@@ -14,6 +14,57 @@ import {
 } from "./checkout";
 import { buildOrderWhatsappReceipt } from "./whatsappReceipt";
 
+function buildPendingCreatedOrder({
+  createdOrder,
+  cart,
+  removedByItemId,
+  effectiveDelivery,
+  customerName,
+  phone,
+  address,
+  total,
+  payment,
+  paymentProvider,
+  paymentStatus,
+}: {
+  createdOrder: Record<string, unknown>;
+  cart: CartItem[];
+  removedByItemId: Record<string, string[]>;
+  effectiveDelivery: "retirada" | "delivery";
+  customerName: string;
+  phone: string;
+  address: string;
+  total: number;
+  payment: PaymentMethod;
+  paymentProvider?: string;
+  paymentStatus?: string;
+}): Order {
+  return {
+    id: String(createdOrder.id),
+    number: Number(
+      createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
+    ),
+    deliveryCode: String(
+      createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
+    ),
+    channel: "DELIVERY",
+    items: cart.map((item) => ({ ...item })),
+    removedByItemId,
+    deliveryType: effectiveDelivery,
+    customerName: customerName.trim() || undefined,
+    customerPhone: phone || undefined,
+    customerAddress: address,
+    total: Number(createdOrder.total ?? total),
+    paymentProvider,
+    paymentMethod: payment,
+    paymentStatus: String(paymentStatus ?? createdOrder.paymentStatus ?? "pending"),
+    paymentId:
+      typeof createdOrder.paymentId === "string" ? createdOrder.paymentId : undefined,
+    timestamp: Date.now(),
+    status: "PAYMENT_PENDING",
+  };
+}
+
 export async function submitCheckoutOrder({
   cart,
   kioskMode,
@@ -251,7 +302,26 @@ export async function submitCheckoutOrder({
           : "";
 
     if (!paymentRes.ok || !checkoutUrl) {
-      throw new Error(data?.error || "checkout_creation_failed");
+      await onPlaceOrder(
+        effectiveDelivery,
+        phone || undefined,
+        address,
+        removedByItemId,
+        buildPendingCreatedOrder({
+          createdOrder,
+          cart,
+          removedByItemId,
+          effectiveDelivery,
+          customerName,
+          phone,
+          address,
+          total,
+          payment,
+          paymentProvider: "mercado_pago",
+          paymentStatus: String(data?.status ?? createdOrder.paymentStatus ?? "pending"),
+        }),
+      );
+      return;
     }
 
     registerMemberOrder();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Clock, Star } from "lucide-react";
+import { ArrowLeft, Clock, Star } from "lucide-react";
 import logoSkull from "@/imports/image-1.png";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -308,6 +308,16 @@ export function TrackingScreen({
         className="relative px-5 pt-5 pb-6 overflow-hidden"
         style={{ background: VERDE, boxShadow: "0 16px 42px rgba(31,61,46,0.18)" }}
       >
+        {goHome && (
+          <button
+            type="button"
+            onClick={goHome}
+            className="mb-4 inline-flex min-h-10 items-center gap-2 rounded-xl px-4 text-[11px] font-black uppercase tracking-wider"
+            style={{ background: `${ROSA}22`, color: ROSA, border: `1px solid ${ROSA}45` }}
+          >
+            <ArrowLeft size={15} /> Voltar ao menu
+          </button>
+        )}
         <div className="flex items-center gap-4">
           <Image
             src={logoSkull}

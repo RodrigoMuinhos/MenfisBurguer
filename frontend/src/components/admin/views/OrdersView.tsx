@@ -54,6 +54,8 @@ export function OrdersView({
     selected &&
     (selected.status === "PAYMENT_PENDING" ||
       (selected.status === "CANCELLED" && selected.paymentProvider === "mercado_pago" && paymentRejected));
+  const selectedIsKioskMob =
+    String(selected?.customerName ?? "").trim().toUpperCase() === "KIOSK-MOB";
 
   if (!selected) {
     return (
@@ -291,7 +293,7 @@ export function OrdersView({
                 <XCircle size={15} /> Cancelamento bloqueado
               </span>
             )}
-            {selected.customerPhone && (
+            {selected.customerPhone && !selectedIsKioskMob && (
               <a
                 href={`tel:${selected.customerPhone.replace(/\D/g, "")}`}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
@@ -300,7 +302,7 @@ export function OrdersView({
                 <Phone size={15} /> Ligar
               </a>
             )}
-            {customerWhatsappUrl(selected) && (
+            {customerWhatsappUrl(selected) && !selectedIsKioskMob && (
               <a
                 href={customerWhatsappUrl(selected)}
                 target="_blank"
