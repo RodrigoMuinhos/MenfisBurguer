@@ -56,6 +56,7 @@ export function CartScreen({
     couponCode,
     couponError,
     counterServiceMode,
+    counterPrintPromptOpen,
     customerName,
     customerNameRef,
     delivery,
@@ -99,6 +100,8 @@ export function CartScreen({
     setPayment,
     setPhone,
     setStreet,
+    confirmCounterPrintChoice,
+    skipCounterPrintChoice,
     stepLabel,
     street,
     streetRef,
@@ -271,6 +274,9 @@ export function CartScreen({
         backspaceKioskKey={backspaceKioskKey}
         clearKioskKey={clearKioskKey}
         closeKioskKeyboard={closeKioskKeyboard}
+        counterPrintPromptOpen={counterPrintPromptOpen}
+        onConfirmCounterPrint={confirmCounterPrintChoice}
+        onSkipCounterPrint={skipCounterPrintChoice}
       />
 
       <CartStickyCta

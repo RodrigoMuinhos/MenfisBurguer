@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, Printer, XCircle } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import { KioskKeyboardTarget, PaymentMethod } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
@@ -17,6 +17,9 @@ export function CartOverlays({
   backspaceKioskKey,
   clearKioskKey,
   closeKioskKeyboard,
+  counterPrintPromptOpen = false,
+  onConfirmCounterPrint,
+  onSkipCounterPrint,
 }: {
   kioskSuccessOpen: boolean;
   paying: boolean;
@@ -30,6 +33,9 @@ export function CartOverlays({
   backspaceKioskKey: () => void;
   clearKioskKey: () => void;
   closeKioskKeyboard: () => void;
+  counterPrintPromptOpen?: boolean;
+  onConfirmCounterPrint?: () => void;
+  onSkipCounterPrint?: () => void;
 }) {
   return (
     <>
@@ -157,6 +163,62 @@ export function CartOverlays({
                         tentando.
                       </p>
                     )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {counterPrintPromptOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[80] flex items-center justify-center px-6"
+                  style={{
+                    background: "rgba(255,248,242,0.92)",
+                    color: VERDE,
+                  }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.95, y: 12 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.95, y: 12 }}
+                    className="w-full max-w-md rounded-3xl border bg-white p-6 text-center shadow-2xl"
+                    style={{ borderColor: ROSA }}
+                  >
+                    <div
+                      className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+                      style={{ background: ROSA }}
+                    >
+                      <Printer size={26} />
+                    </div>
+                    <h2 className="text-xl font-black uppercase tracking-wide">
+                      Imprimir via do pedido?
+                    </h2>
+                    <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-relaxed opacity-70">
+                      Se ninguém responder em 10 segundos, o pedido segue sem imprimir.
+                    </p>
+                    <div className="mt-6 grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={onSkipCounterPrint}
+                        className="flex h-14 items-center justify-center gap-2 rounded-2xl border text-sm font-black uppercase"
+                        style={{ borderColor: ROSA, color: VERDE }}
+                      >
+                        <XCircle size={18} />
+                        Não imprimir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onConfirmCounterPrint}
+                        className="flex h-14 items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase text-white"
+                        style={{ background: VERDE }}
+                      >
+                        <Printer size={18} />
+                        Imprimir
+                      </button>
+                    </div>
                   </motion.div>
                 </motion.div>
               )}

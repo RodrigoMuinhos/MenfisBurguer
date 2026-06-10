@@ -84,6 +84,7 @@ export async function submitCheckoutOrder({
   setPaymentSlow,
   setKioskSuccessOpen,
   setPaymentError,
+  confirmCounterPrint,
 }: {
   cart: CartItem[];
   kioskMode: boolean;
@@ -108,6 +109,7 @@ export async function submitCheckoutOrder({
   setPaymentSlow: (value: boolean) => void;
   setKioskSuccessOpen: (value: boolean) => void;
   setPaymentError: (value: string) => void;
+  confirmCounterPrint?: (order: Order) => Promise<boolean>;
 }) {
   let slowTimer: number | null = null;
   const effectiveDelivery = resolveRuntimeDeliveryType(
@@ -192,7 +194,10 @@ export async function submitCheckoutOrder({
       setPaymentSlow(false);
       setPaying(false);
       if (counterServiceMode) {
-        printOrderReceipts(kioskOrder);
+        const shouldPrint = await confirmCounterPrint?.(kioskOrder);
+        if (shouldPrint) {
+          printOrderReceipts(kioskOrder);
+        }
         await onPlaceOrder(
           "retirada",
           phone,

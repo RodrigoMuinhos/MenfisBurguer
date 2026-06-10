@@ -92,6 +92,8 @@ export function useCartCheckout({
   const numberRef = useRef<HTMLInputElement>(null);
   const customerNameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
+  const counterPrintResolveRef = useRef<((value: boolean) => void) | null>(null);
+  const counterPrintTimerRef = useRef<number | null>(null);
   const kioskKeyboardOpen = kioskMode && kioskKeyboardTarget !== null;
 
   const closeKioskKeyboard = () => {
@@ -101,6 +103,43 @@ export function useCartCheckout({
       if (active instanceof HTMLElement) active.blur();
     }
   };
+
+  const [counterPrintPromptOpen, setCounterPrintPromptOpen] = useState(false);
+
+  const resolveCounterPrintPrompt = (value: boolean) => {
+    if (counterPrintTimerRef.current !== null) {
+      window.clearTimeout(counterPrintTimerRef.current);
+      counterPrintTimerRef.current = null;
+    }
+    const resolve = counterPrintResolveRef.current;
+    counterPrintResolveRef.current = null;
+    setCounterPrintPromptOpen(false);
+    resolve?.(value);
+  };
+
+  const confirmCounterPrint = (_order: Order) =>
+    new Promise<boolean>((resolve) => {
+      if (counterPrintTimerRef.current !== null) {
+        window.clearTimeout(counterPrintTimerRef.current);
+      }
+      counterPrintResolveRef.current?.(false);
+      counterPrintResolveRef.current = resolve;
+      setCounterPrintPromptOpen(true);
+      counterPrintTimerRef.current = window.setTimeout(() => {
+        resolveCounterPrintPrompt(false);
+      }, 10000);
+    });
+
+  useEffect(
+    () => () => {
+      if (counterPrintTimerRef.current !== null) {
+        window.clearTimeout(counterPrintTimerRef.current);
+      }
+      counterPrintResolveRef.current?.(false);
+      counterPrintResolveRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!kioskMode) return;
@@ -368,6 +407,7 @@ export function useCartCheckout({
       setPaymentSlow,
       setKioskSuccessOpen,
       setPaymentError,
+      confirmCounterPrint,
     });
   };
   const handleBack = () => {
@@ -483,6 +523,7 @@ export function useCartCheckout({
     couponCode,
     couponError,
     counterServiceMode,
+    counterPrintPromptOpen,
     customerName,
     customerNameRef,
     delivery,
@@ -527,6 +568,8 @@ export function useCartCheckout({
     setPayment,
     setPhone,
     setStreet,
+    confirmCounterPrintChoice: () => resolveCounterPrintPrompt(true),
+    skipCounterPrintChoice: () => resolveCounterPrintPrompt(false),
     stepLabel,
     street,
     streetRef,
