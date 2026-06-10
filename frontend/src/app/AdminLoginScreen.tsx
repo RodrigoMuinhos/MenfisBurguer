@@ -1,3 +1,5 @@
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { CREME, ROSA, VERDE } from "@/utils/theme";
 
 export function AdminLoginScreen({
@@ -91,6 +93,7 @@ export function AdminLoginScreen({
             onChange={onChangePassword}
             autoComplete="current-password"
             type="password"
+            revealable
             onEnter={onSubmit}
           />
 
@@ -135,6 +138,7 @@ function AdminInput({
   autoComplete,
   inputMode,
   type = "text",
+  revealable = false,
   onEnter,
 }: {
   label: string;
@@ -143,8 +147,12 @@ function AdminInput({
   autoComplete: string;
   inputMode?: "numeric";
   type?: string;
+  revealable?: boolean;
   onEnter?: () => void;
 }) {
+  const [visible, setVisible] = useState(false);
+  const inputType = revealable && visible ? "text" : type;
+
   return (
     <label className="flex flex-col gap-1">
       <span
@@ -153,18 +161,35 @@ function AdminInput({
       >
         {label}
       </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        className="rounded-2xl px-4 py-3 outline-none"
-        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
-        inputMode={inputMode}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") onEnter?.();
-        }}
-      />
+      <span className="relative block">
+        <input
+          type={inputType}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          className="w-full rounded-2xl px-4 py-3 outline-none"
+          style={{
+            border: `1.5px solid ${VERDE}18`,
+            color: VERDE,
+            paddingRight: revealable ? "3.25rem" : undefined,
+          }}
+          inputMode={inputMode}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") onEnter?.();
+          }}
+        />
+        {revealable && (
+          <button
+            type="button"
+            onClick={() => setVisible((current) => !current)}
+            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full"
+            style={{ background: `${VERDE}08`, color: VERDE }}
+            aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {visible ? <EyeOff size={18} strokeWidth={2.4} /> : <Eye size={18} strokeWidth={2.4} />}
+          </button>
+        )}
+      </span>
     </label>
   );
 }

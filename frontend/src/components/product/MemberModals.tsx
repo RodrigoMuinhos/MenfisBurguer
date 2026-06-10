@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState, type ElementType, type HTMLInputTypeAttribute, type ReactNode } from "react";
 import {
+  Eye,
+  EyeOff,
   Gift,
   Headphones,
   KeyRound,
@@ -141,7 +143,13 @@ export function MemberModals({
   onOpenActiveOrder?: () => void;
   onRepeatOrder?: (items: CartItem[]) => void;
 }) {
-  const canCloseLogin = Boolean(memberProfile);
+  const canCloseLogin = true;
+  const profileIncomplete = Boolean(
+    memberProfile &&
+      (!memberProfile.phone?.trim() ||
+        !memberProfile.email?.trim() ||
+        memberProfile.hasPassword === false),
+  );
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [registerStep, setRegisterStep] = useState<1 | 2>(1);
@@ -271,6 +279,24 @@ export function MemberModals({
                       </button>
                     </div>
 
+                    {memberAuthMode === "register" && (
+                      <div
+                        className="mt-4 rounded-3xl p-4"
+                        style={{
+                          background: "#FFF8E7",
+                          border: "1.5px solid #FACC15",
+                          color: VERDE,
+                        }}
+                      >
+                        <p className="text-sm font-black uppercase tracking-wider">
+                          Cadastre-se e ganhe 10%
+                        </p>
+                        <p className="mt-1 text-xs font-bold leading-snug text-black/60">
+                          Use seu perfil Menfi's no primeiro pedido e receba 10% de desconto.
+                        </p>
+                      </div>
+                    )}
+
                     {memberAuthMode === "login" && recoveryOpen ? (
                       <div className="mt-4 grid gap-3">
                         <ProfileInput
@@ -305,6 +331,7 @@ export function MemberModals({
                           value={recoveryPassword}
                           onChange={(value) => setRecoveryPassword(value.replace(/\D/g, "").slice(0, 6))}
                           type="password"
+                          revealable
                           inputMode="numeric"
                           maxLength={6}
                         />
@@ -313,6 +340,7 @@ export function MemberModals({
                           value={recoveryPasswordConfirm}
                           onChange={(value) => setRecoveryPasswordConfirm(value.replace(/\D/g, "").slice(0, 6))}
                           type="password"
+                          revealable
                           inputMode="numeric"
                           maxLength={6}
                         />
@@ -349,6 +377,7 @@ export function MemberModals({
                           value={loginPassword}
                           onChange={(value) => setLoginPassword(value.replace(/\D/g, "").slice(0, 6))}
                           type="password"
+                          revealable
                           inputMode="numeric"
                           maxLength={6}
                         />
@@ -399,13 +428,13 @@ export function MemberModals({
                           maxLength={11}
                         />
                       </div>
-                      <label className="hidden gap-1">
+                      <label className="grid gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
-                          WhatsApp
+                          Telefone / WhatsApp
                         </span>
                         <input
                           value={memberPhone}
-                          onChange={(e) => setMemberPhone(e.target.value)}
+                          onChange={(e) => setMemberPhone(e.target.value.replace(/[^\d\s()+-]/g, ""))}
                           inputMode="tel"
                           className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
                           style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
@@ -416,6 +445,7 @@ export function MemberModals({
                         value={memberPassword}
                         onChange={(value) => setMemberPassword(value.replace(/\D/g, "").slice(0, 6))}
                         type="password"
+                        revealable
                         inputMode="numeric"
                         maxLength={6}
                       />
@@ -424,10 +454,11 @@ export function MemberModals({
                         value={memberPasswordConfirm}
                         onChange={(value) => setMemberPasswordConfirm(value.replace(/\D/g, "").slice(0, 6))}
                         type="password"
+                        revealable
                         inputMode="numeric"
                         maxLength={6}
                       />
-                      <label className="grid gap-1">
+                      <label className="hidden gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
                           Aniversário
                         </span>
@@ -492,6 +523,15 @@ export function MemberModals({
                         {memberError}
                       </p>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={closeLogin}
+                      className="mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                      style={{ background: "#FFF8F2", color: VERDE, border: `1.5px solid ${VERDE}12` }}
+                    >
+                      Continuar sem cadastro
+                    </button>
       
                     <button
                       onClick={
@@ -605,10 +645,29 @@ export function MemberModals({
                     </div>
 
                     <div className="mt-5 grid gap-3">
+                      {profileIncomplete && (
+                        <button
+                          type="button"
+                          onClick={editMember}
+                          className="grid gap-2 rounded-3xl p-4 text-left"
+                          style={{
+                            background: "#FFF8E7",
+                            border: "1.5px solid #FACC15",
+                            color: VERDE,
+                          }}
+                        >
+                          <span className="text-xs font-black uppercase tracking-wider">
+                            Complete seu cadastro
+                          </span>
+                          <span className="text-sm font-bold leading-snug text-black/60">
+                            Adicione telefone, e-mail e senha para acompanhar pedidos e recuperar seu acesso.
+                          </span>
+                        </button>
+                      )}
                       <ProfileSection title="Minha conta">
                         <InfoLine label="Nome" value={memberProfile.name} />
-                        <InfoLine label="Telefone" value={memberProfile.phone || "Não informado"} />
-                        <InfoLine label="E-mail" value={memberProfile.email || "Não informado"} />
+                        <InfoLine label="Telefone" value={memberProfile.phone || "Pendente"} />
+                        <InfoLine label="E-mail" value={memberProfile.email || "Pendente"} />
                       </ProfileSection>
 
                       <ProfileMenuButton icon={UserCog} label="Editar dados da conta" onClick={editMember} />
@@ -728,6 +787,7 @@ function ProfileInput({
   onChange,
   placeholder,
   type = "text",
+  revealable = false,
   inputMode,
   maxLength,
 }: {
@@ -736,24 +796,45 @@ function ProfileInput({
   onChange: (value: string) => void;
   placeholder?: string;
   type?: HTMLInputTypeAttribute;
+  revealable?: boolean;
   inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
   maxLength?: number;
 }) {
+  const [visible, setVisible] = useState(false);
+  const inputType = revealable && visible ? "text" : type;
+
   return (
     <label className="grid min-w-0 gap-1">
       <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
         {label}
       </span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        type={type}
-        inputMode={inputMode}
-        maxLength={maxLength}
-        className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
-        style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
-      />
+      <span className="relative block">
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          type={inputType}
+          inputMode={inputMode}
+          maxLength={maxLength}
+          className="min-w-0 w-full rounded-2xl px-4 py-3 text-base outline-none"
+          style={{
+            border: `1.5px solid ${VERDE}16`,
+            color: VERDE,
+            paddingRight: revealable ? "3.25rem" : undefined,
+          }}
+        />
+        {revealable && (
+          <button
+            type="button"
+            onClick={() => setVisible((current) => !current)}
+            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full"
+            style={{ background: `${VERDE}08`, color: VERDE }}
+            aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {visible ? <EyeOff size={18} strokeWidth={2.4} /> : <Eye size={18} strokeWidth={2.4} />}
+          </button>
+        )}
+      </span>
     </label>
   );
 }

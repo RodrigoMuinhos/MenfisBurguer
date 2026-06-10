@@ -77,6 +77,7 @@ export function AdminPanel({
   const [editingCouponCode, setEditingCouponCode] = useState("");
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(true);
   const [testModeEnabled, setTestModeEnabled] = useState(false);
+  const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
 
   const [stockItems, setStockItems] = useState<StockItem[]>(INITIAL_ITEMS);
@@ -206,6 +207,7 @@ export function AdminPanel({
         {
           setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled !== false);
           setTestModeEnabled(settings.testModeEnabled === true);
+          setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
         },
       )
       .catch(() => undefined);
@@ -227,6 +229,7 @@ export function AdminPanel({
       const settings = await response.json();
       setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled === true);
       setTestModeEnabled(settings.testModeEnabled === true);
+      setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
       await syncCoupons();
     } finally {
       setSavingPayOnDelivery(false);
@@ -238,6 +241,27 @@ export function AdminPanel({
 
   const toggleTestMode = () =>
     updateSetting("/settings/test-mode", !testModeEnabled);
+
+  const updateFeaturedProduct = async (productId: string) => {
+    setFeaturedProductId(productId);
+    if (!API_URL || savingPayOnDelivery) return;
+    setSavingPayOnDelivery(true);
+    try {
+      const response = await fetch(`${API_URL}/settings/featured-product`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productId }),
+      });
+      if (!response.ok) return;
+      const settings = await response.json();
+      setFeaturedProductId(String(settings.featuredProductId ?? productId));
+    } finally {
+      setSavingPayOnDelivery(false);
+    }
+  };
 
   const resetRealOperation = async () => {
     if (!API_URL || savingPayOnDelivery) return;
@@ -542,10 +566,12 @@ export function AdminPanel({
           <ConfigView
             payOnDeliveryEnabled={payOnDeliveryEnabled}
             testModeEnabled={testModeEnabled}
+            featuredProductId={featuredProductId}
             saving={savingPayOnDelivery}
             disabled={!API_URL}
             onTogglePayOnDelivery={togglePayOnDelivery}
             onToggleTestMode={toggleTestMode}
+            onFeaturedProductChange={updateFeaturedProduct}
             onResetRealOperation={resetRealOperation}
           />
         )}

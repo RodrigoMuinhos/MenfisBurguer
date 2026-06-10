@@ -42,6 +42,14 @@ public class SettingsController {
     return settings.setTestModeEnabled(request.enabled());
   }
 
+  @PatchMapping("/featured-product")
+  public Map<String, Object> setFeaturedProduct(
+      @RequestBody FeaturedProductRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return settings.setFeaturedProductId(request.productId());
+  }
+
   @PatchMapping("/reset-real-operation")
   public Map<String, Object> resetRealOperation(
       @RequestHeader(name = "Authorization", required = false) String authorization) {
@@ -51,4 +59,5 @@ public class SettingsController {
 
   public record PayOnDeliveryRequest(boolean enabled) {}
   public record TestModeRequest(boolean enabled) {}
+  public record FeaturedProductRequest(String productId) {}
 }

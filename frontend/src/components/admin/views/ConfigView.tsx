@@ -1,22 +1,27 @@
 import { FlaskConical, RotateCcw } from "lucide-react";
+import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
 import { PayOnDeliverySettings } from "../AdminChrome";
 
 export function ConfigView({
   payOnDeliveryEnabled,
   testModeEnabled,
+  featuredProductId,
   saving,
   disabled,
   onTogglePayOnDelivery,
   onToggleTestMode,
+  onFeaturedProductChange,
   onResetRealOperation,
 }: {
   payOnDeliveryEnabled: boolean;
   testModeEnabled: boolean;
+  featuredProductId: string;
   saving: boolean;
   disabled: boolean;
   onTogglePayOnDelivery: () => void;
   onToggleTestMode: () => void;
+  onFeaturedProductChange: (productId: string) => void;
   onResetRealOperation: () => void;
 }) {
   return (
@@ -27,6 +32,30 @@ export function ConfigView({
         disabled={disabled}
         onToggle={onTogglePayOnDelivery}
       />
+
+      <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
+        <div className="grid gap-3 md:grid-cols-[1fr_320px] md:items-center">
+          <div>
+            <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Destaque do cardápio</p>
+            <p className="mt-1 text-xs font-bold opacity-60">
+              Escolha o produto principal que aparece no banner inicial do cliente.
+            </p>
+          </div>
+          <select
+            value={featuredProductId}
+            onChange={(event) => onFeaturedProductChange(event.target.value)}
+            disabled={saving || disabled}
+            className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+            style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+          >
+            {MENU_ITEMS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
 
       <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
         <div className="flex items-center justify-between gap-4">

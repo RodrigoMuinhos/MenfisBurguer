@@ -65,6 +65,8 @@ import {
   ProductHero,
 } from "./ProductHomeSections";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+
 interface Props {
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, "qty">) => void;
@@ -101,12 +103,13 @@ export function ProductScreen({
   const [customizer, setCustomizer] = useState<CustomizerState | null>(null);
   const [loginOpen, setLoginOpen] = useState(() => {
     if (kioskMode || typeof window === "undefined") return false;
-    return !localStorage.getItem(MEMBER_TOKEN_KEY) || !readMemberProfile();
+    return false;
   });
   const [profileOpen, setProfileOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [memberCpf, setMemberCpf] = useState("");
@@ -146,7 +149,9 @@ export function ProductScreen({
     [category],
   );
   const featuredItem =
-    MENU_ITEMS.find((item) => item.id === "combo2") ?? MENU_ITEMS[0];
+    MENU_ITEMS.find((item) => item.id === featuredProductId) ??
+    MENU_ITEMS.find((item) => item.id === "chicken-super-combo") ??
+    MENU_ITEMS[0];
   const savedDelivery = readSavedDelivery();
 
   useEffect(() => {
@@ -158,9 +163,23 @@ export function ProductScreen({
         return;
       }
       setMemberProfile(null);
-      setLoginOpen(true);
     });
   }, [kioskMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!API_URL) return;
+    fetch(`${API_URL}/settings/public`, {
+      cache: "no-store",
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((settings) => {
+        if (settings?.featuredProductId) {
+          setFeaturedProductId(String(settings.featuredProductId));
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (kioskMode) return;
@@ -415,7 +434,7 @@ export function ProductScreen({
     const password = loginPassword.trim();
     setMemberError("");
     if (!login) {
-      setMemberError("Falta preencher: email ou CPF.");
+      setMemberError("Falta preencher: telefone, email ou CPF.");
       return;
     }
     if (password.length !== 6) {
@@ -430,7 +449,7 @@ export function ProductScreen({
       setMemberLogin("");
       setLoginPassword("");
     } catch {
-      setMemberError("Email/CPF ou senha inválidos.");
+      setMemberError("Telefone, email, CPF ou senha inválidos.");
     } finally {
       setMemberSaving(false);
     }
@@ -645,7 +664,7 @@ export function ProductScreen({
         editMember={editMember}
         logoutMember={logoutMember}
         closeLogin={() => {
-          if (memberProfile) setLoginOpen(false);
+          setLoginOpen(false);
         }}
         closeProfile={() => setProfileOpen(false)}
         closeHistory={() => setHistoryOpen(false)}

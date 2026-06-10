@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 public class SettingsService {
   public static final String PAY_ON_DELIVERY = "pay_on_delivery_enabled";
   public static final String TEST_MODE = "test_mode_enabled";
+  public static final String FEATURED_PRODUCT = "featured_product_id";
 
   private final JdbcTemplate jdbc;
 
@@ -23,10 +24,15 @@ public class SettingsService {
     return Boolean.parseBoolean(value(TEST_MODE, "false"));
   }
 
+  public String featuredProductId() {
+    return value(FEATURED_PRODUCT, "chicken-super-combo");
+  }
+
   public Map<String, Object> publicSettings() {
     return Map.of(
       "payOnDeliveryEnabled", payOnDeliveryEnabled(),
-      "testModeEnabled", testModeEnabled()
+      "testModeEnabled", testModeEnabled(),
+      "featuredProductId", featuredProductId()
     );
   }
 
@@ -52,6 +58,20 @@ public class SettingsService {
       """,
       TEST_MODE,
       Boolean.toString(enabled)
+    );
+    return publicSettings();
+  }
+
+  public Map<String, Object> setFeaturedProductId(String productId) {
+    String cleaned = productId == null || productId.isBlank() ? "chicken-super-combo" : productId.trim();
+    jdbc.update(
+      """
+      insert into app_settings(key, value, updated_at)
+      values (?, ?, now())
+      on conflict (key) do update set value = excluded.value, updated_at = now()
+      """,
+      FEATURED_PRODUCT,
+      cleaned
     );
     return publicSettings();
   }

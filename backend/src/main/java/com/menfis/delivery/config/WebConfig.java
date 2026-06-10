@@ -29,7 +29,8 @@ public class WebConfig implements WebMvcConfigurer {
         "http://172.30.*.*:3000",
         "http://172.31.*.*:3000"
       )
-      .allowedMethods("GET", "POST", "PATCH", "OPTIONS")
-      .allowedHeaders("*");
+      .allowedMethods("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS")
+      .allowedHeaders("*")
+      .maxAge(3600);
   }
 }
