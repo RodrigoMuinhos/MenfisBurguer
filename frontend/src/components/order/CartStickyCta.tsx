@@ -6,6 +6,7 @@ import { CheckoutStep, PaymentMethod, fmt } from "./checkout";
 export function CartStickyCta({
   checkoutStep,
   kioskMode,
+  counterServiceMode = false,
   missingDelivery,
   payment,
   total,
@@ -15,6 +16,7 @@ export function CartStickyCta({
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
+  counterServiceMode?: boolean;
   missingDelivery: string[];
   payment: PaymentMethod;
   total: number;
@@ -48,7 +50,9 @@ export function CartStickyCta({
                   </p>
                   <p className="text-xs font-bold" style={{ color: VERDE }}>
                     {checkoutStep === "bag"
-                      ? kioskMode
+                      ? counterServiceMode
+                        ? "Pagar no balcão"
+                        : kioskMode
                         ? "Inserir dados"
                         : "Ir para entrega"
                       : checkoutStep === "delivery"
@@ -58,10 +62,10 @@ export function CartStickyCta({
                         : checkoutStep === "customer"
                           ? "Revisar pedido"
                         : checkoutStep === "payment"
-                          ? kioskMode
+                          ? kioskMode || counterServiceMode
                             ? "Finalizar pagamento"
                             : "Conferir antes de pagar"
-                          : kioskMode
+                          : kioskMode || counterServiceMode
                             ? "Ir para pagamento"
                             : payment === "pagar_na_entrega"
                               ? "Enviar pedido"
@@ -114,7 +118,7 @@ export function CartStickyCta({
                     />
                   )}
                   {paying
-                    ? kioskMode
+                    ? kioskMode || counterServiceMode
                       ? "ENVIANDO PEDIDO"
                       : payment === "whatsapp"
                         ? "ENVIANDO AO ATENDIMENTO"

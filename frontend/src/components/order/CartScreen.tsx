@@ -55,6 +55,7 @@ export function CartScreen({
     complement,
     couponCode,
     couponError,
+    counterServiceMode,
     customerName,
     customerNameRef,
     delivery,
@@ -130,7 +131,11 @@ export function CartScreen({
       <CheckoutProgress checkoutStep={checkoutStep} kioskMode={kioskMode} />
       {/* ══ BODY ══════════════════════════════════════════ */}
       <div className="px-4 pt-5 pb-32 flex flex-col gap-5">
-        <CheckoutIntro kioskMode={kioskMode} stepLabel={stepLabel} />
+        <CheckoutIntro
+          kioskMode={kioskMode}
+          counterServiceMode={counterServiceMode}
+          stepLabel={stepLabel}
+        />
         {checkoutStep === "bag" && (
           <CartBagStepSection
             cart={cart}
@@ -141,6 +146,7 @@ export function CartScreen({
         )}
         {checkoutStep === "delivery" &&
           !kioskMode &&
+          !counterServiceMode &&
           submitAttempted &&
           missingDelivery.length > 0 && (
             <div
@@ -178,7 +184,7 @@ export function CartScreen({
           total={total}
         />
 
-        {checkoutStep === "delivery" && !kioskMode && (
+        {checkoutStep === "delivery" && !kioskMode && !counterServiceMode && (
           <DeliveryChoiceSection
             delivery={delivery}
             setDelivery={setDelivery}
@@ -189,6 +195,7 @@ export function CartScreen({
         <PaymentStepSection
           checkoutStep={checkoutStep}
           kioskMode={kioskMode}
+          counterServiceMode={counterServiceMode}
           payment={payment}
           setPayment={setPayment}
           payOnDeliveryEnabled={payOnDeliveryEnabled}
@@ -267,6 +274,7 @@ export function CartScreen({
       <CartStickyCta
         checkoutStep={checkoutStep}
         kioskMode={kioskMode}
+        counterServiceMode={counterServiceMode}
         missingDelivery={missingDelivery}
         payment={payment}
         total={total}

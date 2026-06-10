@@ -1,5 +1,6 @@
 import { CartItem, Order } from "@/types/order";
 import { MEMBER_TOKEN_KEY } from "@/components/product/shared";
+import { printOrderReceipts } from "@/components/admin/shared";
 import { deliveryConfirmationCode } from "@/services/orders/normalize";
 import {
   API_URL,
@@ -68,6 +69,7 @@ function buildPendingCreatedOrder({
 export async function submitCheckoutOrder({
   cart,
   kioskMode,
+  counterServiceMode,
   delivery,
   payment,
   customerName,
@@ -85,6 +87,7 @@ export async function submitCheckoutOrder({
 }: {
   cart: CartItem[];
   kioskMode: boolean;
+  counterServiceMode: boolean;
   delivery: DeliveryType;
   payment: PaymentMethod;
   customerName: string;
@@ -108,9 +111,9 @@ export async function submitCheckoutOrder({
 }) {
   let slowTimer: number | null = null;
   const effectiveDelivery = resolveRuntimeDeliveryType(
-    kioskMode ? "retirada" : delivery,
+    kioskMode || counterServiceMode ? "retirada" : delivery,
   );
-  const effectiveChannel = kioskMode ? "KIOSK" : "DELIVERY";
+  const effectiveChannel = kioskMode || counterServiceMode ? "KIOSK" : "DELIVERY";
   try {
     if (!API_URL) {
       throw new Error("api_url_missing");
@@ -154,7 +157,7 @@ export async function submitCheckoutOrder({
       throw new Error(createdOrder?.error || "order_creation_failed");
     }
 
-    if (kioskMode) {
+    if (kioskMode || counterServiceMode) {
       const kioskOrder: Order = {
         id: String(createdOrder.id),
         number: Number(
@@ -169,7 +172,11 @@ export async function submitCheckoutOrder({
         customerPhone: phone,
         customerAddress: address,
         total: Number(createdOrder.total ?? total),
-        paymentMethod: payment === "cartao" ? "cartao" : "pix",
+        paymentMethod: counterServiceMode
+          ? "presencial"
+          : payment === "cartao"
+            ? "cartao"
+            : "pix",
         paymentStatus: String(createdOrder.paymentStatus ?? "approved"),
         timestamp: Date.now(),
         status: "PAID",
@@ -178,6 +185,17 @@ export async function submitCheckoutOrder({
       if (slowTimer) window.clearTimeout(slowTimer);
       setPaymentSlow(false);
       setPaying(false);
+      if (counterServiceMode) {
+        printOrderReceipts(kioskOrder);
+        await onPlaceOrder(
+          "retirada",
+          phone,
+          address,
+          removedByItemId,
+          kioskOrder,
+        );
+        return;
+      }
       setKioskSuccessOpen(true);
       await wait(6200);
       setKioskSuccessOpen(false);

@@ -44,8 +44,10 @@ export function useCartCheckout({
   kioskMode: boolean;
 }) {
   const memberProfile = kioskMode ? null : readMemberProfile();
+  const counterServiceMode =
+    !kioskMode && String(memberProfile?.name ?? "").trim().toUpperCase() === "KIOSK-MOB";
   const [delivery, setDelivery] = useState<DeliveryType>(
-    kioskMode ? "retirada" : "delivery",
+    kioskMode || counterServiceMode ? "retirada" : "delivery",
   );
   const [obsOpen, setObsOpen] = useState<string | null>(null);
   const [removed, setRemoved] = useState<Record<string, Set<string>>>({});
@@ -111,9 +113,15 @@ export function useCartCheckout({
   }, [checkoutStep, kioskMode]);
 
   useEffect(() => {
-    if (kioskMode) return;
+    if (kioskMode || counterServiceMode) return;
     setDelivery("delivery");
-  }, [kioskMode]);
+  }, [counterServiceMode, kioskMode]);
+
+  useEffect(() => {
+    if (!counterServiceMode) return;
+    setDelivery("retirada");
+    setPayment("presencial");
+  }, [counterServiceMode]);
 
   useEffect(() => {
     setFreeShipping(Boolean(localStorage.getItem(MEMBER_KEY)));
@@ -182,7 +190,7 @@ export function useCartCheckout({
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const effectiveDelivery = resolveRuntimeDeliveryType(
-    kioskMode ? "retirada" : "delivery",
+    kioskMode || counterServiceMode ? "retirada" : "delivery",
   );
   const fee = effectiveDelivery === "delivery" && !freeShipping ? 5.1 : 0;
   const serviceFee = effectiveDelivery === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
@@ -237,7 +245,9 @@ export function useCartCheckout({
   const canCreatePayment =
     deliveryValid &&
     Boolean(payment) &&
-    (kioskMode ? checkoutStep === "payment" : checkoutStep === "review");
+    (kioskMode || counterServiceMode
+      ? checkoutStep === "payment"
+      : checkoutStep === "review");
 
   const applyCoupon = async () => {
     closeKioskKeyboard();
@@ -274,7 +284,7 @@ export function useCartCheckout({
     if (checkoutStep === "bag") {
       if (kioskMode) playAttendantBeep();
       closeKioskKeyboard();
-      setCheckoutStep(kioskMode ? "customer" : "delivery");
+      setCheckoutStep(kioskMode ? "customer" : counterServiceMode ? "payment" : "delivery");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -317,7 +327,7 @@ export function useCartCheckout({
         window.setTimeout(() => input?.focus(), 350);
         return;
       }
-      if (kioskMode) {
+      if (kioskMode || counterServiceMode) {
         if (!canCreatePayment) return;
       } else {
         closeKioskKeyboard();
@@ -343,6 +353,7 @@ export function useCartCheckout({
     await submitCheckoutOrder({
       cart,
       kioskMode,
+      counterServiceMode,
       delivery: effectiveDelivery,
       payment,
       customerName,
@@ -374,7 +385,7 @@ export function useCartCheckout({
       return;
     }
     if (checkoutStep === "payment") {
-      setCheckoutStep(kioskMode ? "bag" : "delivery");
+      setCheckoutStep(kioskMode || counterServiceMode ? "bag" : "delivery");
       return;
     }
     if (checkoutStep === "delivery") {
@@ -431,7 +442,7 @@ export function useCartCheckout({
         : checkoutStep === "customer"
           ? "Dados do cliente"
         : checkoutStep === "payment"
-          ? kioskMode
+          ? kioskMode || counterServiceMode
             ? "Pagamento"
             : "Pagamento"
           : kioskMode
@@ -439,10 +450,14 @@ export function useCartCheckout({
             : "Pagamento";
 
   const nextActionLabel =
-    checkoutStep === "payment" && kioskMode
-      ? "Enviar pedido para a cozinha"
+    checkoutStep === "payment" && (kioskMode || counterServiceMode)
+      ? counterServiceMode
+        ? "Pagar no balcão"
+        : "Enviar pedido para a cozinha"
       : checkoutStep === "review"
-      ? kioskMode
+      ? counterServiceMode
+        ? "Enviar para balcão"
+        : kioskMode
         ? "Ir para pagamento"
         : payment === "whatsapp"
           ? "Enviar para atendimento"
@@ -467,6 +482,7 @@ export function useCartCheckout({
     complement,
     couponCode,
     couponError,
+    counterServiceMode,
     customerName,
     customerNameRef,
     delivery,

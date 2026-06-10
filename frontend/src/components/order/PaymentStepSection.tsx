@@ -35,6 +35,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function PaymentStepSection({
   checkoutStep,
   kioskMode,
+  counterServiceMode,
   payment,
   setPayment,
   payOnDeliveryEnabled,
@@ -53,6 +54,7 @@ export function PaymentStepSection({
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
+  counterServiceMode: boolean;
   payment: PaymentMethod;
   setPayment: (payment: PaymentMethod) => void;
   payOnDeliveryEnabled: boolean;
@@ -168,7 +170,11 @@ export function PaymentStepSection({
                   >
                     <div className={kioskMode ? "" : "mx-auto max-w-3xl"}>
                       <SectionLabel>
-                        {kioskMode ? "Pagamento no atendimento" : "Como vai pagar?"}
+                        {counterServiceMode
+                          ? "Pagamento no balcão"
+                          : kioskMode
+                            ? "Pagamento no atendimento"
+                            : "Como vai pagar?"}
                       </SectionLabel>
                       <div
                         className={`mb-3 rounded-2xl p-3 ${kioskMode ? "" : "text-center"}`}
@@ -178,7 +184,9 @@ export function PaymentStepSection({
                         }}
                       >
                         <div
-                          className={`flex items-start gap-2 ${kioskMode ? "" : "justify-center"}`}
+                          className={`flex items-start gap-2 ${
+                            kioskMode || counterServiceMode ? "" : "justify-center"
+                          }`}
                         >
                           <LockKeyhole
                             size={16}
@@ -190,7 +198,9 @@ export function PaymentStepSection({
                               className="text-xs font-black uppercase tracking-wide"
                               style={{ color: VERDE }}
                             >
-                              {kioskMode
+                              {counterServiceMode
+                                ? "Pagamento presencial no balcão"
+                                : kioskMode
                                 ? "Escolha a forma de pagamento"
                                 : payment === "pagar_na_entrega"
                                   ? "Pagamento no recebimento"
@@ -202,7 +212,9 @@ export function PaymentStepSection({
                               className="text-[11px] leading-relaxed mt-1"
                               style={{ color: VERDE, opacity: 0.62 }}
                             >
-                              {kioskMode
+                              {counterServiceMode
+                                ? "A via do pedido será impressa e o pedido já entra para a cozinha. O cliente paga pessoalmente no balcão."
+                                : kioskMode
                                 ? "Se for PIX, confira os dados abaixo. Se for cartão, aguarde o atendente levar a maquininha."
                                 : payment === "pagar_na_entrega"
                                   ? "Seu pedido será preparado e você pagará quando receber."
@@ -213,7 +225,32 @@ export function PaymentStepSection({
                           </div>
                         </div>
                       </div>
-                      {!kioskMode && (
+                      {counterServiceMode && (
+                        <div
+                          className="grid gap-3 rounded-2xl p-5 text-center"
+                          style={{
+                            background: "#fff",
+                            border: `2px solid ${VERDE}`,
+                            color: VERDE,
+                          }}
+                        >
+                          <div
+                            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full"
+                            style={{ background: ROSA }}
+                          >
+                            <Store size={26} strokeWidth={2.5} />
+                          </div>
+                          <div>
+                            <p className="text-lg font-black uppercase tracking-wide">
+                              Pagar no balcão
+                            </p>
+                            <p className="mt-1 text-xs font-bold opacity-65">
+                              Único método disponível para KIOSK-MOB.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {!kioskMode && !counterServiceMode && (
                         <div className="grid gap-3">
                           <div
                             className={`grid gap-3 ${

@@ -139,6 +139,7 @@ export function paymentMethodLabel(order: Order) {
     provider === "mercado pago" ||
     ["pix", "cartao", "credito", "debito", "credit_card", "debit_card"].includes(method);
 
+  if (isKioskMobOrder(order) && method === "presencial") return "Pagamento no Balcão";
   if (method === "pix") return mercadoPago ? "PIX Mercado Pago" : "PIX";
   if (method === "credit_card" || method === "credito")
     return "Cartão de Crédito Mercado Pago";
@@ -393,7 +394,7 @@ export function printOrderReceipts(order: Order) {
       <div class="center small">MENFI'S BURGER</div>
       <div class="center"><strong>VIA DO PEDIDO</strong></div>
       <div class="number">${escapeReceipt(order.id)}</div>
-      <div class="center">${order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA"}</div>
+      <div class="center">${isKioskMobOrder(order) ? "BALCÃO" : order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA"}</div>
       <hr />
       <div>Data: ${new Date(order.timestamp).toLocaleString("pt-BR")}</div>
       <div>Cliente: ${escapeReceipt(order.customerName || "Não informado")}</div>

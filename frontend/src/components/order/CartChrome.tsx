@@ -177,9 +177,11 @@ export function CheckoutProgress({
 
 export function CheckoutIntro({
   kioskMode,
+  counterServiceMode = false,
   stepLabel,
 }: {
   kioskMode: boolean;
+  counterServiceMode?: boolean;
   stepLabel: string;
 }) {
   return (
@@ -209,7 +211,9 @@ export function CheckoutIntro({
             className="mt-1 text-[11px] leading-relaxed"
             style={{ color: VERDE, opacity: 0.62 }}
           >
-            {kioskMode
+            {counterServiceMode
+              ? `Etapa atual: ${stepLabel}. O pagamento será feito no balcão e o pedido será enviado para a cozinha.`
+              : kioskMode
               ? `Etapa atual: ${stepLabel}. Primeiro informe os dados, depois revise e siga para o pagamento.`
               : `Etapa atual: ${stepLabel}. Continue ate abrir o pagamento no Mercado Pago.`}
           </p>
