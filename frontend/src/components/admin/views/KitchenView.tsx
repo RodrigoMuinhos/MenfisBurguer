@@ -14,6 +14,7 @@ import {
   customerWhatsappUrl,
   copyOrderTxt,
   fmt,
+  isKioskMobOrder,
   MENU_STOCK_MAP,
   orderReadyWhatsappUrl,
   printOrderReceipts,
@@ -319,7 +320,7 @@ export function KitchenView({
               compact={compact}
               onSelect={setSelectedId}
               onAction={(order) =>
-                order.deliveryType === "delivery"
+                order.deliveryType === "delivery" && !isKioskMobOrder(order)
                   ? runStatusAction(order, "OUT_FOR_DELIVERY", "route")
                   : runStatusAction(order, "DELIVERED", "deliver")
               }
@@ -352,7 +353,7 @@ export function KitchenView({
               }
               onSendReady={() =>
                 selectedOrder.status === "READY"
-                  ? selectedOrder.deliveryType === "delivery"
+                  ? selectedOrder.deliveryType === "delivery" && !isKioskMobOrder(selectedOrder)
                     ? runStatusAction(selectedOrder, "OUT_FOR_DELIVERY", "route")
                     : runStatusAction(selectedOrder, "DELIVERED", "deliver")
                   : runStatusAction(selectedOrder, "READY", "ready", orderReadyWhatsappUrl(selectedOrder))

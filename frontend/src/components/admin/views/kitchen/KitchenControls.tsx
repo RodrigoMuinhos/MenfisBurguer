@@ -4,6 +4,7 @@ import { Order, OrderStatus } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
   fmt,
+  isKioskMobOrder,
   orderReadyWhatsappUrl,
   paymentBadge,
   paymentMethodLabel,
@@ -46,6 +47,7 @@ export function KitchenControls({
   }
 
   const pay = paymentBadge(selectedOrder);
+  const kioskMobOrder = isKioskMobOrder(selectedOrder);
   const whatsappUrl = orderReadyWhatsappUrl(selectedOrder);
 
   return (
@@ -66,7 +68,11 @@ export function KitchenControls({
           </p>
           <p style={{ color: `${ROSA}70`, fontSize: 10, marginTop: 3, fontWeight: 700 }}>
             {selectedOrder.customerName || "Cliente não informado"} ·{" "}
-            {selectedOrder.deliveryType === "delivery" ? "Entrega" : "Retirada no balcão"} ·{" "}
+            {kioskMobOrder
+              ? "Balcão"
+              : selectedOrder.deliveryType === "delivery"
+                ? "Entrega"
+                : "Retirada no balcão"} ·{" "}
             {fmt(selectedOrder.total)}
           </p>
         </div>

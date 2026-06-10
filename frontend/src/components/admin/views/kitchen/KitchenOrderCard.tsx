@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 import { Bike, Store } from "lucide-react";
 import { Order } from "@/types/order";
 import { VERDE } from "@/utils/theme";
-import { elapsed, paymentBadge } from "../../shared";
+import { elapsed, isKioskMobOrder, paymentBadge } from "../../shared";
 
 type StageColor = {
   bg: string;
@@ -23,6 +23,7 @@ export function KitchenOrderCard({
   onSelect: () => void;
 }) {
   const pay = paymentBadge(order);
+  const kioskMobOrder = isKioskMobOrder(order);
 
   return (
     <motion.div
@@ -90,7 +91,7 @@ export function KitchenOrderCard({
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
-        {order.deliveryType === "delivery" ? (
+        {order.deliveryType === "delivery" && !kioskMobOrder ? (
           <Bike size={9} strokeWidth={2} style={{ color: stageColor.text, opacity: 0.6 }} />
         ) : (
           <Store size={9} strokeWidth={2} style={{ color: stageColor.text, opacity: 0.6 }} />
@@ -103,7 +104,7 @@ export function KitchenOrderCard({
             fontWeight: 700,
           }}
         >
-          {order.channel}
+          {kioskMobOrder ? "BALCÃO" : order.channel}
         </span>
         <span
           style={{

@@ -4,6 +4,7 @@ import { ROSA, VERDE } from "@/utils/theme";
 import { deliveryConfirmationCode } from "@/components/order/tracking";
 import {
   fmt,
+  isKioskMobOrder,
   paymentBadge,
   paymentMethodLabel,
   paymentStatusLabel,
@@ -44,9 +45,12 @@ export function OrderDetail({
   const removed = Object.entries(order.removedByItemId ?? {})
     .flatMap(([, values]) => values)
     .filter((value, index, values) => values.indexOf(value) === index);
+  const kioskMobOrder = isKioskMobOrder(order);
   const readyAction =
     order.status === "READY"
-      ? order.deliveryType === "delivery"
+      ? kioskMobOrder
+        ? { label: "Servir no balcão", sublabel: "Encerrar pedido" }
+        : order.deliveryType === "delivery"
         ? { label: "Saiu para entrega", sublabel: "Liberar motoboy" }
         : { label: "Finalizar entregue", sublabel: "Encerrar pedido" }
       : { label: "Pedido pronto", sublabel: "Avisar cliente" };
@@ -125,8 +129,8 @@ export function OrderDetail({
       >
         <InfoBox label="Cliente" value={order.customerName || "Não informado"} />
         <InfoBox label="Telefone" value={order.customerPhone || "Não informado"} />
-        <InfoBox label="Tipo" value={order.deliveryType === "delivery" ? "Entrega" : "Retirada"} />
-        <InfoBox label="Codigo" value={deliveryConfirmationCode(order)} />
+        <InfoBox label="Tipo" value={kioskMobOrder ? "Balcão" : order.deliveryType === "delivery" ? "Entrega" : "Retirada"} />
+        {!kioskMobOrder && <InfoBox label="Codigo" value={deliveryConfirmationCode(order)} />}
         <InfoBox label="Forma de pagamento" value={paymentMethodLabel(order)} />
         <InfoBox label="Status do pagamento" value={paymentStatusLabel(order)} />
         <InfoBox label="Total" value={fmt(order.total)} />

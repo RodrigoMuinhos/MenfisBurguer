@@ -203,7 +203,10 @@ public class OrderService {
         subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
         payment_id, status, paid_at, confirmed_at
       from orders
-      where delivery_type = 'DELIVERY' and status = 'OUT_FOR_DELIVERY' and test_mode = ?
+      where delivery_type = 'DELIVERY'
+        and status = 'OUT_FOR_DELIVERY'
+        and upper(coalesce(customer_name, '')) <> 'KIOSK-MOB'
+        and test_mode = ?
       order by updated_at asc, created_at asc
       """,
       (rs, rowNum) -> mapOrder(rs, rowNum),
@@ -236,7 +239,15 @@ public class OrderService {
 
   @Transactional
   public OrderResponse changeStatus(String id, OrderStatus toStatus, String actor, String reason) {
-    String from = jdbc.queryForObject("select status from orders where id = ?", String.class, id);
+    Map<String, Object> row = jdbc.queryForMap(
+      "select status, customer_name from orders where id = ?",
+      id
+    );
+    String from = String.valueOf(row.get("status"));
+    boolean kioskMobOrder = "KIOSK-MOB".equalsIgnoreCase(String.valueOf(row.get("customer_name")).trim());
+    if (kioskMobOrder && toStatus == OrderStatus.OUT_FOR_DELIVERY) {
+      throw new IllegalArgumentException("kiosk_mob_counter_service_required");
+    }
     if (!canTransition(OrderStatus.valueOf(from), toStatus)) {
       throw new IllegalArgumentException("invalid_status_transition:" + from + "_to_" + toStatus);
     }

@@ -21,6 +21,7 @@ import {
   MENU_STOCK_MAP,
   SupportTicket,
   couponLabel,
+  isKioskMobOrder,
   loadStoredCoupons,
   mergeCoupons,
   playAdminPaymentAlert,
@@ -152,6 +153,7 @@ export function AdminPanel({
     entrega: orders.filter(
       (order) =>
         order.deliveryType === "delivery" &&
+        !isKioskMobOrder(order) &&
         ["READY", "OUT_FOR_DELIVERY"].includes(order.status),
     ).length,
     estoque: stockItems.filter((item) => item.qty <= item.minQty).length,
@@ -527,6 +529,7 @@ export function AdminPanel({
             orders={orders.filter(
               (order) =>
                 order.deliveryType === "delivery" &&
+                !isKioskMobOrder(order) &&
                 ["READY", "OUT_FOR_DELIVERY"].includes(order.status),
             )}
             updateOrderStatus={updateOrderStatus}

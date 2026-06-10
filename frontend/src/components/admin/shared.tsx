@@ -122,6 +122,11 @@ export const STAGE_ICON: Record<OrderStatus, ElementType> = {
 };
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+
+export function isKioskMobOrder(order?: Order | null) {
+  return String(order?.customerName ?? "").trim().toUpperCase() === "KIOSK-MOB";
+}
+
 export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }

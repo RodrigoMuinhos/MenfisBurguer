@@ -7,6 +7,7 @@ import {
   customerWhatsappUrl,
   copyOrderTxt,
   fmt,
+  isKioskMobOrder,
   orderReadyWhatsappUrl,
   paymentMethodLabel,
   paymentStatusLabel,
@@ -54,8 +55,7 @@ export function OrdersView({
     selected &&
     (selected.status === "PAYMENT_PENDING" ||
       (selected.status === "CANCELLED" && selected.paymentProvider === "mercado_pago" && paymentRejected));
-  const selectedIsKioskMob =
-    String(selected?.customerName ?? "").trim().toUpperCase() === "KIOSK-MOB";
+  const selectedIsKioskMob = isKioskMobOrder(selected);
 
   if (!selected) {
     return (
@@ -107,7 +107,7 @@ export function OrdersView({
                   </span>
                 </div>
                 <p className="mt-1 text-xs font-bold" style={{ color: VERDE }}>
-                  {order.channel} · {fmt(order.total)} ·{" "}
+                  {isKioskMobOrder(order) ? "BALCÃO" : order.channel} · {fmt(order.total)} ·{" "}
                   {order.customerName || "Sem nome"} ·{" "}
                   {order.customerPhone || "Sem telefone"}
                 </p>
@@ -181,7 +181,11 @@ export function OrdersView({
                 Tipo
               </p>
               <p className="mt-1 text-sm font-bold">
-                {selected.deliveryType === "delivery" ? "Entrega" : "Retirada"}
+                {selectedIsKioskMob
+                  ? "Balcão"
+                  : selected.deliveryType === "delivery"
+                    ? "Entrega"
+                    : "Retirada"}
               </p>
             </div>
             <div
@@ -228,7 +232,7 @@ export function OrdersView({
                 {fmt(selected.total)}
               </p>
             </div>
-            {selected.deliveryType === "delivery" && (
+            {selected.deliveryType === "delivery" && !selectedIsKioskMob && (
               <div
                 className="rounded-xl p-3"
                 style={{ background: `${VERDE}08` }}
@@ -318,14 +322,20 @@ export function OrdersView({
                 onClick={() =>
                   updateOrderStatus(
                     selected.id,
-                    selected.deliveryType === "delivery" ? "OUT_FOR_DELIVERY" : "DELIVERED",
+                    selected.deliveryType === "delivery" && !selectedIsKioskMob
+                      ? "OUT_FOR_DELIVERY"
+                      : "DELIVERED",
                   )
                 }
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{ background: VERDE, color: ROSA }}
               >
                 <BellRing size={15} />
-                {selected.deliveryType === "delivery" ? "Saiu para entrega" : "Finalizar entregue"}
+                {selectedIsKioskMob
+                  ? "Servir no balcão"
+                  : selected.deliveryType === "delivery"
+                    ? "Saiu para entrega"
+                    : "Finalizar entregue"}
               </button>
             )}
             {selected.status === "OUT_FOR_DELIVERY" && (
