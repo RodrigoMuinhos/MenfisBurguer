@@ -79,7 +79,7 @@ public class OrderService {
     }
     boolean payOnDelivery = request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA;
     boolean payByWhatsapp = request.paymentMethod() == PaymentMethod.WHATSAPP;
-    boolean paidKiosk = channel == OrderChannel.KIOSK;
+    boolean paidKiosk = channel == OrderChannel.KIOSK && !kioskLocalCustomer;
     OrderStatus status = payOnDelivery || paidKiosk ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
     if (channel == OrderChannel.KIOSK
         && (isBlank(request.customerName()) || normalizedPhone(request.customerPhone()).length() < 10)) {

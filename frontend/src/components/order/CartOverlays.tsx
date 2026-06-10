@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
-import { KioskKeyboardTarget } from "./checkout";
+import { KioskKeyboardTarget, PaymentMethod } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
 
 export function CartOverlays({
@@ -9,6 +9,7 @@ export function CartOverlays({
   paying,
   kioskMode,
   counterServiceMode = false,
+  payment,
   paymentSlow,
   kioskKeyboardOpen,
   kioskKeyboardTarget,
@@ -21,6 +22,7 @@ export function CartOverlays({
   paying: boolean;
   kioskMode: boolean;
   counterServiceMode?: boolean;
+  payment: PaymentMethod;
   paymentSlow: boolean;
   kioskKeyboardOpen: boolean;
   kioskKeyboardTarget: KioskKeyboardTarget;
@@ -122,18 +124,31 @@ export function CartOverlays({
                       />
                     </div>
                     <p className="text-sm font-black uppercase tracking-wide">
-                      {kioskMode || counterServiceMode
-                        ? "Enviando pedido para a equipe"
-                        : "Conectando ao pagamento"}
+                      {counterServiceMode
+                        ? "Registrando pedido do balcão"
+                        : payment === "whatsapp"
+                          ? "Enviando ao atendimento"
+                          : payment === "pagar_na_entrega"
+                            ? "Enviando pedido"
+                            : kioskMode
+                              ? "Enviando pedido para a equipe"
+                              : "Conectando ao pagamento"}
                     </p>
                     <p className="mt-2 text-xs leading-relaxed opacity-65">
                       {counterServiceMode
-                        ? "Estamos registrando o pedido do balcão e preparando a impressão da via."
-                        : kioskMode
-                        ? "Aguarde enquanto registramos o pedido para confirmação do atendente."
-                        : "Estamos registrando seu pedido e abrindo o Mercado Pago. Se demorar, aguarde mais alguns segundos."}
+                        ? "Estamos criando o pedido e preparando a impressão da via."
+                        : payment === "whatsapp"
+                          ? "Estamos criando o pedido e abrindo o WhatsApp para o atendimento."
+                          : payment === "pagar_na_entrega"
+                            ? "Estamos criando o pedido para a cozinha."
+                            : kioskMode
+                              ? "Aguarde enquanto registramos o pedido para confirmação do atendente."
+                              : "Estamos registrando seu pedido e abrindo o Mercado Pago. Se demorar, aguarde mais alguns segundos."}
                     </p>
-                    {paymentSlow && (
+                    {paymentSlow &&
+                      !counterServiceMode &&
+                      payment !== "whatsapp" &&
+                      payment !== "pagar_na_entrega" && (
                       <p
                         className="mt-3 rounded-xl px-3 py-2 text-[11px] font-bold"
                         style={{ background: `${ROSA}70` }}

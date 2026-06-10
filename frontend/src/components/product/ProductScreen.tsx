@@ -611,7 +611,12 @@ export function ProductScreen({
         )}
         <div className="grid grid-cols-5 gap-1 px-2 pb-2 pt-2">
           <BottomNavButton icon={Home} label="Início" active onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
-          <BottomNavButton icon={PackageSearch} label="Pedidos" active={Boolean(activeOrder)} onClick={() => activeOrder ? onOpenActiveOrder?.() : openHistory()} />
+          <BottomNavButton
+            icon={PackageSearch}
+            label="Pedidos"
+            active={Boolean(activeOrder) || kioskMobLoggedIn}
+            onClick={() => (activeOrder || kioskMobLoggedIn ? onOpenActiveOrder?.() : openHistory())}
+          />
           <BottomNavButton icon={Heart} label="Favoritos" onClick={() => setFavoritesOpen(true)} />
           <BottomNavButton icon={Clock3} label="Histórico" onClick={openHistory} />
           <BottomNavButton icon={UserRound} label="Perfil" onClick={openMemberAccess} />

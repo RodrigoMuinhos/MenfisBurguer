@@ -177,9 +177,15 @@ export async function submitCheckoutOrder({
           : payment === "cartao"
             ? "cartao"
             : "pix",
-        paymentStatus: String(createdOrder.paymentStatus ?? "approved"),
+        paymentStatus: String(
+          createdOrder.paymentStatus ?? (counterServiceMode ? "awaiting_counter" : "approved"),
+        ),
         timestamp: Date.now(),
-        status: "PAID",
+        status: counterServiceMode
+          ? "PAYMENT_PENDING"
+          : String(createdOrder.status ?? "PAID") === "PAYMENT_PENDING"
+            ? "PAYMENT_PENDING"
+            : "PAID",
       };
 
       if (slowTimer) window.clearTimeout(slowTimer);
@@ -354,9 +360,13 @@ export async function submitCheckoutOrder({
           ? "Pagamento indisponível: falta configurar a credencial do Mercado Pago."
           : reason.includes("order_creation_failed")
             ? "Não foi possível registrar o pedido. Confira os dados de entrega e tente novamente."
+            : counterServiceMode
+              ? "Não foi possível registrar o pedido no balcão. Tente novamente."
             : kioskMode
               ? "Não foi possível enviar o pedido. Tente novamente."
-              : "Não foi possível iniciar o pagamento. Tente novamente em alguns segundos.",
+              : payment === "whatsapp" || payment === "pagar_na_entrega"
+                ? "Não foi possível registrar o pedido. Tente novamente."
+                : "Não foi possível iniciar o pagamento. Tente novamente em alguns segundos.",
     );
   } finally {
     if (slowTimer) window.clearTimeout(slowTimer);
