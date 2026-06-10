@@ -355,17 +355,31 @@ export function buildOrderTxt(order: Order) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
+function txtFilename(order: Order) {
+  const id = String(order.id || order.number || "pedido")
+    .replace(/^#/, "")
+    .replace(/[^A-Za-z0-9_-]/g, "");
+  return `pedido-${id || "menfis"}.txt`;
+}
+
 export async function copyOrderTxt(order: Order) {
   const text = buildOrderTxt(order);
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
   try {
-    await navigator.clipboard.writeText(text);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = txtFilename(order);
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
     return true;
   } catch {
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
     window.open(url, "_blank", "noopener,noreferrer");
-    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
     return false;
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
 }
 

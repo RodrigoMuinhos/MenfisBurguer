@@ -111,7 +111,7 @@ export function OrderDetail({
           )}
           <ActionButton
             label="Gerar TXT"
-            sublabel="Copiar pedido"
+            sublabel="Baixar arquivo"
             Icon={FileText}
             disabled={Boolean(busyAction)}
             onClick={onGenerateTxt}
