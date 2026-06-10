@@ -126,6 +126,58 @@ export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+export function paymentMethodLabel(order: Order) {
+  const method = String(order.paymentMethod ?? "").toLowerCase();
+  const provider = String(order.paymentProvider ?? "").toLowerCase();
+  const mercadoPago =
+    provider === "mercado_pago" ||
+    provider === "mercado pago" ||
+    ["pix", "cartao", "credito", "debito", "credit_card", "debit_card"].includes(method);
+
+  if (method === "pix") return mercadoPago ? "PIX Mercado Pago" : "PIX";
+  if (method === "credit_card" || method === "credito")
+    return "Cartão de Crédito Mercado Pago";
+  if (method === "debit_card" || method === "debito")
+    return "Cartão de Débito Mercado Pago";
+  if (method === "cartao") return "Cartão Mercado Pago";
+  if (method === "presencial") return "Pagamento Presencial com Atendente";
+  if (method === "pagar_na_entrega") return "Pagamento Presencial com Atendente";
+  if (method === "whatsapp") return "Pagamento Presencial com Atendente";
+  if (method === "dinheiro") return "Pagamento Presencial com Atendente";
+  return "Pagamento Presencial com Atendente";
+}
+
+export function paymentStatusLabel(order: Order) {
+  const status = String(order.paymentStatus ?? "").toLowerCase();
+  if (
+    status === "approved" ||
+    status === "paid" ||
+    status === "accredited" ||
+    (order.status !== "PAYMENT_PENDING" &&
+      ["presencial", "pagar_na_entrega", "whatsapp", "dinheiro"].includes(
+        String(order.paymentMethod ?? "").toLowerCase(),
+      ))
+  ) {
+    return "Pago";
+  }
+  if (
+    status === "cancelled" ||
+    status === "canceled" ||
+    status === "cancelado" ||
+    order.status === "CANCELLED"
+  ) {
+    return "Cancelado";
+  }
+  if (
+    status === "refunded" ||
+    status === "charged_back" ||
+    status === "estornado"
+  ) {
+    return "Estornado";
+  }
+  return "Aguardando Pagamento";
+}
+
 export function playAdminPaymentAlert() {
   try {
     const AudioContextClass =
@@ -151,47 +203,28 @@ export function playAdminPaymentAlert() {
 }
 
 export function paymentBadge(order: Order) {
-  const status = order.paymentStatus ?? "not_required";
-  if (order.channel === "KIOSK" && order.status !== "PAYMENT_PENDING") {
+  const label = paymentStatusLabel(order);
+  if (label === "Pago") {
     return {
-      label: "Pago Kiosk",
+      label,
       bg: "#ECFDF5",
       text: "#065F46",
       border: "#6EE7B7",
     };
   }
-  if (order.paymentMethod === "pagar_na_entrega") {
+  if (label === "Cancelado" || label === "Estornado") {
     return {
-      label: "Pagar na entrega",
-      bg: "#FFFBEB",
-      text: "#92400E",
-      border: "#FDE68A",
-    };
-  }
-  if (order.paymentMethod === "whatsapp") {
-    return {
-      label: "Pagar por WhatsApp",
-      bg: "#ECFDF5",
-      text: "#065F46",
-      border: "#6EE7B7",
-    };
-  }
-  if (status === "approved") {
-    return { label: "Pago", bg: "#ECFDF5", text: "#065F46", border: "#6EE7B7" };
-  }
-  if (order.paymentProvider === "mercado_pago") {
-    return {
-      label: "Pgto pendente",
-      bg: "#FFFBEB",
-      text: "#92400E",
-      border: "#FDE68A",
+      label,
+      bg: "#FEF2F2",
+      text: "#991B1B",
+      border: "#FECACA",
     };
   }
   return {
-    label: "Pagamento local",
-    bg: `${VERDE}08`,
-    text: VERDE,
-    border: `${VERDE}18`,
+    label,
+    bg: "#FFFBEB",
+    text: "#92400E",
+    border: "#FDE68A",
   };
 }
 
@@ -232,7 +265,8 @@ export function customerWhatsappUrl(order: Order) {
       `Telefone: ${order.customerPhone || "Não informado"}\n` +
       `Endereço: ${order.customerAddress || "Não informado"}\n\n` +
       `ITENS DO PEDIDO\n${items}\n\n` +
-      `Pagamento: ${(order.paymentMethod || "atendimento").toUpperCase()} - ${order.paymentStatus || ""}\n` +
+      `Forma de pagamento: ${paymentMethodLabel(order)}\n` +
+      `Status do pagamento: ${paymentStatusLabel(order)}\n` +
       `TOTAL: ${fmt(order.total)}\n\n` +
       `Pedido confirmado. Quando estiver pronto, avisaremos por aqui.`,
   );
@@ -287,7 +321,8 @@ export function printOrderReceipts(order: Order) {
       ${items}
       ${removed.length ? `<div class="alert">RETIRAR: ${escapeReceipt(removed.join(", "))}</div>` : ""}
       <hr />
-      <div>Pagamento: ${escapeReceipt(order.paymentMethod?.toUpperCase() || "ATENDIMENTO")} - ${escapeReceipt(order.paymentStatus || "")}</div>
+      <div>Forma de pagamento: ${escapeReceipt(paymentMethodLabel(order))}</div>
+      <div>Status do pagamento: ${escapeReceipt(paymentStatusLabel(order))}</div>
       <div class="row total"><strong>TOTAL</strong><strong>${fmt(order.total)}</strong></div>
       <hr />
       <div class="center small">Obrigado pela preferência!</div>

@@ -1,5 +1,6 @@
 import { Loader2, MessageCircle, QrCode } from "lucide-react";
 import { motion } from "motion/react";
+import { CartItem } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
   CheckoutStep,
@@ -8,6 +9,7 @@ import {
   PaymentMethod,
   SUPPORT_WHATSAPP_URL,
 } from "./checkout";
+import { buildWhatsappReceipt } from "./whatsappReceipt";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -36,6 +38,8 @@ export function CheckoutReviewSection({
   inputStyle,
   setCheckoutStep,
   setKioskKeyboardTarget,
+  cart,
+  total,
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
@@ -52,9 +56,11 @@ export function CheckoutReviewSection({
   inputStyle: (err?: boolean) => React.CSSProperties;
   setCheckoutStep: (step: CheckoutStep) => void;
   setKioskKeyboardTarget: (target: KioskKeyboardTarget) => void;
+  cart: CartItem[];
+  total: number;
 }) {
   const supportText = encodeURIComponent(
-    "Olá, preciso de ajuda para finalizar meu pedido Menfi's.",
+    buildWhatsappReceipt({ items: cart, total, paymentMethod: payment }),
   );
 
   return (

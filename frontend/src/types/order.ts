@@ -14,6 +14,10 @@ export type DeliveryType = "retirada" | "delivery";
 export type PaymentMethod =
   | "pix"
   | "cartao"
+  | "credito"
+  | "debito"
+  | "credit_card"
+  | "debit_card"
   | "dinheiro"
   | "presencial"
   | "pagar_na_entrega"

@@ -7,6 +7,8 @@ import {
   customerWhatsappUrl,
   fmt,
   orderReadyWhatsappUrl,
+  paymentMethodLabel,
+  paymentStatusLabel,
   printOrderReceipts,
   STAGE_COLOR,
   STAGE_LABEL,
@@ -124,10 +126,7 @@ export function OrdersView({
                 className="text-xs font-black uppercase tracking-wide"
                 style={{ color: STAGE_COLOR[selected.status].text }}
               >
-                {STAGE_LABEL[selected.status]} ·{" "}
-                {selected.paymentStatus === "approved"
-                  ? "Pagamento aprovado"
-                  : "Pagamento pendente"}
+                {STAGE_LABEL[selected.status]} · {paymentStatusLabel(selected)}
               </p>
             </div>
             <button
@@ -156,7 +155,7 @@ export function OrdersView({
               style={{ background: `${VERDE}08` }}
             >
               <p className="text-[10px] font-black uppercase opacity-50">
-                Telefone cadastrado
+                Telefone
               </p>
               <p className="mt-1 text-sm font-bold">
                 {selected.customerPhone || "Não informado"}
@@ -167,10 +166,10 @@ export function OrdersView({
               style={{ background: `${VERDE}08` }}
             >
               <p className="text-[10px] font-black uppercase opacity-50">
-                Entrega
+                Tipo
               </p>
               <p className="mt-1 text-sm font-bold">
-                {selected.customerAddress || "Não informado"}
+                {selected.deliveryType === "delivery" ? "Entrega" : "Retirada"}
               </p>
             </div>
             <div
@@ -184,6 +183,52 @@ export function OrdersView({
                 {deliveryConfirmationCode(selected)}
               </p>
             </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ background: `${VERDE}08` }}
+            >
+              <p className="text-[10px] font-black uppercase opacity-50">
+                Forma de pagamento
+              </p>
+              <p className="mt-1 text-sm font-bold">
+                {paymentMethodLabel(selected)}
+              </p>
+            </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ background: `${VERDE}08` }}
+            >
+              <p className="text-[10px] font-black uppercase opacity-50">
+                Status do pagamento
+              </p>
+              <p className="mt-1 text-sm font-bold">
+                {paymentStatusLabel(selected)}
+              </p>
+            </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ background: `${VERDE}08` }}
+            >
+              <p className="text-[10px] font-black uppercase opacity-50">
+                Total
+              </p>
+              <p className="mt-1 text-sm font-bold">
+                {fmt(selected.total)}
+              </p>
+            </div>
+            {selected.deliveryType === "delivery" && (
+              <div
+                className="rounded-xl p-3"
+                style={{ background: `${VERDE}08` }}
+              >
+                <p className="text-[10px] font-black uppercase opacity-50">
+                  Endereco
+                </p>
+                <p className="mt-1 text-sm font-bold">
+                  {selected.customerAddress || "Não informado"}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="admin-order-actions mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">

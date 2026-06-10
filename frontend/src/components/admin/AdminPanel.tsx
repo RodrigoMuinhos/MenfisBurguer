@@ -499,7 +499,13 @@ export function AdminPanel({
             updateOrderStatus={updateOrderStatus}
           />
         )}
-        {tab === "clientes" && <CustomersCrmView customers={crmCustomers} />}
+        {tab === "clientes" && (
+          <CustomersCrmView
+            customers={crmCustomers}
+            adminToken={adminToken}
+            onChanged={syncCrmCustomers}
+          />
+        )}
         {tab === "suporte" && (
           <SupportView
             tickets={supportTickets}

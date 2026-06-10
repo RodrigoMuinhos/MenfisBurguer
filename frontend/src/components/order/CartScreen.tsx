@@ -203,6 +203,7 @@ export function CartScreen({
           deliveryValid={deliveryValid}
           inputStyle={inputStyle}
           total={total}
+          cart={cart}
         />
         <CheckoutReviewSection
           checkoutStep={checkoutStep}
@@ -220,6 +221,8 @@ export function CartScreen({
           inputStyle={inputStyle}
           setCheckoutStep={setCheckoutStep}
           setKioskKeyboardTarget={setKioskKeyboardTarget}
+          cart={cart}
+          total={total}
         />
 
         <DeliveryFormSection

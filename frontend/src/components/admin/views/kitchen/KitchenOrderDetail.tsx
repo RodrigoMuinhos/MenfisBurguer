@@ -2,7 +2,13 @@ import { BellRing, MessageCircle, Printer } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { deliveryConfirmationCode } from "@/components/order/tracking";
-import { fmt, paymentBadge, STAGE_LABEL } from "../../shared";
+import {
+  fmt,
+  paymentBadge,
+  paymentMethodLabel,
+  paymentStatusLabel,
+  STAGE_LABEL,
+} from "../../shared";
 
 type ProductKind = "burger" | "chicken" | "bacon";
 
@@ -110,15 +116,17 @@ export function OrderDetail({
       >
         <InfoBox label="Cliente" value={order.customerName || "Não informado"} />
         <InfoBox label="Telefone" value={order.customerPhone || "Não informado"} />
-        <InfoBox label="Tipo" value={`${order.channel} · ${order.deliveryType === "delivery" ? "Entrega" : "Retirada"}`} />
+        <InfoBox label="Tipo" value={order.deliveryType === "delivery" ? "Entrega" : "Retirada"} />
         <InfoBox label="Codigo" value={deliveryConfirmationCode(order)} />
-        <InfoBox label="Pagamento" value={`${paymentMethodLabel(order)} · ${pay.label}`} />
+        <InfoBox label="Forma de pagamento" value={paymentMethodLabel(order)} />
+        <InfoBox label="Status do pagamento" value={paymentStatusLabel(order)} />
+        <InfoBox label="Total" value={fmt(order.total)} />
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: compact ? "1fr" : "minmax(0,1.35fr) minmax(220px,0.65fr)",
+          gridTemplateColumns: "1fr",
           gap: 14,
           padding: compact ? "0 10px 12px" : "0 14px 16px",
         }}
@@ -162,34 +170,9 @@ export function OrderDetail({
             <InfoPanel title="Adicionais" text={added.length ? added.map((item) => `${item.qty}x ${item.name}`).join(" · ") : "Nenhum adicional"} />
             <InfoPanel title="Retirados" text={removed.length ? removed.join(" · ") : "Nenhum item removido"} />
             <InfoPanel title="Observação do pedido" text="Sem observação registrada" />
-            <InfoPanel title="Cupom usado" text="Sem cupom registrado" />
           </div>
         </section>
 
-        <aside>
-          <h3 style={{ margin: "8px 0 10px", fontSize: 12, fontWeight: 950, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-            Produção possível
-          </h3>
-          <div style={{ display: "grid", gridTemplateColumns: compact ? "repeat(auto-fit, minmax(160px, 1fr))" : "1fr", gap: 10 }}>
-            {production.map((item) => (
-              <div key={item.id} style={{ border: `1px solid ${ROSA}`, borderRadius: 14, padding: 12 }}>
-                <p style={{ fontSize: 13, fontWeight: 950 }}>{item.title}</p>
-                <p style={{ marginTop: 4, fontFamily: "var(--menfis-font-display)", fontSize: 28, lineHeight: 1 }}>
-                  {Number.isFinite(item.possible) ? item.possible : 0} un
-                </p>
-                <p style={{ fontSize: 11, fontWeight: 800, opacity: 0.65 }}>
-                  Limitante: {item.limiting ?? "sem ficha"} · Custo {fmt(item.cost)} · {item.time}
-                </p>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 14, borderTop: `1px solid ${ROSA}`, paddingTop: 14 }}>
-            <p style={{ fontSize: 12, fontWeight: 950, textTransform: "uppercase" }}>Total</p>
-            <p style={{ fontFamily: "var(--menfis-font-display)", fontSize: 38, lineHeight: 1 }}>
-              {fmt(order.total)}
-            </p>
-          </div>
-        </aside>
       </div>
     </article>
   );
@@ -284,12 +267,4 @@ function statusLabel(status: Order["status"]) {
   if (status === "IN_PREPARATION") return "Em preparo";
   if (status === "READY") return "Pronto";
   return STAGE_LABEL[status] ?? status;
-}
-
-function paymentMethodLabel(order: Order) {
-  if (order.paymentMethod === "pix") return "Pix aprovado";
-  if (order.paymentMethod === "cartao") return "Cartão";
-  if (order.paymentMethod === "pagar_na_entrega") return "Pagar na entrega";
-  if (order.paymentMethod === "whatsapp") return "Pago WhatsApp";
-  return "Pagamento local";
 }

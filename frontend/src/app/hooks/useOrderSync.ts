@@ -31,7 +31,17 @@ export function useOrderSync({
     if (!res.ok) return;
     const order = normalizeBackendOrder(await res.json());
     setOrders((prev) => [
-      { ...prev.find((item) => item.id === order.id), ...order },
+      {
+        ...prev.find((item) => item.id === order.id),
+        ...order,
+        pixQrCode: prev.find((item) => item.id === order.id)?.pixQrCode ?? order.pixQrCode,
+        pixQrCodeBase64:
+          prev.find((item) => item.id === order.id)?.pixQrCodeBase64 ??
+          order.pixQrCodeBase64,
+        pixTicketUrl:
+          prev.find((item) => item.id === order.id)?.pixTicketUrl ??
+          order.pixTicketUrl,
+      },
       ...prev.filter((item) => item.id !== order.id),
     ]);
     if (order.status === "DELIVERED" || order.status === "CANCELLED") {
@@ -92,7 +102,10 @@ export function useOrderSync({
     if (screen !== "admin" && screen !== "tracking" && !(screen === "product" && lastOrderId)) return;
 
     syncOrders();
-    const timer = window.setInterval(syncOrders, 10000);
+    const timer = window.setInterval(
+      syncOrders,
+      screen === "tracking" ? 2500 : 5000,
+    );
     return () => window.clearInterval(timer);
   }, [screen, started, syncOrders]);
 
@@ -126,10 +139,11 @@ export function useOrderSync({
 
     source.onerror = () => {
       source.close();
+      void loadOrderById(lastOrderId);
     };
 
     return () => source.close();
-  }, [lastOrderId, screen, started]);
+  }, [lastOrderId, loadOrderById, screen, started]);
 
   const updateOrderStatus = useCallback(
     async (id: string, status: OrderStatus) => {

@@ -6,6 +6,7 @@ import {
   fmt,
   orderReadyWhatsappUrl,
   paymentBadge,
+  paymentMethodLabel,
   STAGE_COLOR,
   STAGE_LABEL,
 } from "../../shared";
@@ -122,15 +123,7 @@ export function KitchenControls({
             {pay.label}
           </span>
           <span style={{ color: pay.text, fontSize: 10, fontWeight: 800, opacity: 0.75 }}>
-            {selectedOrder.paymentMethod === "pix"
-              ? "Pix"
-              : selectedOrder.paymentMethod === "cartao"
-                ? "Cartão"
-                : selectedOrder.paymentMethod === "pagar_na_entrega"
-                  ? "Na entrega"
-                  : selectedOrder.paymentMethod === "whatsapp"
-                    ? "WhatsApp"
-                  : "Atendimento"}
+            {paymentMethodLabel(selectedOrder)}
           </span>
         </div>
         <p

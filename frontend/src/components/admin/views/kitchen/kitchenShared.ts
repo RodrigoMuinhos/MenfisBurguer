@@ -11,5 +11,4 @@ export const KITCHEN_STAGE_LABEL: Partial<Record<OrderStatus, string>> = {
 export const KITCHEN_NEXT_STAGE: Partial<Record<OrderStatus, OrderStatus>> = {
   PAID: "IN_PREPARATION",
   IN_PREPARATION: "READY",
-  READY: "DELIVERED",
 };

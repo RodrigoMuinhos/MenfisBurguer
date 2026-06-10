@@ -85,17 +85,16 @@ export function ProductHeader({
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenMember}
-              className="flex items-center gap-2 rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-wider"
+              className="flex h-12 w-12 items-center justify-center rounded-full"
               style={{ background: memberProfile ? ROSA : "#fff", color: VERDE, border: `1px solid ${VERDE}18` }}
               aria-label={memberProfile ? "Abrir menu do perfil" : "Entrar no delivery"}
             >
               <span
-                className="grid h-8 w-8 place-items-center overflow-hidden rounded-full"
+                className="grid h-10 w-10 place-items-center overflow-hidden rounded-full"
                 style={{ background: "#fff", border: `1.5px solid ${VERDE}` }}
               >
-                <UserRound size={17} strokeWidth={2.6} />
+                <UserRound size={20} strokeWidth={2.6} />
               </span>
-              {memberProfile ? "Perfil" : "Entrar"}
             </button>
           </div>
         )}

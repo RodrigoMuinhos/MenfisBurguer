@@ -29,6 +29,17 @@ type LoginPayload = {
   password: string;
 };
 
+type RecoveryPayload = {
+  login: string;
+};
+
+type ResetPasswordPayload = {
+  login: string;
+  code: string;
+  password: string;
+  confirmPassword: string;
+};
+
 export async function saveCustomerSession(payload: CustomerPayload) {
   if (!API_URL) throw new Error("api_missing");
   const res = await fetch(`${API_URL}/customers/session`, {
@@ -53,6 +64,33 @@ export async function loginCustomerSession(payload: LoginPayload) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.customer || !data.token) throw new Error(data.error || "customer_login_failed");
+  const profile = normalizeCustomer(data.customer);
+  localStorage.setItem(MEMBER_TOKEN_KEY, data.token);
+  localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+  return profile;
+}
+
+export async function requestCustomerPasswordRecovery(payload: RecoveryPayload) {
+  if (!API_URL) throw new Error("api_missing");
+  const res = await fetch(`${API_URL}/customers/password/recovery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "customer_recovery_failed");
+  return data as { whatsappUrl?: string; expiresInMinutes?: number };
+}
+
+export async function resetCustomerPassword(payload: ResetPasswordPayload) {
+  if (!API_URL) throw new Error("api_missing");
+  const res = await fetch(`${API_URL}/customers/password/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.customer || !data.token) throw new Error(data.error || "customer_reset_failed");
   const profile = normalizeCustomer(data.customer);
   localStorage.setItem(MEMBER_TOKEN_KEY, data.token);
   localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));

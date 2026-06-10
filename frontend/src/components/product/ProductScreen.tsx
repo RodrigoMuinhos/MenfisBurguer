@@ -45,6 +45,8 @@ import {
   loginCustomerSession,
   loadCustomerSession,
   logoutCustomerSession,
+  requestCustomerPasswordRecovery,
+  resetCustomerPassword,
   saveCustomerSession,
 } from "@/services/customerSession";
 import {
@@ -401,6 +403,53 @@ export function ProductScreen({
     }
   };
 
+  const requestPasswordRecovery = async (login: string) => {
+    setMemberError("");
+    if (!login.trim()) {
+      setMemberError("Informe telefone ou e-mail para recuperar.");
+      return null;
+    }
+    setMemberSaving(true);
+    try {
+      return await requestCustomerPasswordRecovery({ login: login.trim() });
+    } catch {
+      setMemberError("Não encontrei esse cadastro. Fale com o suporte.");
+      return null;
+    } finally {
+      setMemberSaving(false);
+    }
+  };
+
+  const resetMemberPassword = async (
+    login: string,
+    code: string,
+    password: string,
+    confirmPassword: string,
+  ) => {
+    setMemberError("");
+    if (code.trim().length !== 6 || password.trim().length !== 6 || password !== confirmPassword) {
+      setMemberError("Confira o código e a nova senha de 6 dígitos.");
+      return false;
+    }
+    setMemberSaving(true);
+    try {
+      const profile = await resetCustomerPassword({
+        login: login.trim(),
+        code: code.trim(),
+        password: password.trim(),
+        confirmPassword: confirmPassword.trim(),
+      });
+      setMemberProfile(profile);
+      setLoginOpen(false);
+      return true;
+    } catch {
+      setMemberError("Código inválido ou expirado.");
+      return false;
+    } finally {
+      setMemberSaving(false);
+    }
+  };
+
   const logoutMember = () => {
     logoutCustomerSession();
     setMemberProfile(null);
@@ -552,6 +601,8 @@ export function ProductScreen({
         savedDelivery={savedDelivery}
         saveMember={saveMember}
         loginMember={loginMember}
+        requestPasswordRecovery={requestPasswordRecovery}
+        resetMemberPassword={resetMemberPassword}
         editMember={editMember}
         logoutMember={logoutMember}
         closeLogin={() => {

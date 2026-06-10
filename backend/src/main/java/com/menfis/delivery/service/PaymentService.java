@@ -232,6 +232,7 @@ public class PaymentService {
     String orderId = internalOrderId(payment.path("external_reference").asText(""));
     String status = payment.path("status").asText("unknown");
     if (!orderId.isBlank()) {
+      updateOrderPaymentMethod(orderId, mercadoPagoPaymentMethod(payment));
       orders.markPaid(orderId, payment.path("id").asText(paymentId), status);
       jdbc.update(
         "update payments set provider_payment_id = ?, status = ?, raw_payload = ?::jsonb, updated_at = now() where order_id = ?",
@@ -285,6 +286,7 @@ public class PaymentService {
     JsonNode payment = mpOrder.path("transactions").path("payments").path(0);
     String providerPaymentId = payment.path("id").asText(mercadoPagoOrderId);
     String status = normalizeOrderPaymentStatus(mpOrder, payment);
+    updateOrderPaymentMethod(orderId, mercadoPagoPaymentMethod(payment));
     orders.markPaid(orderId, providerPaymentId, status);
     jdbc.update(
       "update payments set provider_payment_id = ?, status = ?, raw_payload = ?::jsonb, updated_at = now() where order_id = ?",
@@ -315,6 +317,41 @@ public class PaymentService {
       return orderStatus;
     }
     return paymentStatus == null || paymentStatus.isBlank() ? orderStatus : paymentStatus;
+  }
+
+  private void updateOrderPaymentMethod(String orderId, String paymentMethod) {
+    if (paymentMethod == null || paymentMethod.isBlank()) return;
+    jdbc.update(
+      "update orders set payment_provider = 'MERCADO_PAGO', payment_method = ?, updated_at = now() where id = ?",
+      paymentMethod,
+      orderId
+    );
+  }
+
+  private String mercadoPagoPaymentMethod(JsonNode payment) {
+    String type = firstText(
+      payment.path("payment_type_id"),
+      payment.path("payment_method").path("type")
+    );
+    String id = firstText(
+      payment.path("payment_method_id"),
+      payment.path("payment_method").path("id")
+    );
+
+    if ("credit_card".equalsIgnoreCase(type)) return "CREDIT_CARD";
+    if ("debit_card".equalsIgnoreCase(type)) return "DEBIT_CARD";
+    if ("pix".equalsIgnoreCase(id) || "bank_transfer".equalsIgnoreCase(type)) return "PIX";
+    return null;
+  }
+
+  private String firstText(JsonNode... nodes) {
+    for (JsonNode node : nodes) {
+      if (node != null && !node.isMissingNode() && !node.isNull()) {
+        String value = node.asText("");
+        if (!value.isBlank()) return value;
+      }
+    }
+    return "";
   }
 
   private String money(BigDecimal value) {

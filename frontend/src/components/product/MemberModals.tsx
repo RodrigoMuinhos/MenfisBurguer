@@ -62,6 +62,8 @@ export function MemberModals({
   savedDelivery,
   saveMember,
   loginMember,
+  requestPasswordRecovery,
+  resetMemberPassword,
   editMember,
   logoutMember,
   closeLogin,
@@ -113,6 +115,13 @@ export function MemberModals({
   savedDelivery: Record<string, string>;
   saveMember: () => void;
   loginMember: () => void;
+  requestPasswordRecovery: (login: string) => Promise<{ whatsappUrl?: string; expiresInMinutes?: number } | null>;
+  resetMemberPassword: (
+    login: string,
+    code: string,
+    password: string,
+    confirmPassword: string,
+  ) => Promise<boolean>;
   editMember: () => void;
   logoutMember: () => void;
   closeLogin: () => void;
@@ -126,6 +135,15 @@ export function MemberModals({
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [registerStep, setRegisterStep] = useState<1 | 2>(1);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryLogin, setRecoveryLogin] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryPassword, setRecoveryPassword] = useState("");
+  const [recoveryPasswordConfirm, setRecoveryPasswordConfirm] = useState("");
+  const [recoveryWhatsappUrl, setRecoveryWhatsappUrl] = useState("");
+  const hasActiveOrder = Boolean(
+    activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status),
+  );
 
   useEffect(() => {
     if (!profileOpen || !memberProfile || !API_URL || typeof window === "undefined") return;
@@ -154,6 +172,16 @@ export function MemberModals({
     setRegisterStep(1);
     setTermsAccepted(false);
   }, [memberAuthMode, loginOpen]);
+
+  useEffect(() => {
+    if (!loginOpen) {
+      setRecoveryOpen(false);
+      setRecoveryCode("");
+      setRecoveryPassword("");
+      setRecoveryPasswordConfirm("");
+      setRecoveryWhatsappUrl("");
+    }
+  }, [loginOpen]);
 
   return (
     <>
@@ -227,10 +255,76 @@ export function MemberModals({
                       </button>
                     </div>
 
-                    {memberAuthMode === "login" ? (
+                    {memberAuthMode === "login" && recoveryOpen ? (
                       <div className="mt-4 grid gap-3">
                         <ProfileInput
-                          label="Email ou CPF"
+                          label="Telefone ou e-mail"
+                          value={recoveryLogin}
+                          onChange={setRecoveryLogin}
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const data = await requestPasswordRecovery(recoveryLogin);
+                            if (data?.whatsappUrl) {
+                              setRecoveryWhatsappUrl(data.whatsappUrl);
+                              window.open(data.whatsappUrl, "_blank", "noopener,noreferrer");
+                            }
+                          }}
+                          disabled={memberSaving}
+                          className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-50"
+                          style={{ background: `${VERDE}10`, color: VERDE }}
+                        >
+                          Receber código
+                        </button>
+                        <ProfileInput
+                          label="Código de 6 dígitos"
+                          value={recoveryCode}
+                          onChange={(value) => setRecoveryCode(value.replace(/\D/g, "").slice(0, 6))}
+                          inputMode="numeric"
+                          maxLength={6}
+                        />
+                        <ProfileInput
+                          label="Nova senha"
+                          value={recoveryPassword}
+                          onChange={(value) => setRecoveryPassword(value.replace(/\D/g, "").slice(0, 6))}
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={6}
+                        />
+                        <ProfileInput
+                          label="Confirmar nova senha"
+                          value={recoveryPasswordConfirm}
+                          onChange={(value) => setRecoveryPasswordConfirm(value.replace(/\D/g, "").slice(0, 6))}
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={6}
+                        />
+                        {recoveryWhatsappUrl && (
+                          <a
+                            href={recoveryWhatsappUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-2xl px-4 py-3 text-center text-xs font-black uppercase tracking-wider"
+                            style={{ background: ROSA, color: VERDE }}
+                          >
+                            Abrir WhatsApp novamente
+                          </a>
+                        )}
+                        <a
+                          href={SUPPORT_WHATSAPP_URL}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-2xl px-4 py-3 text-center text-xs font-black uppercase tracking-wider"
+                          style={{ background: "#FFF8F2", color: VERDE }}
+                        >
+                          Falar com o suporte
+                        </a>
+                      </div>
+                    ) : memberAuthMode === "login" ? (
+                      <div className="mt-4 grid gap-3">
+                        <ProfileInput
+                          label="Telefone, e-mail ou CPF"
                           value={memberLogin}
                           onChange={setMemberLogin}
                         />
@@ -242,6 +336,17 @@ export function MemberModals({
                           inputMode="numeric"
                           maxLength={6}
                         />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRecoveryLogin(memberLogin);
+                            setRecoveryOpen(true);
+                          }}
+                          className="text-left text-xs font-black uppercase tracking-wider"
+                          style={{ color: VERDE }}
+                        >
+                          Esqueci minha senha
+                        </button>
                       </div>
                     ) : (
                     <>
@@ -374,7 +479,20 @@ export function MemberModals({
       
                     <button
                       onClick={
-                        memberAuthMode === "login"
+                        memberAuthMode === "login" && recoveryOpen
+                          ? async () => {
+                              const ok = await resetMemberPassword(
+                                recoveryLogin,
+                                recoveryCode,
+                                recoveryPassword,
+                                recoveryPasswordConfirm,
+                              );
+                              if (ok) {
+                                setRecoveryOpen(false);
+                                closeLogin();
+                              }
+                            }
+                          : memberAuthMode === "login"
                           ? loginMember
                           : registerStep === 1
                             ? () => setRegisterStep(2)
@@ -396,7 +514,9 @@ export function MemberModals({
                         ? memberAuthMode === "login"
                           ? "Entrando"
                           : "Cadastrando"
-                        : memberAuthMode === "login"
+                        : memberAuthMode === "login" && recoveryOpen
+                          ? "Criar nova senha"
+                          : memberAuthMode === "login"
                           ? "Entrar"
                           : registerStep === 1
                             ? "Continuar"
@@ -516,7 +636,7 @@ export function MemberModals({
                       </div>
 
                       <ProfileMenuButton icon={UserCog} label="Dados cadastrais" onClick={editMember} />
-                      {activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status) ? (
+                      {hasActiveOrder && activeOrder ? (
                         <ActiveProfileOrderCard
                           order={activeOrder}
                           onOpen={() => {
@@ -527,31 +647,33 @@ export function MemberModals({
                       ) : (
                         <ProfileMenuButton icon={PackageSearch} label="Acompanhe seu pedido" onClick={closeProfile} />
                       )}
-                      <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-xs font-black uppercase tracking-wider">
-                            Meus pedidos
-                          </p>
-                          {ordersLoading && <Loader2 size={15} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />}
-                        </div>
-                        <div className="mt-3 grid gap-2">
-                          {!ordersLoading && customerOrders.length === 0 && (
-                            <p className="text-xs font-bold opacity-55">
-                              Nenhum pedido encontrado neste perfil.
+                      {!hasActiveOrder && (
+                        <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-black uppercase tracking-wider">
+                              Meus pedidos
                             </p>
-                          )}
-                          {customerOrders.slice(0, 8).map((order) => (
-                            <OrderHistoryRow
-                              key={order.id}
-                              order={order}
-                              onRepeat={() => {
-                                closeProfile();
-                                onRepeatOrder?.(order.items);
-                              }}
-                            />
-                          ))}
+                            {ordersLoading && <Loader2 size={15} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />}
+                          </div>
+                          <div className="mt-3 grid gap-2">
+                            {!ordersLoading && customerOrders.length === 0 && (
+                              <p className="text-xs font-bold opacity-55">
+                                Nenhum pedido encontrado neste perfil.
+                              </p>
+                            )}
+                            {customerOrders.slice(0, 8).map((order) => (
+                              <OrderHistoryRow
+                                key={order.id}
+                                order={order}
+                                onRepeat={() => {
+                                  closeProfile();
+                                  onRepeatOrder?.(order.items);
+                                }}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                       <ProfileMenuLink icon={Headphones} label="SAC" href={SUPPORT_WHATSAPP_URL} />
                       <button
                         onClick={logoutMember}
@@ -651,6 +773,7 @@ function OrderHistoryRow({
   onRepeat: () => void;
 }) {
   const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+  const canRepeat = order.status === "DELIVERED" && order.items.length > 0;
   const date = new Date(order.timestamp).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -674,14 +797,15 @@ function OrderHistoryRow({
         </div>
         <p className="shrink-0 text-sm font-black">{fmt(order.total)}</p>
       </div>
-      <button
-        onClick={onRepeat}
-        disabled={order.items.length === 0}
-        className="mt-3 w-full rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-wider disabled:opacity-40"
-        style={{ background: `${VERDE}10`, color: VERDE }}
-      >
-        Pedir novamente
-      </button>
+      {canRepeat && (
+        <button
+          onClick={onRepeat}
+          className="mt-3 w-full rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-wider"
+          style={{ background: `${VERDE}10`, color: VERDE }}
+        >
+          Pedir novamente
+        </button>
+      )}
     </div>
   );
 }

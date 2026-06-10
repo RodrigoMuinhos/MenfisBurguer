@@ -12,6 +12,7 @@ import {
   resolveRuntimeDeliveryType,
   wait,
 } from "./checkout";
+import { buildOrderWhatsappReceipt } from "./whatsappReceipt";
 
 export async function submitCheckoutOrder({
   cart,
@@ -273,56 +274,7 @@ export async function submitCheckoutOrder({
 }
 
 function openWhatsappReceipt(order: Order) {
-  const line = "=================================";
-  const now = new Date(order.timestamp);
-  const date = now.toLocaleDateString("pt-BR");
-  const time = now.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const items = order.items
-    .map((item) => {
-      const name = `${item.qty}x ${item.name}`.slice(0, 24);
-      return `${name.padEnd(24, " ")} ${fmt(item.price * item.qty)}`;
-    })
-    .join("\n");
-  const text = [
-    line,
-    "MENFI'S BURGUER",
-    "",
-    `Pedido ${order.id}`,
-    "",
-    "Item                         Valor",
-    "",
-    items,
-    "",
-    "-----",
-    "",
-    `TOTAL                 ${fmt(order.total)}`,
-    "",
-    "Forma de Pagamento:",
-    "(X) PIX",
-    "( ) Cartão",
-    "( ) Dinheiro",
-    "",
-    `Data: ${date}`,
-    `Hora: ${time}`,
-    "",
-    line,
-    "MENFI'S BURGUER",
-    "",
-    "Obrigado pela preferência!",
-    "",
-    "Feito na hora.",
-    "Ingredientes selecionados.",
-    "Sabor que marca.",
-    "",
-    "WhatsApp:",
-    "(85) 99788-3764",
-    "",
-    line,
-    `TOTAL: ${fmt(order.total)}`,
-  ].join("\n");
+  const text = buildOrderWhatsappReceipt(order);
   window.open(
     `${SUPPORT_WHATSAPP_URL}?text=${encodeURIComponent(text)}`,
     "_blank",

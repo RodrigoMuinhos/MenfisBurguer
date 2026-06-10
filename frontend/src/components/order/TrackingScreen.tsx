@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Clock, CreditCard, QrCode, Star } from "lucide-react";
+import { Clock, Star } from "lucide-react";
 import logoSkull from "@/imports/image-1.png";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -13,9 +13,7 @@ import {
   SUPPORT_TOPICS,
   SupportTicket,
   WHATSAPP_URL,
-  paymentInfo,
 } from "./tracking";
-import { TrackingOrderDetails } from "./tracking/TrackingOrderDetails";
 import { TrackingSupportSection } from "./tracking/TrackingSupportSection";
 import { TrackingTimelineSection } from "./tracking/TrackingTimelineSection";
 
@@ -134,8 +132,6 @@ export function TrackingScreen({
     hour: "2-digit",
     minute: "2-digit",
   });
-  const pay = paymentInfo(order);
-  const PayIcon = order.paymentMethod === "pix" ? QrCode : CreditCard;
   const statusCopy = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
   const stepTimes = STEPS.map((_, index) => (index <= current ? timeStr : "-"));
   const canRequestChange = order.status === "PAID";
@@ -383,12 +379,6 @@ export function TrackingScreen({
           setSelectedTopic={setSelectedTopic}
           setSupportSent={setSupportSent}
           createSupportTicket={createSupportTicket}
-        />
-        <TrackingOrderDetails
-          order={order}
-          pay={pay}
-          PayIcon={PayIcon}
-          goHome={goHome}
         />
       </div>
     </div>

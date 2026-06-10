@@ -1,7 +1,7 @@
 import { CheckCircle2, Send } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
-import { elapsed, paymentBadge, STAGE_LABEL } from "../../shared";
+import { elapsed, paymentBadge, paymentMethodLabel, STAGE_LABEL } from "../../shared";
 import { Tag } from "./KitchenOrderDetail";
 
 type ProductKind = "burger" | "chicken" | "bacon";
@@ -191,12 +191,4 @@ function statusLabel(status: OrderStatus) {
   if (status === "IN_PREPARATION") return "Em preparo";
   if (status === "READY") return "Pronto";
   return STAGE_LABEL[status] ?? status;
-}
-
-function paymentMethodLabel(order: Order) {
-  if (order.paymentMethod === "pix") return "Pix aprovado";
-  if (order.paymentMethod === "cartao") return "Cartão";
-  if (order.paymentMethod === "pagar_na_entrega") return "Pagar na entrega";
-  if (order.paymentMethod === "whatsapp") return "Pago WhatsApp";
-  return "Pagamento local";
 }

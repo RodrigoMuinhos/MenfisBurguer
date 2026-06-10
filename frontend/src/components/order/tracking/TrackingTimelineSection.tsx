@@ -50,6 +50,24 @@ export function TrackingTimelineSection({
     : paymentFailed
       ? "Pagamento não aprovado"
       : "Aguardando pagamento";
+  const paymentStatusLabel = paymentApproved
+    ? "Pago"
+    : ["refunded", "charged_back"].includes(paymentStatus)
+      ? "Estornado"
+      : paymentFailed
+        ? "Cancelado"
+        : "Aguardando Pagamento";
+  const method = String(order.paymentMethod ?? "").toLowerCase();
+  const paymentMethodLabel =
+    method === "pix"
+      ? "PIX Mercado Pago"
+      : method === "credit_card" || method === "credito"
+        ? "Cartão de Crédito Mercado Pago"
+        : method === "debit_card" || method === "debito"
+          ? "Cartão de Débito Mercado Pago"
+          : method === "cartao"
+            ? "Cartão Mercado Pago"
+            : "Pagamento Presencial com Atendente";
   const timelineCopy =
     waitingPayment
       ? whatsappPayment
@@ -229,6 +247,14 @@ export function TrackingTimelineSection({
             <p className="mt-1 text-xs leading-relaxed" style={{ color: VERDE, opacity: 0.62 }}>
               {timelineCopy}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: "#FFF8F2", color: VERDE }}>
+                {paymentMethodLabel}
+              </span>
+              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: "#FFF8F2", color: VERDE }}>
+                {paymentStatusLabel}
+              </span>
+            </div>
             <div className="mt-5 flex items-start gap-2">
               <Clock size={17} strokeWidth={2.1} style={{ color: VERDE, opacity: 0.45 }} />
               <div>

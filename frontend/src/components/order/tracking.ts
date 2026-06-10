@@ -5,10 +5,10 @@ export const WHATSAPP_URL = "https://wa.me/5585997883764";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 export const STEPS = [
-  { icon: Clock3, label: "Pagamento aprovado" },
-  { icon: CheckCircle2, label: "Pedido recebido" },
+  { icon: Clock3, label: "Pedido recebido" },
+  { icon: CheckCircle2, label: "Pedido aceito" },
   { icon: ChefHat, label: "Em preparo" },
-  { icon: PackageCheck, label: "Pronto para entrega" },
+  { icon: PackageCheck, label: "Pronto" },
   { icon: Bike, label: "Saiu para entrega" },
   { icon: Home, label: "Entregue" },
 ];
@@ -16,7 +16,7 @@ export const STEPS = [
 export const STATUS_INDEX: Record<OrderStatus, number> = {
   CREATED: 0,
   PAYMENT_PENDING: 0,
-  PAID: 0,
+  PAID: 1,
   IN_PREPARATION: 2,
   READY: 3,
   OUT_FOR_DELIVERY: 4,
@@ -39,8 +39,8 @@ export const STATUS_COPY: Record<
     eta: "Pague para enviar",
   },
   PAID: {
-    label: "Pagamento aprovado",
-    copy: "Pagamento confirmado. Aguardando a cozinha aceitar o pedido.",
+    label: "Pedido aceito",
+    copy: "Pagamento confirmado e pedido aceito pela equipe.",
     eta: "25-30 min",
   },
   IN_PREPARATION: {
@@ -49,8 +49,8 @@ export const STATUS_COPY: Record<
     eta: "20-25 min",
   },
   READY: {
-    label: "Pedido pronto para sair",
-    copy: "Estamos organizando a saida para entrega.",
+    label: "Pedido pronto",
+    copy: "A cozinha concluiu a producao. Aguardando liberacao manual para entrega.",
     eta: "15-20 min",
   },
   OUT_FOR_DELIVERY: {

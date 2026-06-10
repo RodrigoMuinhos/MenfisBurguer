@@ -9,6 +9,7 @@ import {
   Store,
 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
+import { CartItem } from "@/types/order";
 import {
   CheckoutStep,
   KIOSK_PIX_CODE,
@@ -18,6 +19,7 @@ import {
   fmt,
   maskPhone,
 } from "./checkout";
+import { buildWhatsappReceipt } from "./whatsappReceipt";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -47,6 +49,7 @@ export function PaymentStepSection({
   deliveryValid,
   inputStyle,
   total,
+  cart,
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
@@ -64,9 +67,10 @@ export function PaymentStepSection({
   deliveryValid: boolean;
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
+  cart: CartItem[];
 }) {
   const supportText = encodeURIComponent(
-    `Olá, preciso de ajuda para finalizar meu pedido Menfi's de ${fmt(total)}.`,
+    buildWhatsappReceipt({ items: cart, total, paymentMethod: payment }),
   );
 
   return (

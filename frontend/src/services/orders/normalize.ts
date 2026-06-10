@@ -36,6 +36,10 @@ function normalizePaymentMethod(value?: string | null): PaymentMethod | undefine
   if (normalized === "PAGAR_NA_ENTREGA") return "pagar_na_entrega";
   if (normalized === "WHATSAPP") return "whatsapp";
   if (normalized === "DINHEIRO") return "dinheiro";
+  if (normalized === "CREDITO" || normalized === "CREDIT_CARD")
+    return "credit_card";
+  if (normalized === "DEBITO" || normalized === "DEBIT_CARD")
+    return "debit_card";
   return normalized === "CARTAO" ? "cartao" : "pix";
 }
 
