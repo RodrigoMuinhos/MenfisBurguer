@@ -164,7 +164,8 @@ export function ProductScreen({
     String(memberProfile?.name ?? "")
       .trim()
       .toUpperCase()
-      .replace(/_/g, "-") === "KIOSK-MOB";
+      .replace(/[^A-Z0-9]/g, "-")
+      .replace(/-+/g, "-") === "KIOSK-MOB";
 
   useEffect(() => {
     if (kioskMode) return;

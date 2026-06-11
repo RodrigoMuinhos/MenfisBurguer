@@ -70,13 +70,11 @@ export function registerMemberOrder() {
 
 export function resolveAppMode(explicitMode?: AppMode): AppMode {
   if (explicitMode) return explicitMode;
-  if (typeof window === "undefined") return "kiosk";
+  if (typeof window === "undefined") return "delivery";
   const pathname = window.location.pathname.replace(/\/+$/, "");
   if (pathname.endsWith("/kds")) return "kds";
   if (pathname.endsWith("/adm")) return "admin";
-  if (pathname.endsWith("/kiosk")) return "kiosk";
   const params = new URLSearchParams(window.location.search);
   if (params.get("admin") === "1") return "admin";
-  if (params.get("kiosk") === "1") return "kiosk";
-  return "kiosk";
+  return "delivery";
 }

@@ -25,6 +25,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function CheckoutReviewSection({
   checkoutStep,
   kioskMode,
+  counterServiceMode = false,
   payment,
   paymentError,
   paymentSlow,
@@ -43,6 +44,7 @@ export function CheckoutReviewSection({
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
+  counterServiceMode?: boolean;
   payment: PaymentMethod;
   paymentError: string;
   paymentSlow: boolean;
@@ -59,6 +61,7 @@ export function CheckoutReviewSection({
   cart: CartItem[];
   total: number;
 }) {
+  const counterFlow = kioskMode || counterServiceMode;
   const supportText = encodeURIComponent(
     buildWhatsappReceipt({ items: cart, total, paymentMethod: payment }),
   );
@@ -140,11 +143,11 @@ export function CheckoutReviewSection({
 
       {checkoutStep === "review" && (
         <div
-          className={`rounded-2xl p-5 ${kioskMode ? "" : "mx-auto max-w-3xl"}`}
+          className={`rounded-2xl p-5 ${counterFlow ? "" : "mx-auto max-w-3xl"}`}
           style={{ background: "#fff", border: `1.5px solid ${VERDE}20` }}
         >
           <div
-            className={`flex items-start gap-3 ${kioskMode ? "" : "justify-center text-center"}`}
+            className={`flex items-start gap-3 ${counterFlow ? "" : "justify-center text-center"}`}
           >
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -154,14 +157,14 @@ export function CheckoutReviewSection({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
-                {kioskMode ? "Envio direto para cozinha" : "Tudo pronto para pagar"}
+                {counterFlow ? "Envio direto para cozinha" : "Tudo pronto para pagar"}
               </p>
               <p
                 className="mt-1 text-[11px] leading-relaxed"
                 style={{ color: VERDE, opacity: 0.65 }}
               >
-                {kioskMode
-                  ? "Ao confirmar, seu pedido será enviado direto para a cozinha."
+                {counterFlow
+                  ? "Ao confirmar, o pedido será enviado para a cozinha e o pagamento será feito no balcão."
                   : payment === "pagar_na_entrega"
                     ? "Ao continuar, o pedido será enviado para a cozinha e o pagamento será feito no recebimento."
                     : payment === "whatsapp"
@@ -170,7 +173,7 @@ export function CheckoutReviewSection({
               </p>
             </div>
           </div>
-          <div className={`mt-4 grid gap-2 ${kioskMode ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+          <div className={`mt-4 grid gap-2 ${counterFlow ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
             <button
               onClick={() => setCheckoutStep("bag")}
               className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
@@ -182,9 +185,9 @@ export function CheckoutReviewSection({
             >
               Alterar pedido
             </button>
-            {kioskMode ? (
+            {counterFlow ? (
               <button
-                onClick={() => setCheckoutStep("customer")}
+                onClick={() => setCheckoutStep(kioskMode ? "customer" : "payment")}
                 className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
                 style={{
                   background: `${VERDE}08`,
@@ -192,7 +195,7 @@ export function CheckoutReviewSection({
                   border: `1px solid ${VERDE}14`,
                 }}
               >
-                Alterar dados
+                Alterar pagamento
               </button>
             ) : (
               <button
@@ -207,7 +210,7 @@ export function CheckoutReviewSection({
                 Alterar entrega
               </button>
             )}
-            {!kioskMode && (
+            {!counterFlow && (
               <a
                 href={`${SUPPORT_WHATSAPP_URL}?text=${supportText}`}
                 target="_blank"
@@ -227,7 +230,7 @@ export function CheckoutReviewSection({
         </div>
       )}
 
-      {paymentSlow && !kioskMode && (
+      {paymentSlow && !counterFlow && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}

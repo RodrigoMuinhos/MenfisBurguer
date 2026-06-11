@@ -926,9 +926,11 @@ function OrderHistoryRow({
 }) {
   const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
   const canRepeat = order.status === "DELIVERED" && order.items.length > 0;
-  const date = new Date(order.timestamp).toLocaleDateString("pt-BR", {
+  const date = new Date(order.timestamp).toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
   return (
     <div

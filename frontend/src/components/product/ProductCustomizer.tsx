@@ -63,7 +63,7 @@ export function ProductCustomizer({
       if (max === 1) {
         selected = isSelected ? current : [value];
       } else if (isSelected) {
-        selected = current.filter((item) => item !== value);
+        selected = current;
       } else if (current.length < max) {
         selected = [...current, value];
       }

@@ -25,7 +25,7 @@ import { inputStyle } from "./cartInputStyle";
 import { readMemberProfile } from "@/components/product/shared";
 
 function normalizeKioskMobName(value?: string) {
-  return String(value ?? "").trim().toUpperCase().replace(/_/g, "-");
+  return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "-").replace(/-+/g, "-");
 }
 
 export function useCartCheckout({

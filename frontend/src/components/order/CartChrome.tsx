@@ -115,23 +115,26 @@ export function CartHeader({
 export function CheckoutProgress({
   checkoutStep,
   kioskMode,
+  counterServiceMode = false,
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
+  counterServiceMode?: boolean;
 }) {
-  const steps = kioskMode
+  const counterFlow = kioskMode || counterServiceMode;
+  const steps = counterFlow
     ? [
         { label: "Sacola", active: true },
         {
           label: "Dados",
-          active: ["customer", "review", "payment"].includes(checkoutStep),
+          active: counterServiceMode || ["customer", "review", "payment"].includes(checkoutStep),
         },
         {
-          label: "Revisão",
-          active: ["review", "payment"].includes(checkoutStep),
+          label: "Balcão",
+          active: ["payment", "review"].includes(checkoutStep),
         },
         {
-          label: "Pagamento",
+          label: "Enviar pedido",
           active: checkoutStep === "payment",
         },
       ]

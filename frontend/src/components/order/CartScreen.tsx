@@ -132,7 +132,11 @@ export function CartScreen({
       }}
     >
       <CartHeader cart={cart} onBack={handleBack} />
-      <CheckoutProgress checkoutStep={checkoutStep} kioskMode={kioskMode} />
+      <CheckoutProgress
+        checkoutStep={checkoutStep}
+        kioskMode={kioskMode}
+        counterServiceMode={counterServiceMode}
+      />
       {/* ══ BODY ══════════════════════════════════════════ */}
       <div className="px-4 pt-5 pb-32 flex flex-col gap-5">
         <CheckoutIntro
@@ -218,6 +222,7 @@ export function CartScreen({
         <CheckoutReviewSection
           checkoutStep={checkoutStep}
           kioskMode={kioskMode}
+          counterServiceMode={counterServiceMode}
           payment={payment}
           paymentError={paymentError}
           paymentSlow={paymentSlow}
