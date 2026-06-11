@@ -83,6 +83,7 @@ export async function submitCheckoutOrder({
   setPaying,
   setPaymentSlow,
   setKioskSuccessOpen,
+  setKioskSuccessOrder,
   setPaymentError,
   confirmCounterPrint,
 }: {
@@ -108,6 +109,7 @@ export async function submitCheckoutOrder({
   setPaying: (value: boolean) => void;
   setPaymentSlow: (value: boolean) => void;
   setKioskSuccessOpen: (value: boolean) => void;
+  setKioskSuccessOrder?: (order: Order | null) => void;
   setPaymentError: (value: string) => void;
   confirmCounterPrint?: (order: Order) => Promise<boolean>;
 }) {
@@ -198,6 +200,11 @@ export async function submitCheckoutOrder({
         if (shouldPrint) {
           printOrderReceipts(kioskOrder);
         }
+        setKioskSuccessOrder?.(kioskOrder);
+        setKioskSuccessOpen(true);
+        await wait(6200);
+        setKioskSuccessOpen(false);
+        setKioskSuccessOrder?.(null);
         await onPlaceOrder(
           "retirada",
           phone,

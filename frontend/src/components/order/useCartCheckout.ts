@@ -60,6 +60,7 @@ export function useCartCheckout({
   const [paymentSlow, setPaymentSlow] = useState(false);
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(false);
   const [kioskSuccessOpen, setKioskSuccessOpen] = useState(false);
+  const [kioskSuccessOrder, setKioskSuccessOrder] = useState<Order | null>(null);
   const [kioskKeyboardTarget, setKioskKeyboardTarget] =
     useState<KioskKeyboardTarget>(null);
   const [freeShipping, setFreeShipping] = useState(false);
@@ -406,6 +407,7 @@ export function useCartCheckout({
       setPaying,
       setPaymentSlow,
       setKioskSuccessOpen,
+      setKioskSuccessOrder,
       setPaymentError,
       confirmCounterPrint,
     });
@@ -538,6 +540,7 @@ export function useCartCheckout({
     kioskKeyboardOpen,
     kioskKeyboardTarget,
     kioskSuccessOpen,
+    kioskSuccessOrder,
     missingDelivery,
     nextActionLabel,
     number,

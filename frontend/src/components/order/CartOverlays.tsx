@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, Loader2, Printer, XCircle } from "lucide-react";
+import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { KioskKeyboardTarget, PaymentMethod } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
@@ -18,6 +19,7 @@ export function CartOverlays({
   clearKioskKey,
   closeKioskKeyboard,
   counterPrintPromptOpen = false,
+  kioskSuccessOrder = null,
   onConfirmCounterPrint,
   onSkipCounterPrint,
 }: {
@@ -34,9 +36,16 @@ export function CartOverlays({
   clearKioskKey: () => void;
   closeKioskKeyboard: () => void;
   counterPrintPromptOpen?: boolean;
+  kioskSuccessOrder?: Order | null;
   onConfirmCounterPrint?: () => void;
   onSkipCounterPrint?: () => void;
 }) {
+  const successTotal = kioskSuccessOrder
+    ? kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0)
+    : 0;
+  const formatMoney = (value: number) =>
+    value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
   return (
     <>
             <AnimatePresence>
@@ -80,16 +89,57 @@ export function CartOverlays({
                         lineHeight: 0.95,
                       }}
                     >
-                      Pedido realizado
+                      {counterServiceMode ? "Pedido concluído" : "Pedido realizado"}
                     </p>
-                    <p className="mx-auto mt-4 max-w-md text-lg font-black leading-snug">
-                      Aguarde entre 10 e 20 minutos. Quando estiver pronto,
-                      avisaremos no seu WhatsApp.
-                    </p>
-                    <p className="mx-auto mt-4 max-w-md text-sm font-bold leading-relaxed opacity-70">
-                      Já já sua fome vai passar. Estamos enviando seu pedido para a
-                      cozinha.
-                    </p>
+                    {counterServiceMode && kioskSuccessOrder ? (
+                      <>
+                        <div
+                          className="mx-auto mt-5 grid max-w-md grid-cols-3 gap-3 rounded-3xl p-4 text-left"
+                          style={{ background: "#FFF8F2", border: `1px solid ${ROSA}` }}
+                        >
+                          <div>
+                            <p className="text-[10px] font-black uppercase opacity-50">Pedido</p>
+                            <p className="text-3xl font-black">#{kioskSuccessOrder.number}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase opacity-50">Código</p>
+                            <p className="text-3xl font-black">{kioskSuccessOrder.deliveryCode}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase opacity-50">Total</p>
+                            <p className="text-2xl font-black">{formatMoney(successTotal)}</p>
+                          </div>
+                        </div>
+                        <div className="mx-auto mt-4 max-w-md rounded-2xl bg-white text-left">
+                          {kioskSuccessOrder.items.slice(0, 3).map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between border-b py-2 text-sm font-black last:border-b-0"
+                              style={{ borderColor: `${ROSA}80` }}
+                            >
+                              <span>
+                                {item.qty}x {item.name}
+                              </span>
+                              <span>{formatMoney(item.price * item.qty)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="mx-auto mt-5 max-w-md text-lg font-black leading-snug">
+                          Aguarde. Quando estiver pronto, chamaremos você pelo número do pedido.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="mx-auto mt-4 max-w-md text-lg font-black leading-snug">
+                          Aguarde entre 10 e 20 minutos. Quando estiver pronto,
+                          avisaremos no seu WhatsApp.
+                        </p>
+                        <p className="mx-auto mt-4 max-w-md text-sm font-bold leading-relaxed opacity-70">
+                          Já já sua fome vai passar. Estamos enviando seu pedido para a
+                          cozinha.
+                        </p>
+                      </>
+                    )}
                   </motion.div>
                 </motion.div>
               )}
