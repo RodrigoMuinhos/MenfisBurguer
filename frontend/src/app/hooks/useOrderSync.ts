@@ -24,28 +24,32 @@ export function useOrderSync({
   const pendingStatusUpdatesRef = useRef(new Map<string, OrderStatus>());
 
   const loadOrderById = useCallback(async (orderId: string) => {
-    if (!API_URL || !orderId) return;
-    const res = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return;
-    const order = normalizeBackendOrder(await res.json());
-    setOrders((prev) => [
-      {
-        ...prev.find((item) => item.id === order.id),
-        ...order,
-        pixQrCode: prev.find((item) => item.id === order.id)?.pixQrCode ?? order.pixQrCode,
-        pixQrCodeBase64:
-          prev.find((item) => item.id === order.id)?.pixQrCodeBase64 ??
-          order.pixQrCodeBase64,
-        pixTicketUrl:
-          prev.find((item) => item.id === order.id)?.pixTicketUrl ??
-          order.pixTicketUrl,
-      },
-      ...prev.filter((item) => item.id !== order.id),
-    ]);
-    if (order.status === "DELIVERED" || order.status === "CANCELLED") {
-      localStorage.removeItem(PENDING_ORDER_KEY);
+    try {
+      if (!API_URL || !orderId) return;
+      const res = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const order = normalizeBackendOrder(await res.json());
+      setOrders((prev) => [
+        {
+          ...prev.find((item) => item.id === order.id),
+          ...order,
+          pixQrCode: prev.find((item) => item.id === order.id)?.pixQrCode ?? order.pixQrCode,
+          pixQrCodeBase64:
+            prev.find((item) => item.id === order.id)?.pixQrCodeBase64 ??
+            order.pixQrCodeBase64,
+          pixTicketUrl:
+            prev.find((item) => item.id === order.id)?.pixTicketUrl ??
+            order.pixTicketUrl,
+        },
+        ...prev.filter((item) => item.id !== order.id),
+      ]);
+      if (order.status === "DELIVERED" || order.status === "CANCELLED") {
+        localStorage.removeItem(PENDING_ORDER_KEY);
+      }
+    } catch {
+      // O retorno do pagamento nao pode derrubar a tela se o backend demorar.
     }
   }, []);
 
@@ -112,9 +116,14 @@ export function useOrderSync({
   useEffect(() => {
     if (!started || screen !== "tracking" || !API_URL || !lastOrderId) return;
 
-    const source = new EventSource(
-      `${API_URL}/orders/${encodeURIComponent(lastOrderId)}/events`,
-    );
+    let source: EventSource;
+    try {
+      source = new EventSource(
+        `${API_URL}/orders/${encodeURIComponent(lastOrderId)}/events`,
+      );
+    } catch {
+      return;
+    }
 
     source.addEventListener("order.updated", (event) => {
       try {

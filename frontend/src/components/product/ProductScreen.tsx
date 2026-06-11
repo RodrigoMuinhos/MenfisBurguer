@@ -81,7 +81,7 @@ interface Props {
   notifications?: MemberNotification[];
   unreadNotificationCount?: number;
   onReadNotifications?: () => void;
-  onOpenActiveOrder?: () => void;
+  onOpenActiveOrder?: (orderId?: string) => void;
   onRepeatOrder?: (items: CartItem[]) => void;
 }
 

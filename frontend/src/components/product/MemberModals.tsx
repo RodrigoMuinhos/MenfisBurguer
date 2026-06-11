@@ -143,7 +143,7 @@ export function MemberModals({
   closeFavorites: () => void;
   activeOrder?: Order | null;
   notifications?: MemberNotification[];
-  onOpenActiveOrder?: () => void;
+  onOpenActiveOrder?: (orderId?: string) => void;
   onRepeatOrder?: (items: CartItem[]) => void;
 }) {
   const canCloseLogin = true;
@@ -163,9 +163,11 @@ export function MemberModals({
   const [recoveryPassword, setRecoveryPassword] = useState("");
   const [recoveryPasswordConfirm, setRecoveryPasswordConfirm] = useState("");
   const [recoverySentMessage, setRecoverySentMessage] = useState("");
-  const hasActiveOrder = Boolean(
-    activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status),
-  );
+  const visibleActiveOrder =
+    activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
+      ? activeOrder
+      : customerOrders.find((order) => !["DELIVERED", "CANCELLED"].includes(order.status));
+  const hasActiveOrder = Boolean(visibleActiveOrder);
 
   useEffect(() => {
     if (
@@ -674,12 +676,12 @@ export function MemberModals({
                       <ProfileMenuButton icon={UserCog} label="Editar dados da conta" onClick={editMember} />
                       <ProfileMenuButton icon={MapPin} label="Gerenciar endereços" onClick={editMember} />
                       <ProfileMenuButton icon={KeyRound} label="Alterar senha / recuperar acesso" onClick={editMember} />
-                      {hasActiveOrder && activeOrder && (
+                      {hasActiveOrder && visibleActiveOrder && (
                         <ActiveProfileOrderCard
-                          order={activeOrder}
+                          order={visibleActiveOrder}
                           onOpen={() => {
                             closeProfile();
-                            onOpenActiveOrder?.();
+                            onOpenActiveOrder?.(visibleActiveOrder.id);
                           }}
                         />
                       )}
@@ -741,7 +743,7 @@ export function MemberModals({
                           type="button"
                           onClick={() => {
                             closeNotifications();
-                            onOpenActiveOrder?.();
+                            onOpenActiveOrder?.(visibleActiveOrder?.id);
                           }}
                           className="rounded-2xl p-4 text-left"
                           style={{
@@ -782,18 +784,18 @@ export function MemberModals({
                         Nenhuma notificação nova.
                       </div>
                     )}
-                    {hasActiveOrder && activeOrder && (
+                    {hasActiveOrder && visibleActiveOrder && (
                       <button
                         type="button"
                         onClick={() => {
                           closeNotifications();
-                          onOpenActiveOrder?.();
+                            onOpenActiveOrder?.(visibleActiveOrder.id);
                         }}
                         className="rounded-2xl p-4 text-left"
                         style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
                       >
                         <p className="text-xs font-black uppercase tracking-wider">Acompanhar pedido</p>
-                        <p className="mt-1 text-lg font-black">{activeOrder.id} · {(STATUS_COPY[activeOrder.status] ?? STATUS_COPY.PAYMENT_PENDING).label}</p>
+                        <p className="mt-1 text-lg font-black">{visibleActiveOrder.id} · {(STATUS_COPY[visibleActiveOrder.status] ?? STATUS_COPY.PAYMENT_PENDING).label}</p>
                         <p className="mt-1 text-xs font-bold opacity-75">Toque para abrir a linha do tempo.</p>
                       </button>
                     )}

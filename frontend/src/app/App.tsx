@@ -12,6 +12,7 @@ import {
   AppMode,
   APP_SCREEN_KEY,
   ADMIN_SESSION_KEY,
+  API_URL,
   CACHE_VERSION,
   CART_STORAGE_KEY,
   PENDING_ORDER_KEY,
@@ -25,7 +26,7 @@ import { useOrderSync } from "./hooks/useOrderSync";
 import { AdminLoginScreen } from "./AdminLoginScreen";
 import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
-import { deliveryConfirmationCode } from "@/services/orders/normalize";
+import { deliveryConfirmationCode, normalizeBackendOrder } from "@/services/orders/normalize";
 import { MEMBER_KEY, MEMBER_TOKEN_KEY } from "@/components/product/shared";
 import { MemberNotification } from "@/components/product/notifications";
 
@@ -168,17 +169,14 @@ export default function App({ mode }: { mode?: AppMode }) {
       );
       return;
     }
-    const orderId =
-      params.get("orderId") ||
-      params.get("external_reference")?.replace(/^MENFIS-/, "#") ||
-      localStorage.getItem(PENDING_ORDER_KEY);
+    const orderId = resolvePaymentReturnOrderId(params);
 
     if (!orderId) return;
 
     setStarted(true);
     setLastOrderId(orderId);
     setScreen("tracking");
-    loadOrderById(orderId);
+    void loadOrderById(orderId);
 
     const cleanUrl =
       appMode === "kiosk" && params.get("kiosk") === "1"
@@ -199,6 +197,9 @@ export default function App({ mode }: { mode?: AppMode }) {
   const activeOrder = lastOrderId
     ? orders.find((order) => order.id === lastOrderId)
     : undefined;
+  const latestCustomerActiveOrder = orders.find(
+    (order) => !isKioskMobOrder(order) && !["DELIVERED", "CANCELLED"].includes(order.status),
+  );
   const kioskMobQueue = orders.filter(
     (order) => isKioskMobOrder(order) && !["DELIVERED", "CANCELLED"].includes(order.status),
   );
@@ -207,7 +208,7 @@ export default function App({ mode }: { mode?: AppMode }) {
   const visibleActiveOrder =
     activeOrder && !isKioskMobOrder(activeOrder) && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
       ? activeOrder
-      : undefined;
+      : latestCustomerActiveOrder;
 
   useEffect(() => {
     if (adminOnlyMode) return;
@@ -250,6 +251,44 @@ export default function App({ mode }: { mode?: AppMode }) {
     const timer = window.setInterval(syncQueue, 3500);
     return () => window.clearInterval(timer);
   }, [kioskMobQueue.map((order) => order.id).join("|"), loadOrderById, screen]);
+
+  useEffect(() => {
+    if (adminOnlyMode || kioskMode || !started || typeof window === "undefined") return;
+    const token = localStorage.getItem(MEMBER_TOKEN_KEY);
+    if (!token || !API_URL) return;
+
+    const controller = new AbortController();
+    const syncCustomerOrders = async () => {
+      try {
+        const response = await fetch(`${API_URL}/customers/orders`, {
+          cache: "no-store",
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const rows = await response.json();
+        if (!Array.isArray(rows)) return;
+        const customerOrders = rows.map(normalizeBackendOrder);
+        setOrders((prev) => {
+          const byId = new Map(prev.map((order) => [order.id, order]));
+          customerOrders.forEach((order) => {
+            const existing = byId.get(order.id);
+            byId.set(order.id, existing ? { ...existing, ...order } : order);
+          });
+          return [...byId.values()].sort((a, b) => b.timestamp - a.timestamp);
+        });
+      } catch {
+        // A busca de pedidos da conta nao deve bloquear a home.
+      }
+    };
+
+    void syncCustomerOrders();
+    const timer = window.setInterval(syncCustomerOrders, 10000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, [adminOnlyMode, kioskMode, started]);
 
   const openInstalledAdmin = async () => {
     const desktopWindow = window as typeof window & {
@@ -449,7 +488,17 @@ export default function App({ mode }: { mode?: AppMode }) {
             notifications={memberNotifications}
             unreadNotificationCount={unreadNotificationCount}
             onReadNotifications={markMemberNotificationsRead}
-            onOpenActiveOrder={() => setScreen(kioskMobSession ? "queue" : "tracking")}
+            onOpenActiveOrder={(orderId) => {
+              if (kioskMobSession) {
+                setScreen("queue");
+                return;
+              }
+              const targetOrderId = orderId || lastOrderId || visibleActiveOrder?.id;
+              if (targetOrderId) {
+                setLastOrderId(targetOrderId);
+              }
+              setScreen("tracking");
+            }}
             onRepeatOrder={(items) => {
               setCart(items.map((item) => ({ ...item, qty: Math.max(1, item.qty || 1) })));
               setScreen("cart");
@@ -523,7 +572,7 @@ export default function App({ mode }: { mode?: AppMode }) {
 }
 
 function normalizeKioskMobName(value?: string) {
-  return String(value ?? "").trim().toUpperCase().replace(/_/g, "-");
+  return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "-").replace(/-+/g, "-");
 }
 
 function isKioskMobOrder(order?: Order | null) {
@@ -538,6 +587,29 @@ function isKioskMobSession() {
   } catch {
     return false;
   }
+}
+
+function resolvePaymentReturnOrderId(params: URLSearchParams) {
+  const pendingOrderId =
+    typeof window === "undefined" ? "" : localStorage.getItem(PENDING_ORDER_KEY) ?? "";
+  const raw =
+    params.get("orderId") ||
+    params.get("external_reference") ||
+    params.get("externalReference") ||
+    pendingOrderId;
+  const normalized = normalizeOrderId(raw);
+  if (normalized) return normalized;
+  return normalizeOrderId(pendingOrderId);
+}
+
+function normalizeOrderId(value?: string | null) {
+  const clean = String(value ?? "")
+    .trim()
+    .replace(/^MENFIS-/i, "")
+    .replace(/^Pedido\s*/i, "");
+  if (!clean) return "";
+  if (clean.startsWith("#")) return clean;
+  return /^\d+$/.test(clean) ? `#${clean}` : clean;
 }
 
 function KioskMobQueueScreen({
