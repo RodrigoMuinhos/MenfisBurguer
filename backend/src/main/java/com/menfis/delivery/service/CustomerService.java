@@ -115,9 +115,9 @@ public class CustomerService {
     return jdbc.queryForObject(
       """
       select c.*,
-        (select count(*) from orders o where o.customer_id = c.id or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits) as order_count,
-        (select coalesce(sum(o.total), 0) from orders o where o.status <> 'CANCELLED' and (o.customer_id = c.id or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits)) as total_spent,
-        (select max(o.created_at) from orders o where o.customer_id = c.id or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits) as last_order_at
+        (select count(*) from orders o where o.customer_id = c.id) as order_count,
+        (select coalesce(sum(o.total), 0) from orders o where o.status <> 'CANCELLED' and o.customer_id = c.id) as total_spent,
+        (select max(o.created_at) from orders o where o.customer_id = c.id) as last_order_at
       from customers c
       where c.id = ?
       """,
@@ -469,10 +469,10 @@ public class CustomerService {
     Map<String, Object> row = jdbc.queryForMap(
       """
       select c.id, c.name, c.phone, c.email, c.cpf, c.internal_notes, c.created_at,
-        (select count(*) from orders o where o.customer_id = c.id or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits) as order_count,
-        (select coalesce(sum(o.total), 0) from orders o where o.status <> 'CANCELLED' and (o.customer_id = c.id or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits)) as total_spent,
-        (select max(o.created_at) from orders o where o.customer_id = c.id or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits) as last_order_at,
-        (select count(*) from orders o where o.status = 'DELIVERED' and o.delivery_type = 'DELIVERY' and (o.customer_id = c.id or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits)) as delivered_count
+        (select count(*) from orders o where o.customer_id = c.id) as order_count,
+        (select coalesce(sum(o.total), 0) from orders o where o.status <> 'CANCELLED' and o.customer_id = c.id) as total_spent,
+        (select max(o.created_at) from orders o where o.customer_id = c.id) as last_order_at,
+        (select count(*) from orders o where o.status = 'DELIVERED' and o.delivery_type = 'DELIVERY' and o.customer_id = c.id) as delivered_count
       from customers c
       where c.id = ?
       """,

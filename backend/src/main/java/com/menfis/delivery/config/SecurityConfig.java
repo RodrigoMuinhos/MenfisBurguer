@@ -2,6 +2,7 @@ package com.menfis.delivery.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,7 +16,10 @@ public class SecurityConfig {
     return http
       .cors(Customizer.withDefaults())
       .csrf(csrf -> csrf.disable())
-      .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+      .authorizeHttpRequests(auth -> auth
+        .requestMatchers(HttpMethod.GET, "/api/whatsapp/webhook", "/whatsapp/webhook").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/whatsapp/webhook", "/whatsapp/webhook").permitAll()
+        .anyRequest().permitAll())
       .build();
   }
 
