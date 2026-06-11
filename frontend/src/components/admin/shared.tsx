@@ -384,55 +384,88 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-const RECEIPT_WIDTH = 32;
+const LINE_WIDTH = 28;
 
-function receiptSeparator() {
-  return "-".repeat(RECEIPT_WIDTH);
+function receiptText(value: string) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/[^\S\r\n]+/g, " ")
+    .trim();
 }
 
-function receiptCenter(value: string) {
-  const text = value.trim();
-  if (text.length >= RECEIPT_WIDTH) return wrapReceiptText(text);
-  const left = Math.floor((RECEIPT_WIDTH - text.length) / 2);
-  return [" ".repeat(left) + text];
+function line(char = "-") {
+  return char.repeat(LINE_WIDTH);
 }
 
-function wrapReceiptText(value: string, indent = 0) {
-  const width = Math.max(8, RECEIPT_WIDTH - indent);
-  const prefix = " ".repeat(indent);
-  const words = String(value ?? "").trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return [""];
+function center(text: string) {
+  const clean = receiptText(text);
+  if (clean.length >= LINE_WIDTH) return clean.slice(0, LINE_WIDTH);
+  const left = Math.floor((LINE_WIDTH - clean.length) / 2);
+  return " ".repeat(left) + clean;
+}
+
+function money(value: number) {
+  return Number(value || 0)
+    .toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    })
+    .replace(/\u00a0/g, " ");
+}
+
+function leftRight(left: string, right: string) {
+  const cleanLeft = receiptText(left);
+  const cleanRight = receiptText(right);
+  const space = LINE_WIDTH - cleanLeft.length - cleanRight.length;
+  if (space >= 1) {
+    return cleanLeft + " ".repeat(space) + cleanRight;
+  }
+  const maxLeft = Math.max(0, LINE_WIDTH - cleanRight.length - 1);
+  return (cleanLeft.slice(0, maxLeft) + " " + cleanRight).slice(0, LINE_WIDTH);
+}
+
+function wrap(text: string, max = LINE_WIDTH) {
+  const words = receiptText(text).split(" ").filter(Boolean);
   const lines: string[] = [];
   let current = "";
-  words.forEach((word) => {
-    if (word.length > width) {
+
+  for (const word of words) {
+    if (word.length > max) {
       if (current) {
-        lines.push(prefix + current);
+        lines.push(current.slice(0, max));
         current = "";
       }
-      for (let index = 0; index < word.length; index += width) {
-        lines.push(prefix + word.slice(index, index + width));
+      for (let index = 0; index < word.length; index += max) {
+        lines.push(word.slice(index, index + max));
       }
-      return;
+      continue;
     }
-    const next = current ? `${current} ${word}` : word;
-    if (next.length > width) {
-      lines.push(prefix + current);
-      current = word;
+    if ((current + " " + word).trim().length <= max) {
+      current = (current + " " + word).trim();
     } else {
-      current = next;
+      if (current) lines.push(current.slice(0, max));
+      current = word;
     }
-  });
-  if (current) lines.push(prefix + current);
+  }
+
+  if (current) lines.push(current.slice(0, max));
   return lines;
 }
 
-function receiptPair(label: string, value: string) {
-  const cleanLabel = label.trim();
-  const cleanValue = value.trim();
-  const space = RECEIPT_WIDTH - cleanLabel.length - cleanValue.length;
-  if (space >= 1) return [`${cleanLabel}${" ".repeat(space)}${cleanValue}`];
-  return [...wrapReceiptText(cleanLabel), cleanValue.padStart(RECEIPT_WIDTH)];
+function wrapIndented(text: string, indent = 0) {
+  const prefix = " ".repeat(indent);
+  return wrap(text, LINE_WIDTH - indent).map((value) => (prefix + value).slice(0, LINE_WIDTH));
+}
+
+function itemLine(quantity: number, name: string, price: number) {
+  const left = `${quantity}x ${receiptText(name)}`;
+  const right = money(price);
+  if (left.length + 1 + right.length <= LINE_WIDTH) {
+    return [leftRight(left, right)];
+  }
+  return [...wrap(left, LINE_WIDTH), right.padStart(LINE_WIDTH).slice(0, LINE_WIDTH)];
 }
 
 function receiptFinancials(order: Order) {
@@ -456,16 +489,17 @@ function receiptType(order: Order) {
 export function generateCustomerReceipt(order: Order) {
   const lines: string[] = [];
   const financials = receiptFinancials(order);
-  const pushWrapped = (value: string, indent = 0) => lines.push(...wrapReceiptText(value, indent));
+  const pushWrapped = (value: string, indent = 0) => lines.push(...wrapIndented(value, indent));
 
-  lines.push(...receiptCenter("MENFI'S BURGER"));
-  lines.push(...receiptCenter("VIA DO CLIENTE"));
-  lines.push(receiptSeparator());
-  lines.push(...receiptCenter(`PEDIDO ${order.id}`));
+  lines.push(center("MENFI'S BURGER"));
+  lines.push(center("VIA DO CLIENTE"));
+  lines.push(line());
+  lines.push("");
+  lines.push(center(`PEDIDO ${order.id}`));
   lines.push("");
   lines.push(`Tipo: ${receiptType(order)}`);
-  lines.push(...receiptPair("Codigo:", deliveryConfirmationCode(order)));
-  lines.push(receiptSeparator());
+  lines.push(leftRight("Codigo:", deliveryConfirmationCode(order)));
+  lines.push(line());
   lines.push("Data:");
   pushWrapped(new Date(order.timestamp).toLocaleString("pt-BR"));
   lines.push("");
@@ -477,12 +511,12 @@ export function generateCustomerReceipt(order: Order) {
   lines.push("");
   lines.push("Endereco:");
   pushWrapped(order.customerAddress || "Nao informado");
-  lines.push(receiptSeparator());
+  lines.push(line());
   lines.push("ITENS DO PEDIDO");
   lines.push("");
 
   order.items.forEach((item) => {
-    lines.push(...receiptPair(`${item.qty}x ${item.name}`, fmt(item.price * item.qty)));
+    lines.push(...itemLine(item.qty, item.name, item.price * item.qty));
     orderItemComponents(item).forEach((component) => pushWrapped(`- ${component}`, 2));
     const note = orderItemNote(item);
     if (note) pushWrapped(`Obs: ${note}`, 2);
@@ -497,24 +531,25 @@ export function generateCustomerReceipt(order: Order) {
     lines.push("");
   }
 
-  lines.push(receiptSeparator());
+  lines.push(line());
   lines.push("RESUMO DO PEDIDO");
   lines.push("");
-  lines.push(...receiptPair("Subtotal itens:", fmt(financials.itemsSubtotal)));
-  lines.push(...receiptPair("Taxa entrega:", fmt(financials.deliveryFee)));
-  lines.push(...receiptPair("Taxa servico:", fmt(financials.serviceFee)));
-  lines.push(...receiptPair("Desconto:", fmt(financials.discount)));
-  lines.push(receiptSeparator());
-  lines.push(...receiptPair("TOTAL:", fmt(financials.total)));
-  lines.push(receiptSeparator());
+  lines.push(leftRight("Subtotal itens:", money(financials.itemsSubtotal)));
+  lines.push(leftRight("Taxa entrega:", money(financials.deliveryFee)));
+  lines.push(leftRight("Taxa servico:", money(financials.serviceFee)));
+  lines.push(leftRight("Desconto:", money(financials.discount)));
+  lines.push(line());
+  lines.push(leftRight("TOTAL:", money(financials.total)));
+  lines.push(line());
   lines.push("COMO CHEGAMOS AO TOTAL");
   lines.push("");
-  lines.push(`${fmt(financials.itemsSubtotal)} itens`);
-  lines.push(`+ ${fmt(financials.deliveryFee)} entrega`);
-  lines.push(`+ ${fmt(financials.serviceFee)} servico`);
-  lines.push(`- ${fmt(financials.discount)} desconto`);
-  lines.push(`= ${fmt(financials.total)} total`);
-  lines.push(receiptSeparator());
+  lines.push(leftRight("Itens:", money(financials.itemsSubtotal)));
+  lines.push(leftRight("Entrega:", money(financials.deliveryFee)));
+  lines.push(leftRight("Servico:", money(financials.serviceFee)));
+  lines.push(leftRight("Desconto:", `-${money(financials.discount)}`));
+  lines.push(line());
+  lines.push(leftRight("Total:", money(financials.total)));
+  lines.push(line());
   lines.push("PAGAMENTO");
   lines.push("");
   lines.push("Forma:");
@@ -522,11 +557,17 @@ export function generateCustomerReceipt(order: Order) {
   lines.push("");
   lines.push("Status:");
   pushWrapped(paymentStatusLabel(order));
-  lines.push(receiptSeparator());
-  lines.push(...receiptCenter("Obrigado pela preferencia!"));
-  lines.push(...receiptCenter("Menfi's Burger"));
+  lines.push(line());
+  lines.push(center("Obrigado pela preferencia!"));
+  lines.push(center("Menfi's Burger"));
 
-  return lines.join("\n").replace(/\n{3,}/g, "\n\n");
+  const receipt = lines.map((value) => value.slice(0, LINE_WIDTH)).join("\n").replace(/\n{3,}/g, "\n\n");
+  for (const receiptLine of receipt.split("\n")) {
+    if (receiptLine.length > LINE_WIDTH) {
+      console.warn("Linha excedeu 28 caracteres:", receiptLine);
+    }
+  }
+  return receipt;
 }
 
 export function printOrderReceipts(order: Order) {
@@ -538,30 +579,29 @@ export function printOrderReceipts(order: Order) {
     <style>
       @page { size: 58mm auto; margin: 0; }
       * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: #fff; }
+      html, body { width: 58mm; margin: 0; padding: 0; background: #fff; }
       body { margin: 0; padding: 0; }
       .receipt {
         width: 48mm;
         max-width: 48mm;
         margin: 0 auto;
         padding: 0;
-        font-family: "Courier New", ui-monospace, monospace;
-        font-size: 10px;
+        font-family: "Courier New", monospace;
+        font-size: 9px;
         line-height: 1.25;
         color: #000;
         font-weight: 700;
         white-space: pre-wrap;
-        word-break: break-word;
-        overflow-wrap: break-word;
+        overflow-wrap: normal;
+        word-break: normal;
       }
       @media print {
         @page { size: 58mm auto; margin: 0; }
-        body { margin: 0; padding: 0; }
+        html, body { width: 58mm; margin: 0; padding: 0; }
         .receipt {
           width: 48mm;
           max-width: 48mm;
-          margin-left: auto;
-          margin-right: auto;
+          margin: 0 auto;
         }
       }
     </style></head><body><pre class="receipt">${receipt}</pre>
