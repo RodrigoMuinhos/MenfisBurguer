@@ -44,6 +44,9 @@ export interface Order {
   customerName?: string;
   customerPhone?: string;
   customerAddress?: string;
+  subtotal?: number;
+  deliveryFee?: number;
+  discountTotal?: number;
   total: number;
   paymentProvider?: string;
   paymentMethod?: PaymentMethod;

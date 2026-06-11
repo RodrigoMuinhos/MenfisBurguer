@@ -312,18 +312,18 @@ const DEFAULT_COMPOSITION: Record<string, string[]> = {
   "chicken-super-combo": ["2x Menfi's Chicken", "2 bebidas", "Batata Frita 250g"],
 };
 
-function itemComponents(item: Order["items"][number]) {
+export function orderItemComponents(item: Order["items"][number]) {
   if (item.components?.length) return item.components;
   return DEFAULT_COMPOSITION[item.productId ?? item.id] ?? [];
 }
 
-function itemNote(item: Order["items"][number]) {
+export function orderItemNote(item: Order["items"][number]) {
   return item.note?.trim() || "";
 }
 
 function receiptItemHtml(item: Order["items"][number]) {
-  const components = itemComponents(item);
-  const note = itemNote(item);
+  const components = orderItemComponents(item);
+  const note = orderItemNote(item);
   return `
     <div class="item">
       <div class="row"><b>${item.qty}x ${escapeReceipt(item.name)}</b><span>${fmt(item.price * item.qty)}</span></div>
@@ -346,9 +346,9 @@ export function buildOrderTxt(order: Order) {
   ];
   order.items.forEach((item) => {
     lines.push(`${item.qty}x ${item.name}`);
-    itemComponents(item).forEach((component) => lines.push(`* ${component}`));
-    if (itemNote(item)) {
-      lines.push("", "Observação:", itemNote(item));
+    orderItemComponents(item).forEach((component) => lines.push(`* ${component}`));
+    if (orderItemNote(item)) {
+      lines.push("", "Observação:", orderItemNote(item));
     }
     lines.push("");
   });
@@ -384,55 +384,187 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-export function printOrderReceipts(order: Order) {
-  const items = order.items.map(receiptItemHtml).join("");
+const RECEIPT_WIDTH = 32;
+
+function receiptSeparator() {
+  return "-".repeat(RECEIPT_WIDTH);
+}
+
+function receiptCenter(value: string) {
+  const text = value.trim();
+  if (text.length >= RECEIPT_WIDTH) return wrapReceiptText(text);
+  const left = Math.floor((RECEIPT_WIDTH - text.length) / 2);
+  return [" ".repeat(left) + text];
+}
+
+function wrapReceiptText(value: string, indent = 0) {
+  const width = Math.max(8, RECEIPT_WIDTH - indent);
+  const prefix = " ".repeat(indent);
+  const words = String(value ?? "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [""];
+  const lines: string[] = [];
+  let current = "";
+  words.forEach((word) => {
+    if (word.length > width) {
+      if (current) {
+        lines.push(prefix + current);
+        current = "";
+      }
+      for (let index = 0; index < word.length; index += width) {
+        lines.push(prefix + word.slice(index, index + width));
+      }
+      return;
+    }
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > width) {
+      lines.push(prefix + current);
+      current = word;
+    } else {
+      current = next;
+    }
+  });
+  if (current) lines.push(prefix + current);
+  return lines;
+}
+
+function receiptPair(label: string, value: string) {
+  const cleanLabel = label.trim();
+  const cleanValue = value.trim();
+  const space = RECEIPT_WIDTH - cleanLabel.length - cleanValue.length;
+  if (space >= 1) return [`${cleanLabel}${" ".repeat(space)}${cleanValue}`];
+  return [...wrapReceiptText(cleanLabel), cleanValue.padStart(RECEIPT_WIDTH)];
+}
+
+function receiptFinancials(order: Order) {
+  const itemsSubtotal = Number(
+    order.subtotal ?? order.items.reduce((sum, item) => sum + item.price * item.qty, 0),
+  );
+  const deliveryFee = Number(order.deliveryFee ?? 0);
+  const discount = Number(order.discountTotal ?? 0);
+  const serviceFee = Math.max(
+    0,
+    Math.round((Number(order.total ?? 0) + discount - itemsSubtotal - deliveryFee) * 100) / 100,
+  );
+  return { itemsSubtotal, deliveryFee, serviceFee, discount, total: Number(order.total ?? 0) };
+}
+
+function receiptType(order: Order) {
+  if (isKioskMobOrder(order)) return "BALCAO";
+  return order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA";
+}
+
+export function generateCustomerReceipt(order: Order) {
+  const lines: string[] = [];
+  const financials = receiptFinancials(order);
+  const pushWrapped = (value: string, indent = 0) => lines.push(...wrapReceiptText(value, indent));
+
+  lines.push(...receiptCenter("MENFI'S BURGER"));
+  lines.push(...receiptCenter("VIA DO CLIENTE"));
+  lines.push(receiptSeparator());
+  lines.push(...receiptCenter(`PEDIDO ${order.id}`));
+  lines.push("");
+  lines.push(`Tipo: ${receiptType(order)}`);
+  lines.push(...receiptPair("Codigo:", deliveryConfirmationCode(order)));
+  lines.push(receiptSeparator());
+  lines.push("Data:");
+  pushWrapped(new Date(order.timestamp).toLocaleString("pt-BR"));
+  lines.push("");
+  lines.push("Cliente:");
+  pushWrapped(order.customerName || "Nao informado");
+  lines.push("");
+  lines.push("Telefone:");
+  pushWrapped(order.customerPhone || "Nao informado");
+  lines.push("");
+  lines.push("Endereco:");
+  pushWrapped(order.customerAddress || "Nao informado");
+  lines.push(receiptSeparator());
+  lines.push("ITENS DO PEDIDO");
+  lines.push("");
+
+  order.items.forEach((item) => {
+    lines.push(...receiptPair(`${item.qty}x ${item.name}`, fmt(item.price * item.qty)));
+    orderItemComponents(item).forEach((component) => pushWrapped(`- ${component}`, 2));
+    const note = orderItemNote(item);
+    if (note) pushWrapped(`Obs: ${note}`, 2);
+    lines.push("");
+  });
+
   const removed = Object.entries(order.removedByItemId ?? {})
     .flatMap(([, values]) => values)
     .filter((value, index, values) => values.indexOf(value) === index);
-  const receipt = `
-    <section class="receipt">
-      <div class="center small">MENFI'S BURGER</div>
-      <div class="center"><strong>VIA DO PEDIDO</strong></div>
-      <div class="number">${escapeReceipt(order.id)}</div>
-      <div class="center">${isKioskMobOrder(order) ? "BALCÃO" : order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA"}</div>
-      <div class="code">Código: <strong>${escapeReceipt(deliveryConfirmationCode(order))}</strong></div>
-      <hr />
-      <div>Data: ${new Date(order.timestamp).toLocaleString("pt-BR")}</div>
-      <div>Cliente: ${escapeReceipt(order.customerName || "Não informado")}</div>
-      <div>Telefone: ${escapeReceipt(order.customerPhone || "Não informado")}</div>
-      <div>Endereço: ${escapeReceipt(order.customerAddress || "Não informado")}</div>
-      <hr />
-      <strong>ITENS DO PEDIDO</strong>
-      ${items}
-      ${removed.length ? `<div class="alert">RETIRAR: ${escapeReceipt(removed.join(", "))}</div>` : ""}
-      <hr />
-      <div>Forma de pagamento: ${escapeReceipt(paymentMethodLabel(order))}</div>
-      <div>Status do pagamento: ${escapeReceipt(paymentStatusLabel(order))}</div>
-      <div class="row total"><strong>TOTAL</strong><strong>${fmt(order.total)}</strong></div>
-      <hr />
-      <div class="center small">Obrigado pela preferência!</div>
-    </section>`;
+  if (removed.length) {
+    pushWrapped(`RETIRAR: ${removed.join(", ")}`);
+    lines.push("");
+  }
+
+  lines.push(receiptSeparator());
+  lines.push("RESUMO DO PEDIDO");
+  lines.push("");
+  lines.push(...receiptPair("Subtotal itens:", fmt(financials.itemsSubtotal)));
+  lines.push(...receiptPair("Taxa entrega:", fmt(financials.deliveryFee)));
+  lines.push(...receiptPair("Taxa servico:", fmt(financials.serviceFee)));
+  lines.push(...receiptPair("Desconto:", fmt(financials.discount)));
+  lines.push(receiptSeparator());
+  lines.push(...receiptPair("TOTAL:", fmt(financials.total)));
+  lines.push(receiptSeparator());
+  lines.push("COMO CHEGAMOS AO TOTAL");
+  lines.push("");
+  lines.push(`${fmt(financials.itemsSubtotal)} itens`);
+  lines.push(`+ ${fmt(financials.deliveryFee)} entrega`);
+  lines.push(`+ ${fmt(financials.serviceFee)} servico`);
+  lines.push(`- ${fmt(financials.discount)} desconto`);
+  lines.push(`= ${fmt(financials.total)} total`);
+  lines.push(receiptSeparator());
+  lines.push("PAGAMENTO");
+  lines.push("");
+  lines.push("Forma:");
+  pushWrapped(paymentMethodLabel(order));
+  lines.push("");
+  lines.push("Status:");
+  pushWrapped(paymentStatusLabel(order));
+  lines.push(receiptSeparator());
+  lines.push(...receiptCenter("Obrigado pela preferencia!"));
+  lines.push(...receiptCenter("Menfi's Burger"));
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+export function printOrderReceipts(order: Order) {
+  if (!window.confirm("Imprimir via do cliente agora?")) return;
+
+  const receipt = escapeReceipt(generateCustomerReceipt(order));
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
     <style>
       @page { size: 58mm auto; margin: 0; }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #fff; }
-      body { width: 48mm; margin: 0 auto; padding: 1mm 0; font-family: "Courier New", ui-monospace, monospace; color: #000; font-weight: 700; overflow: hidden; }
-      .receipt { width: 48mm; padding: 0; border: 0; font-size: 10px; line-height: 1.25; overflow: hidden; }
-      .center { text-align: center; } .small { font-size: 11px; }
-      .number { margin: 2mm 0 1.5mm; padding: 1mm 0; text-align: center; font-size: 26px; font-weight: 900; border-top: 0.6mm solid #000; border-bottom: 0.6mm solid #000; letter-spacing: 0.06em; }
-      .code { margin-top: 1mm; text-align: center; font-size: 13px; }
-      .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.5mm; margin: 1.2mm 0; border-bottom: 0.25mm solid #000; padding-bottom: 0.8mm; align-items: start; }
-      .row b { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
-      .row span:last-child { white-space: nowrap; font-size: 9px; }
-      .components { margin: 0 0 1.5mm 1.5mm; font-size: 9px; font-weight: 700; overflow-wrap: anywhere; }
-      .note { margin: 1mm 0 1.5mm; font-size: 9px; overflow-wrap: anywhere; }
-      .total { margin-top: 2mm; padding: 1.2mm 0; border-top: 0.6mm solid #000; border-bottom: 0.6mm solid #000; font-size: 13px; }
-      .alert { margin: 1.5mm 0; padding: 1mm; border: 0.5mm solid #000; font-weight: 900; }
-      hr { border: 0; border-top: 0.4mm dashed #000; margin: 2mm 0; }
-      strong { font-weight: 900; }
-    </style></head><body>${receipt}
+      body { margin: 0; padding: 0; }
+      .receipt {
+        width: 48mm;
+        max-width: 48mm;
+        margin: 0 auto;
+        padding: 0;
+        font-family: "Courier New", ui-monospace, monospace;
+        font-size: 10px;
+        line-height: 1.25;
+        color: #000;
+        font-weight: 700;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: break-word;
+      }
+      @media print {
+        @page { size: 58mm auto; margin: 0; }
+        body { margin: 0; padding: 0; }
+        .receipt {
+          width: 48mm;
+          max-width: 48mm;
+          margin-left: auto;
+          margin-right: auto;
+        }
+      }
+    </style></head><body><pre class="receipt">${receipt}</pre>
     <script>window.onload=()=>{window.print();}<\/script></body></html>
   `;
   const iframe = document.createElement("iframe");

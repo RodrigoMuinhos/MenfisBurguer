@@ -9,6 +9,8 @@ import {
   fmt,
   isKioskMobOrder,
   orderReadyWhatsappUrl,
+  orderItemComponents,
+  orderItemNote,
   paymentMethodLabel,
   paymentStatusLabel,
   printOrderReceipts,
@@ -56,6 +58,17 @@ export function OrdersView({
     (selected.status === "PAYMENT_PENDING" ||
       (selected.status === "CANCELLED" && selected.paymentProvider === "mercado_pago" && paymentRejected));
   const selectedIsKioskMob = isKioskMobOrder(selected);
+  const selectedSubtotal = Number(selected?.subtotal ?? selected?.items.reduce((sum, item) => sum + item.price * item.qty, 0) ?? 0);
+  const selectedDeliveryFee = Number(selected?.deliveryFee ?? 0);
+  const selectedTotal = Number(selected?.total ?? 0);
+  const selectedDiscount = Number((selected as Order & { discountTotal?: number })?.discountTotal ?? 0);
+  const selectedServiceFee = Math.max(
+    0,
+    Math.round((selectedTotal + selectedDiscount - selectedSubtotal - selectedDeliveryFee) * 100) / 100,
+  );
+  const selectedRemoved = Object.entries(selected?.removedByItemId ?? {})
+    .flatMap(([, values]) => values)
+    .filter((value, index, values) => values.indexOf(value) === index);
 
   if (!selected) {
     return (
@@ -360,24 +373,99 @@ export function OrdersView({
             )}
           </div>
 
-          <div className="mt-5">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
-              Itens
-            </p>
-            {selected.items.map((item) => (
-              <div
-                key={`${selected.id}-${item.id}`}
-                className="flex justify-between gap-4 border-b py-3 text-sm"
-              >
-                <span>
-                  {item.qty}x {item.name}
-                </span>
-                <strong>{fmt(item.price * item.qty)}</strong>
+          <div
+            className="mt-5 rounded-xl border p-4"
+            style={{ borderColor: `${VERDE}18`, background: "#FFFDFB" }}
+          >
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
+                  Nota detalhada
+                </p>
+                <p className="mt-1 text-xs font-bold opacity-60">
+                  Mesmo detalhe usado na impressão e no TXT.
+                </p>
               </div>
-            ))}
-            <div className="mt-3 flex justify-between text-lg font-black">
-              <span>Total</span>
-              <span>{fmt(selected.total)}</span>
+              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: ROSA, color: VERDE }}>
+                Pedido {selected.id}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              {selected.items.map((item) => {
+                const components = orderItemComponents(item);
+                const note = orderItemNote(item);
+                return (
+                  <div
+                    key={`${selected.id}-${item.id}`}
+                    className="rounded-xl border bg-white p-3"
+                    style={{ borderColor: `${ROSA}88` }}
+                  >
+                    <div className="flex items-start justify-between gap-4 text-sm">
+                      <div className="min-w-0">
+                        <p className="font-black" style={{ color: VERDE }}>
+                          {item.qty}x {item.name}
+                        </p>
+                        <p className="mt-1 text-xs font-bold opacity-55">
+                          Unitário {fmt(item.price)}
+                        </p>
+                      </div>
+                      <strong className="shrink-0">{fmt(item.price * item.qty)}</strong>
+                    </div>
+
+                    {components.length > 0 && (
+                      <div className="mt-3 grid gap-1 border-t pt-3" style={{ borderColor: `${VERDE}12` }}>
+                        {components.map((component) => (
+                          <p key={`${item.id}-${component}`} className="text-xs font-bold opacity-75">
+                            * {component}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    {note && (
+                      <div className="mt-3 rounded-lg px-3 py-2 text-xs font-bold" style={{ background: `${ROSA}55`, color: VERDE }}>
+                        Obs: {note}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {selectedRemoved.length > 0 && (
+              <div className="mt-3 rounded-xl px-3 py-2 text-xs font-black uppercase" style={{ background: "#FFFBEB", color: "#92400E", border: "1px solid #F59E0B" }}>
+                Retirar: {selectedRemoved.join(", ")}
+              </div>
+            )}
+
+            <div className="mt-4 grid gap-2 border-t pt-4 text-sm" style={{ borderColor: `${VERDE}18` }}>
+              <div className="flex justify-between gap-4">
+                <span>Subtotal dos itens</span>
+                <strong>{fmt(selectedSubtotal)}</strong>
+              </div>
+              {selectedDeliveryFee > 0 && (
+                <div className="flex justify-between gap-4">
+                  <span>Taxa de entrega</span>
+                  <strong>{fmt(selectedDeliveryFee)}</strong>
+                </div>
+              )}
+              {selectedServiceFee > 0 && (
+                <div className="flex justify-between gap-4">
+                  <span>Taxa de serviço</span>
+                  <strong>{fmt(selectedServiceFee)}</strong>
+                </div>
+              )}
+              {selectedDiscount > 0 && (
+                <div className="flex justify-between gap-4" style={{ color: "#15803D" }}>
+                  <span>Desconto</span>
+                  <strong>-{fmt(selectedDiscount)}</strong>
+                </div>
+              )}
+              <div className="mt-2 flex justify-between gap-4 border-t pt-3 text-xl font-black" style={{ borderColor: `${VERDE}18` }}>
+                <span>Total</span>
+                <span>{fmt(selected.total)}</span>
+              </div>
             </div>
           </div>
           <style>{`

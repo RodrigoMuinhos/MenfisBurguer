@@ -93,6 +93,15 @@ export function normalizeBackendOrder(raw: any): Order {
     customerName: kioskMobCustomer ? "KIOSK-MOB" : customerName,
     customerPhone: raw.customerPhone ?? raw.customer_phone ?? undefined,
     customerAddress: raw.customerAddress ?? raw.customer_address ?? undefined,
+    subtotal: raw.subtotal == null ? undefined : Number(raw.subtotal),
+    deliveryFee:
+      raw.deliveryFee == null && raw.delivery_fee == null
+        ? undefined
+        : Number(raw.deliveryFee ?? raw.delivery_fee),
+    discountTotal:
+      raw.discountTotal == null && raw.discount_total == null
+        ? undefined
+        : Number(raw.discountTotal ?? raw.discount_total),
     total: Number(raw.total ?? 0),
     paymentProvider: raw.paymentProvider ?? raw.payment_provider ?? undefined,
     paymentMethod: normalizePaymentMethod(
