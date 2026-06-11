@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  Bell,
   ChefHat,
   Loader2,
   Mail,
@@ -11,7 +12,6 @@ import {
   UserRound,
   X,
   Clock3,
-  Heart,
   Home,
   PackageSearch,
 } from "lucide-react";
@@ -64,6 +64,7 @@ import {
   ProductHeader,
   ProductHero,
 } from "./ProductHomeSections";
+import { MemberNotification } from "./notifications";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
@@ -77,6 +78,9 @@ interface Props {
   onOpenIdleScreen?: () => void;
   kioskMode?: boolean;
   activeOrder?: Order | null;
+  notifications?: MemberNotification[];
+  unreadNotificationCount?: number;
+  onReadNotifications?: () => void;
   onOpenActiveOrder?: () => void;
   onRepeatOrder?: (items: CartItem[]) => void;
 }
@@ -90,6 +94,9 @@ export function ProductScreen({
   onOpenIdleScreen,
   kioskMode = false,
   activeOrder,
+  notifications = [],
+  unreadNotificationCount = 0,
+  onReadNotifications,
   onOpenActiveOrder,
   onRepeatOrder,
 }: Props) {
@@ -374,6 +381,7 @@ export function ProductScreen({
       setLoginOpen(true);
       return;
     }
+    onReadNotifications?.();
     setNotificationsOpen(true);
   };
 
@@ -535,6 +543,7 @@ export function ProductScreen({
         onAdminTap={handleAdminTap}
         goToCart={goToCart}
         memberProfile={memberProfile}
+        notificationCount={unreadNotificationCount}
         onOpenMember={openMemberAccess}
         onOpenNotifications={openNotifications}
         onLogoutMember={logoutMember}
@@ -610,15 +619,21 @@ export function ProductScreen({
           </div>
         )}
         <div className="grid grid-cols-5 gap-1 px-2 pb-2 pt-2">
-          <BottomNavButton icon={Home} label="Início" active onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
           <BottomNavButton
             icon={PackageSearch}
             label="Pedidos"
             active={Boolean(activeOrder) || kioskMobLoggedIn}
             onClick={() => (activeOrder || kioskMobLoggedIn ? onOpenActiveOrder?.() : openHistory())}
           />
-          <BottomNavButton icon={Heart} label="Favoritos" onClick={() => setFavoritesOpen(true)} />
           <BottomNavButton icon={Clock3} label="Histórico" onClick={openHistory} />
+          <BottomNavButton icon={Home} label="Início" active onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
+          <BottomNavButton
+            icon={Bell}
+            label="Avisos"
+            badge={unreadNotificationCount}
+            active={unreadNotificationCount > 0}
+            onClick={openNotifications}
+          />
           <BottomNavButton icon={UserRound} label="Perfil" onClick={openMemberAccess} />
         </div>
       </div>
@@ -681,6 +696,7 @@ export function ProductScreen({
         closeNotifications={() => setNotificationsOpen(false)}
         closeFavorites={() => setFavoritesOpen(false)}
         activeOrder={activeOrder}
+        notifications={notifications}
         onOpenActiveOrder={onOpenActiveOrder}
         onRepeatOrder={onRepeatOrder}
       />
@@ -723,11 +739,13 @@ function BottomNavButton({
   icon: Icon,
   label,
   active,
+  badge = 0,
   onClick,
 }: {
   icon: ElementType;
   label: string;
   active?: boolean;
+  badge?: number;
   onClick: () => void;
 }) {
   return (
@@ -740,7 +758,17 @@ function BottomNavButton({
         background: active ? `${ROSA}55` : "transparent",
       }}
     >
-      <Icon size={18} strokeWidth={2.4} />
+      <span className="relative">
+        <Icon size={18} strokeWidth={2.4} />
+        {badge > 0 && (
+          <span
+            className="absolute -right-3 -top-3 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[9px] font-black"
+            style={{ background: ROSA, color: VERDE, border: "2px solid #fff" }}
+          >
+            {badge > 99 ? "99+" : badge}
+          </span>
+        )}
+      </span>
       <span>{label}</span>
     </button>
   );

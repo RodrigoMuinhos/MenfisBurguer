@@ -16,7 +16,7 @@ export const STEPS = [
 export const STATUS_INDEX: Record<OrderStatus, number> = {
   CREATED: 0,
   PAYMENT_PENDING: 0,
-  PAID: 1,
+  PAID: 2,
   IN_PREPARATION: 2,
   READY: 3,
   OUT_FOR_DELIVERY: 4,
@@ -39,9 +39,9 @@ export const STATUS_COPY: Record<
     eta: "Pague para enviar",
   },
   PAID: {
-    label: "Pedido aceito",
-    copy: "Pagamento confirmado e pedido aceito pela equipe.",
-    eta: "25-30 min",
+    label: "Seu pedido esta sendo preparado",
+    copy: "Pagamento confirmado. A cozinha recebeu seu pedido e iniciou o preparo.",
+    eta: "20-25 min",
   },
   IN_PREPARATION: {
     label: "Seu pedido esta sendo preparado",

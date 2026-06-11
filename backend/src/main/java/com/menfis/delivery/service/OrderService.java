@@ -61,20 +61,26 @@ public class OrderService {
     long number = jdbc.queryForObject("select nextval('order_number_seq')", Long.class);
     String id = "#" + number;
     boolean testMode = settings.testModeEnabled();
-    OrderChannel channel = request.channel() == null
+    boolean kioskLocalCustomer = isKioskMobName(request.customerName());
+    OrderChannel channel = kioskLocalCustomer
+      ? OrderChannel.KIOSK
+      : request.channel() == null
       ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
       : request.channel();
-    boolean kioskLocalCustomer = "KIOSK-MOB".equalsIgnoreCase(String.valueOf(request.customerName()).trim());
+    DeliveryType deliveryType = kioskLocalCustomer ? DeliveryType.RETIRADA : request.deliveryType();
+    String customerName = kioskLocalCustomer
+      ? "KIOSK-MOB"
+      : request.customerName() == null ? null : request.customerName().trim();
     PriceResult price = calculate(request.items());
     boolean chargeDeliveryFees =
-      request.deliveryType() == DeliveryType.DELIVERY && channel != OrderChannel.KIOSK && !kioskLocalCustomer;
+      deliveryType == DeliveryType.DELIVERY && channel != OrderChannel.KIOSK && !kioskLocalCustomer;
     BigDecimal deliveryFee = chargeDeliveryFees ? DELIVERY_FEE : BigDecimal.ZERO;
     BigDecimal serviceFee = chargeDeliveryFees ? SERVICE_FEE : BigDecimal.ZERO;
     BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(serviceFee);
     CouponResult coupon = applyCoupon(request.couponCode(), request.couponDiscount(), grossTotal);
     BigDecimal total = grossTotal.subtract(coupon.discount()).max(new BigDecimal("1.00"));
     if (request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA
-        && (request.channel() != OrderChannel.DELIVERY || !settings.payOnDeliveryEnabled())) {
+        && (channel != OrderChannel.DELIVERY || !settings.payOnDeliveryEnabled())) {
       throw new IllegalArgumentException("pay_on_delivery_disabled");
     }
     boolean payOnDelivery = request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA;
@@ -82,7 +88,7 @@ public class OrderService {
     boolean paidKiosk = channel == OrderChannel.KIOSK && !kioskLocalCustomer;
     OrderStatus status = payOnDelivery || paidKiosk ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
     if (channel == OrderChannel.KIOSK
-        && (isBlank(request.customerName()) || normalizedPhone(request.customerPhone()).length() < 10)) {
+        && (isBlank(customerName) || normalizedPhone(request.customerPhone()).length() < 10)) {
       throw new IllegalArgumentException("kiosk_customer_required");
     }
     OffsetDateTime confirmedAt = paidKiosk ? OffsetDateTime.now() : null;
@@ -104,8 +110,8 @@ public class OrderService {
       number,
       itemsJson,
       channel.name(),
-      request.deliveryType().name(),
-      request.customerName() == null ? null : request.customerName().trim(),
+      deliveryType.name(),
+      customerName,
       request.customerPhone(),
       request.customerAddress(),
       price.subtotal(),
@@ -205,7 +211,7 @@ public class OrderService {
       from orders
       where delivery_type = 'DELIVERY'
         and status = 'OUT_FOR_DELIVERY'
-        and upper(coalesce(customer_name, '')) <> 'KIOSK-MOB'
+        and replace(upper(coalesce(customer_name, '')), '_', '-') <> 'KIOSK-MOB'
         and test_mode = ?
       order by updated_at asc, created_at asc
       """,
@@ -244,7 +250,7 @@ public class OrderService {
       id
     );
     String from = String.valueOf(row.get("status"));
-    boolean kioskMobOrder = "KIOSK-MOB".equalsIgnoreCase(String.valueOf(row.get("customer_name")).trim());
+    boolean kioskMobOrder = isKioskMobName(String.valueOf(row.get("customer_name")));
     if (kioskMobOrder && toStatus == OrderStatus.OUT_FOR_DELIVERY) {
       throw new IllegalArgumentException("kiosk_mob_counter_service_required");
     }
@@ -502,6 +508,10 @@ public class OrderService {
 
   private boolean isBlank(String value) {
     return value == null || value.trim().isBlank();
+  }
+
+  private boolean isKioskMobName(String value) {
+    return "KIOSK-MOB".equals(String.valueOf(value).trim().toUpperCase().replace('_', '-'));
   }
 
   private String normalizedPhone(String value) {

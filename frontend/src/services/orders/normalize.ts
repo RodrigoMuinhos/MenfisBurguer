@@ -63,6 +63,9 @@ export function normalizeBackendOrder(raw: any): Order {
       : "delivery";
 
   const paymentStatus = raw.paymentStatus ?? raw.payment_status ?? undefined;
+  const customerName = raw.customerName ?? raw.customer_name ?? undefined;
+  const kioskMobCustomer =
+    String(customerName ?? "").trim().toUpperCase().replace(/_/g, "-") === "KIOSK-MOB";
   const normalizedStatus = normalizeOrderStatus(String(raw.status ?? ""));
   const status =
     normalizedStatus === "PAYMENT_PENDING" &&
@@ -78,6 +81,7 @@ export function normalizeBackendOrder(raw: any): Order {
     deliveryCode:
       raw.deliveryCode ?? raw.delivery_code ?? deliveryConfirmationCode(raw),
     channel:
+      kioskMobCustomer ||
       String(raw.channel ?? "").toUpperCase() === "KIOSK" ||
       (deliveryType === "retirada" &&
         String(raw.paymentMethod ?? raw.payment_method).toUpperCase() ===
@@ -85,8 +89,8 @@ export function normalizeBackendOrder(raw: any): Order {
         ? "KIOSK"
         : "DELIVERY",
     items,
-    deliveryType,
-    customerName: raw.customerName ?? raw.customer_name ?? undefined,
+    deliveryType: kioskMobCustomer ? "retirada" : deliveryType,
+    customerName: kioskMobCustomer ? "KIOSK-MOB" : customerName,
     customerPhone: raw.customerPhone ?? raw.customer_phone ?? undefined,
     customerAddress: raw.customerAddress ?? raw.customer_address ?? undefined,
     total: Number(raw.total ?? 0),

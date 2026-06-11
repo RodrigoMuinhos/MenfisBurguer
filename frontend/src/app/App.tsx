@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SplashScreen } from "@/components/product/SplashScreen";
 import { ProductScreen } from "@/components/product/ProductScreen";
 import { CartScreen } from "@/components/order/CartScreen";
@@ -27,6 +27,43 @@ import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
 import { deliveryConfirmationCode } from "@/services/orders/normalize";
 import { MEMBER_KEY, MEMBER_TOKEN_KEY } from "@/components/product/shared";
+import { MemberNotification } from "@/components/product/notifications";
+
+const NOTIFIABLE_STATUSES = new Set([
+  "PAID",
+  "IN_PREPARATION",
+  "READY",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+  "CANCELLED",
+]);
+function notificationForOrder(order: Order): Omit<MemberNotification, "id" | "createdAt" | "read"> | null {
+  if (!NOTIFIABLE_STATUSES.has(order.status)) return null;
+  const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+  const title =
+    order.status === "PAID"
+      ? "Pedido aceito"
+      : order.status === "IN_PREPARATION"
+        ? "Pedido em preparo"
+        : order.status === "READY"
+          ? "Pedido pronto"
+          : order.status === "OUT_FOR_DELIVERY"
+            ? "Pedido saiu para entrega"
+            : order.status === "DELIVERED"
+              ? "Pedido entregue"
+              : order.status === "CANCELLED"
+                ? "Pedido cancelado"
+                : status.label;
+  const message =
+    order.status === "READY"
+      ? "Seu pedido ficou pronto. Acompanhe a liberação."
+      : order.status === "OUT_FOR_DELIVERY"
+        ? "Seu pedido saiu para entrega."
+        : order.status === "DELIVERED"
+          ? "Pedido finalizado. Obrigado pela preferência."
+          : status.copy;
+  return { orderId: order.id, title, message, status: order.status };
+}
 
 export default function App({ mode }: { mode?: AppMode }) {
   const appMode = resolveAppMode(mode);
@@ -80,6 +117,8 @@ export default function App({ mode }: { mode?: AppMode }) {
     screen,
     started,
   });
+  const [memberNotifications, setMemberNotifications] = useState<MemberNotification[]>([]);
+  const orderStatusSnapshotRef = useRef(new Map<string, string>());
   const {
     showIdlePrompt,
     showIdleScreen,
@@ -169,6 +208,36 @@ export default function App({ mode }: { mode?: AppMode }) {
     activeOrder && !isKioskMobOrder(activeOrder) && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
       ? activeOrder
       : undefined;
+
+  useEffect(() => {
+    if (adminOnlyMode) return;
+    setMemberNotifications((currentNotifications) => {
+      const snapshot = orderStatusSnapshotRef.current;
+      const created: MemberNotification[] = [];
+      orders.forEach((order) => {
+        const previousStatus = snapshot.get(order.id);
+        snapshot.set(order.id, order.status);
+        if (!previousStatus || previousStatus === order.status) return;
+        const notification = notificationForOrder(order);
+        if (!notification) return;
+        created.push({
+          ...notification,
+          id: `${order.id}-${order.status}-${Date.now()}`,
+          createdAt: Date.now(),
+          read: false,
+        });
+      });
+      if (created.length === 0) return currentNotifications;
+      return [...created, ...currentNotifications].slice(0, 30);
+    });
+  }, [adminOnlyMode, orders]);
+
+  const unreadNotificationCount = memberNotifications.filter((item) => !item.read).length;
+  const markMemberNotificationsRead = () => {
+    setMemberNotifications((items) =>
+      items.map((item) => (item.read ? item : { ...item, read: true })),
+    );
+  };
 
   useEffect(() => {
     if (screen !== "queue") return;
@@ -377,6 +446,9 @@ export default function App({ mode }: { mode?: AppMode }) {
             onOpenIdleScreen={openKioskIdleScreen}
             kioskMode={kioskMode}
             activeOrder={kioskMobSession ? primaryKioskMobOrder : visibleActiveOrder}
+            notifications={memberNotifications}
+            unreadNotificationCount={unreadNotificationCount}
+            onReadNotifications={markMemberNotificationsRead}
             onOpenActiveOrder={() => setScreen(kioskMobSession ? "queue" : "tracking")}
             onRepeatOrder={(items) => {
               setCart(items.map((item) => ({ ...item, qty: Math.max(1, item.qty || 1) })));

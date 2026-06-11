@@ -9,17 +9,14 @@ import {
   Store,
 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
-import { CartItem } from "@/types/order";
 import {
   CheckoutStep,
   KIOSK_PIX_CODE,
   KioskKeyboardTarget,
   PaymentMethod,
-  SUPPORT_WHATSAPP_URL,
   fmt,
   maskPhone,
 } from "./checkout";
-import { buildWhatsappReceipt } from "./whatsappReceipt";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -50,7 +47,6 @@ export function PaymentStepSection({
   deliveryValid,
   inputStyle,
   total,
-  cart,
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
@@ -69,12 +65,7 @@ export function PaymentStepSection({
   deliveryValid: boolean;
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
-  cart: CartItem[];
 }) {
-  const supportText = encodeURIComponent(
-    buildWhatsappReceipt({ items: cart, total, paymentMethod: payment }),
-  );
-
   return (
     <>
               <AnimatePresence>
@@ -323,20 +314,6 @@ export function PaymentStepSection({
                               );
                             })}
                           </div>
-                          <a
-                            href={`${SUPPORT_WHATSAPP_URL}?text=${supportText}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex min-h-[56px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                            style={{
-                              background: VERDE,
-                              color: ROSA,
-                              border: `1.5px solid ${VERDE}`,
-                            }}
-                          >
-                            <MessageCircle size={18} strokeWidth={2.4} />
-                            Entrar em contato por WhatsApp
-                          </a>
                         </div>
                       )}
                       {kioskMode && (

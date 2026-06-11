@@ -131,7 +131,7 @@ export function CartScreen({
         minHeight: "100%",
       }}
     >
-      <CartHeader cart={cart} onBack={goToMenu} />
+      <CartHeader cart={cart} onBack={handleBack} />
       <CheckoutProgress checkoutStep={checkoutStep} kioskMode={kioskMode} />
       {/* ══ BODY ══════════════════════════════════════════ */}
       <div className="px-4 pt-5 pb-32 flex flex-col gap-5">
@@ -214,7 +214,6 @@ export function CartScreen({
           deliveryValid={deliveryValid}
           inputStyle={inputStyle}
           total={total}
-          cart={cart}
         />
         <CheckoutReviewSection
           checkoutStep={checkoutStep}

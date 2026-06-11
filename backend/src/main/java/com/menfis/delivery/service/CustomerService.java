@@ -283,9 +283,8 @@ public class CustomerService {
       encoder.encode(code)
     );
     Map<String, Object> response = new HashMap<>(adminCustomerResponse(credential.id(), null));
-    response.put("code", code);
     response.put("expiresInMinutes", 10);
-    response.put("whatsappUrl", passwordRecoveryWhatsappUrl(response, code));
+    response.put("delivery", "requested");
     return response;
   }
 
@@ -319,11 +318,13 @@ public class CustomerService {
   public Long findCustomerIdByPhone(String rawPhone) {
     String phoneDigits = digits(rawPhone);
     if (phoneDigits.length() < 10) return null;
+    var candidates = phoneCandidates(phoneDigits);
     try {
       return jdbc.queryForObject(
-        "select id from customers where phone_digits = ? order by last_login_at desc nulls last, updated_at desc nulls last, id desc limit 1",
+        "select id from customers where phone_digits in (?, ?) order by last_login_at desc nulls last, updated_at desc nulls last, id desc limit 1",
         Long.class,
-        phoneDigits
+        candidates.get(0),
+        candidates.get(1)
       );
     } catch (EmptyResultDataAccessException ex) {
       return null;
@@ -367,18 +368,20 @@ public class CustomerService {
   }
 
   private CustomerCredential findCredential(String login, String cpfDigits) {
+    var candidates = phoneCandidates(digits(login));
     try {
       return jdbc.queryForObject(
         """
         select id, password_hash
         from customers
-        where lower(email) = lower(?) or phone_digits = ? or (? <> '' and cpf = ?)
+        where lower(email) = lower(?) or phone_digits in (?, ?) or (? <> '' and cpf = ?)
         order by last_login_at desc nulls last, updated_at desc nulls last, id desc
         limit 1
         """,
         (rs, rowNum) -> new CustomerCredential(rs.getLong("id"), rs.getString("password_hash")),
         login,
-        cpfDigits,
+        candidates.get(0),
+        candidates.get(1),
         cpfDigits,
         cpfDigits
       );
@@ -390,19 +393,21 @@ public class CustomerService {
   private CustomerCredential findCredentialByLogin(String rawLogin) {
     String login = rawLogin == null ? "" : rawLogin.trim().toLowerCase(Locale.ROOT);
     String digits = digits(login);
+    var candidates = phoneCandidates(digits);
     if (login.isBlank()) return null;
     try {
       return jdbc.queryForObject(
         """
         select id, password_hash
         from customers
-        where lower(email) = lower(?) or phone_digits = ? or (? <> '' and cpf = ?)
+        where lower(email) = lower(?) or phone_digits in (?, ?) or (? <> '' and cpf = ?)
         order by last_login_at desc nulls last, updated_at desc nulls last, id desc
         limit 1
         """,
         (rs, rowNum) -> new CustomerCredential(rs.getLong("id"), rs.getString("password_hash")),
         login,
-        digits,
+        candidates.get(0),
+        candidates.get(1),
         digits,
         digits
       );
@@ -512,6 +517,17 @@ public class CustomerService {
 
   private String digits(String value) {
     return value == null ? "" : value.replaceAll("\\D", "");
+  }
+
+  private List<String> phoneCandidates(String value) {
+    String phone = digits(value);
+    if (phone.startsWith("55") && phone.length() > 11) {
+      return List.of(phone, phone.substring(2));
+    }
+    if (phone.length() >= 10 && !phone.startsWith("55")) {
+      return List.of(phone, "55" + phone);
+    }
+    return List.of(phone, phone);
   }
 
   private String clean(String value) {

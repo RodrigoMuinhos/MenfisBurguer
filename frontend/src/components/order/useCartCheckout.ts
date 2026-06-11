@@ -24,6 +24,10 @@ import { submitCheckoutOrder } from "./cartFinalize";
 import { inputStyle } from "./cartInputStyle";
 import { readMemberProfile } from "@/components/product/shared";
 
+function normalizeKioskMobName(value?: string) {
+  return String(value ?? "").trim().toUpperCase().replace(/_/g, "-");
+}
+
 export function useCartCheckout({
   cart,
   updateQty,
@@ -45,7 +49,7 @@ export function useCartCheckout({
 }) {
   const memberProfile = kioskMode ? null : readMemberProfile();
   const counterServiceMode =
-    !kioskMode && String(memberProfile?.name ?? "").trim().toUpperCase() === "KIOSK-MOB";
+    !kioskMode && normalizeKioskMobName(memberProfile?.name) === "KIOSK-MOB";
   const [delivery, setDelivery] = useState<DeliveryType>(
     kioskMode || counterServiceMode ? "retirada" : "delivery",
   );
@@ -80,7 +84,7 @@ export function useCartCheckout({
     saved.complement ?? "",
   );
   const [customerName, setCustomerName] = useState<string>(
-    memberProfile?.name ?? "",
+    counterServiceMode ? "KIOSK-MOB" : memberProfile?.name ?? "",
   );
   const [phone, setPhone] = useState<string>(
     maskPhone(memberProfile?.phone ?? saved.phone ?? ""),

@@ -10,6 +10,7 @@ type DbOrderRow = {
   removed_by_item_id: Record<string, string[]> | null;
   channel: "DELIVERY" | "KIOSK";
   delivery_type: "retirada" | "delivery";
+  customer_name: string | null;
   customer_phone: string | null;
   customer_address: string | null;
   total: string | number;
@@ -31,6 +32,7 @@ function mapOrder(row: DbOrderRow) {
     removedByItemId: row.removed_by_item_id ?? undefined,
     channel: row.channel,
     deliveryType: row.delivery_type,
+    customerName: row.customer_name ?? undefined,
     customerPhone: row.customer_phone ?? undefined,
     customerAddress: row.customer_address ?? undefined,
     total: Number(row.total),
@@ -64,6 +66,7 @@ export async function GET() {
         removed_by_item_id,
         channel,
         delivery_type,
+        customer_name,
         customer_phone,
         customer_address,
         total,
@@ -90,9 +93,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "items_required" }, { status: 400 });
   }
 
-  const deliveryType =
-    body.deliveryType === "delivery" ? "delivery" : "retirada";
-  const channel = body.channel === "KIOSK" ? "KIOSK" : "DELIVERY";
+  const kioskMobCustomer =
+    String(body.customerName ?? "").trim().toUpperCase().replace(/_/g, "-") === "KIOSK-MOB";
+  const deliveryType = kioskMobCustomer
+    ? "retirada"
+    : body.deliveryType === "delivery" ? "delivery" : "retirada";
+  const channel = kioskMobCustomer || body.channel === "KIOSK" ? "KIOSK" : "DELIVERY";
+  const customerName = kioskMobCustomer
+    ? "KIOSK-MOB"
+    : typeof body.customerName === "string" && body.customerName.trim()
+      ? body.customerName.trim()
+      : null;
   const total = Number(body.total ?? 0);
   const paymentProvider =
     typeof body.paymentProvider === "string" && body.paymentProvider.trim()
@@ -129,6 +140,7 @@ export async function POST(request: Request) {
         removed_by_item_id,
         channel,
         delivery_type,
+        customer_name,
         customer_phone,
         customer_address,
         total,
@@ -155,6 +167,7 @@ export async function POST(request: Request) {
         $10,
         $11,
         $12,
+        $13,
         'PAID',
         now()
       from next_number
@@ -165,6 +178,7 @@ export async function POST(request: Request) {
         removed_by_item_id,
         channel,
         delivery_type,
+        customer_name,
         customer_phone,
         customer_address,
         total,
@@ -180,6 +194,7 @@ export async function POST(request: Request) {
       JSON.stringify(body.removedByItemId ?? null),
       channel,
       deliveryType,
+      customerName,
       String(body.customerPhone ?? "") || null,
       String(body.customerAddress ?? "") || null,
       total,

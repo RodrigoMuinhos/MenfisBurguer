@@ -247,8 +247,21 @@ export function TrackingTimelineSection({
         }}
       >
         <div className="flex items-start gap-3">
-          <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full sm:flex" style={{ background: `${ROSA}55` }}>
-            <Image src={logoSkull} alt="" width={36} height={36} style={{ mixBlendMode: "multiply" }} />
+          <div className="hidden h-12 w-12 shrink-0 overflow-hidden rounded-full sm:flex" style={{ background: `${ROSA}55` }}>
+            <Image
+              src={logoSkull}
+              alt=""
+              width={48}
+              height={48}
+              style={{
+                display: "block",
+                height: "100%",
+                width: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+                mixBlendMode: "multiply",
+              }}
+            />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-lg font-black leading-tight" style={{ color: VERDE }}>
@@ -275,8 +288,21 @@ export function TrackingTimelineSection({
               </div>
             </div>
           </div>
-          <div className="hidden h-24 w-24 shrink-0 items-center justify-center rounded-full md:flex" style={{ background: `${ROSA}35` }}>
-            <Image src={logoSkull} alt="Menfi's" width={78} height={78} style={{ mixBlendMode: "multiply" }} />
+          <div className="hidden h-24 w-24 shrink-0 overflow-hidden rounded-full md:flex" style={{ background: `${ROSA}35` }}>
+            <Image
+              src={logoSkull}
+              alt="Menfi's"
+              width={96}
+              height={96}
+              style={{
+                display: "block",
+                height: "100%",
+                width: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+                mixBlendMode: "multiply",
+              }}
+            />
           </div>
         </div>
 

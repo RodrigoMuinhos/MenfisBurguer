@@ -20,6 +20,7 @@ import { MEMBER_TOKEN_KEY, MemberProfile } from "./shared";
 import { API_URL, SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { STATUS_COPY, fmt } from "@/components/order/tracking";
 import { normalizeBackendOrder } from "@/services/orders/normalize";
+import { MemberNotification } from "./notifications";
 
 export function MemberModals({
   loginOpen,
@@ -77,6 +78,7 @@ export function MemberModals({
   closeNotifications,
   closeFavorites,
   activeOrder,
+  notifications = [],
   onOpenActiveOrder,
   onRepeatOrder,
 }: {
@@ -125,7 +127,7 @@ export function MemberModals({
   savedDelivery: Record<string, string>;
   saveMember: () => void;
   loginMember: () => void;
-  requestPasswordRecovery: (login: string) => Promise<{ whatsappUrl?: string; expiresInMinutes?: number } | null>;
+  requestPasswordRecovery: (login: string) => Promise<{ expiresInMinutes?: number; delivery?: string } | null>;
   resetMemberPassword: (
     login: string,
     code: string,
@@ -140,6 +142,7 @@ export function MemberModals({
   closeNotifications: () => void;
   closeFavorites: () => void;
   activeOrder?: Order | null;
+  notifications?: MemberNotification[];
   onOpenActiveOrder?: () => void;
   onRepeatOrder?: (items: CartItem[]) => void;
 }) {
@@ -159,7 +162,7 @@ export function MemberModals({
   const [recoveryCode, setRecoveryCode] = useState("");
   const [recoveryPassword, setRecoveryPassword] = useState("");
   const [recoveryPasswordConfirm, setRecoveryPasswordConfirm] = useState("");
-  const [recoveryWhatsappUrl, setRecoveryWhatsappUrl] = useState("");
+  const [recoverySentMessage, setRecoverySentMessage] = useState("");
   const hasActiveOrder = Boolean(
     activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status),
   );
@@ -203,7 +206,7 @@ export function MemberModals({
       setRecoveryCode("");
       setRecoveryPassword("");
       setRecoveryPasswordConfirm("");
-      setRecoveryWhatsappUrl("");
+      setRecoverySentMessage("");
     }
   }, [loginOpen]);
 
@@ -308,9 +311,10 @@ export function MemberModals({
                           type="button"
                           onClick={async () => {
                             const data = await requestPasswordRecovery(recoveryLogin);
-                            if (data?.whatsappUrl) {
-                              setRecoveryWhatsappUrl(data.whatsappUrl);
-                              window.open(data.whatsappUrl, "_blank", "noopener,noreferrer");
+                            if (data) {
+                              setRecoverySentMessage(
+                                `Código solicitado. Ele expira em ${data.expiresInMinutes ?? 10} minutos.`,
+                              );
                             }
                           }}
                           disabled={memberSaving}
@@ -344,16 +348,13 @@ export function MemberModals({
                           inputMode="numeric"
                           maxLength={6}
                         />
-                        {recoveryWhatsappUrl && (
-                          <a
-                            href={recoveryWhatsappUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-2xl px-4 py-3 text-center text-xs font-black uppercase tracking-wider"
-                            style={{ background: ROSA, color: VERDE }}
+                        {recoverySentMessage && (
+                          <p
+                            className="rounded-2xl px-4 py-3 text-xs font-black leading-relaxed"
+                            style={{ background: `${ROSA}70`, color: VERDE }}
                           >
-                            Abrir WhatsApp novamente
-                          </a>
+                            {recoverySentMessage}
+                          </p>
                         )}
                         <a
                           href={SUPPORT_WHATSAPP_URL}
@@ -682,10 +683,10 @@ export function MemberModals({
                           }}
                         />
                       )}
-                      <ProfileMenuLink icon={Headphones} label="Falar com o suporte" href={SUPPORT_WHATSAPP_URL} />
-                      <div className="rounded-2xl p-4 text-xs font-black" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
-                        WhatsApp: (85) 99788-3764
+                      <div className="rounded-2xl p-4 text-xs font-black uppercase tracking-wider" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                        Falar com o suporte
                       </div>
+                      <ProfileMenuLink icon={Headphones} label="SAC" href={SUPPORT_WHATSAPP_URL} />
                       <button
                         onClick={logoutMember}
                         className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
@@ -733,7 +734,55 @@ export function MemberModals({
               {notificationsOpen && memberProfile && (
                 <SidePanel title="Notificações" onClose={closeNotifications}>
                   <div className="grid gap-3">
-                    {hasActiveOrder && activeOrder ? (
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <button
+                          key={notification.id}
+                          type="button"
+                          onClick={() => {
+                            closeNotifications();
+                            onOpenActiveOrder?.();
+                          }}
+                          className="rounded-2xl p-4 text-left"
+                          style={{
+                            background: notification.read ? "#FFF8F2" : VERDE,
+                            color: notification.read ? VERDE : ROSA,
+                            border: `1px solid ${notification.read ? `${VERDE}12` : VERDE}`,
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-wider opacity-70">
+                                Pedido {notification.orderId}
+                              </p>
+                              <p className="mt-1 text-base font-black leading-tight">
+                                {notification.title}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <span
+                                className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+                                style={{ background: ROSA, border: "1px solid #fff" }}
+                              />
+                            )}
+                          </div>
+                          <p className="mt-2 text-xs font-bold leading-relaxed opacity-75">
+                            {notification.message}
+                          </p>
+                          <p className="mt-3 text-[10px] font-black uppercase tracking-wider opacity-50">
+                            {new Date(notification.createdAt).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="rounded-2xl p-4 text-xs font-bold" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                        Nenhuma notificação nova.
+                      </div>
+                    )}
+                    {hasActiveOrder && activeOrder && (
                       <button
                         type="button"
                         onClick={() => {
@@ -741,16 +790,12 @@ export function MemberModals({
                           onOpenActiveOrder?.();
                         }}
                         className="rounded-2xl p-4 text-left"
-                        style={{ background: VERDE, color: ROSA }}
+                        style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
                       >
-                        <p className="text-xs font-black uppercase tracking-wider">Pedido em andamento</p>
+                        <p className="text-xs font-black uppercase tracking-wider">Acompanhar pedido</p>
                         <p className="mt-1 text-lg font-black">{activeOrder.id} · {(STATUS_COPY[activeOrder.status] ?? STATUS_COPY.PAYMENT_PENDING).label}</p>
-                        <p className="mt-1 text-xs font-bold opacity-75">Toque para acompanhar a linha do tempo.</p>
+                        <p className="mt-1 text-xs font-bold opacity-75">Toque para abrir a linha do tempo.</p>
                       </button>
-                    ) : (
-                      <div className="rounded-2xl p-4 text-xs font-bold" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
-                        Nenhuma notificação nova.
-                      </div>
                     )}
                     <a
                       href={SUPPORT_WHATSAPP_URL}

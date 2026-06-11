@@ -21,6 +21,7 @@ export function ProductHeader({
   onAdminTap,
   goToCart,
   memberProfile,
+  notificationCount = 0,
   onOpenMember,
   onOpenNotifications,
   onLogoutMember,
@@ -30,6 +31,7 @@ export function ProductHeader({
   onAdminTap: () => void;
   goToCart: () => void;
   memberProfile?: MemberProfile | null;
+  notificationCount?: number;
   onOpenMember?: () => void;
   onOpenNotifications?: () => void;
   onLogoutMember?: () => void;
@@ -93,10 +95,19 @@ export function ProductHeader({
               aria-label="Abrir notificações"
             >
               <Bell size={20} strokeWidth={2.6} />
-              <span
-                className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full"
-                style={{ background: ROSA, border: "2px solid #fff" }}
-              />
+              {notificationCount > 0 ? (
+                <span
+                  className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-black"
+                  style={{ background: ROSA, color: VERDE, border: "2px solid #fff" }}
+                >
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              ) : (
+                <span
+                  className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full"
+                  style={{ background: ROSA, border: "2px solid #fff" }}
+                />
+              )}
             </button>
             <button
               onClick={onOpenMember}

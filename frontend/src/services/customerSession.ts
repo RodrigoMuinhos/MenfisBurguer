@@ -79,7 +79,7 @@ export async function requestCustomerPasswordRecovery(payload: RecoveryPayload) 
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "customer_recovery_failed");
-  return data as { whatsappUrl?: string; expiresInMinutes?: number };
+  return data as { expiresInMinutes?: number; delivery?: string };
 }
 
 export async function resetCustomerPassword(payload: ResetPasswordPayload) {

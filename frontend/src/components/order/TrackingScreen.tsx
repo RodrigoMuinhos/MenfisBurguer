@@ -493,13 +493,22 @@ export function TrackingScreen({
           </button>
         )}
         <div className="flex items-center gap-4">
-          <Image
-            src={logoSkull}
-            alt="Menfi's"
-            width={56}
-            height={56}
-            style={{ mixBlendMode: "screen" }}
-          />
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full">
+            <Image
+              src={logoSkull}
+              alt="Menfi's"
+              width={56}
+              height={56}
+              style={{
+                display: "block",
+                height: "100%",
+                width: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+                mixBlendMode: "screen",
+              }}
+            />
+          </div>
           <div className="flex-1">
             <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${ROSA}70` }}>
               Acompanhe seu pedido
