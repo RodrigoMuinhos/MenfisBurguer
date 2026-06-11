@@ -60,7 +60,9 @@ export function ProductCustomizer({
       const current = prev[field];
       const isSelected = current.includes(value);
       let selected = current;
-      if (isSelected) {
+      if (max === 1) {
+        selected = isSelected ? current : [value];
+      } else if (isSelected) {
         selected = current.filter((item) => item !== value);
       } else if (current.length < max) {
         selected = [...current, value];
