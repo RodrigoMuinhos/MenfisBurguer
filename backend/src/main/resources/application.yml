@@ -26,7 +26,13 @@ menfis:
   default-payer-email: ${MERCADO_PAGO_PAYER_EMAIL:}
   default-card-payer-email: ${MERCADO_PAGO_CARD_PAYER_EMAIL:}
   cloudinary-url: ${CLOUDINARY_URL:}
-  whatsapp-verify-token: ${WHATSAPP_VERIFY_TOKEN:menfis-whatsapp-webhook}
+  whatsapp-verify-token: ${WHATSAPP_VERIFY_TOKEN:menfis-whatsapp-token}
   whatsapp-access-token: ${WHATSAPP_ACCESS_TOKEN:}
-  whatsapp-phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+  whatsapp-phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:1217044968149576}
+  whatsapp-business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:864066526222050}
   whatsapp-graph-api-version: ${WHATSAPP_GRAPH_API_VERSION:v20.0}
+
+whatsapp:
+  verify-token: ${WHATSAPP_VERIFY_TOKEN:menfis-whatsapp-token}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:1217044968149576}
+  business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:864066526222050}

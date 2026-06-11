@@ -19,6 +19,8 @@ public class SecurityConfig {
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.GET, "/api/whatsapp/webhook", "/whatsapp/webhook").permitAll()
         .requestMatchers(HttpMethod.POST, "/api/whatsapp/webhook", "/whatsapp/webhook").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/webhooks/whatsapp", "/webhooks/whatsapp").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/webhooks/whatsapp", "/webhooks/whatsapp").permitAll()
         .anyRequest().permitAll())
       .build();
   }

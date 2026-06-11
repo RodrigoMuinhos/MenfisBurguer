@@ -28,7 +28,7 @@ public class WhatsAppService {
   @Value("${menfis.whatsapp-access-token:}")
   private String accessToken;
 
-  @Value("${menfis.whatsapp-phone-number-id:}")
+  @Value("${whatsapp.phone-number-id:${menfis.whatsapp-phone-number-id:}}")
   private String phoneNumberId;
 
   @Value("${menfis.whatsapp-graph-api-version:v20.0}")
