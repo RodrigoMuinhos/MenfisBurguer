@@ -27,3 +27,6 @@ menfis:
   default-card-payer-email: ${MERCADO_PAGO_CARD_PAYER_EMAIL:}
   cloudinary-url: ${CLOUDINARY_URL:}
   whatsapp-verify-token: ${WHATSAPP_VERIFY_TOKEN:menfis-whatsapp-webhook}
+  whatsapp-access-token: ${WHATSAPP_ACCESS_TOKEN:}
+  whatsapp-phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+  whatsapp-graph-api-version: ${WHATSAPP_GRAPH_API_VERSION:v20.0}

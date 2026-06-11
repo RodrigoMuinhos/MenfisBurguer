@@ -1,5 +1,7 @@
 package com.menfis.delivery.web;
 
+import com.menfis.delivery.dto.WhatsAppDtos.WhatsAppWebhookPayload;
+import com.menfis.delivery.service.WhatsAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping({"/api/whatsapp", "/whatsapp"})
 public class WhatsAppWebhookController {
   private static final Logger log = LoggerFactory.getLogger(WhatsAppWebhookController.class);
+  private final WhatsAppService whatsapp;
+
+  public WhatsAppWebhookController(WhatsAppService whatsapp) {
+    this.whatsapp = whatsapp;
+  }
 
   @Value("${menfis.whatsapp-verify-token:menfis-whatsapp-webhook}")
   private String verifyToken;
@@ -50,10 +57,10 @@ public class WhatsAppWebhookController {
   }
 
   @PostMapping(value = "/webhook", produces = MediaType.TEXT_PLAIN_VALUE)
-  public ResponseEntity<String> receiveWebhook(@RequestBody(required = false) String payload) {
-    int payloadLength = payload == null ? 0 : payload.length();
-    log.info("WhatsApp webhook event received payloadLength={}", payloadLength);
-    log.debug("WhatsApp webhook payload={}", payload);
+  public ResponseEntity<String> receiveWebhook(@RequestBody(required = false) WhatsAppWebhookPayload payload) {
+    int entryCount = payload == null || payload.entry() == null ? 0 : payload.entry().size();
+    log.info("WhatsApp webhook event received entries={}", entryCount);
+    whatsapp.processWebhook(payload);
 
     return ResponseEntity.ok()
         .contentType(MediaType.TEXT_PLAIN)
