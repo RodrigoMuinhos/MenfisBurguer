@@ -11,14 +11,30 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error("Menfis client error", error);
+    const timer = window.setTimeout(() => {
+      recoverToMenu();
+    }, 1200);
+    return () => window.clearTimeout(timer);
   }, [error]);
 
-  const recover = () => {
+  const recoverToMenu = () => {
     try {
       localStorage.removeItem("menfis_app_screen");
+      localStorage.removeItem("menfis_pending_order_id");
       sessionStorage.clear();
     } catch {
-      // Recuperacao local nao deve bloquear o botao.
+      // Recuperacao local nao deve bloquear a navegacao.
+    }
+    window.location.replace("/");
+  };
+
+  const retryCurrentScreen = () => {
+    try {
+      localStorage.removeItem("menfis_app_screen");
+      localStorage.removeItem("menfis_pending_order_id");
+      sessionStorage.clear();
+    } catch {
+      // Recuperacao local nao deve bloquear o reset.
     }
     reset();
   };
@@ -38,27 +54,20 @@ export default function Error({
         </p>
         <h1 className="mt-3 text-2xl font-black">Estamos atualizando sua tela</h1>
         <p className="mt-2 text-sm font-bold leading-relaxed opacity-65">
-          O pagamento pode ter voltado com dados incompletos. Toque abaixo para
-          recuperar a tela e acompanhar seu pedido.
+          Vamos voltar automaticamente para o cardapio. Se preferir, toque abaixo
+          para tentar recarregar a tela atual.
         </p>
         <button
           type="button"
-          onClick={recover}
+          onClick={retryCurrentScreen}
           className="mt-5 w-full rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-wider"
           style={{ background: "#65001F", color: "#FFC1D7" }}
         >
-          Recuperar pedido
+          Tentar novamente
         </button>
         <button
           type="button"
-          onClick={() => {
-            try {
-              localStorage.removeItem("menfis_app_screen");
-            } catch {
-              // ignore
-            }
-            window.location.href = "/";
-          }}
+          onClick={recoverToMenu}
           className="mt-3 w-full rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-wider"
           style={{ background: "#FFF8F2", color: "#65001F" }}
         >
