@@ -53,7 +53,9 @@ export function OrderDetail({
         : order.deliveryType === "delivery"
         ? { label: "Saiu para entrega", sublabel: "Liberar motoboy" }
         : { label: "Finalizar entregue", sublabel: "Encerrar pedido" }
-      : { label: "Pedido pronto", sublabel: "Avisar cliente" };
+      : order.status === "ACCEPTED"
+        ? { label: "Iniciar preparo", sublabel: "Produzir pedido" }
+        : { label: "Pedido pronto", sublabel: "Avisar cliente" };
 
   return (
     <article
@@ -97,7 +99,7 @@ export function OrderDetail({
             label={readyAction.label}
             sublabel={readyAction.sublabel}
             Icon={BellRing}
-            disabled={!["IN_PREPARATION", "READY"].includes(order.status) || Boolean(busyAction)}
+            disabled={!["ACCEPTED", "IN_PREPARATION", "READY"].includes(order.status) || Boolean(busyAction)}
             onClick={onSendReady}
           />
           {order.status === "READY" && (
@@ -277,6 +279,7 @@ function itemKindFromId(id: string, name = ""): ProductKind {
 
 function statusLabel(status: Order["status"]) {
   if (status === "PAID") return "Novo";
+  if (status === "ACCEPTED") return "Aceito";
   if (status === "IN_PREPARATION") return "Em preparo";
   if (status === "READY") return "Pronto";
   return STAGE_LABEL[status] ?? status;

@@ -26,7 +26,7 @@ public class KdsService {
     List<OrderResponse> rows = jdbc.queryForList(
       """
       select id from orders
-      where status in ('PAID', 'IN_PREPARATION', 'READY')
+      where status in ('PAID', 'ACCEPTED', 'IN_PREPARATION', 'READY')
         and test_mode = ?
       order by confirmed_at asc nulls last, number asc
       """,
@@ -35,6 +35,7 @@ public class KdsService {
 
     return Map.of(
       "paid", rows.stream().filter(o -> o.status().equals("PAID")).toList(),
+      "accepted", rows.stream().filter(o -> o.status().equals("ACCEPTED")).toList(),
       "inPreparation", rows.stream().filter(o -> o.status().equals("IN_PREPARATION")).toList(),
       "ready", rows.stream().filter(o -> o.status().equals("READY")).toList()
     );
@@ -45,16 +46,18 @@ public class KdsService {
     OrderResponse order = orders.get(id);
     OrderStatus current = OrderStatus.valueOf(order.status());
     OrderStatus next = switch (current) {
-      case PAID -> OrderStatus.IN_PREPARATION;
+      case PAID -> OrderStatus.ACCEPTED;
+      case ACCEPTED -> OrderStatus.IN_PREPARATION;
       case IN_PREPARATION -> OrderStatus.READY;
       case OUT_FOR_DELIVERY -> OrderStatus.DELIVERED;
       default -> throw new IllegalArgumentException("order_not_advanceable");
     };
-    if (current == OrderStatus.PAID) {
+    if (current == OrderStatus.ACCEPTED) {
       inventory.deductForOrder(order.id());
     }
     String event = switch (next) {
-      case IN_PREPARATION -> "ORDER_ACCEPTED";
+      case ACCEPTED -> "ORDER_ACCEPTED";
+      case IN_PREPARATION -> "ORDER_PREPARING";
       case READY -> "ORDER_READY";
       case OUT_FOR_DELIVERY -> "OUT_FOR_DELIVERY";
       case DELIVERED -> "ORDER_DELIVERED";

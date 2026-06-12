@@ -18,7 +18,7 @@ import {
   STAGE_LABEL,
 } from "../shared";
 
-const CANCELLABLE_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAID"];
+const CANCELLABLE_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAID", "ACCEPTED"];
 const PREPARATION_STARTED_STATUSES: OrderStatus[] = [
   "IN_PREPARATION",
   "READY",
@@ -272,11 +272,20 @@ export function OrdersView({
             )}
             {selected.status === "PAID" && (
               <button
-                onClick={() => updateOrderStatus(selected.id, "IN_PREPARATION")}
+                onClick={() => updateOrderStatus(selected.id, "ACCEPTED")}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{ background: "#16A34A", color: "#fff" }}
               >
                 <Check size={15} /> Aceitar pedido
+              </button>
+            )}
+            {selected.status === "ACCEPTED" && (
+              <button
+                onClick={() => updateOrderStatus(selected.id, "IN_PREPARATION")}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+                style={{ background: "#16A34A", color: "#fff" }}
+              >
+                <Check size={15} /> Iniciar preparo
               </button>
             )}
             {CANCELLABLE_STATUSES.includes(selected.status) && (

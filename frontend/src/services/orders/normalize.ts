@@ -7,6 +7,8 @@ export function normalizeOrderStatus(status: string): OrderStatus {
     return "PAYMENT_PENDING";
   if (value === "RECEIVED" || value === "RECEBIDO" || value === "PAID")
     return "PAID";
+  if (value === "ACCEPTED" || value === "ACEITO" || value === "PEDIDO_ACEITO")
+    return "ACCEPTED";
   if (value === "PREPARING" || value === "PREPARO")
     return "IN_PREPARATION";
   if (value === "PRONTO") return "READY";
@@ -21,6 +23,7 @@ export function normalizeOrderStatus(status: string): OrderStatus {
     return "CANCELLED";
   if (
     value === "READY" ||
+    value === "ACCEPTED" ||
     value === "OUT_FOR_DELIVERY" ||
     value === "DELIVERED" ||
     value === "CANCELLED"

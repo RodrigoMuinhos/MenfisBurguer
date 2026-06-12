@@ -148,7 +148,7 @@ export function AdminPanel({
   const tabCount: Partial<Record<AdminTab, number>> = {
     pedidos: activeOrders,
     cozinha: orders.filter((order) =>
-      ["PAID", "IN_PREPARATION", "READY"].includes(order.status),
+      ["PAID", "ACCEPTED", "IN_PREPARATION", "READY"].includes(order.status),
     ).length,
     entrega: orders.filter(
       (order) =>

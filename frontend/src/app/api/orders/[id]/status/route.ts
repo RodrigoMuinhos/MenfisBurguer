@@ -3,7 +3,7 @@ import { ensureOrdersSchema, getPool } from "../../../_lib/db";
 
 export const runtime = "nodejs";
 
-const VALID_STATUS = new Set(["PAID", "IN_PREPARATION", "READY", "OUT_FOR_DELIVERY", "DELIVERED"]);
+const VALID_STATUS = new Set(["PAID", "ACCEPTED", "IN_PREPARATION", "READY", "OUT_FOR_DELIVERY", "DELIVERED"]);
 
 type DbOrderRow = {
   id: string;
@@ -20,7 +20,7 @@ type DbOrderRow = {
   payment_status: string;
   payment_id: string | null;
   timestamp: string | number;
-  status: "PAID" | "IN_PREPARATION" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED";
+  status: "PAID" | "ACCEPTED" | "IN_PREPARATION" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED";
 };
 
 function mapOrder(row: DbOrderRow) {
@@ -73,7 +73,7 @@ export async function PATCH(
       update orders
       set
         status = $2,
-        payment_status = case when $2 = 'PAID' then 'approved' else payment_status end,
+        payment_status = case when $2 in ('PAID', 'ACCEPTED', 'IN_PREPARATION') then 'approved' else payment_status end,
         updated_at = now()
       where id = $1
       returning

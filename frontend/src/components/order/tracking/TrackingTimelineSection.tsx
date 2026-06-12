@@ -87,17 +87,19 @@ export function TrackingTimelineSection({
         ? "Esse pagamento não foi aprovado. Tente novamente para enviar o pedido para a cozinha."
         : order.status === "PAID"
           ? "Pagamento confirmado. Aguardando a cozinha aceitar o pedido no KDS."
-          : order.status === "IN_PREPARATION"
-            ? "A cozinha aceitou seu pedido e iniciou o preparo."
-            : order.status === "READY"
-              ? "Seu pedido está pronto. A equipe vai liberar a entrega."
-              : order.status === "OUT_FOR_DELIVERY"
-                ? "Seu pedido saiu para entrega e está a caminho."
-                : order.status === "DELIVERED"
-                  ? "Entrega confirmada com segurança. Obrigado por comprar na Menfi's."
-                  : order.status === "CANCELLED"
-                    ? "Este pedido foi cancelado. Fale com a equipe se precisar."
-                    : "Acompanhe aqui a confirmação do pedido.";
+          : order.status === "ACCEPTED"
+            ? "A cozinha aceitou seu pedido e vai iniciar o preparo."
+            : order.status === "IN_PREPARATION"
+              ? "Seu pedido está em preparo na cozinha."
+              : order.status === "READY"
+                ? "Seu pedido está pronto. A equipe vai liberar a entrega."
+                : order.status === "OUT_FOR_DELIVERY"
+                  ? "Seu pedido saiu para entrega e está a caminho."
+                  : order.status === "DELIVERED"
+                    ? "Entrega confirmada com segurança. Obrigado por comprar na Menfi's."
+                    : order.status === "CANCELLED"
+                      ? "Este pedido foi cancelado. Fale com a equipe se precisar."
+                      : "Acompanhe aqui a confirmação do pedido.";
   const progressInset = 100 / (steps.length * 2);
   const progressWidth =
     displayCurrent <= 0 ? 0 : (displayCurrent / (steps.length - 1)) * (100 - progressInset * 2);

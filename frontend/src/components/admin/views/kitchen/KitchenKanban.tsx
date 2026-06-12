@@ -188,6 +188,7 @@ function itemKindFromId(id: string, name = ""): ProductKind {
 
 function statusLabel(status: OrderStatus) {
   if (status === "PAID") return "Novo";
+  if (status === "ACCEPTED") return "Aceito";
   if (status === "IN_PREPARATION") return "Em preparo";
   if (status === "READY") return "Pronto";
   return STAGE_LABEL[status] ?? status;

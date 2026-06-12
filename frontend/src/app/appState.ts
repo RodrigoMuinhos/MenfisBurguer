@@ -17,10 +17,11 @@ const STATUS_RANK: Partial<Record<OrderStatus, number>> = {
   CREATED: 0,
   PAYMENT_PENDING: 1,
   PAID: 2,
-  IN_PREPARATION: 3,
-  READY: 4,
-  OUT_FOR_DELIVERY: 5,
-  DELIVERED: 6,
+  ACCEPTED: 3,
+  IN_PREPARATION: 4,
+  READY: 5,
+  OUT_FOR_DELIVERY: 6,
+  DELIVERED: 7,
   CANCELLED: 99,
 };
 

@@ -32,6 +32,7 @@ import { MemberNotification } from "@/components/product/notifications";
 
 const NOTIFIABLE_STATUSES = new Set([
   "PAID",
+  "ACCEPTED",
   "IN_PREPARATION",
   "READY",
   "OUT_FOR_DELIVERY",
@@ -43,18 +44,20 @@ function notificationForOrder(order: Order): Omit<MemberNotification, "id" | "cr
   const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
   const title =
     order.status === "PAID"
-      ? "Pedido aceito"
-      : order.status === "IN_PREPARATION"
-        ? "Pedido em preparo"
-        : order.status === "READY"
-          ? "Pedido pronto"
-          : order.status === "OUT_FOR_DELIVERY"
-            ? "Pedido saiu para entrega"
-            : order.status === "DELIVERED"
-              ? "Pedido entregue"
-              : order.status === "CANCELLED"
-                ? "Pedido cancelado"
-                : status.label;
+      ? "Pedido recebido"
+      : order.status === "ACCEPTED"
+        ? "Pedido aceito"
+        : order.status === "IN_PREPARATION"
+          ? "Pedido em preparo"
+          : order.status === "READY"
+            ? "Pedido pronto"
+            : order.status === "OUT_FOR_DELIVERY"
+              ? "Pedido saiu para entrega"
+              : order.status === "DELIVERED"
+                ? "Pedido entregue"
+                : order.status === "CANCELLED"
+                  ? "Pedido cancelado"
+                  : status.label;
   const message =
     order.status === "READY"
       ? "Seu pedido ficou pronto. Acompanhe a liberação."

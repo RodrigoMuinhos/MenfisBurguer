@@ -261,9 +261,9 @@ public class OrderService {
     jdbc.update(
       """
       update orders set status = ?, updated_at = now(),
-        payment_status = case when ? in ('PAID', 'IN_PREPARATION') then 'approved' else payment_status end,
-        paid_at = case when ? in ('PAID', 'IN_PREPARATION') and paid_at is null then now() else paid_at end,
-        confirmed_at = case when ? in ('PAID', 'IN_PREPARATION') and confirmed_at is null then now() else confirmed_at end
+        payment_status = case when ? in ('PAID', 'ACCEPTED', 'IN_PREPARATION') then 'approved' else payment_status end,
+        paid_at = case when ? in ('PAID', 'ACCEPTED', 'IN_PREPARATION') and paid_at is null then now() else paid_at end,
+        confirmed_at = case when ? in ('PAID', 'ACCEPTED', 'IN_PREPARATION') and confirmed_at is null then now() else confirmed_at end
       where id = ?
       """,
       toStatus.name(),
@@ -439,8 +439,9 @@ public class OrderService {
   private boolean canTransition(OrderStatus from, OrderStatus to) {
     return switch (from) {
       case CREATED -> to == OrderStatus.PAYMENT_PENDING || to == OrderStatus.CANCELLED;
-      case PAYMENT_PENDING -> to == OrderStatus.PAID || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
-      case PAID -> to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
+      case PAYMENT_PENDING -> to == OrderStatus.PAID || to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
+      case PAID -> to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
+      case ACCEPTED -> to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case IN_PREPARATION -> to == OrderStatus.READY;
       case READY -> to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> to == OrderStatus.DELIVERED;

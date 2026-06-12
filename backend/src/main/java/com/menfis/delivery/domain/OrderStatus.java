@@ -4,6 +4,7 @@ public enum OrderStatus {
   CREATED,
   PAYMENT_PENDING,
   PAID,
+  ACCEPTED,
   IN_PREPARATION,
   READY,
   OUT_FOR_DELIVERY,

@@ -19,7 +19,7 @@ type DbOrderRow = {
   payment_status: string;
   payment_id: string | null;
   timestamp: string | number;
-  status: "PAID" | "IN_PREPARATION" | "READY" | "DELIVERED";
+  status: "PAID" | "ACCEPTED" | "IN_PREPARATION" | "READY" | "DELIVERED";
 };
 
 function mapOrder(row: DbOrderRow) {

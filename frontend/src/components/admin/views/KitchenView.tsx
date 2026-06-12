@@ -27,7 +27,7 @@ type ProductKind = "burger" | "chicken" | "bacon";
 const KDS_SEEN_ORDERS_KEY = "menfis_kds_seen_orders";
 const KDS_SOUND_KEY = "menfis_kds_sound_enabled";
 const KDS_REJECTED_ORDERS_KEY = "menfis_kds_rejected_orders";
-const ACTIVE_STATUSES: OrderStatus[] = ["PAID", "IN_PREPARATION", "READY"];
+const ACTIVE_STATUSES: OrderStatus[] = ["PAID", "ACCEPTED", "IN_PREPARATION", "READY"];
 
 const TECHNICAL_CARDS = [
   { id: "burger", title: "Menfi's Burger", recipeId: "burger", time: "8-12 min" },
@@ -86,9 +86,10 @@ export function KitchenView({
 
   const stageOrders = {
     PAID: activeOrders.filter((order) => order.status === "PAID"),
+    ACCEPTED: activeOrders.filter((order) => order.status === "ACCEPTED"),
     IN_PREPARATION: activeOrders.filter((order) => order.status === "IN_PREPARATION"),
     READY: activeOrders.filter((order) => order.status === "READY"),
-  } satisfies Record<"PAID" | "IN_PREPARATION" | "READY", Order[]>;
+  } satisfies Record<"PAID" | "ACCEPTED" | "IN_PREPARATION" | "READY", Order[]>;
 
   const selectedOrder =
     activeOrders.find((order) => order.id === selectedId) ?? activeOrders[0] ?? null;
@@ -140,7 +141,7 @@ export function KitchenView({
     if (busyAction) return;
     setBusyAction(`${key}:${order.id}`);
     if (url) window.open(url, "_blank", "noopener,noreferrer");
-    if (order.status === "PAID" && status === "IN_PREPARATION") deductStock(order);
+    if (order.status === "ACCEPTED" && status === "IN_PREPARATION") deductStock(order);
     if (status === "CANCELLED") {
       setLocallyRejectedIds((current) => {
         const next = new Set(current);
@@ -167,9 +168,6 @@ export function KitchenView({
   }));
   const critical = stockItems.filter((item) => item.qty <= item.minQty).slice(0, 3);
   const nextOrderRequest = stageOrders.PAID[0];
-  const paidColumnOrders = nextOrderRequest
-    ? stageOrders.PAID.filter((order) => order.id !== nextOrderRequest.id)
-    : stageOrders.PAID;
 
   return (
     <main style={{ minHeight: "100vh", background: "#FFF8F2", color: VERDE }}>
@@ -302,7 +300,7 @@ export function KitchenView({
                   busy={Boolean(busyAction)}
                   onSelect={() => setSelectedId(nextOrderRequest.id)}
                   onAccept={() =>
-                    runStatusAction(nextOrderRequest, "IN_PREPARATION", "prepare")
+                    runStatusAction(nextOrderRequest, "ACCEPTED", "accept")
                   }
                   onReject={() =>
                     runStatusAction(nextOrderRequest, "CANCELLED", "reject")
@@ -311,8 +309,8 @@ export function KitchenView({
               )}
               <KitchenStageColumn
                 title="Pedidos aceitos"
-                subtitle="Aceitar e iniciar preparo"
-                orders={paidColumnOrders}
+                subtitle="Aguardando iniciar preparo"
+                orders={stageOrders.ACCEPTED}
                 selectedId={selectedOrder?.id}
                 actionLabel="Botar em preparo"
                 actionIcon="send"
@@ -369,15 +367,23 @@ export function KitchenView({
               busyAction={busyAction}
               compact={compact || !sideBySide}
               onSendConfirmation={() =>
-                runStatusAction(
-                  selectedOrder,
-                  "IN_PREPARATION",
-                  "confirm",
-                  customerWhatsappUrl(selectedOrder),
-                )
+                selectedOrder.status === "PAID"
+                  ? runStatusAction(
+                      selectedOrder,
+                      "ACCEPTED",
+                      "confirm",
+                      customerWhatsappUrl(selectedOrder),
+                    )
+                  : runStatusAction(
+                      selectedOrder,
+                      "IN_PREPARATION",
+                      "prepare",
+                    )
               }
               onSendReady={() =>
-                selectedOrder.status === "READY"
+                selectedOrder.status === "ACCEPTED"
+                  ? runStatusAction(selectedOrder, "IN_PREPARATION", "prepare")
+                  : selectedOrder.status === "READY"
                   ? selectedOrder.deliveryType === "delivery" && !isKioskMobOrder(selectedOrder)
                     ? runStatusAction(selectedOrder, "OUT_FOR_DELIVERY", "route")
                     : runStatusAction(selectedOrder, "DELIVERED", "deliver")
