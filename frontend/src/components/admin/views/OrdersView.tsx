@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { BellRing, Check, FileText, MessageCircle, Phone, Printer, XCircle } from "lucide-react";
-import { Order, OrderStatus } from "@/types/order";
+import { BellRing, Check, FileText, MessageCircle, Minus, Pencil, Phone, Plus, Printer, Save, Trash2, XCircle } from "lucide-react";
+import { CartItem, Order, OrderStatus } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { deliveryConfirmationCode } from "@/components/order/tracking";
 import {
@@ -19,6 +19,7 @@ import {
 } from "../shared";
 
 const CANCELLABLE_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAID", "ACCEPTED"];
+const EDITABLE_ITEM_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAID", "ACCEPTED"];
 const PREPARATION_STARTED_STATUSES: OrderStatus[] = [
   "IN_PREPARATION",
   "READY",
@@ -29,15 +30,21 @@ const PREPARATION_STARTED_STATUSES: OrderStatus[] = [
 export function OrdersView({
   orders,
   updateOrderStatus,
+  deleteOrder,
+  updateOrderItems,
 }: {
   orders: Order[];
   updateOrderStatus: (id: string, status: OrderStatus) => void;
+  deleteOrder: (id: string) => void | Promise<void>;
+  updateOrderItems: (id: string, items: CartItem[]) => void | Promise<void>;
 }) {
   const [channelFilter, setChannelFilter] = useState<"ALL" | Order["channel"]>(
     "ALL",
   );
   const [selectedId, setSelectedId] = useState(orders[0]?.id ?? "");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [editingOrderId, setEditingOrderId] = useState("");
+  const [draftItems, setDraftItems] = useState<CartItem[]>([]);
   const filteredOrders = orders.filter(
     (order) => channelFilter === "ALL" || order.channel === channelFilter,
   );
@@ -59,17 +66,58 @@ export function OrdersView({
     (selected.status === "PAYMENT_PENDING" ||
       (selected.status === "CANCELLED" && selected.paymentProvider === "mercado_pago" && paymentRejected));
   const selectedIsKioskMob = isKioskMobOrder(selected);
+  const editingItems = selected?.id === editingOrderId;
+  const detailItems = editingItems ? draftItems : selected?.items ?? [];
   const selectedSubtotal = Number(selected?.subtotal ?? selected?.items.reduce((sum, item) => sum + item.price * item.qty, 0) ?? 0);
   const selectedDeliveryFee = Number(selected?.deliveryFee ?? 0);
+  const draftSubtotal = detailItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   const selectedTotal = Number(selected?.total ?? 0);
   const selectedDiscount = Number((selected as Order & { discountTotal?: number })?.discountTotal ?? 0);
   const selectedServiceFee = Math.max(
     0,
     Math.round((selectedTotal + selectedDiscount - selectedSubtotal - selectedDeliveryFee) * 100) / 100,
   );
+  const detailSubtotal = editingItems ? draftSubtotal : selectedSubtotal;
+  const detailTotal = editingItems
+    ? Math.max(
+        1,
+        Math.round((detailSubtotal + selectedDeliveryFee + selectedServiceFee - selectedDiscount) * 100) / 100,
+      )
+    : selectedTotal;
   const selectedRemoved = Object.entries(selected?.removedByItemId ?? {})
     .flatMap(([, values]) => values)
     .filter((value, index, values) => values.indexOf(value) === index);
+  const confirmDeleteCancelled = (order: Order) => {
+    if (order.status !== "CANCELLED") return;
+    const confirmed = window.confirm(`Excluir definitivamente o pedido ${order.id}?`);
+    if (!confirmed) return;
+    void deleteOrder(order.id);
+  };
+  const startItemEdit = () => {
+    if (!selected) return;
+    setEditingOrderId(selected.id);
+    setDraftItems(selected.items.map((item) => ({ ...item })));
+  };
+  const updateDraftQty = (itemIndex: number, delta: number) => {
+    setDraftItems((items) =>
+      items.map((item, index) =>
+        index === itemIndex ? { ...item, qty: Math.max(1, item.qty + delta) } : item,
+      ),
+    );
+  };
+  const removeDraftItem = (itemIndex: number) => {
+    setDraftItems((items) => items.filter((_, index) => index !== itemIndex));
+  };
+  const cancelItemEdit = () => {
+    setEditingOrderId("");
+    setDraftItems([]);
+  };
+  const saveItemEdit = async () => {
+    if (!selected) return;
+    if (draftItems.length === 0) return;
+    await updateOrderItems(selected.id, draftItems);
+    cancelItemEdit();
+  };
 
   if (!selected) {
     return (
@@ -102,30 +150,56 @@ export function OrdersView({
           {filteredOrders.map((order) => {
             const stage = STAGE_COLOR[order.status];
             return (
-              <button
+              <div
                 key={order.id}
-                onClick={() => setSelectedId(order.id)}
-                className="rounded-xl p-3 text-left"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-xl"
                 style={{
                   background: selected.id === order.id ? stage.bg : "#fff",
                   border: `1.5px solid ${selected.id === order.id ? stage.accent : stage.border}`,
                 }}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <strong style={{ color: stage.text }}>{order.id}</strong>
-                  <span
-                    className="text-[10px] font-black uppercase"
-                    style={{ color: stage.text }}
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(order.id)}
+                  className="min-w-0 p-3 text-left"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <strong style={{ color: stage.text }}>{order.id}</strong>
+                    <span
+                      className="text-[10px] font-black uppercase"
+                      style={{ color: stage.text }}
+                    >
+                      {STAGE_LABEL[order.status]}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs font-bold" style={{ color: VERDE }}>
+                    {isKioskMobOrder(order) ? "BALCÃO" : order.channel} · {fmt(order.total)} ·{" "}
+                    {order.customerName || "Sem nome"} ·{" "}
+                    {order.customerPhone || "Sem telefone"}
+                  </p>
+                  {order.deliveryType === "delivery" && !isKioskMobOrder(order) && (
+                    <p className="mt-1 line-clamp-2 text-[11px] font-bold" style={{ color: `${VERDE}99` }}>
+                      {order.customerAddress || "Endereço não informado"}
+                    </p>
+                  )}
+                </button>
+                {order.status === "CANCELLED" && (
+                  <button
+                    type="button"
+                    onClick={() => confirmDeleteCancelled(order)}
+                    className="flex w-12 items-center justify-center border-l"
+                    style={{
+                      borderColor: stage.border,
+                      color: "#991B1B",
+                      background: "#FEF2F2",
+                    }}
+                    aria-label={`Excluir pedido ${order.id}`}
+                    title="Excluir pedido cancelado"
                   >
-                    {STAGE_LABEL[order.status]}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs font-bold" style={{ color: VERDE }}>
-                  {isKioskMobOrder(order) ? "BALCÃO" : order.channel} · {fmt(order.total)} ·{" "}
-                  {order.customerName || "Sem nome"} ·{" "}
-                  {order.customerPhone || "Sem telefone"}
-                </p>
-              </button>
+                    <Trash2 size={17} strokeWidth={2.4} />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
@@ -243,7 +317,7 @@ export function OrdersView({
                 Total
               </p>
               <p className="mt-1 text-sm font-bold">
-                {fmt(selected.total)}
+                {fmt(detailTotal)}
               </p>
             </div>
             {selected.deliveryType === "delivery" && !selectedIsKioskMob && (
@@ -389,21 +463,55 @@ export function OrdersView({
                   Nota detalhada
                 </p>
                 <p className="mt-1 text-xs font-bold opacity-60">
-                  Mesmo detalhe usado na impressão e no TXT.
+                  {editingItems ? "Altere quantidades ou remova itens antes de salvar." : "Mesmo detalhe usado na impressão e no TXT."}
                 </p>
               </div>
-              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: ROSA, color: VERDE }}>
-                Pedido {selected.id}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {editingItems ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={cancelItemEdit}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase"
+                      style={{ background: `${VERDE}08`, color: VERDE, border: `1.5px solid ${VERDE}18` }}
+                    >
+                      <XCircle size={13} /> Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveItemEdit()}
+                      disabled={draftItems.length === 0}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase disabled:opacity-40"
+                      style={{ background: "#16A34A", color: "#fff" }}
+                    >
+                      <Save size={13} /> Salvar
+                    </button>
+                  </>
+                ) : (
+                  EDITABLE_ITEM_STATUSES.includes(selected.status) && (
+                    <button
+                      type="button"
+                      onClick={startItemEdit}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase"
+                      style={{ background: VERDE, color: ROSA }}
+                    >
+                      <Pencil size={13} /> Editar itens
+                    </button>
+                  )
+                )}
+                <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: ROSA, color: VERDE }}>
+                  Pedido {selected.id}
+                </span>
+              </div>
             </div>
 
             <div className="mt-4 grid gap-3">
-              {selected.items.map((item) => {
+              {detailItems.map((item, itemIndex) => {
                 const components = orderItemComponents(item);
                 const note = orderItemNote(item);
                 return (
                   <div
-                    key={`${selected.id}-${item.id}`}
+                    key={`${selected.id}-${item.id}-${itemIndex}`}
                     className="rounded-xl border bg-white p-3"
                     style={{ borderColor: `${ROSA}88` }}
                   >
@@ -416,7 +524,46 @@ export function OrdersView({
                           Unitário {fmt(item.price)}
                         </p>
                       </div>
-                      <strong className="shrink-0">{fmt(item.price * item.qty)}</strong>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <strong>{fmt(item.price * item.qty)}</strong>
+                        {editingItems && (
+                          <div className="flex items-center gap-2">
+                            <span className="grid h-9 grid-cols-3 overflow-hidden rounded-xl" style={{ border: `1.5px solid ${VERDE}18` }}>
+                              <button
+                                type="button"
+                                onClick={() => updateDraftQty(itemIndex, -1)}
+                                className="flex w-9 items-center justify-center"
+                                style={{ color: VERDE }}
+                                aria-label={`Diminuir ${item.name}`}
+                              >
+                                <Minus size={14} strokeWidth={2.6} />
+                              </button>
+                              <span className="flex w-9 items-center justify-center text-xs font-black" style={{ background: VERDE, color: ROSA }}>
+                                {item.qty}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => updateDraftQty(itemIndex, 1)}
+                                className="flex w-9 items-center justify-center"
+                                style={{ color: VERDE }}
+                                aria-label={`Aumentar ${item.name}`}
+                              >
+                                <Plus size={14} strokeWidth={2.6} />
+                              </button>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeDraftItem(itemIndex)}
+                              disabled={draftItems.length <= 1}
+                              className="flex h-9 w-9 items-center justify-center rounded-xl disabled:opacity-35"
+                              style={{ background: "#FEF2F2", color: "#991B1B", border: "1.5px solid #FCA5A5" }}
+                              aria-label={`Remover ${item.name}`}
+                            >
+                              <Trash2 size={15} strokeWidth={2.4} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {components.length > 0 && (
@@ -448,7 +595,7 @@ export function OrdersView({
             <div className="mt-4 grid gap-2 border-t pt-4 text-sm" style={{ borderColor: `${VERDE}18` }}>
               <div className="flex justify-between gap-4">
                 <span>Subtotal dos itens</span>
-                <strong>{fmt(selectedSubtotal)}</strong>
+                <strong>{fmt(detailSubtotal)}</strong>
               </div>
               {selectedDeliveryFee > 0 && (
                 <div className="flex justify-between gap-4">
@@ -470,7 +617,7 @@ export function OrdersView({
               )}
               <div className="mt-2 flex justify-between gap-4 border-t pt-3 text-xl font-black" style={{ borderColor: `${VERDE}18` }}>
                 <span>Total</span>
-                <span>{fmt(selected.total)}</span>
+                <span>{fmt(detailTotal)}</span>
               </div>
             </div>
           </div>

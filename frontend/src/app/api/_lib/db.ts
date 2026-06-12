@@ -56,9 +56,13 @@ export async function ensureOrdersSchema() {
       removed_by_item_id jsonb,
       channel text not null default 'DELIVERY',
       delivery_type text not null,
+      customer_name text,
       customer_phone text,
       customer_address text,
+      subtotal numeric(12,2),
+      delivery_fee numeric(12,2) not null default 0,
       total numeric(12,2) not null,
+      discount_total numeric(12,2) not null default 0,
       payment_provider text,
       payment_method text,
       payment_status text not null default 'not_required',
@@ -71,6 +75,10 @@ export async function ensureOrdersSchema() {
 
     alter table orders add column if not exists payment_provider text;
     alter table orders add column if not exists channel text not null default 'DELIVERY';
+    alter table orders add column if not exists customer_name text;
+    alter table orders add column if not exists subtotal numeric(12,2);
+    alter table orders add column if not exists delivery_fee numeric(12,2) not null default 0;
+    alter table orders add column if not exists discount_total numeric(12,2) not null default 0;
     alter table orders add column if not exists payment_method text;
     alter table orders add column if not exists payment_status text not null default 'not_required';
     alter table orders add column if not exists payment_id text;

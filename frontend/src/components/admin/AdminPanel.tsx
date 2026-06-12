@@ -9,7 +9,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { Order, OrderStatus } from "@/types/order";
+import { CartItem, Order, OrderStatus } from "@/types/order";
 import { VERDE } from "@/utils/theme";
 import { EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
 import { AdminHeader, AdminTabs, PaymentRequestsAlert } from "./AdminChrome";
@@ -46,6 +46,8 @@ export type AdminTab = "pedidos" | "cozinha" | "entrega" | "dashboard" | "estoqu
 interface Props {
   orders: Order[];
   updateOrderStatus: (id: string, status: OrderStatus) => void | Promise<void>;
+  deleteOrder: (id: string) => void | Promise<void>;
+  updateOrderItems: (id: string, items: CartItem[]) => void | Promise<void>;
   onClose: () => void;
   initialTab?: AdminTab;
   adminToken: string;
@@ -55,6 +57,8 @@ interface Props {
 export function AdminPanel({
   orders,
   updateOrderStatus,
+  deleteOrder,
+  updateOrderItems,
   onClose,
   initialTab = "pedidos",
   adminToken,
@@ -144,7 +148,6 @@ export function AdminPanel({
       order.paymentMethod === "presencial" &&
       String(order.paymentStatus ?? "").toLowerCase() !== "approved",
   );
-  const todayRevenue = orders.reduce((s, o) => s + o.total, 0);
   const tabCount: Partial<Record<AdminTab, number>> = {
     pedidos: activeOrders,
     cozinha: orders.filter((order) =>
@@ -500,7 +503,12 @@ export function AdminPanel({
           </div>
         )}
         {tab === "pedidos" && (
-          <OrdersView orders={orders} updateOrderStatus={updateOrderStatus} />
+          <OrdersView
+            orders={orders}
+            updateOrderStatus={updateOrderStatus}
+            deleteOrder={deleteOrder}
+            updateOrderItems={updateOrderItems}
+          />
         )}
         {tab === "cozinha" && (
           <KitchenView
@@ -511,7 +519,7 @@ export function AdminPanel({
           />
         )}
         {tab === "dashboard" && (
-          <DashboardView orders={orders} todayRevenue={todayRevenue} />
+          <DashboardView orders={orders} />
         )}
         {tab === "estoque" && (
           <EstoqueView
@@ -533,6 +541,8 @@ export function AdminPanel({
                 ["READY", "OUT_FOR_DELIVERY"].includes(order.status),
             )}
             updateOrderStatus={updateOrderStatus}
+            deleteOrder={deleteOrder}
+            updateOrderItems={updateOrderItems}
           />
         )}
         {tab === "clientes" && (

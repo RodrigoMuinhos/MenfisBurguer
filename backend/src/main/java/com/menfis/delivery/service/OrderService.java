@@ -93,9 +93,7 @@ public class OrderService {
     }
     OffsetDateTime confirmedAt = paidKiosk ? OffsetDateTime.now() : null;
     String itemsJson = toJson(price.items());
-    Long customerId = authenticatedCustomerId != null
-      ? authenticatedCustomerId
-      : customers.findCustomerIdByPhone(request.customerPhone());
+    Long customerId = authenticatedCustomerId;
 
     jdbc.update(
       """
@@ -202,6 +200,75 @@ public class OrderService {
     );
   }
 
+  @Transactional
+  public void deleteCancelled(String id) {
+    String status = jdbc.queryForObject("select status from orders where id = ?", String.class, id);
+    if (!OrderStatus.CANCELLED.name().equals(status)) {
+      throw new IllegalArgumentException("only_cancelled_orders_can_be_deleted");
+    }
+    jdbc.update("delete from orders where id = ?", id);
+    audit.log("admin", "ORDER_DELETED", "ORDER", id, Map.of("status", status));
+  }
+
+  @Transactional
+  public OrderResponse updateItems(String id, List<Map<String, Object>> rawItems) {
+    Map<String, Object> current = jdbc.queryForMap(
+      "select status, subtotal, delivery_fee, total, discount_total from orders where id = ?",
+      id
+    );
+    OrderStatus status = OrderStatus.valueOf(String.valueOf(current.get("status")));
+    if (!(status == OrderStatus.PAYMENT_PENDING || status == OrderStatus.PAID || status == OrderStatus.ACCEPTED)) {
+      throw new IllegalArgumentException("order_items_not_editable_in_status:" + status.name());
+    }
+
+    List<Map<String, Object>> items = normalizeEditableItems(rawItems);
+    if (items.isEmpty()) {
+      throw new IllegalArgumentException("order_must_have_at_least_one_item");
+    }
+
+    BigDecimal newSubtotal = items.stream()
+      .map(item -> (BigDecimal) item.get("totalPrice"))
+      .reduce(BigDecimal.ZERO, BigDecimal::add)
+      .setScale(2, RoundingMode.HALF_UP);
+    BigDecimal oldSubtotal = money(current.get("subtotal"));
+    BigDecimal deliveryFee = money(current.get("delivery_fee"));
+    BigDecimal oldTotal = money(current.get("total"));
+    BigDecimal discount = money(current.get("discount_total"));
+    BigDecimal serviceFee = oldTotal.add(discount).subtract(oldSubtotal).subtract(deliveryFee).max(BigDecimal.ZERO);
+    BigDecimal newTotal = newSubtotal.add(deliveryFee).add(serviceFee).subtract(discount)
+      .max(new BigDecimal("1.00"))
+      .setScale(2, RoundingMode.HALF_UP);
+
+    jdbc.update(
+      "update orders set items = ?::jsonb, subtotal = ?, total = ?, updated_at = now() where id = ?",
+      toJson(items),
+      newSubtotal,
+      newTotal,
+      id
+    );
+    jdbc.update("delete from order_items where order_id = ?", id);
+    for (Map<String, Object> item : items) {
+      jdbc.update(
+        """
+        insert into order_items(order_id, product_id, item_type, name, quantity, unit_price, total_price, metadata)
+        values (?, ?, ?, ?, ?, ?, ?, ?::jsonb)
+        """,
+        id,
+        item.get("productId"),
+        "PRODUCT",
+        item.get("name"),
+        item.get("quantity"),
+        item.get("unitPrice"),
+        item.get("totalPrice"),
+        toJson(item)
+      );
+    }
+    audit.log("admin", "ORDER_ITEMS_UPDATED", "ORDER", id, Map.of("subtotal", newSubtotal, "total", newTotal));
+    OrderResponse updated = get(id);
+    events.publish(id, updated);
+    return updated;
+  }
+
   public List<OrderResponse> listDeliveryRoute() {
     return jdbc.query(
       """
@@ -231,7 +298,6 @@ public class OrderService {
       where o.test_mode = ?
         and (
           o.customer_id = c.id
-          or regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g') = c.phone_digits
         )
       order by o.created_at desc nulls last, o.number desc
       limit 50
@@ -496,6 +562,51 @@ public class OrderService {
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("invalid json", e);
     }
+  }
+
+  private List<Map<String, Object>> normalizeEditableItems(List<Map<String, Object>> rawItems) {
+    if (rawItems == null) return List.of();
+    return rawItems.stream().map(item -> {
+      String id = cleanString(item.get("id"));
+      String productId = cleanString(item.getOrDefault("productId", id));
+      String name = cleanString(item.get("name"));
+      int quantity = Math.max(1, number(item.getOrDefault("quantity", item.get("qty"))).intValue());
+      BigDecimal unitPrice = number(item.getOrDefault("unitPrice", item.get("price"))).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+      if (name.isBlank()) throw new IllegalArgumentException("invalid_item_name");
+      BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP);
+      Map<String, Object> normalized = new LinkedHashMap<>();
+      normalized.put("id", id.isBlank() ? productId : id);
+      normalized.put("productId", productId.isBlank() ? id : productId);
+      normalized.put("name", name);
+      normalized.put("quantity", quantity);
+      normalized.put("qty", quantity);
+      normalized.put("unitPrice", unitPrice);
+      normalized.put("price", unitPrice);
+      normalized.put("totalPrice", totalPrice);
+      Object components = item.get("components");
+      if (components instanceof List<?>) normalized.put("components", components);
+      Object note = item.get("note");
+      if (note != null && !String.valueOf(note).isBlank()) normalized.put("note", String.valueOf(note));
+      return normalized;
+    }).toList();
+  }
+
+  private BigDecimal money(Object value) {
+    if (value instanceof BigDecimal decimal) return decimal.setScale(2, RoundingMode.HALF_UP);
+    if (value instanceof Number number) return BigDecimal.valueOf(number.doubleValue()).setScale(2, RoundingMode.HALF_UP);
+    if (value == null) return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+    return new BigDecimal(String.valueOf(value)).setScale(2, RoundingMode.HALF_UP);
+  }
+
+  private BigDecimal number(Object value) {
+    if (value instanceof BigDecimal decimal) return decimal;
+    if (value instanceof Number number) return BigDecimal.valueOf(number.doubleValue());
+    if (value == null || String.valueOf(value).isBlank()) return BigDecimal.ZERO;
+    return new BigDecimal(String.valueOf(value));
+  }
+
+  private String cleanString(Object value) {
+    return value == null ? "" : String.valueOf(value).trim();
   }
 
   private OffsetDateTime offset(ResultSet rs, String column) throws SQLException {

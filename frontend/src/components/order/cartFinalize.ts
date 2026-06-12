@@ -1,7 +1,7 @@
 import { CartItem, Order } from "@/types/order";
 import { MEMBER_TOKEN_KEY } from "@/components/product/shared";
 import { printOrderReceipts } from "@/components/admin/shared";
-import { deliveryConfirmationCode } from "@/services/orders/normalize";
+import { normalizeBackendOrder } from "@/services/orders/normalize";
 import {
   API_URL,
   Coupon,
@@ -14,6 +14,8 @@ import {
   wait,
 } from "./checkout";
 import { buildOrderWhatsappReceipt } from "./whatsappReceipt";
+
+const CART_STORAGE_KEY = "menfis_cart";
 
 function buildPendingCreatedOrder({
   createdOrder,
@@ -40,29 +42,58 @@ function buildPendingCreatedOrder({
   paymentProvider?: string;
   paymentStatus?: string;
 }): Order {
-  return {
-    id: String(createdOrder.id),
-    number: Number(
-      createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
-    ),
-    deliveryCode: String(
-      createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
-    ),
-    channel: "DELIVERY",
-    items: cart.map((item) => ({ ...item })),
+  return buildLocalCreatedOrder({
+    createdOrder,
+    cart,
     removedByItemId,
-    deliveryType: effectiveDelivery,
-    customerName: customerName.trim() || undefined,
-    customerPhone: phone || undefined,
-    customerAddress: address,
-    total: Number(createdOrder.total ?? total),
-    paymentProvider,
-    paymentMethod: payment,
-    paymentStatus: String(paymentStatus ?? createdOrder.paymentStatus ?? "pending"),
-    paymentId:
-      typeof createdOrder.paymentId === "string" ? createdOrder.paymentId : undefined,
-    timestamp: Date.now(),
-    status: "PAYMENT_PENDING",
+    effectiveDelivery,
+    customerName,
+    phone,
+    address,
+    total,
+    overrides: {
+      paymentProvider,
+      paymentMethod: payment,
+      paymentStatus: String(paymentStatus ?? createdOrder.paymentStatus ?? "pending"),
+      paymentId:
+        typeof createdOrder.paymentId === "string" ? createdOrder.paymentId : undefined,
+      status: "PAYMENT_PENDING",
+    },
+  });
+}
+
+function buildLocalCreatedOrder({
+  createdOrder,
+  cart,
+  removedByItemId,
+  effectiveDelivery,
+  customerName,
+  phone,
+  address,
+  total,
+  overrides,
+}: {
+  createdOrder: Record<string, unknown>;
+  cart: CartItem[];
+  removedByItemId: Record<string, string[]>;
+  effectiveDelivery: "retirada" | "delivery";
+  customerName: string;
+  phone: string;
+  address: string;
+  total: number;
+  overrides: Partial<Order>;
+}): Order {
+  const backendOrder = normalizeBackendOrder(createdOrder);
+  return {
+    ...backendOrder,
+    items: backendOrder.items.length ? backendOrder.items : cart.map((item) => ({ ...item })),
+    removedByItemId: backendOrder.removedByItemId ?? removedByItemId,
+    deliveryType: backendOrder.deliveryType ?? effectiveDelivery,
+    customerName: (backendOrder.customerName ?? customerName.trim()) || undefined,
+    customerPhone: (backendOrder.customerPhone ?? phone) || undefined,
+    customerAddress: backendOrder.customerAddress ?? address,
+    total: Number(backendOrder.total || createdOrder.total || total),
+    ...overrides,
   };
 }
 
@@ -86,6 +117,7 @@ export async function submitCheckoutOrder({
   setKioskSuccessOrder,
   setPaymentError,
   confirmCounterPrint,
+  clearCartItems,
 }: {
   cart: CartItem[];
   kioskMode: boolean;
@@ -112,12 +144,19 @@ export async function submitCheckoutOrder({
   setKioskSuccessOrder?: (order: Order | null) => void;
   setPaymentError: (value: string) => void;
   confirmCounterPrint?: (order: Order) => Promise<boolean>;
+  clearCartItems?: () => void;
 }) {
   let slowTimer: number | null = null;
   const effectiveDelivery = resolveRuntimeDeliveryType(
     kioskMode || counterServiceMode ? "retirada" : delivery,
   );
   const effectiveChannel = kioskMode || counterServiceMode ? "KIOSK" : "DELIVERY";
+  const orderFingerprint = [
+    phone.replace(/\D/g, ""),
+    address.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim(),
+    Date.now(),
+    Math.random().toString(36).slice(2, 8),
+  ].join("-");
   try {
     if (!API_URL) {
       throw new Error("api_url_missing");
@@ -150,7 +189,7 @@ export async function submitCheckoutOrder({
         customerName: customerName.trim() || undefined,
         customerPhone: phone || undefined,
         customerAddress: address,
-        idempotencyKey: `${phone.replace(/\D/g, "")}-${Date.now()}`,
+        idempotencyKey: orderFingerprint,
         couponCode: appliedCoupon?.code,
         couponDiscount: appliedCoupon ? discount : 0,
       }),
@@ -162,35 +201,33 @@ export async function submitCheckoutOrder({
     }
 
     if (kioskMode || counterServiceMode) {
-      const kioskOrder: Order = {
-        id: String(createdOrder.id),
-        number: Number(
-          createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
-        ),
-        deliveryCode: createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
-        channel: "KIOSK",
-        items: cart.map((item) => ({ ...item })),
+      const kioskOrder = buildLocalCreatedOrder({
+        createdOrder,
+        cart,
         removedByItemId,
-        deliveryType: "retirada",
-        customerName: customerName.trim(),
-        customerPhone: phone,
-        customerAddress: address,
-        total: Number(createdOrder.total ?? total),
-        paymentMethod: counterServiceMode
-          ? "presencial"
-          : payment === "cartao"
-            ? "cartao"
-            : "pix",
-        paymentStatus: String(
-          createdOrder.paymentStatus ?? (counterServiceMode ? "awaiting_counter" : "approved"),
-        ),
-        timestamp: Date.now(),
-        status: counterServiceMode
-          ? "PAYMENT_PENDING"
-          : String(createdOrder.status ?? "PAID") === "PAYMENT_PENDING"
+        effectiveDelivery: "retirada",
+        customerName,
+        phone,
+        address,
+        total,
+        overrides: {
+          channel: "KIOSK",
+          deliveryType: "retirada",
+          paymentMethod: counterServiceMode
+            ? "presencial"
+            : payment === "cartao"
+              ? "cartao"
+              : "pix",
+          paymentStatus: String(
+            createdOrder.paymentStatus ?? (counterServiceMode ? "awaiting_counter" : "approved"),
+          ),
+          status: counterServiceMode
             ? "PAYMENT_PENDING"
-            : "PAID",
-      };
+            : String(createdOrder.status ?? "PAID") === "PAYMENT_PENDING"
+              ? "PAYMENT_PENDING"
+              : "PAID",
+        },
+      });
 
       if (slowTimer) window.clearTimeout(slowTimer);
       setPaymentSlow(false);
@@ -228,48 +265,42 @@ export async function submitCheckoutOrder({
     }
 
     if (payment === "pagar_na_entrega") {
-      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, {
-        id: String(createdOrder.id),
-        number: Number(
-          createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
-        ),
-        deliveryCode: createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
-        channel: "DELIVERY",
-        items: cart.map((item) => ({ ...item })),
+      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, buildLocalCreatedOrder({
+        createdOrder,
+        cart,
         removedByItemId,
-        deliveryType: effectiveDelivery,
-        customerName: customerName.trim() || undefined,
-        customerPhone: phone || undefined,
-        customerAddress: address,
-        total: Number(createdOrder.total ?? total),
-        paymentMethod: "pagar_na_entrega",
-        paymentStatus: "awaiting_delivery",
-        timestamp: Date.now(),
-        status: "PAID",
-      });
+        effectiveDelivery,
+        customerName,
+        phone,
+        address,
+        total,
+        overrides: {
+          channel: "DELIVERY",
+          paymentMethod: "pagar_na_entrega",
+          paymentStatus: "awaiting_delivery",
+          status: "PAID",
+        },
+      }));
       return;
     }
 
     if (payment === "whatsapp") {
-      const whatsappOrder: Order = {
-        id: String(createdOrder.id),
-        number: Number(
-          createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
-        ),
-        deliveryCode: createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
-        channel: "DELIVERY",
-        items: cart.map((item) => ({ ...item })),
+      const whatsappOrder = buildLocalCreatedOrder({
+        createdOrder,
+        cart,
         removedByItemId,
-        deliveryType: effectiveDelivery,
-        customerName: customerName.trim() || undefined,
-        customerPhone: phone || undefined,
-        customerAddress: address,
-        total: Number(createdOrder.total ?? total),
-        paymentMethod: "whatsapp",
-        paymentStatus: "awaiting_whatsapp",
-        timestamp: Date.now(),
-        status: "PAYMENT_PENDING",
-      };
+        effectiveDelivery,
+        customerName,
+        phone,
+        address,
+        total,
+        overrides: {
+          channel: "DELIVERY",
+          paymentMethod: "whatsapp",
+          paymentStatus: "awaiting_whatsapp",
+          status: "PAYMENT_PENDING",
+        },
+      });
       openWhatsappReceipt(whatsappOrder);
       await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
       return;
@@ -291,41 +322,38 @@ export async function submitCheckoutOrder({
         phone || undefined,
         address,
         removedByItemId,
-        {
-          id: String(createdOrder.id),
-          number: Number(
-            createdOrder.number ?? String(createdOrder.id).replace(/\D/g, ""),
-          ),
-          deliveryCode: createdOrder.deliveryCode ?? deliveryConfirmationCode(createdOrder),
-          channel: "DELIVERY",
-          items: cart.map((item) => ({ ...item })),
+        buildLocalCreatedOrder({
+          createdOrder,
+          cart,
           removedByItemId,
-          deliveryType: effectiveDelivery,
-          customerName: customerName.trim() || undefined,
-          customerPhone: phone || undefined,
-          customerAddress: address,
-          total: Number(createdOrder.total ?? total),
-          paymentProvider: "mercado_pago",
-          paymentMethod: "pix",
-          paymentStatus: String(
-            data.status ?? createdOrder.paymentStatus ?? "action_required",
-          ),
-          paymentId: String(
-            data.paymentId ??
-              data.mercadoPagoOrderId ??
-              createdOrder.paymentId ??
-              "",
-          ),
-          pixQrCode: typeof data.qrCode === "string" ? data.qrCode : undefined,
-          pixQrCodeBase64:
-            typeof data.qrCodeBase64 === "string"
-              ? data.qrCodeBase64
-              : undefined,
-          pixTicketUrl:
-            typeof data.ticketUrl === "string" ? data.ticketUrl : undefined,
-          timestamp: Date.now(),
-          status: "PAYMENT_PENDING",
-        },
+          effectiveDelivery,
+          customerName,
+          phone,
+          address,
+          total,
+          overrides: {
+            channel: "DELIVERY",
+            paymentProvider: "mercado_pago",
+            paymentMethod: "pix",
+            paymentStatus: String(
+              data.status ?? createdOrder.paymentStatus ?? "action_required",
+            ),
+            paymentId: String(
+              data.paymentId ??
+                data.mercadoPagoOrderId ??
+                createdOrder.paymentId ??
+                "",
+            ),
+            pixQrCode: typeof data.qrCode === "string" ? data.qrCode : undefined,
+            pixQrCodeBase64:
+              typeof data.qrCodeBase64 === "string"
+                ? data.qrCodeBase64
+                : undefined,
+            pixTicketUrl:
+              typeof data.ticketUrl === "string" ? data.ticketUrl : undefined,
+            status: "PAYMENT_PENDING",
+          },
+        }),
       );
       return;
     }
@@ -362,6 +390,8 @@ export async function submitCheckoutOrder({
 
     registerMemberOrder();
     localStorage.setItem("menfis_pending_order_id", String(createdOrder.id));
+    localStorage.removeItem(CART_STORAGE_KEY);
+    clearCartItems?.();
     window.location.assign(checkoutUrl);
   } catch (error) {
     const reason = error instanceof Error ? error.message : "";

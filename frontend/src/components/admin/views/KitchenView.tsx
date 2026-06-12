@@ -14,6 +14,7 @@ import {
   customerWhatsappUrl,
   copyOrderTxt,
   fmt,
+  isBillableOrder,
   isKioskMobOrder,
   MENU_STOCK_MAP,
   orderReadyWhatsappUrl,
@@ -125,15 +126,17 @@ export function KitchenView({
     localStorage.setItem(KDS_SEEN_ORDERS_KEY, JSON.stringify([...stored]));
   }, [activeOrders.map((order) => order.id).join("|"), soundEnabled]);
 
+  const billableDayOrders = dayOrders.filter(isBillableOrder);
+  const billableRevenue = billableDayOrders.reduce((sum, order) => sum + order.total, 0);
   const metrics = {
     total: dayOrders.length,
     preparation: dayOrders.filter((order) => order.status === "IN_PREPARATION").length,
     ready: dayOrders.filter((order) => order.status === "READY").length,
     delivered: dayOrders.filter((order) => order.status === "DELIVERED").length,
-    revenue: dayOrders.reduce((sum, order) => sum + order.total, 0),
+    revenue: billableRevenue,
     average:
-      dayOrders.length > 0
-        ? dayOrders.reduce((sum, order) => sum + order.total, 0) / dayOrders.length
+      billableDayOrders.length > 0
+        ? billableRevenue / billableDayOrders.length
         : 0,
   };
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { normalizeBackendOrder, normalizeOrderStatus } from "@/services/orders/normalize";
-import { Order, OrderStatus } from "@/types/order";
+import { CartItem, Order, OrderStatus } from "@/types/order";
 import {
   API_URL,
   PENDING_ORDER_KEY,
@@ -207,11 +207,90 @@ export function useOrderSync({
     [adminToken, orders, syncOrders],
   );
 
+  const deleteOrder = useCallback(
+    async (id: string) => {
+      const existing = orders.find((order) => order.id === id);
+      if (existing?.status !== "CANCELLED") return;
+      setOrders((prev) => prev.filter((order) => order.id !== id));
+      try {
+        const res = API_URL
+          ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${adminToken}` },
+            })
+          : await fetch(`/api/orders/${encodeURIComponent(id)}`, {
+              method: "DELETE",
+            });
+        if (!res.ok) await syncOrders();
+      } catch {
+        await syncOrders();
+      }
+    },
+    [adminToken, orders, syncOrders],
+  );
+
+  const updateOrderItems = useCallback(
+    async (id: string, items: CartItem[]) => {
+      if (items.length === 0) return;
+      const existing = orders.find((order) => order.id === id);
+      if (!existing) return;
+      const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const deliveryFee = Number(existing.deliveryFee ?? 0);
+      const discount = Number(existing.discountTotal ?? 0);
+      const currentSubtotal =
+        existing.subtotal ?? existing.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const serviceFee = Math.max(
+        0,
+        Math.round((existing.total + discount - currentSubtotal - deliveryFee) * 100) / 100,
+      );
+      const total = Math.max(
+        1,
+        Math.round((subtotal + deliveryFee + serviceFee - discount) * 100) / 100,
+      );
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === id ? { ...order, items, subtotal, total } : order,
+        ),
+      );
+      try {
+        const res = API_URL
+          ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/items`, {
+              method: "PATCH",
+              headers: {
+                Authorization: `Bearer ${adminToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ items }),
+            })
+          : await fetch(`/api/orders/${encodeURIComponent(id)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ items }),
+            });
+        if (!res.ok) {
+          await syncOrders();
+          return;
+        }
+        const payload = await res.json();
+        const updated = normalizeBackendOrder(payload.order ?? payload);
+        setOrders((prev) => [
+          updated,
+          ...prev.filter((order) => order.id !== updated.id),
+        ]);
+      } catch {
+        await syncOrders();
+      }
+    },
+    [adminToken, orders, syncOrders],
+  );
+
   return {
     orders,
     setOrders,
     loadOrderById,
     syncOrders,
     updateOrderStatus,
+    deleteOrder,
+    updateOrderItems,
   };
 }

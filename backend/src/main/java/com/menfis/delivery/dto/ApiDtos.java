@@ -64,6 +64,8 @@ public class ApiDtos {
 
   public record PatchStatusRequest(@NotNull String status, String actor, String reason) {}
 
+  public record UpdateOrderItemsRequest(@NotEmpty List<Map<String, Object>> items) {}
+
   public record ConfirmDeliveryRequest(@NotBlank String code, String actor) {}
 
   public record SupportTicketRequest(

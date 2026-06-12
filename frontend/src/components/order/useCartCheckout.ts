@@ -414,6 +414,7 @@ export function useCartCheckout({
       setKioskSuccessOrder,
       setPaymentError,
       confirmCounterPrint,
+      clearCartItems: clearCart,
     });
   };
   const handleBack = () => {

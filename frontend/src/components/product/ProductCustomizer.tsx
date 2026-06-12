@@ -44,7 +44,12 @@ export function ProductCustomizer({
     const extra = extraOptions.find((option) => option.id === extraId);
     return sum + (extra?.price ?? 0) * quantity;
   }, 0);
-  const total = (state.item.price + extrasTotal) * state.qty;
+  const drinkSurchargeTotal = state.drinks.reduce((sum, drinkId) => {
+    const drink = DRINK_OPTIONS.find((option) => option.id === drinkId);
+    const hasSurchargeProduct = Boolean(COMBO_DRINK_SURCHARGE_PRODUCT_ID[drinkId]);
+    return sum + (hasSurchargeProduct ? drink?.comboPrice ?? 0 : 0);
+  }, 0);
+  const total = (state.item.price + drinkSurchargeTotal + extrasTotal) * state.qty;
   const valid =
     (!needsMeatPoint || state.meatPoints.length === requiredCount) &&
     (!needsSauce || state.sauces.length === requiredCount) &&
@@ -58,12 +63,9 @@ export function ProductCustomizer({
     setState((prev) => {
       if (!prev) return prev;
       const current = prev[field];
-      const isSelected = current.includes(value);
       let selected = current;
       if (max === 1) {
-        selected = isSelected ? current : [value];
-      } else if (isSelected) {
-        selected = current;
+        selected = [value];
       } else if (current.length < max) {
         selected = [...current, value];
       }

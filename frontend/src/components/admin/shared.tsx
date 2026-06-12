@@ -136,6 +136,10 @@ export function isKioskMobOrder(order?: Order | null) {
   return String(order?.customerName ?? "").trim().toUpperCase().replace(/_/g, "-") === "KIOSK-MOB";
 }
 
+export function isBillableOrder(order: Order) {
+  return order.status !== "CANCELLED";
+}
+
 export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }

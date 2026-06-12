@@ -10,26 +10,25 @@ import {
 } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
-import { STAGE_COLOR, STAGE_LABEL, fmt } from "../shared";
+import { STAGE_COLOR, STAGE_LABEL, fmt, isBillableOrder } from "../shared";
 export function DashboardView({
   orders,
-  todayRevenue,
 }: {
   orders: Order[];
-  todayRevenue: number;
 }) {
   const [channelFilter, setChannelFilter] = useState<"ALL" | Order["channel"]>(
     "ALL",
   );
-  const filteredOrders = orders.filter(
+  const billableOrders = orders.filter(isBillableOrder);
+  const filteredOrders = billableOrders.filter(
     (order) => channelFilter === "ALL" || order.channel === channelFilter,
   );
   const filteredRevenue = filteredOrders.reduce(
     (sum, order) => sum + order.total,
     0,
   );
-  const deliveryCount = orders.filter((o) => o.channel === "DELIVERY").length;
-  const kioskCount = orders.filter((o) => o.channel === "KIOSK").length;
+  const deliveryCount = billableOrders.filter((o) => o.channel === "DELIVERY").length;
+  const kioskCount = billableOrders.filter((o) => o.channel === "KIOSK").length;
   const avgTicket = filteredOrders.length
     ? filteredRevenue / filteredOrders.length
     : 0;
@@ -176,8 +175,8 @@ export function DashboardView({
                   {d.name}
                 </span>
                 <span className="text-xs font-black" style={{ color: VERDE }}>
-                  {orders.length
-                    ? Math.round((d.value / orders.length) * 100)
+                  {billableOrders.length
+                    ? Math.round((d.value / billableOrders.length) * 100)
                     : 0}
                   %
                 </span>

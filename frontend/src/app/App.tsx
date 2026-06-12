@@ -27,7 +27,7 @@ import { AdminLoginScreen } from "./AdminLoginScreen";
 import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
 import { deliveryConfirmationCode, normalizeBackendOrder } from "@/services/orders/normalize";
-import { MEMBER_KEY, MEMBER_TOKEN_KEY } from "@/components/product/shared";
+import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY } from "@/components/product/shared";
 import { MemberNotification } from "@/components/product/notifications";
 
 const NOTIFIABLE_STATUSES = new Set([
@@ -115,7 +115,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     closeAdmin,
     handleAdminLogin,
   } = useAdminSession({ adminOnlyMode, appMode, setScreen });
-  const { orders, setOrders, loadOrderById, updateOrderStatus } = useOrderSync({
+  const { orders, setOrders, loadOrderById, updateOrderStatus, deleteOrder, updateOrderItems } = useOrderSync({
     adminToken,
     lastOrderId,
     screen,
@@ -136,16 +136,15 @@ export default function App({ mode }: { mode?: AppMode }) {
     const memberProfile = localStorage.getItem(MEMBER_KEY);
     const pendingOrderId = localStorage.getItem(PENDING_ORDER_KEY);
     const adminSession = localStorage.getItem("menfis_admin_session");
-    const cartState = localStorage.getItem(CART_STORAGE_KEY);
     const appScreen = localStorage.getItem(APP_SCREEN_KEY);
     localStorage.clear();
     if (memberToken) localStorage.setItem(MEMBER_TOKEN_KEY, memberToken);
     if (memberProfile) localStorage.setItem(MEMBER_KEY, memberProfile);
     if (pendingOrderId) localStorage.setItem(PENDING_ORDER_KEY, pendingOrderId);
     if (adminSession) localStorage.setItem("menfis_admin_session", adminSession);
-    if (cartState) localStorage.setItem(CART_STORAGE_KEY, cartState);
     if (appScreen) localStorage.setItem(APP_SCREEN_KEY, appScreen);
     localStorage.setItem("menfis_cache_version", CACHE_VERSION);
+    setCart([]);
     if ("caches" in window) {
       void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
     }
@@ -200,8 +199,12 @@ export default function App({ mode }: { mode?: AppMode }) {
   const activeOrder = lastOrderId
     ? orders.find((order) => order.id === lastOrderId)
     : undefined;
+  const guestOrderScope = guestDeliveryScope();
   const latestCustomerActiveOrder = orders.find(
-    (order) => !isKioskMobOrder(order) && !["DELIVERED", "CANCELLED"].includes(order.status),
+    (order) =>
+      !isKioskMobOrder(order) &&
+      !["DELIVERED", "CANCELLED"].includes(order.status) &&
+      guestOrderMatchesScope(order, guestOrderScope),
   );
   const kioskMobQueue = orders.filter(
     (order) => isKioskMobOrder(order) && !["DELIVERED", "CANCELLED"].includes(order.status),
@@ -440,6 +443,8 @@ export default function App({ mode }: { mode?: AppMode }) {
             <AdminPanel
               orders={orders}
               updateOrderStatus={updateOrderStatus}
+              deleteOrder={deleteOrder}
+              updateOrderItems={updateOrderItems}
               onClose={closeAdmin}
               initialTab={appMode === "kds" ? "cozinha" : "pedidos"}
               adminToken={adminToken}
@@ -557,6 +562,8 @@ export default function App({ mode }: { mode?: AppMode }) {
           <AdminPanel
             orders={orders}
             updateOrderStatus={updateOrderStatus}
+            deleteOrder={deleteOrder}
+            updateOrderItems={updateOrderItems}
             onClose={closeAdmin}
             initialTab="pedidos"
             adminToken={adminToken}
@@ -590,6 +597,54 @@ function isKioskMobSession() {
   } catch {
     return false;
   }
+}
+
+function guestDeliveryScope() {
+  if (typeof window === "undefined" || localStorage.getItem(MEMBER_TOKEN_KEY)) {
+    return { phone: "", address: "" };
+  }
+  try {
+    const saved = JSON.parse(localStorage.getItem(DELIVERY_STORAGE_KEY) ?? "{}") as {
+      phone?: string;
+      street?: string;
+      number?: string;
+      complement?: string;
+    };
+    const address =
+      saved.street && saved.number
+        ? `${saved.street}, ${saved.number}${saved.complement ? ` ${saved.complement}` : ""}`
+        : "";
+    return {
+      phone: digits(saved.phone),
+      address: normalizeAddress(address),
+    };
+  } catch {
+    return { phone: "", address: "" };
+  }
+}
+
+function guestOrderMatchesScope(
+  order: Order,
+  scope: { phone: string; address: string },
+) {
+  if (!scope.phone && !scope.address) return true;
+  const phoneMatches = !scope.phone || digits(order.customerPhone) === scope.phone;
+  const addressMatches =
+    !scope.address || normalizeAddress(order.customerAddress) === scope.address;
+  return phoneMatches && addressMatches;
+}
+
+function digits(value?: string) {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+function normalizeAddress(value?: string) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function resolvePaymentReturnOrderId(params: URLSearchParams) {
