@@ -39,8 +39,8 @@ public class CustomerService {
     String email = clean(request.email());
     String password = request.password() == null ? "" : request.password().trim();
     String confirmPassword = request.confirmPassword() == null ? "" : request.confirmPassword().trim();
-    if (phoneDigits.length() < 10 || isBlank(request.name()) || isBlank(request.email())) {
-      throw new IllegalArgumentException("customer_name_phone_email_required");
+    if (phoneDigits.length() < 10 || isBlank(request.name())) {
+      throw new IllegalArgumentException("customer_name_phone_required");
     }
     if (!cpfDigits.isBlank() && cpfDigits.length() != 11) {
       throw new IllegalArgumentException("customer_cpf_invalid");

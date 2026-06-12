@@ -10,7 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 type CustomerPayload = {
   name: string;
   phone: string;
-  email: string;
+  email?: string;
   cpf?: string;
   password?: string;
   confirmPassword?: string;

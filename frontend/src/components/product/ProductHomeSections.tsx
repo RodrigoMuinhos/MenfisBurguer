@@ -366,7 +366,7 @@ export function MemberAccessBanner({
                 ? "Sua conta foi encontrada, mas ainda falta senha de 6 dígitos para manter seus dados protegidos."
                 : memberProfile
                 ? `${memberProfile.orders % 10}/10 pedidos para ganhar um burger. Dados de entrega ficam salvos.`
-                : "O cadastro é opcional. Sem conta, finalize preenchendo só os dados de entrega no carrinho."}
+                : "Cadastro obrigatório para pedir: informe nome, WhatsApp e uma senha de 6 dígitos."}
             </p>
           </div>
         </div>

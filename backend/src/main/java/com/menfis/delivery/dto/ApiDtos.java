@@ -133,7 +133,7 @@ public class ApiDtos {
   public record CustomerProfileRequest(
     @NotBlank String name,
     @NotBlank String phone,
-    @NotBlank @Email String email,
+    @Email String email,
     String cpf,
     String password,
     String confirmPassword,

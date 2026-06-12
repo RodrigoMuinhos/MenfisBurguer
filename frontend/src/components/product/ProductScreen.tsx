@@ -39,7 +39,6 @@ import {
   getExtraOptionsForItem,
   imageSrc,
   isChickenProduct,
-  isEmail,
   readMemberProfile,
   readSavedDelivery,
   requiredCustomizerCount,
@@ -67,6 +66,14 @@ import {
 import { MemberNotification } from "./notifications";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+
+function hasRequiredCustomerProfile(profile: MemberProfile | null) {
+  return Boolean(
+    profile?.name?.trim() &&
+      profile.phone?.replace(/\D/g, "").length >= 10 &&
+      profile.hasPassword !== false,
+  );
+}
 
 interface Props {
   cart: CartItem[];
@@ -166,16 +173,25 @@ export function ProductScreen({
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "-")
       .replace(/-+/g, "-") === "KIOSK-MOB";
+  const customerTokenAvailable =
+    kioskMode ||
+    (typeof window !== "undefined" && Boolean(localStorage.getItem(MEMBER_TOKEN_KEY)));
+  const customerProfileReady =
+    kioskMode || (customerTokenAvailable && hasRequiredCustomerProfile(memberProfile));
 
   useEffect(() => {
     if (kioskMode) return;
     void loadCustomerSession().then((profile) => {
-      if (profile) {
+      const hasToken =
+        typeof window !== "undefined" && localStorage.getItem(MEMBER_TOKEN_KEY);
+      if (hasToken && hasRequiredCustomerProfile(profile)) {
         setMemberProfile(profile);
         setLoginOpen(false);
         return;
       }
-      setMemberProfile(null);
+      setMemberProfile(profile ?? null);
+      setMemberAuthMode("register");
+      setLoginOpen(true);
     });
   }, [kioskMode]);
 
@@ -265,7 +281,22 @@ export function ProductScreen({
     }, 850);
   };
 
+  const requireCustomerProfile = () => {
+    if (customerProfileReady) return true;
+    if (memberProfile) {
+      setMemberName(memberProfile.name ?? "");
+      setMemberEmail(memberProfile.email ?? "");
+      setMemberPhone(memberProfile.phone ?? "");
+      setMemberBirthday(memberProfile.birthday ?? "");
+    }
+    setMemberAuthMode("register");
+    setMemberError("Para pedir, cadastre nome, WhatsApp e senha.");
+    setLoginOpen(true);
+    return false;
+  };
+
   const openCustomizer = (item: MenuItem) => {
+    if (!requireCustomerProfile()) return;
     setCustomizer({
       item,
       meatPoints: [],
@@ -279,6 +310,11 @@ export function ProductScreen({
 
   const addMenuItem = (item: MenuItem) => {
     openCustomizer(item);
+  };
+
+  const handleGoToCart = () => {
+    if (!requireCustomerProfile()) return;
+    goToCart();
   };
 
   const confirmCustomizer = () => {
@@ -347,10 +383,11 @@ export function ProductScreen({
   };
 
   const openMemberAccess = () => {
-    if (memberProfile) {
+    if (memberProfile && hasRequiredCustomerProfile(memberProfile)) {
       setProfileOpen(true);
       return;
     }
+    setMemberAuthMode("register");
     setLoginOpen(true);
   };
 
@@ -370,7 +407,7 @@ export function ProductScreen({
   };
 
   const openHistory = () => {
-    if (!memberProfile) {
+    if (!hasRequiredCustomerProfile(memberProfile)) {
       setLoginOpen(true);
       return;
     }
@@ -378,7 +415,7 @@ export function ProductScreen({
   };
 
   const openNotifications = () => {
-    if (!memberProfile) {
+    if (!hasRequiredCustomerProfile(memberProfile)) {
       setLoginOpen(true);
       return;
     }
@@ -397,11 +434,7 @@ export function ProductScreen({
       setMemberError("Falta preencher: nome.");
       return;
     }
-    if (!email) {
-      setMemberError("Falta preencher: email.");
-      return;
-    }
-    if (!isEmail(email)) {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setMemberError("Informe um email válido.");
       return;
     }
@@ -425,7 +458,7 @@ export function ProductScreen({
     try {
       const profile = await saveCustomerSession({
         name,
-        email,
+        email: email || undefined,
         password,
         confirmPassword,
         phone,
@@ -542,7 +575,7 @@ export function ProductScreen({
         kioskMode={kioskMode}
         cartCount={cartCount}
         onAdminTap={handleAdminTap}
-        goToCart={goToCart}
+        goToCart={handleGoToCart}
         memberProfile={memberProfile}
         notificationCount={unreadNotificationCount}
         onOpenMember={openMemberAccess}
@@ -610,7 +643,7 @@ export function ProductScreen({
               </p>
             </div>
             <button
-              onClick={goToCart}
+              onClick={handleGoToCart}
               className="flex min-h-12 items-center gap-2 rounded-2xl px-5 text-xs font-black uppercase tracking-wider"
               style={{ background: VERDE, color: ROSA, border: "none" }}
             >
@@ -689,7 +722,9 @@ export function ProductScreen({
         resetMemberPassword={resetMemberPassword}
         editMember={editMember}
         logoutMember={logoutMember}
+        loginRequired={!customerProfileReady}
         closeLogin={() => {
+          if (!customerProfileReady) return;
           setLoginOpen(false);
         }}
         closeProfile={() => setProfileOpen(false)}

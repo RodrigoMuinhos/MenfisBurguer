@@ -72,6 +72,7 @@ export function MemberModals({
   resetMemberPassword,
   editMember,
   logoutMember,
+  loginRequired = false,
   closeLogin,
   closeProfile,
   closeHistory,
@@ -136,6 +137,7 @@ export function MemberModals({
   ) => Promise<boolean>;
   editMember: () => void;
   logoutMember: () => void;
+  loginRequired?: boolean;
   closeLogin: () => void;
   closeProfile: () => void;
   closeHistory: () => void;
@@ -146,11 +148,10 @@ export function MemberModals({
   onOpenActiveOrder?: (orderId?: string) => void;
   onRepeatOrder?: (items: CartItem[]) => void;
 }) {
-  const canCloseLogin = true;
+  const canCloseLogin = !loginRequired;
   const profileIncomplete = Boolean(
     memberProfile &&
       (!memberProfile.phone?.trim() ||
-        !memberProfile.email?.trim() ||
         memberProfile.hasPassword === false),
   );
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
@@ -249,6 +250,11 @@ export function MemberModals({
                         >
                           {memberAuthMode === "login" ? "Entre no perfil Menfi's" : "Crie seu perfil Menfi's"}
                         </h2>
+                        {loginRequired && (
+                          <p className="mt-2 text-xs font-bold leading-relaxed text-black/55">
+                            Para pedir, cadastre nome, WhatsApp e senha de 6 dígitos.
+                          </p>
+                        )}
                       </div>
                       {canCloseLogin && (
                         <button
@@ -413,6 +419,8 @@ export function MemberModals({
                       <label className="grid gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
                           Email
+                          {" "}
+                          <span className="normal-case tracking-normal">(opcional)</span>
                         </span>
                         <input
                           value={memberEmail}
@@ -494,7 +502,7 @@ export function MemberModals({
                         <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
                           <p className="font-black uppercase tracking-wider opacity-60">Confirmacao</p>
                           <p className="mt-2">Telefone: {memberPhone || "pendente"}</p>
-                          <p>E-mail: {memberEmail || "pendente"}</p>
+                          <p>E-mail: {memberEmail || "não informado"}</p>
                         </div>
                         <label className="flex items-start gap-3 rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
                           <input
@@ -527,14 +535,16 @@ export function MemberModals({
                       </p>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={closeLogin}
-                      className="mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                      style={{ background: "#FFF8F2", color: VERDE, border: `1.5px solid ${VERDE}12` }}
-                    >
-                      Continuar sem cadastro
-                    </button>
+                    {canCloseLogin && (
+                      <button
+                        type="button"
+                        onClick={closeLogin}
+                        className="mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                        style={{ background: "#FFF8F2", color: VERDE, border: `1.5px solid ${VERDE}12` }}
+                      >
+                        Continuar sem cadastro
+                      </button>
+                    )}
       
                     <button
                       onClick={
@@ -662,15 +672,15 @@ export function MemberModals({
                           <span className="text-xs font-black uppercase tracking-wider">
                             Complete seu cadastro
                           </span>
-                          <span className="text-sm font-bold leading-snug text-black/60">
-                            Adicione telefone, e-mail e senha para acompanhar pedidos e recuperar seu acesso.
+                            <span className="text-sm font-bold leading-snug text-black/60">
+                            Adicione telefone e senha para acompanhar pedidos e recuperar seu acesso.
                           </span>
                         </button>
                       )}
                       <ProfileSection title="Minha conta">
                         <InfoLine label="Nome" value={memberProfile.name} />
                         <InfoLine label="Telefone" value={memberProfile.phone || "Pendente"} />
-                        <InfoLine label="E-mail" value={memberProfile.email || "Pendente"} />
+                        {memberProfile.email && <InfoLine label="E-mail" value={memberProfile.email} />}
                       </ProfileSection>
 
                       <ProfileMenuButton icon={UserCog} label="Editar dados da conta" onClick={editMember} />

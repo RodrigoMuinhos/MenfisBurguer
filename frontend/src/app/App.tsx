@@ -27,7 +27,7 @@ import { AdminLoginScreen } from "./AdminLoginScreen";
 import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
 import { deliveryConfirmationCode, normalizeBackendOrder } from "@/services/orders/normalize";
-import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY } from "@/components/product/shared";
+import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY, readMemberProfile } from "@/components/product/shared";
 import { MemberNotification } from "@/components/product/notifications";
 
 const NOTIFIABLE_STATUSES = new Set([
@@ -67,6 +67,16 @@ function notificationForOrder(order: Order): Omit<MemberNotification, "id" | "cr
           ? "Pedido finalizado. Obrigado pela preferência."
           : status.copy;
   return { orderId: order.id, title, message, status: order.status };
+}
+
+function hasRequiredStoredCustomerProfile() {
+  const profile = readMemberProfile();
+  return Boolean(
+    localStorage.getItem(MEMBER_TOKEN_KEY) &&
+      profile?.name?.trim() &&
+      profile.phone?.replace(/\D/g, "").length >= 10 &&
+      profile.hasPassword !== false,
+  );
 }
 
 export default function App({ mode }: { mode?: AppMode }) {
@@ -154,6 +164,12 @@ export default function App({ mode }: { mode?: AppMode }) {
     if (adminOnlyMode) return;
     localStorage.setItem(APP_SCREEN_KEY, screen);
   }, [adminOnlyMode, screen]);
+
+  useEffect(() => {
+    if (adminOnlyMode || kioskMode || screen !== "cart") return;
+    if (hasRequiredStoredCustomerProfile()) return;
+    setScreen("product");
+  }, [adminOnlyMode, kioskMode, screen]);
 
   useEffect(() => {
     if (kioskMode) return;
