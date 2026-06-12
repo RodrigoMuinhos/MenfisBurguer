@@ -184,20 +184,35 @@ export function OrdersView({
                   )}
                 </button>
                 {order.status === "CANCELLED" && (
-                  <button
-                    type="button"
-                    onClick={() => confirmDeleteCancelled(order)}
-                    className="flex w-12 items-center justify-center border-l"
-                    style={{
-                      borderColor: stage.border,
-                      color: "#991B1B",
-                      background: "#FEF2F2",
-                    }}
-                    aria-label={`Excluir pedido ${order.id}`}
-                    title="Excluir pedido cancelado"
-                  >
-                    <Trash2 size={17} strokeWidth={2.4} />
-                  </button>
+                  <div className="grid w-12 grid-rows-2 border-l" style={{ borderColor: stage.border }}>
+                    <button
+                      type="button"
+                      onClick={() => updateOrderStatus(order.id, "ACCEPTED")}
+                      className="flex items-center justify-center"
+                      style={{
+                        color: "#166534",
+                        background: "#DCFCE7",
+                        borderBottom: `1px solid ${stage.border}`,
+                      }}
+                      aria-label={`Reverter e aceitar pedido ${order.id}`}
+                      title="Reverter e aceitar pedido"
+                    >
+                      <Check size={17} strokeWidth={2.6} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => confirmDeleteCancelled(order)}
+                      className="flex items-center justify-center"
+                      style={{
+                        color: "#991B1B",
+                        background: "#FEF2F2",
+                      }}
+                      aria-label={`Excluir pedido ${order.id}`}
+                      title="Excluir pedido cancelado"
+                    >
+                      <Trash2 size={17} strokeWidth={2.4} />
+                    </button>
+                  </div>
                 )}
               </div>
             );
