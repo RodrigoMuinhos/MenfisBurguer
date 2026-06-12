@@ -63,13 +63,18 @@ export function ProductCustomizer({
     setState((prev) => {
       if (!prev) return prev;
       const current = prev[field];
-      let selected = current;
       if (max === 1) {
-        selected = [value];
-      } else if (current.length < max) {
-        selected = [...current, value];
+        return { ...prev, [field]: current[0] === value ? [] : [value] };
       }
-      return { ...prev, [field]: selected };
+      const selectedCount = current.filter((item) => item === value).length;
+      if (selectedCount >= max) {
+        return { ...prev, [field]: current.filter((item) => item !== value) };
+      }
+      if (current.length < max) {
+        return { ...prev, [field]: [...current, value] };
+      }
+      const remaining = current.filter((item) => item !== value);
+      return { ...prev, [field]: [...remaining.slice(0, max - 1), value] };
     });
   };
 
