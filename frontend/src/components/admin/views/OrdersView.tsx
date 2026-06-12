@@ -37,6 +37,7 @@ export function OrdersView({
     "ALL",
   );
   const [selectedId, setSelectedId] = useState(orders[0]?.id ?? "");
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const filteredOrders = orders.filter(
     (order) => channelFilter === "ALL" || order.channel === channelFilter,
   );
@@ -290,11 +291,7 @@ export function OrdersView({
             )}
             {CANCELLABLE_STATUSES.includes(selected.status) && (
               <button
-                onClick={() => {
-                  if (window.confirm(`Cancelar o pedido ${selected.id}?`)) {
-                    updateOrderStatus(selected.id, "CANCELLED");
-                  }
-                }}
+                onClick={() => setCancelTarget(selected)}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{
                   background: "#FEF2F2",
@@ -493,6 +490,90 @@ export function OrdersView({
           `}</style>
         </div>
       </div>
+      {cancelTarget && (
+        <CancelOrderModal
+          order={cancelTarget}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={() => {
+            updateOrderStatus(cancelTarget.id, "CANCELLED");
+            setCancelTarget(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CancelOrderModal({
+  order,
+  onClose,
+  onConfirm,
+}: {
+  order: Order;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] grid place-items-center px-4"
+      style={{ background: "rgba(101, 0, 31, 0.38)" }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancel-order-title"
+    >
+      <section
+        className="w-full max-w-md rounded-3xl p-5 shadow-2xl"
+        style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] opacity-50">
+              Confirmar cancelamento
+            </p>
+            <h2
+              id="cancel-order-title"
+              className="mt-1 text-2xl font-black"
+              style={{ color: VERDE }}
+            >
+              Cancelar {order.id}?
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-10 w-10 place-items-center rounded-full"
+            style={{ background: `${VERDE}08`, color: VERDE }}
+            aria-label="Fechar"
+          >
+            <XCircle size={18} />
+          </button>
+        </div>
+        <p className="mt-3 text-sm font-bold leading-relaxed" style={{ color: "#7A3147" }}>
+          Essa ação marca o pedido como cancelado e remove ele da fila operacional.
+        </p>
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-12 rounded-xl px-4 text-xs font-black uppercase"
+            style={{
+              background: `${VERDE}08`,
+              color: VERDE,
+              border: `1.5px solid ${VERDE}18`,
+            }}
+          >
+            Não cancelar
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="min-h-12 rounded-xl px-4 text-xs font-black uppercase"
+            style={{ background: "#991B1B", color: "#fff" }}
+          >
+            Sim, cancelar
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
