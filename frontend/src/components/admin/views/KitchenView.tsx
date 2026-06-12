@@ -26,6 +26,7 @@ type ProductKind = "burger" | "chicken" | "bacon";
 
 const KDS_SEEN_ORDERS_KEY = "menfis_kds_seen_orders";
 const KDS_SOUND_KEY = "menfis_kds_sound_enabled";
+const KDS_REJECTED_ORDERS_KEY = "menfis_kds_rejected_orders";
 const ACTIVE_STATUSES: OrderStatus[] = ["PAID", "IN_PREPARATION", "READY"];
 
 const TECHNICAL_CARDS = [
@@ -52,6 +53,15 @@ export function KitchenView({
     if (typeof window === "undefined") return true;
     return localStorage.getItem(KDS_SOUND_KEY) !== "false";
   });
+  const [locallyRejectedIds, setLocallyRejectedIds] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const parsed = JSON.parse(localStorage.getItem(KDS_REJECTED_ORDERS_KEY) ?? "[]");
+      return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+    } catch {
+      return new Set();
+    }
+  });
   const [busyAction, setBusyAction] = useState("");
   const viewport = useViewportSize();
   const initializedSoundRef = useRef(false);
@@ -67,7 +77,11 @@ export function KitchenView({
   );
 
   const activeOrders = dayOrders
-    .filter((order) => ACTIVE_STATUSES.includes(order.status))
+    .filter(
+      (order) =>
+        ACTIVE_STATUSES.includes(order.status) &&
+        !locallyRejectedIds.has(order.id),
+    )
     .sort((a, b) => a.timestamp - b.timestamp);
 
   const stageOrders = {
@@ -127,6 +141,17 @@ export function KitchenView({
     setBusyAction(`${key}:${order.id}`);
     if (url) window.open(url, "_blank", "noopener,noreferrer");
     if (order.status === "PAID" && status === "IN_PREPARATION") deductStock(order);
+    if (status === "CANCELLED") {
+      setLocallyRejectedIds((current) => {
+        const next = new Set(current);
+        next.add(order.id);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(KDS_REJECTED_ORDERS_KEY, JSON.stringify([...next]));
+        }
+        return next;
+      });
+      if (selectedId === order.id) setSelectedId("");
+    }
     try {
       await updateOrderStatus(order.id, status);
     } finally {
