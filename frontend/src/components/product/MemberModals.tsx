@@ -676,6 +676,15 @@ export function MemberModals({
                       <ProfileMenuButton icon={UserCog} label="Editar dados da conta" onClick={editMember} />
                       <ProfileMenuButton icon={MapPin} label="Gerenciar endereços" onClick={editMember} />
                       <ProfileMenuButton icon={KeyRound} label="Alterar senha / recuperar acesso" onClick={editMember} />
+                      {ordersLoading && !visibleActiveOrder && (
+                        <div
+                          className="flex items-center gap-3 rounded-2xl p-4 text-xs font-black uppercase tracking-wider"
+                          style={{ background: VERDE, color: ROSA }}
+                        >
+                          <Loader2 size={18} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />
+                          Buscando pedido ativo
+                        </div>
+                      )}
                       {hasActiveOrder && visibleActiveOrder && (
                         <ActiveProfileOrderCard
                           order={visibleActiveOrder}
@@ -723,6 +732,10 @@ export function MemberModals({
                       <OrderHistoryRow
                         key={order.id}
                         order={order}
+                        onOpen={() => {
+                          closeHistory();
+                          onOpenActiveOrder?.(order.id);
+                        }}
                         onRepeat={() => {
                           closeHistory();
                           onRepeatOrder?.(order.items);
@@ -921,12 +934,15 @@ function ActiveProfileOrderCard({
 
 function OrderHistoryRow({
   order,
+  onOpen,
   onRepeat,
 }: {
   order: Order;
+  onOpen: () => void;
   onRepeat: () => void;
 }) {
   const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+  const activeOrder = !["DELIVERED", "CANCELLED"].includes(order.status);
   const canRepeat = order.status === "DELIVERED" && order.items.length > 0;
   const date = new Date(order.timestamp).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -953,6 +969,15 @@ function OrderHistoryRow({
         </div>
         <p className="shrink-0 text-sm font-black">{fmt(order.total)}</p>
       </div>
+      {activeOrder && (
+        <button
+          onClick={onOpen}
+          className="mt-3 w-full rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-wider"
+          style={{ background: VERDE, color: ROSA }}
+        >
+          Acompanhar pedido
+        </button>
+      )}
       {canRepeat && (
         <button
           onClick={onRepeat}

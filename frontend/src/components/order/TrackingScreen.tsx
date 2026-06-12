@@ -542,6 +542,29 @@ export function TrackingScreen({
             </span>
           </div>
         </div>
+        <div
+          className="mt-5 grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}
+        >
+          {STEPS.map((step, index) => {
+            const done = index <= current;
+            const active = index === current;
+            return (
+              <div key={step.label} className="min-w-0">
+                <div
+                  className="h-1.5 rounded-full"
+                  style={{ background: done ? ROSA : `${ROSA}28` }}
+                />
+                <p
+                  className="mt-1 truncate text-[9px] font-black uppercase tracking-wide"
+                  style={{ color: active ? ROSA : `${ROSA}70` }}
+                >
+                  {step.label}
+                </p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col px-4 py-4 gap-4">
