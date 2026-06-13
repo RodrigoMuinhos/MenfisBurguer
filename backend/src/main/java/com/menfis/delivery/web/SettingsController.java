@@ -42,6 +42,14 @@ public class SettingsController {
     return settings.setTestModeEnabled(request.enabled());
   }
 
+  @PatchMapping("/demo-table")
+  public Map<String, Object> setDemoTable(
+      @RequestBody DemoTableRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return settings.setDemoTableEnabled(request.enabled());
+  }
+
   @PatchMapping("/featured-product")
   public Map<String, Object> setFeaturedProduct(
       @RequestBody FeaturedProductRequest request,
@@ -59,5 +67,6 @@ public class SettingsController {
 
   public record PayOnDeliveryRequest(boolean enabled) {}
   public record TestModeRequest(boolean enabled) {}
+  public record DemoTableRequest(boolean enabled) {}
   public record FeaturedProductRequest(String productId) {}
 }

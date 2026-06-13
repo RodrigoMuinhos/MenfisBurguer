@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ElementType } from "react";
+import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 import {
   ChefHat,
   ClipboardList,
@@ -40,6 +40,7 @@ import {
   toggleAdminCoupon,
 } from "./adminBackend";
 import { useAdminBackend } from "./useAdminBackend";
+import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
 export type AdminTab = "pedidos" | "cozinha" | "entrega" | "dashboard" | "estoque" | "clientes" | "suporte" | "cupons" | "config";
 
@@ -82,8 +83,10 @@ export function AdminPanel({
   const [editingCouponCode, setEditingCouponCode] = useState("");
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(true);
   const [testModeEnabled, setTestModeEnabled] = useState(false);
+  const [demoTableEnabled, setDemoTableEnabled] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
+  const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
 
   const [stockItems, setStockItems] = useState<StockItem[]>(INITIAL_ITEMS);
   const [stockMovements, setStockMovements] = useState<Movement[]>([]);
@@ -139,10 +142,61 @@ export function AdminPanel({
     { id: "cupons", label: "Cupons", Icon: TicketPercent },
   ];
 
-  const activeOrders = orders.filter(
+  const visibleOrders = useMemo(
+    () => (demoTableEnabled ? [...demoOrders, ...orders] : orders),
+    [demoOrders, demoTableEnabled, orders],
+  );
+
+  const handleUpdateOrderStatus = async (id: string, status: OrderStatus) => {
+    if (isDemoOrder(id)) {
+      setDemoOrders((prev) =>
+        prev.map((order) =>
+          order.id === id
+            ? {
+                ...order,
+                status,
+                paymentStatus: ["PAID", "ACCEPTED", "IN_PREPARATION"].includes(status)
+                  ? "Pago"
+                  : order.paymentStatus,
+              }
+            : order,
+        ),
+      );
+      return;
+    }
+    await updateOrderStatus(id, status);
+  };
+
+  const handleDeleteOrder = async (id: string) => {
+    if (isDemoOrder(id)) {
+      setDemoOrders((prev) => prev.filter((order) => order.id !== id));
+      return;
+    }
+    await deleteOrder(id);
+  };
+
+  const handleUpdateOrderItems = async (id: string, items: CartItem[]) => {
+    if (isDemoOrder(id)) {
+      setDemoOrders((prev) =>
+        prev.map((order) => {
+          if (order.id !== id) return order;
+          const subtotal = Math.round(items.reduce((sum, item) => sum + item.price * item.qty, 0) * 100) / 100;
+          const total = Math.max(
+            1,
+            Math.round((subtotal + Number(order.deliveryFee ?? 0)) * 100) / 100,
+          );
+          return { ...order, items, subtotal, total };
+        }),
+      );
+      return;
+    }
+    await updateOrderItems(id, items);
+  };
+
+  const activeOrders = visibleOrders.filter(
     (o) => !["DELIVERED", "CANCELLED", "CANCELLED"].includes(o.status),
   ).length;
-  const openPaymentRequests = orders.filter(
+  const openPaymentRequests = visibleOrders.filter(
     (order) =>
       order.status === "PAYMENT_PENDING" &&
       order.paymentMethod === "presencial" &&
@@ -150,10 +204,10 @@ export function AdminPanel({
   );
   const tabCount: Partial<Record<AdminTab, number>> = {
     pedidos: activeOrders,
-    cozinha: orders.filter((order) =>
+    cozinha: visibleOrders.filter((order) =>
       ["PAID", "ACCEPTED", "IN_PREPARATION", "READY"].includes(order.status),
     ).length,
-    entrega: orders.filter(
+    entrega: visibleOrders.filter(
       (order) =>
         order.deliveryType === "delivery" &&
         !isKioskMobOrder(order) &&
@@ -212,6 +266,7 @@ export function AdminPanel({
         {
           setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled !== false);
           setTestModeEnabled(settings.testModeEnabled === true);
+          setDemoTableEnabled(settings.demoTableEnabled === true);
           setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
         },
       )
@@ -234,6 +289,7 @@ export function AdminPanel({
       const settings = await response.json();
       setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled === true);
       setTestModeEnabled(settings.testModeEnabled === true);
+      setDemoTableEnabled(settings.demoTableEnabled === true);
       setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
       await syncCoupons();
     } finally {
@@ -246,6 +302,9 @@ export function AdminPanel({
 
   const toggleTestMode = () =>
     updateSetting("/settings/test-mode", !testModeEnabled);
+
+  const toggleDemoTable = () =>
+    updateSetting("/settings/demo-table", !demoTableEnabled);
 
   const updateFeaturedProduct = async (productId: string) => {
     setFeaturedProductId(productId);
@@ -491,7 +550,7 @@ export function AdminPanel({
         {!kitchenOnly && (
           <PaymentRequestsAlert
             orders={openPaymentRequests}
-            onConfirm={(id) => updateOrderStatus(id, "PAID")}
+            onConfirm={(id) => handleUpdateOrderStatus(id, "PAID")}
           />
         )}
         {adminDataError && !kitchenOnly && (
@@ -504,22 +563,22 @@ export function AdminPanel({
         )}
         {tab === "pedidos" && (
           <OrdersView
-            orders={orders}
-            updateOrderStatus={updateOrderStatus}
-            deleteOrder={deleteOrder}
-            updateOrderItems={updateOrderItems}
+            orders={visibleOrders}
+            updateOrderStatus={handleUpdateOrderStatus}
+            deleteOrder={handleDeleteOrder}
+            updateOrderItems={handleUpdateOrderItems}
           />
         )}
         {tab === "cozinha" && (
           <KitchenView
-            orders={orders}
-            updateOrderStatus={updateOrderStatus}
+            orders={visibleOrders}
+            updateOrderStatus={handleUpdateOrderStatus}
             deductStock={deductStockForOrder}
             stockItems={stockItems}
           />
         )}
         {tab === "dashboard" && (
-          <DashboardView orders={orders} />
+          <DashboardView orders={visibleOrders} />
         )}
         {tab === "estoque" && (
           <EstoqueView
@@ -534,15 +593,15 @@ export function AdminPanel({
         )}
         {tab === "entrega" && (
           <OrdersView
-            orders={orders.filter(
+            orders={visibleOrders.filter(
               (order) =>
                 order.deliveryType === "delivery" &&
                 !isKioskMobOrder(order) &&
                 ["READY", "OUT_FOR_DELIVERY"].includes(order.status),
             )}
-            updateOrderStatus={updateOrderStatus}
-            deleteOrder={deleteOrder}
-            updateOrderItems={updateOrderItems}
+            updateOrderStatus={handleUpdateOrderStatus}
+            deleteOrder={handleDeleteOrder}
+            updateOrderItems={handleUpdateOrderItems}
           />
         )}
         {tab === "clientes" && (
@@ -579,11 +638,13 @@ export function AdminPanel({
           <ConfigView
             payOnDeliveryEnabled={payOnDeliveryEnabled}
             testModeEnabled={testModeEnabled}
+            demoTableEnabled={demoTableEnabled}
             featuredProductId={featuredProductId}
             saving={savingPayOnDelivery}
             disabled={!API_URL}
             onTogglePayOnDelivery={togglePayOnDelivery}
             onToggleTestMode={toggleTestMode}
+            onToggleDemoTable={toggleDemoTable}
             onFeaturedProductChange={updateFeaturedProduct}
             onResetRealOperation={resetRealOperation}
           />

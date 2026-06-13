@@ -9,6 +9,7 @@ public class SettingsService {
   public static final String PAY_ON_DELIVERY = "pay_on_delivery_enabled";
   public static final String TEST_MODE = "test_mode_enabled";
   public static final String FEATURED_PRODUCT = "featured_product_id";
+  public static final String DEMO_TABLE = "demo_table_enabled";
 
   private final JdbcTemplate jdbc;
 
@@ -28,11 +29,16 @@ public class SettingsService {
     return value(FEATURED_PRODUCT, "chicken-super-combo");
   }
 
+  public boolean demoTableEnabled() {
+    return Boolean.parseBoolean(value(DEMO_TABLE, "false"));
+  }
+
   public Map<String, Object> publicSettings() {
     return Map.of(
       "payOnDeliveryEnabled", payOnDeliveryEnabled(),
       "testModeEnabled", testModeEnabled(),
-      "featuredProductId", featuredProductId()
+      "featuredProductId", featuredProductId(),
+      "demoTableEnabled", demoTableEnabled()
     );
   }
 
@@ -72,6 +78,19 @@ public class SettingsService {
       """,
       FEATURED_PRODUCT,
       cleaned
+    );
+    return publicSettings();
+  }
+
+  public Map<String, Object> setDemoTableEnabled(boolean enabled) {
+    jdbc.update(
+      """
+      insert into app_settings(key, value, updated_at)
+      values (?, ?, now())
+      on conflict (key) do update set value = excluded.value, updated_at = now()
+      """,
+      DEMO_TABLE,
+      Boolean.toString(enabled)
     );
     return publicSettings();
   }
