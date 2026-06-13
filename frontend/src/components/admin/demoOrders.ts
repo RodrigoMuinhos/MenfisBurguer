@@ -50,10 +50,13 @@ const PRODUCTS = [
   },
 ];
 
-const STATUS_PLAN: OrderStatus[] = Array.from(
-  { length: 70 },
-  () => "DELIVERED" as OrderStatus,
-);
+const STATUS_PLAN: OrderStatus[] = [
+  ...Array(12).fill("ACCEPTED"),
+  ...Array(12).fill("IN_PREPARATION"),
+  ...Array(10).fill("READY"),
+  ...Array(14).fill("OUT_FOR_DELIVERY"),
+  ...Array(22).fill("DELIVERED"),
+] as OrderStatus[];
 
 export function generateDemoOrders(): Order[] {
   const baseTime = new Date("2026-06-12T20:05:00-03:00").getTime();
