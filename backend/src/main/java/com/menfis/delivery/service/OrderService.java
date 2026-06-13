@@ -511,7 +511,7 @@ public class OrderService {
       case PAYMENT_PENDING -> to == OrderStatus.PAID || to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case PAID -> to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case ACCEPTED -> to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
-      case IN_PREPARATION -> to == OrderStatus.READY;
+      case IN_PREPARATION -> to == OrderStatus.READY || to == OrderStatus.CANCELLED;
       case READY -> to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> to == OrderStatus.DELIVERED;
       case CANCELLED -> to == OrderStatus.PAID || to == OrderStatus.ACCEPTED;
