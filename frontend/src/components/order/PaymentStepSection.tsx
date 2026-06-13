@@ -261,7 +261,7 @@ export function PaymentStepSection({
                                 <button
                                   key={id}
                                   onClick={() => setPayment(id)}
-                                  className="flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl px-4 py-5 text-sm font-black uppercase tracking-wider md:max-w-md"
+                                  className="mx-auto flex min-h-[104px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-4 py-5 text-sm font-black uppercase tracking-wider md:max-w-md"
                                   style={{
                                     background: active ? VERDE : "#fff",
                                     color: active ? ROSA : VERDE,

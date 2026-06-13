@@ -218,7 +218,7 @@ export function CheckoutIntro({
               ? `Etapa atual: ${stepLabel}. O pagamento será feito no balcão e o pedido será enviado para a cozinha.`
               : kioskMode
               ? `Etapa atual: ${stepLabel}. Primeiro informe os dados, depois revise e siga para o pagamento.`
-              : `Etapa atual: ${stepLabel}. Continue ate abrir o pagamento no Mercado Pago.`}
+              : `Etapa atual: ${stepLabel}. Confirme o atendimento pelo WhatsApp para finalizar.`}
           </p>
         </div>
       </div>
