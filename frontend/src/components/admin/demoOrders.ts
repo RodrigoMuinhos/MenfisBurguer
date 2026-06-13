@@ -56,7 +56,7 @@ const STATUS_PLAN: OrderStatus[] = Array.from(
 );
 
 export function generateDemoOrders(): Order[] {
-  const now = Date.now();
+  const baseTime = new Date("2026-06-12T20:05:00-03:00").getTime();
   return STATUS_PLAN.map((status, index) => {
     const product = PRODUCTS[index % PRODUCTS.length];
     const secondProduct = PRODUCTS[(index + 1) % PRODUCTS.length];
@@ -93,7 +93,7 @@ export function generateDemoOrders(): Order[] {
       total,
       paymentMethod: index % 4 === 0 ? "pagar_na_entrega" : "presencial",
       paymentStatus: status === "PAYMENT_PENDING" ? "Aguardando Pagamento" : "Pago",
-      timestamp: now - index * 8 * 60 * 1000,
+      timestamp: baseTime - Math.round((index * 65) / (STATUS_PLAN.length - 1)) * 60 * 1000,
       status,
     };
   });

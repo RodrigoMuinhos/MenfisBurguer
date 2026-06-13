@@ -48,6 +48,10 @@ export function OrdersView({
   const filteredOrders = orders.filter(
     (order) => channelFilter === "ALL" || order.channel === channelFilter,
   );
+  const oldestTimestamp = filteredOrders.reduce(
+    (oldest, order) => Math.min(oldest, order.timestamp),
+    filteredOrders[0]?.timestamp ?? Date.now(),
+  );
   const selected =
     filteredOrders.find((order) => order.id === selectedId) ??
     filteredOrders[0];
@@ -146,13 +150,22 @@ export function OrdersView({
         ))}
       </div>
       <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.2fr)] lg:items-start">
-        <div className="flex max-h-[calc(100dvh-190px)] min-h-0 flex-col gap-2 overflow-y-auto pr-1">
+        <div className="flex max-h-[calc(100dvh-190px)] min-h-0 flex-col gap-3 overflow-y-auto pr-1">
           {filteredOrders.map((order) => {
             const stage = STAGE_COLOR[order.status];
+            const createdAt = new Date(order.timestamp);
+            const ageMinutes = Math.max(
+              0,
+              Math.round((order.timestamp - oldestTimestamp) / 60000),
+            );
+            const itemsPreview = order.items
+              .slice(0, 2)
+              .map((item) => `${item.qty}x ${item.name}`)
+              .join(" · ");
             return (
               <div
                 key={order.id}
-                className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-xl"
+                className="grid min-h-[138px] grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-xl"
                 style={{
                   background: selected.id === order.id ? stage.bg : "#fff",
                   border: `1.5px solid ${selected.id === order.id ? stage.accent : stage.border}`,
@@ -161,10 +174,10 @@ export function OrdersView({
                 <button
                   type="button"
                   onClick={() => setSelectedId(order.id)}
-                  className="min-h-[86px] min-w-0 p-3 text-left"
+                  className="min-h-[138px] min-w-0 p-4 text-left"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <strong style={{ color: stage.text }}>{order.id}</strong>
+                    <strong className="text-base" style={{ color: stage.text }}>{order.id}</strong>
                     <span
                       className="text-[10px] font-black uppercase"
                       style={{ color: stage.text }}
@@ -172,11 +185,22 @@ export function OrdersView({
                       {STAGE_LABEL[order.status]}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs font-bold" style={{ color: VERDE }}>
-                    {isKioskMobOrder(order) ? "BALCÃO" : order.channel} · {fmt(order.total)} ·{" "}
-                    {order.customerName || "Sem nome"} ·{" "}
-                    {order.customerPhone || "Sem telefone"}
-                  </p>
+                  <div className="mt-2 grid gap-1 text-xs font-bold" style={{ color: VERDE }}>
+                    <p>
+                      {isKioskMobOrder(order) ? "BALCÃO" : order.channel} · {fmt(order.total)}
+                    </p>
+                    <p className="truncate">
+                      {order.customerName || "Sem nome"} · {order.customerPhone || "Sem telefone"}
+                    </p>
+                    <p className="truncate opacity-75">
+                      {createdAt.toLocaleDateString("pt-BR")} · {createdAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · {ageMinutes} min
+                    </p>
+                    {itemsPreview && (
+                      <p className="line-clamp-2 text-[11px] opacity-80">
+                        {itemsPreview}
+                      </p>
+                    )}
+                  </div>
                   {order.deliveryType === "delivery" && !isKioskMobOrder(order) && (
                     <p className="mt-1 line-clamp-2 text-[11px] font-bold" style={{ color: `${VERDE}99` }}>
                       {order.customerAddress || "Endereço não informado"}
