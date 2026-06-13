@@ -210,7 +210,7 @@ export function useOrderSync({
   const deleteOrder = useCallback(
     async (id: string) => {
       const existing = orders.find((order) => order.id === id);
-      if (existing?.status !== "CANCELLED") return;
+      if (!existing || !["CANCELLED", "DELIVERED"].includes(existing.status)) return;
       setOrders((prev) => prev.filter((order) => order.id !== id));
       try {
         const res = API_URL

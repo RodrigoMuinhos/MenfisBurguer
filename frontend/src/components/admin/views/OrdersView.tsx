@@ -91,8 +91,8 @@ export function OrdersView({
   const selectedRemoved = Object.entries(selected?.removedByItemId ?? {})
     .flatMap(([, values]) => values)
     .filter((value, index, values) => values.indexOf(value) === index);
-  const confirmDeleteCancelled = (order: Order) => {
-    if (order.status !== "CANCELLED") return;
+  const confirmDeleteFinished = (order: Order) => {
+    if (!["CANCELLED", "DELIVERED"].includes(order.status)) return;
     const confirmed = window.confirm(`Excluir definitivamente o pedido ${order.id}?`);
     if (!confirmed) return;
     void deleteOrder(order.id);
@@ -207,32 +207,36 @@ export function OrdersView({
                     </p>
                   )}
                 </button>
-                {order.status === "CANCELLED" && (
+                {["CANCELLED", "DELIVERED"].includes(order.status) && (
                   <div className="grid w-12 grid-rows-2 border-l" style={{ borderColor: stage.border }}>
+                    {order.status === "CANCELLED" ? (
+                      <button
+                        type="button"
+                        onClick={() => updateOrderStatus(order.id, "ACCEPTED")}
+                        className="flex items-center justify-center"
+                        style={{
+                          color: "#166534",
+                          background: "#DCFCE7",
+                          borderBottom: `1px solid ${stage.border}`,
+                        }}
+                        aria-label={`Reverter e aceitar pedido ${order.id}`}
+                        title="Reverter e aceitar pedido"
+                      >
+                        <Check size={17} strokeWidth={2.6} />
+                      </button>
+                    ) : (
+                      <span style={{ borderBottom: `1px solid ${stage.border}` }} />
+                    )}
                     <button
                       type="button"
-                      onClick={() => updateOrderStatus(order.id, "ACCEPTED")}
-                      className="flex items-center justify-center"
-                      style={{
-                        color: "#166534",
-                        background: "#DCFCE7",
-                        borderBottom: `1px solid ${stage.border}`,
-                      }}
-                      aria-label={`Reverter e aceitar pedido ${order.id}`}
-                      title="Reverter e aceitar pedido"
-                    >
-                      <Check size={17} strokeWidth={2.6} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => confirmDeleteCancelled(order)}
+                      onClick={() => confirmDeleteFinished(order)}
                       className="flex items-center justify-center"
                       style={{
                         color: "#991B1B",
                         background: "#FEF2F2",
                       }}
                       aria-label={`Excluir pedido ${order.id}`}
-                      title="Excluir pedido cancelado"
+                      title={order.status === "DELIVERED" ? "Excluir pedido entregue" : "Excluir pedido cancelado"}
                     >
                       <Trash2 size={17} strokeWidth={2.4} />
                     </button>

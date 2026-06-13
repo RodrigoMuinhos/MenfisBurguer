@@ -164,9 +164,9 @@ export async function DELETE(
     return NextResponse.json({ error: "order_not_found" }, { status: 404 });
   }
 
-  if (current.rows[0].status !== "CANCELLED") {
+  if (!["CANCELLED", "DELIVERED"].includes(current.rows[0].status)) {
     return NextResponse.json(
-      { error: "only_cancelled_orders_can_be_deleted" },
+      { error: "only_cancelled_or_delivered_orders_can_be_deleted" },
       { status: 409 },
     );
   }

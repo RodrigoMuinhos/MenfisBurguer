@@ -206,8 +206,8 @@ public class OrderService {
   @Transactional
   public void deleteCancelled(String id) {
     String status = jdbc.queryForObject("select status from orders where id = ?", String.class, id);
-    if (!OrderStatus.CANCELLED.name().equals(status)) {
-      throw new IllegalArgumentException("only_cancelled_orders_can_be_deleted");
+    if (!OrderStatus.CANCELLED.name().equals(status) && !OrderStatus.DELIVERED.name().equals(status)) {
+      throw new IllegalArgumentException("only_cancelled_or_delivered_orders_can_be_deleted");
     }
     jdbc.update("delete from orders where id = ?", id);
     audit.log("admin", "ORDER_DELETED", "ORDER", id, Map.of("status", status));
