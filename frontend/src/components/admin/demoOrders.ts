@@ -50,14 +50,10 @@ const PRODUCTS = [
   },
 ];
 
-const STATUS_PLAN: OrderStatus[] = [
-  ...Array(6).fill("PAYMENT_PENDING"),
-  ...Array(12).fill("ACCEPTED"),
-  ...Array(12).fill("IN_PREPARATION"),
-  ...Array(10).fill("READY"),
-  ...Array(10).fill("OUT_FOR_DELIVERY"),
-  ...Array(20).fill("DELIVERED"),
-] as OrderStatus[];
+const STATUS_PLAN: OrderStatus[] = Array.from(
+  { length: 70 },
+  () => "DELIVERED" as OrderStatus,
+);
 
 export function generateDemoOrders(): Order[] {
   const now = Date.now();

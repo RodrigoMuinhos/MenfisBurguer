@@ -145,14 +145,14 @@ export function OrdersView({
           </button>
         ))}
       </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.2fr)]">
-        <div className="flex max-h-[72vh] flex-col gap-2 overflow-y-auto">
+      <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.2fr)] lg:items-start">
+        <div className="flex max-h-[calc(100dvh-190px)] min-h-0 flex-col gap-2 overflow-y-auto pr-1">
           {filteredOrders.map((order) => {
             const stage = STAGE_COLOR[order.status];
             return (
               <div
                 key={order.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-xl"
+                className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-xl"
                 style={{
                   background: selected.id === order.id ? stage.bg : "#fff",
                   border: `1.5px solid ${selected.id === order.id ? stage.accent : stage.border}`,
@@ -161,7 +161,7 @@ export function OrdersView({
                 <button
                   type="button"
                   onClick={() => setSelectedId(order.id)}
-                  className="min-w-0 p-3 text-left"
+                  className="min-h-[86px] min-w-0 p-3 text-left"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <strong style={{ color: stage.text }}>{order.id}</strong>
@@ -220,7 +220,7 @@ export function OrdersView({
         </div>
 
         <div
-          className="rounded-2xl p-5"
+          className="max-h-[calc(100dvh-190px)] overflow-y-auto rounded-2xl p-5"
           style={{ border: `1.5px solid ${ROSA}`, background: "#fff" }}
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
