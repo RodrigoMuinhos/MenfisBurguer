@@ -2,7 +2,6 @@ import { RefObject } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CreditCard,
-  HandCoins,
   LockKeyhole,
   MessageCircle,
   QrCode,
@@ -35,7 +34,6 @@ export function PaymentStepSection({
   counterServiceMode,
   payment,
   setPayment,
-  payOnDeliveryEnabled,
   customerNameRef,
   phoneRef,
   customerName,
@@ -53,7 +51,6 @@ export function PaymentStepSection({
   counterServiceMode: boolean;
   payment: PaymentMethod;
   setPayment: (payment: PaymentMethod) => void;
-  payOnDeliveryEnabled: boolean;
   customerNameRef: RefObject<HTMLInputElement>;
   phoneRef: RefObject<HTMLInputElement>;
   customerName: string;
@@ -243,43 +240,15 @@ export function PaymentStepSection({
                       )}
                       {!kioskMode && !counterServiceMode && (
                         <div className="grid gap-3">
-                          <div
-                            className={`grid gap-3 ${
-                              payOnDeliveryEnabled
-                                ? "md:grid-cols-4"
-                                : "md:grid-cols-3"
-                            }`}
-                          >
+                          <div className="grid gap-3 md:grid-cols-1">
                             {(
                               [
                                 {
-                                  id: "pix",
-                                  label: "Mercado Pago Pix",
-                                  copy: "Pagar online agora",
-                                  Icon: QrCode,
-                                },
-                                {
-                                  id: "cartao",
-                                  label: "Mercado Pago Cartão",
-                                  copy: "Crédito ou débito online",
-                                  Icon: CreditCard,
-                                },
-                                {
                                   id: "whatsapp" as PaymentMethod,
-                                  label: "Pagar por WhatsApp",
-                                  copy: "Atendente combina e libera",
+                                  label: "Pagamento WhatsApp",
+                                  copy: "Atendimento confirma a forma de pagamento",
                                   Icon: MessageCircle,
                                 },
-                                ...(payOnDeliveryEnabled
-                                  ? [
-                                      {
-                                        id: "pagar_na_entrega" as PaymentMethod,
-                                        label: "Pagar na entrega",
-                                        copy: "Pague ao receber",
-                                        Icon: HandCoins,
-                                      },
-                                    ]
-                                  : []),
                               ] as {
                                 id: PaymentMethod;
                                 label: string;
@@ -292,7 +261,7 @@ export function PaymentStepSection({
                                 <button
                                   key={id}
                                   onClick={() => setPayment(id)}
-                                  className="flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl px-4 py-5 text-sm font-black uppercase tracking-wider"
+                                  className="flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl px-4 py-5 text-sm font-black uppercase tracking-wider md:max-w-md"
                                   style={{
                                     background: active ? VERDE : "#fff",
                                     color: active ? ROSA : VERDE,

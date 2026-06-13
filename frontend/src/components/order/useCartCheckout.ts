@@ -58,7 +58,9 @@ export function useCartCheckout({
   const [savedBadge, setSavedBadge] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("bag");
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [payment, setPayment] = useState<PaymentMethod>("pix");
+  const [payment, setPayment] = useState<PaymentMethod>(
+    kioskMode || counterServiceMode ? "pix" : "whatsapp",
+  );
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
@@ -159,6 +161,7 @@ export function useCartCheckout({
   useEffect(() => {
     if (kioskMode || counterServiceMode) return;
     setDelivery("delivery");
+    setPayment("whatsapp");
   }, [counterServiceMode, kioskMode]);
 
   useEffect(() => {
@@ -180,7 +183,7 @@ export function useCartCheckout({
         setPayOnDeliveryEnabled(enabled);
         if (!enabled) {
           setPayment((current) =>
-            current === "pagar_na_entrega" ? "pix" : current,
+            current === "pagar_na_entrega" ? "whatsapp" : current,
           );
         }
       })

@@ -77,7 +77,6 @@ export function CartScreen({
     number,
     numberRef,
     obsOpen,
-    payOnDeliveryEnabled,
     paying,
     payment,
     paymentError,
@@ -206,7 +205,6 @@ export function CartScreen({
           counterServiceMode={counterServiceMode}
           payment={payment}
           setPayment={setPayment}
-          payOnDeliveryEnabled={payOnDeliveryEnabled}
           customerNameRef={customerNameRef}
           phoneRef={phoneRef}
           customerName={customerName}
