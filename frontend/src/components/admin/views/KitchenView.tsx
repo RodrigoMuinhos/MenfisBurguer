@@ -41,13 +41,15 @@ export function KitchenView({
   updateOrderStatus,
   deductStock,
   stockItems = [],
+  demoTableEnabled = false,
 }: {
   orders: Order[];
   updateOrderStatus: (id: string, s: OrderStatus) => void | Promise<void>;
   deductStock: (o: Order) => void;
   stockItems?: StockItem[];
+  demoTableEnabled?: boolean;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = demoTableEnabled ? "2026-06-12" : new Date().toISOString().slice(0, 10);
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedId, setSelectedId] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(() => {
@@ -68,6 +70,10 @@ export function KitchenView({
   const initializedSoundRef = useRef(false);
   const sideBySide = viewport.width >= 1360 && viewport.width >= viewport.height;
   const compact = viewport.width < 980 || viewport.height > viewport.width;
+
+  useEffect(() => {
+    if (demoTableEnabled) setSelectedDate("2026-06-12");
+  }, [demoTableEnabled]);
 
   const dayOrders = useMemo(
     () =>

@@ -575,6 +575,7 @@ export function AdminPanel({
             updateOrderStatus={handleUpdateOrderStatus}
             deductStock={deductStockForOrder}
             stockItems={stockItems}
+            demoTableEnabled={demoTableEnabled}
           />
         )}
         {tab === "dashboard" && (
