@@ -73,6 +73,9 @@ export function ProductCustomizer({
       if (current.length < max) {
         return { ...prev, [field]: [...current, value] };
       }
+      if (selectedCount === 0) {
+        return { ...prev, [field]: [...current.slice(0, max - 1), value] };
+      }
       return { ...prev, [field]: Array.from({ length: max }, () => value) };
     });
   };
