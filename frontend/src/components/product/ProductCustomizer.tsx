@@ -73,8 +73,7 @@ export function ProductCustomizer({
       if (current.length < max) {
         return { ...prev, [field]: [...current, value] };
       }
-      const remaining = current.filter((item) => item !== value);
-      return { ...prev, [field]: [...remaining.slice(0, max - 1), value] };
+      return { ...prev, [field]: Array.from({ length: max }, () => value) };
     });
   };
 
