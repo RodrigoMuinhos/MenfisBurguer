@@ -346,26 +346,64 @@ function receiptItemHtml(item: Order["items"][number]) {
 }
 
 export function buildOrderTxt(order: Order) {
+  const financials = receiptFinancials(order);
+  const createdAt = new Date(order.timestamp);
+  const removed = Object.entries(order.removedByItemId ?? {})
+    .flatMap(([, values]) => values)
+    .filter((value, index, values) => values.indexOf(value) === index);
   const lines = [
     "MENFI'S BURGER",
+    "NOTA DO PEDIDO",
+    "========================================",
     "",
-    `Pedido ${order.id}`,
+    `Pedido: ${order.id}`,
+    `Numero: ${order.number}`,
+    `Codigo: ${deliveryConfirmationCode(order)}`,
+    `Tipo: ${receiptType(order)}`,
+    `Data: ${createdAt.toLocaleDateString("pt-BR")}`,
+    `Hora: ${createdAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
     "",
     `Cliente: ${order.customerName || "Não informado"}`,
     `Telefone: ${order.customerPhone || "Não informado"}`,
+    `Endereco: ${order.customerAddress || "Não informado"}`,
     "",
-    "ITENS",
+    `Forma de pagamento: ${paymentMethodLabel(order)}`,
+    `Status do pagamento: ${paymentStatusLabel(order)}`,
+    `Status do pedido: ${STAGE_LABEL[order.status] ?? order.status}`,
+    "",
+    "ITENS DO PEDIDO",
+    "----------------------------------------",
     "",
   ];
   order.items.forEach((item) => {
     lines.push(`${item.qty}x ${item.name}`);
+    lines.push(`Unitario: ${fmt(item.price)}`);
+    lines.push(`Total do item: ${fmt(item.price * item.qty)}`);
     orderItemComponents(item).forEach((component) => lines.push(`* ${component}`));
     if (orderItemNote(item)) {
-      lines.push("", "Observação:", orderItemNote(item));
+      lines.push("Observacao:", orderItemNote(item));
     }
-    lines.push("");
+    lines.push("----------------------------------------");
   });
-  lines.push("Pagamento:", paymentMethodLabel(order), "", "Total:", fmt(order.total));
+  if (removed.length) {
+    lines.push("", `Retirar: ${removed.join(", ")}`, "");
+  }
+  lines.push(
+    "",
+    "RESUMO FINANCEIRO",
+    "----------------------------------------",
+    `Subtotal dos itens: ${fmt(financials.itemsSubtotal)}`,
+    `Taxa de entrega: ${fmt(financials.deliveryFee)}`,
+    `Taxa de servico: ${fmt(financials.serviceFee)}`,
+    `Desconto: -${fmt(financials.discount)}`,
+    "----------------------------------------",
+    `TOTAL FINAL: ${fmt(financials.total)}`,
+    "",
+    "CONFERENCIA",
+    `Itens + entrega + servico - desconto = ${fmt(financials.total)}`,
+    "",
+    "MENFI'S BURGER",
+  );
   return lines.join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
