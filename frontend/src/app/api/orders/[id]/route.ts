@@ -124,16 +124,24 @@ export async function PATCH(
         return sum + totalPrice;
       }, 0),
   );
-  const deliveryFee = Number(current.rows[0].delivery_fee ?? 0);
+  const oldDeliveryFee = Number(current.rows[0].delivery_fee ?? 0);
+  const hasRequestedDeliveryFee = body.deliveryFee != null;
+  const requestedDeliveryFee = hasRequestedDeliveryFee
+    ? Math.max(0, Number(body.deliveryFee))
+    : 0;
+  const deliveryFee =
+    hasRequestedDeliveryFee && Number.isFinite(requestedDeliveryFee)
+      ? Math.round(requestedDeliveryFee * 100) / 100
+      : oldDeliveryFee;
   const oldTotal = Number(current.rows[0].total ?? 0);
   const discount = Number(current.rows[0].discount_total ?? 0);
-  const serviceFee = Math.max(0, Math.round((oldTotal + discount - oldSubtotal - deliveryFee) * 100) / 100);
+  const serviceFee = Math.max(0, Math.round((oldTotal + discount - oldSubtotal - oldDeliveryFee) * 100) / 100);
   const total = Math.max(1, Math.round((subtotal + deliveryFee + serviceFee - discount) * 100) / 100);
 
   const updated = await getPool().query<DbOrderRow>(
     `
       update orders
-      set items = $2::jsonb, subtotal = $3, total = $4, updated_at = now()
+      set items = $2::jsonb, subtotal = $3, delivery_fee = $4, total = $5, updated_at = now()
       where id = $1
       returning
         id, number, items, removed_by_item_id, channel, delivery_type,
@@ -141,7 +149,7 @@ export async function PATCH(
         total, payment_provider, payment_method, payment_status, payment_id,
         timestamp, status
     `,
-    [id, JSON.stringify(items), subtotal, total],
+    [id, JSON.stringify(items), subtotal, deliveryFee, total],
   );
 
   return NextResponse.json({ ok: true, order: mapOrder(updated.rows[0]) });

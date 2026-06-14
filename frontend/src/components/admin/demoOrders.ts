@@ -1,4 +1,5 @@
 import { Order, OrderStatus } from "@/types/order";
+import { DELIVERY_FEE } from "@/components/order/checkout";
 
 const NAMES = [
   "Ana Beatriz Rocha",
@@ -76,7 +77,7 @@ export function generateDemoOrders(): Order[] {
       };
     });
     const subtotal = money(items.reduce((sum, item) => sum + item.price * item.qty, 0));
-    const deliveryFee = 5.1;
+    const deliveryFee = DELIVERY_FEE;
     const serviceFee = status === "PAYMENT_PENDING" || index % 2 === 0 ? 0.99 : 0;
     const total = money(subtotal + deliveryFee + serviceFee);
     const name = NAMES[index % NAMES.length];

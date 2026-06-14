@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BellRing, Check, FileText, MessageCircle, Minus, Pencil, Phone, Plus, Printer, Save, Trash2, XCircle } from "lucide-react";
 import { CartItem, Order, OrderStatus } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
+import { DELIVERY_FEE } from "@/components/order/checkout";
 import { deliveryConfirmationCode } from "@/components/order/tracking";
 import {
   customerWhatsappUrl,
@@ -36,7 +37,7 @@ export function OrdersView({
   orders: Order[];
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   deleteOrder: (id: string) => void | Promise<void>;
-  updateOrderItems: (id: string, items: CartItem[]) => void | Promise<void>;
+  updateOrderItems: (id: string, items: CartItem[], options?: { deliveryFee?: number }) => void | Promise<void>;
 }) {
   const [channelFilter, setChannelFilter] = useState<"ALL" | Order["channel"]>(
     "ALL",
@@ -121,6 +122,12 @@ export function OrdersView({
     if (draftItems.length === 0) return;
     await updateOrderItems(selected.id, draftItems);
     cancelItemEdit();
+  };
+  const canEditFinancials = Boolean(selected && EDITABLE_ITEM_STATUSES.includes(selected.status));
+  const toggleDeliveryFee = async () => {
+    if (!selected || !canEditFinancials) return;
+    const nextDeliveryFee = selectedDeliveryFee > 0 ? 0 : DELIVERY_FEE;
+    await updateOrderItems(selected.id, selected.items, { deliveryFee: nextDeliveryFee });
   };
 
   if (!selected) {
@@ -417,6 +424,23 @@ export function OrdersView({
                 }}
               >
                 <XCircle size={15} /> Cancelar pedido
+              </button>
+            )}
+            {canEditFinancials && (
+              <button
+                type="button"
+                onClick={() => void toggleDeliveryFee()}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+                style={{
+                  background: selectedDeliveryFee > 0 ? "#FEF2F2" : `${VERDE}08`,
+                  color: selectedDeliveryFee > 0 ? "#991B1B" : VERDE,
+                  border: `1.5px solid ${selectedDeliveryFee > 0 ? "#FCA5A5" : `${VERDE}22`}`,
+                }}
+              >
+                {selectedDeliveryFee > 0 ? <Minus size={15} /> : <Plus size={15} />}
+                {selectedDeliveryFee > 0
+                  ? `Remover frete ${fmt(selectedDeliveryFee)}`
+                  : `Adicionar frete ${fmt(DELIVERY_FEE)}`}
               </button>
             )}
             {PREPARATION_STARTED_STATUSES.includes(selected.status) && (

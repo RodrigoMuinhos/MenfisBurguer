@@ -26,7 +26,7 @@ import { useOrderSync } from "./hooks/useOrderSync";
 import { AdminLoginScreen } from "./AdminLoginScreen";
 import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
-import { SERVICE_FEE } from "@/components/order/checkout";
+import { DELIVERY_FEE, SERVICE_FEE } from "@/components/order/checkout";
 import { deliveryConfirmationCode, normalizeBackendOrder } from "@/services/orders/normalize";
 import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY, readMemberProfile } from "@/components/product/shared";
 import { MemberNotification } from "@/components/product/notifications";
@@ -370,7 +370,7 @@ export default function App({ mode }: { mode?: AppMode }) {
 
     const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
     const total =
-      subtotal + (deliveryType === "delivery" ? 5.1 + SERVICE_FEE : 0);
+      subtotal + (deliveryType === "delivery" ? DELIVERY_FEE + SERVICE_FEE : 0);
 
     try {
       const res = await fetch("/api/orders", {
@@ -424,7 +424,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       customerPhone,
       customerAddress,
       subtotal,
-      deliveryFee: deliveryType === "delivery" ? 5.1 : 0,
+      deliveryFee: deliveryType === "delivery" ? DELIVERY_FEE : 0,
       total,
       timestamp: Date.now(),
       status: "PAID",

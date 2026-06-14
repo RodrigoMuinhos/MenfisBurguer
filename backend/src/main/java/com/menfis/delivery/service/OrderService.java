@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OrderService {
-  private static final BigDecimal DELIVERY_FEE = new BigDecimal("5.10");
+  private static final BigDecimal DELIVERY_FEE = new BigDecimal("7.10");
   private static final BigDecimal SERVICE_FEE = new BigDecimal("0.99");
 
   private final JdbcTemplate jdbc;
@@ -214,7 +214,7 @@ public class OrderService {
   }
 
   @Transactional
-  public OrderResponse updateItems(String id, List<Map<String, Object>> rawItems) {
+  public OrderResponse updateItems(String id, List<Map<String, Object>> rawItems, BigDecimal requestedDeliveryFee) {
     Map<String, Object> current = jdbc.queryForMap(
       "select status, subtotal, delivery_fee, total, discount_total from orders where id = ?",
       id
@@ -234,18 +234,22 @@ public class OrderService {
       .reduce(BigDecimal.ZERO, BigDecimal::add)
       .setScale(2, RoundingMode.HALF_UP);
     BigDecimal oldSubtotal = money(current.get("subtotal"));
-    BigDecimal deliveryFee = money(current.get("delivery_fee"));
+    BigDecimal oldDeliveryFee = money(current.get("delivery_fee"));
+    BigDecimal deliveryFee = requestedDeliveryFee == null
+      ? oldDeliveryFee
+      : requestedDeliveryFee.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
     BigDecimal oldTotal = money(current.get("total"));
     BigDecimal discount = money(current.get("discount_total"));
-    BigDecimal serviceFee = oldTotal.add(discount).subtract(oldSubtotal).subtract(deliveryFee).max(BigDecimal.ZERO);
+    BigDecimal serviceFee = oldTotal.add(discount).subtract(oldSubtotal).subtract(oldDeliveryFee).max(BigDecimal.ZERO);
     BigDecimal newTotal = newSubtotal.add(deliveryFee).add(serviceFee).subtract(discount)
       .max(new BigDecimal("1.00"))
       .setScale(2, RoundingMode.HALF_UP);
 
     jdbc.update(
-      "update orders set items = ?::jsonb, subtotal = ?, total = ?, updated_at = now() where id = ?",
+      "update orders set items = ?::jsonb, subtotal = ?, delivery_fee = ?, total = ?, updated_at = now() where id = ?",
       toJson(items),
       newSubtotal,
+      deliveryFee,
       newTotal,
       id
     );

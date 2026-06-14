@@ -230,18 +230,19 @@ export function useOrderSync({
   );
 
   const updateOrderItems = useCallback(
-    async (id: string, items: CartItem[]) => {
+    async (id: string, items: CartItem[], options?: { deliveryFee?: number }) => {
       if (items.length === 0) return;
       const existing = orders.find((order) => order.id === id);
       if (!existing) return;
       const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
-      const deliveryFee = Number(existing.deliveryFee ?? 0);
+      const currentDeliveryFee = Number(existing.deliveryFee ?? 0);
+      const deliveryFee = Number(options?.deliveryFee ?? currentDeliveryFee);
       const discount = Number(existing.discountTotal ?? 0);
       const currentSubtotal =
         existing.subtotal ?? existing.items.reduce((sum, item) => sum + item.price * item.qty, 0);
       const serviceFee = Math.max(
         0,
-        Math.round((existing.total + discount - currentSubtotal - deliveryFee) * 100) / 100,
+        Math.round((existing.total + discount - currentSubtotal - currentDeliveryFee) * 100) / 100,
       );
       const total = Math.max(
         1,
@@ -249,7 +250,7 @@ export function useOrderSync({
       );
       setOrders((prev) =>
         prev.map((order) =>
-          order.id === id ? { ...order, items, subtotal, total } : order,
+          order.id === id ? { ...order, items, subtotal, deliveryFee, total } : order,
         ),
       );
       try {
@@ -260,12 +261,12 @@ export function useOrderSync({
                 Authorization: `Bearer ${adminToken}`,
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ items }),
+              body: JSON.stringify({ items, deliveryFee: options?.deliveryFee }),
             })
           : await fetch(`/api/orders/${encodeURIComponent(id)}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ items }),
+              body: JSON.stringify({ items, deliveryFee: options?.deliveryFee }),
             });
         if (!res.ok) {
           await syncOrders();

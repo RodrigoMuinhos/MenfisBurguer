@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { CartItem, Order, OrderStatus } from "@/types/order";
+import { SERVICE_FEE } from "@/components/order/checkout";
 import { VERDE } from "@/utils/theme";
 import { EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
 import { AdminHeader, AdminTabs, PaymentRequestsAlert } from "./AdminChrome";
@@ -48,7 +49,7 @@ interface Props {
   orders: Order[];
   updateOrderStatus: (id: string, status: OrderStatus) => void | Promise<void>;
   deleteOrder: (id: string) => void | Promise<void>;
-  updateOrderItems: (id: string, items: CartItem[]) => void | Promise<void>;
+  updateOrderItems: (id: string, items: CartItem[], options?: { deliveryFee?: number }) => void | Promise<void>;
   onClose: () => void;
   initialTab?: AdminTab;
   adminToken: string;
@@ -175,22 +176,25 @@ export function AdminPanel({
     await deleteOrder(id);
   };
 
-  const handleUpdateOrderItems = async (id: string, items: CartItem[]) => {
+  const handleUpdateOrderItems = async (id: string, items: CartItem[], options?: { deliveryFee?: number }) => {
     if (isDemoOrder(id)) {
       setDemoOrders((prev) =>
         prev.map((order) => {
           if (order.id !== id) return order;
           const subtotal = Math.round(items.reduce((sum, item) => sum + item.price * item.qty, 0) * 100) / 100;
+          const deliveryFee = Number(options?.deliveryFee ?? order.deliveryFee ?? 0);
+          const discount = Number(order.discountTotal ?? 0);
+          const serviceFee = order.deliveryType === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
           const total = Math.max(
             1,
-            Math.round((subtotal + Number(order.deliveryFee ?? 0)) * 100) / 100,
+            Math.round((subtotal + deliveryFee + serviceFee - discount) * 100) / 100,
           );
-          return { ...order, items, subtotal, total };
+          return { ...order, items, subtotal, deliveryFee, total };
         }),
       );
       return;
     }
-    await updateOrderItems(id, items);
+    await updateOrderItems(id, items, options);
   };
 
   const activeOrders = visibleOrders.filter(
