@@ -19,6 +19,10 @@ const DEFAULT_COMPOSITION: Record<string, string[]> = {
 type ReceiptInput = {
   id?: string;
   items: CartItem[];
+  subtotal?: number;
+  deliveryFee?: number;
+  serviceFee?: number;
+  discount?: number;
   total: number;
   paymentMethod?: PaymentMethod;
   timestamp?: number;
@@ -45,6 +49,12 @@ export function buildWhatsappReceipt(input: ReceiptInput) {
     })
     .join("\n");
   const method = input.paymentMethod ?? "pix";
+  const subtotal =
+    input.subtotal ??
+    input.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const deliveryFee = input.deliveryFee ?? 0;
+  const serviceFee = input.serviceFee ?? 0;
+  const discount = input.discount ?? 0;
 
   return [
     LINE,
@@ -58,12 +68,17 @@ export function buildWhatsappReceipt(input: ReceiptInput) {
     "",
     "-----",
     "",
-    `TOTAL                 ${fmt(input.total)}`,
+    `ITENS                 ${fmt(subtotal)}`,
+    ...(deliveryFee > 0 ? [`ENTREGA               ${fmt(deliveryFee)}`] : []),
+    ...(serviceFee > 0 ? [`SERVICO               ${fmt(serviceFee)}`] : []),
+    ...(discount > 0 ? [`DESCONTO             - ${fmt(discount)}`] : []),
+    `TOTAL FINAL           ${fmt(input.total)}`,
     "",
     "Forma de Pagamento:",
-    `${method === "pix" || method === "whatsapp" ? "(X)" : "( )"} PIX`,
+    `${method === "pix" ? "(X)" : "( )"} PIX`,
     `${method === "cartao" ? "(X)" : "( )"} Cartao`,
     `${method === "dinheiro" || method === "pagar_na_entrega" ? "(X)" : "( )"} Dinheiro`,
+    `${method === "whatsapp" ? "(X)" : "( )"} WhatsApp`,
     "",
     `Data: ${date}`,
     `Hora: ${time}`,
@@ -86,9 +101,21 @@ export function buildWhatsappReceipt(input: ReceiptInput) {
 }
 
 export function buildOrderWhatsappReceipt(order: Order) {
+  const subtotal =
+    order.subtotal ?? order.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const deliveryFee = order.deliveryFee ?? 0;
+  const discount = order.discountTotal ?? 0;
+  const serviceFee = Math.max(
+    0,
+    Math.round((order.total + discount - subtotal - deliveryFee) * 100) / 100,
+  );
   return buildWhatsappReceipt({
     id: order.id,
     items: order.items,
+    subtotal,
+    deliveryFee,
+    serviceFee,
+    discount,
     total: order.total,
     paymentMethod: order.paymentMethod,
     timestamp: order.timestamp,

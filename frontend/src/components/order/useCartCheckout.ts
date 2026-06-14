@@ -9,9 +9,8 @@ import {
   MEMBER_KEY,
   PICKUP_ADDRESS,
   PaymentMethod,
-  SERVICE_FEE,
   STORAGE_KEY,
-  couponDiscount,
+  buildCheckoutPricing,
   findCoupon,
   findCouponFromBackend,
   loadSaved,
@@ -235,15 +234,20 @@ export function useCartCheckout({
       return { ...prev, [itemId]: next };
     });
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const effectiveDelivery = resolveRuntimeDeliveryType(
     kioskMode || counterServiceMode ? "retirada" : "delivery",
   );
-  const fee = effectiveDelivery === "delivery" && !freeShipping ? 5.1 : 0;
-  const serviceFee = effectiveDelivery === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
-  const grossTotal = subtotal + fee + serviceFee;
-  const discount = couponDiscount(appliedCoupon, grossTotal, cart);
-  const total = Math.max(1, grossTotal - discount);
+  const pricing = buildCheckoutPricing({
+    items: cart,
+    delivery: effectiveDelivery,
+    freeShipping,
+    coupon: appliedCoupon,
+  });
+  const subtotal = pricing.subtotal;
+  const fee = pricing.deliveryFee;
+  const serviceFee = pricing.serviceFee;
+  const discount = pricing.discount;
+  const total = pricing.total;
 
   const deliveryValid =
     phone.replace(/\D/g, "").length >= 10 &&

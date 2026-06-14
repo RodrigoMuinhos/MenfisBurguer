@@ -78,6 +78,41 @@ export const ALLOWED_DELIVERY_TYPES: DeliveryType[] = ["delivery", "retirada"];
 export const DEFAULT_COUPONS: Coupon[] = [];
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+
+export type CheckoutPricing = {
+  subtotal: number;
+  deliveryFee: number;
+  serviceFee: number;
+  grossTotal: number;
+  discount: number;
+  total: number;
+};
+
+export function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+export function buildCheckoutPricing({
+  items,
+  delivery,
+  freeShipping,
+  coupon,
+}: {
+  items: CartItem[];
+  delivery: DeliveryType;
+  freeShipping: boolean;
+  coupon: Coupon | null;
+}): CheckoutPricing {
+  const subtotal = roundMoney(
+    items.reduce((sum, item) => sum + item.price * item.qty, 0),
+  );
+  const deliveryFee = delivery === "delivery" && !freeShipping ? 5.1 : 0;
+  const serviceFee = delivery === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
+  const grossTotal = roundMoney(subtotal + deliveryFee + serviceFee);
+  const discount = roundMoney(couponDiscount(coupon, grossTotal, items));
+  const total = Math.max(1, roundMoney(grossTotal - discount));
+  return { subtotal, deliveryFee, serviceFee, grossTotal, discount, total };
+}
 export const wait = (ms: number) =>
   new Promise((resolve) => window.setTimeout(resolve, ms));
 

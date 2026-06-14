@@ -9,6 +9,10 @@ export function CartStickyCta({
   counterServiceMode = false,
   missingDelivery,
   payment,
+  subtotal,
+  fee,
+  serviceFee,
+  discount,
   total,
   paying,
   nextActionLabel,
@@ -19,6 +23,10 @@ export function CartStickyCta({
   counterServiceMode?: boolean;
   missingDelivery: string[];
   payment: PaymentMethod;
+  subtotal: number;
+  fee: number;
+  serviceFee: number;
+  discount: number;
   total: number;
   paying: boolean;
   nextActionLabel: string;
@@ -93,6 +101,33 @@ export function CartStickyCta({
                     {fmt(total)}
                   </p>
                 </div>
+              </div>
+              <div
+                className="mb-3 grid gap-1 rounded-xl px-3 py-2 text-[11px] font-bold"
+                style={{ background: `${ROSA}22`, color: VERDE }}
+              >
+                <div className="flex justify-between gap-3">
+                  <span>Itens</span>
+                  <span>{fmt(subtotal)}</span>
+                </div>
+                {fee > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <span>Taxa de entrega</span>
+                    <span>{fmt(fee)}</span>
+                  </div>
+                )}
+                {serviceFee > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <span>Taxa de serviço</span>
+                    <span>{fmt(serviceFee)}</span>
+                  </div>
+                )}
+                {discount > 0 && (
+                  <div className="flex justify-between gap-3">
+                    <span>Desconto</span>
+                    <span>- {fmt(discount)}</span>
+                  </div>
+                )}
               </div>
               <motion.button
                 whileTap={{ scale: 0.97 }}

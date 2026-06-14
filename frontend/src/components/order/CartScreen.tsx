@@ -235,6 +235,10 @@ export function CartScreen({
           setCheckoutStep={setCheckoutStep}
           setKioskKeyboardTarget={setKioskKeyboardTarget}
           cart={cart}
+          subtotal={subtotal}
+          fee={fee}
+          serviceFee={serviceFee}
+          discount={discount}
           total={total}
         />
 
@@ -289,6 +293,10 @@ export function CartScreen({
         counterServiceMode={counterServiceMode}
         missingDelivery={missingDelivery}
         payment={payment}
+        subtotal={subtotal}
+        fee={fee}
+        serviceFee={serviceFee}
+        discount={discount}
         total={total}
         paying={paying}
         nextActionLabel={nextActionLabel}

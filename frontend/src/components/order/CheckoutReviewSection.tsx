@@ -8,6 +8,7 @@ import {
   KioskKeyboardTarget,
   PaymentMethod,
   SUPPORT_WHATSAPP_URL,
+  fmt,
 } from "./checkout";
 import { buildWhatsappReceipt } from "./whatsappReceipt";
 
@@ -40,6 +41,10 @@ export function CheckoutReviewSection({
   setCheckoutStep,
   setKioskKeyboardTarget,
   cart,
+  subtotal,
+  fee,
+  serviceFee,
+  discount,
   total,
 }: {
   checkoutStep: CheckoutStep;
@@ -59,11 +64,23 @@ export function CheckoutReviewSection({
   setCheckoutStep: (step: CheckoutStep) => void;
   setKioskKeyboardTarget: (target: KioskKeyboardTarget) => void;
   cart: CartItem[];
+  subtotal: number;
+  fee: number;
+  serviceFee: number;
+  discount: number;
   total: number;
 }) {
   const counterFlow = kioskMode || counterServiceMode;
   const supportText = encodeURIComponent(
-    buildWhatsappReceipt({ items: cart, total, paymentMethod: payment }),
+    buildWhatsappReceipt({
+      items: cart,
+      subtotal,
+      deliveryFee: fee,
+      serviceFee,
+      discount,
+      total,
+      paymentMethod: payment,
+    }),
   );
 
   return (
@@ -173,6 +190,42 @@ export function CheckoutReviewSection({
               </p>
             </div>
           </div>
+          {!counterFlow && (
+            <div
+              className="mt-4 rounded-2xl px-4 py-3 text-left"
+              style={{ background: `${ROSA}22`, color: VERDE }}
+            >
+              <div className="flex justify-between gap-3 text-[11px] font-bold">
+                <span>Itens</span>
+                <span>{fmt(subtotal)}</span>
+              </div>
+              {fee > 0 && (
+                <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
+                  <span>Taxa de entrega</span>
+                  <span>{fmt(fee)}</span>
+                </div>
+              )}
+              {serviceFee > 0 && (
+                <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
+                  <span>Taxa de serviço</span>
+                  <span>{fmt(serviceFee)}</span>
+                </div>
+              )}
+              {discount > 0 && (
+                <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
+                  <span>Desconto aplicado</span>
+                  <span>- {fmt(discount)}</span>
+                </div>
+              )}
+              <div
+                className="mt-2 flex justify-between gap-3 border-t pt-2 text-sm font-black uppercase"
+                style={{ borderColor: ROSA }}
+              >
+                <span>Total final</span>
+                <span>{fmt(total)}</span>
+              </div>
+            </div>
+          )}
           <div className={`mt-4 grid gap-2 ${counterFlow ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
             <button
               onClick={() => setCheckoutStep("bag")}
