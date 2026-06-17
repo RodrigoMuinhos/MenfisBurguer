@@ -1,4 +1,4 @@
-import { Edit3, KeyRound, MessageCircle, Plus, Save, Search, Trash2, UserRound, X } from "lucide-react";
+import { KeyRound, MapPin, MessageCircle, Plus, Save, Search, Trash2, UserRound, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ROSA, VERDE } from "@/utils/theme";
 import { API_URL, fmt } from "../shared";
@@ -16,6 +16,11 @@ export type CrmCustomer = {
   average_ticket?: number;
   delivered_count?: number;
   last_order_at?: string;
+  cep?: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
 };
 
 type FormState = {
@@ -56,7 +61,7 @@ export function CustomersCrmView({
     const q = query.trim().toLowerCase();
     if (!q) return customers;
     return customers.filter((customer) =>
-      `${customer.name ?? ""} ${customer.phone ?? ""} ${customer.email ?? ""} ${customer.cpf ?? ""}`
+      `${customer.name ?? ""} ${customer.phone ?? ""} ${customer.email ?? ""} ${customer.cpf ?? ""} ${formatCustomerAddress(customer)}`
         .toLowerCase()
         .includes(q),
     );
@@ -194,23 +199,30 @@ export function CustomersCrmView({
             <Plus size={16} /> Novo cliente
           </button>
           <div className="mt-3 grid max-h-[560px] gap-2 overflow-y-auto">
-            {filtered.map((customer) => (
-              <button
-                key={customer.id}
-                type="button"
-                onClick={() => editCustomer(customer)}
-                className="rounded-2xl p-3 text-left"
-                style={{
-                  background: active?.id === customer.id ? `${ROSA}55` : "#fff",
-                  border: `1px solid ${active?.id === customer.id ? VERDE : `${VERDE}14`}`,
-                  color: VERDE,
-                }}
-              >
-                <p className="text-sm font-black">{customer.name || "Cliente sem nome"}</p>
-                <p className="mt-1 text-xs font-bold opacity-65">{customer.phone || "Sem telefone"}</p>
-                <p className="mt-1 text-[11px] font-bold opacity-45">{customer.email || "Sem e-mail"}</p>
-              </button>
-            ))}
+            {filtered.map((customer) => {
+              const address = formatCustomerAddress(customer);
+              return (
+                <button
+                  key={customer.id}
+                  type="button"
+                  onClick={() => editCustomer(customer)}
+                  className="rounded-2xl p-3 text-left"
+                  style={{
+                    background: active?.id === customer.id ? `${ROSA}55` : "#fff",
+                    border: `1px solid ${active?.id === customer.id ? VERDE : `${VERDE}14`}`,
+                    color: VERDE,
+                  }}
+                >
+                  <p className="text-base font-black leading-tight">{customer.name || "Cliente sem nome"}</p>
+                  <p className="mt-1 text-sm font-black opacity-70">{customer.phone || "Sem telefone"}</p>
+                  <p className="mt-1 text-xs font-bold opacity-50">{customer.email || "Sem e-mail"}</p>
+                  <p className="mt-2 flex items-start gap-1.5 text-xs font-black leading-snug" style={{ color: VERDE }}>
+                    <MapPin className="mt-0.5 shrink-0" size={13} />
+                    <span>{address || "Sem endereço cadastrado"}</span>
+                  </p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -234,6 +246,19 @@ export function CustomersCrmView({
             <Field label="Telefone obrigatório" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} inputMode="tel" />
             <Field label="E-mail opcional" value={form.email} onChange={(email) => setForm({ ...form, email })} inputMode="email" />
             <Field label="CPF opcional" value={form.cpf} onChange={(cpf) => setForm({ ...form, cpf })} inputMode="numeric" />
+            <div className="rounded-2xl p-4 md:col-span-2" style={{ background: `${ROSA}33`, border: `1px solid ${VERDE}18` }}>
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: VERDE, color: ROSA }}>
+                  <MapPin size={18} />
+                </span>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-55">Endereço do cliente</p>
+                  <p className="mt-1 text-base font-black leading-snug">
+                    {form.id && active ? formatCustomerAddress(active) || "Sem endereço cadastrado" : "Selecione um cliente para ver o endereço"}
+                  </p>
+                </div>
+              </div>
+            </div>
             <label className="grid gap-1 md:col-span-2">
               <span className="text-[10px] font-black uppercase tracking-wider opacity-45">Observações internas</span>
               <textarea
@@ -328,6 +353,13 @@ function Info({ label, value }: { label: string; value: string }) {
 
 function total(customers: CrmCustomer[], key: keyof CrmCustomer) {
   return customers.reduce((sum, customer) => sum + Number(customer[key] ?? 0), 0);
+}
+
+function formatCustomerAddress(customer: CrmCustomer) {
+  const streetLine = [customer.street, customer.number].filter(Boolean).join(", ");
+  return [streetLine, customer.neighborhood, customer.city, customer.cep ? `CEP ${customer.cep}` : ""]
+    .filter(Boolean)
+    .join(" - ");
 }
 
 function formatDate(value: string) {

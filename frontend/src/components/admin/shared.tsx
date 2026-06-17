@@ -541,30 +541,24 @@ export function generateCustomerReceipt(order: Order) {
   const lines: string[] = [];
   const financials = receiptFinancials(order);
   const pushWrapped = (value: string, indent = 0) => lines.push(...wrapIndented(value, indent));
+  const customerName = receiptText(order.customerName || "Nao informado").toUpperCase();
+  const customerAddress = receiptText(order.customerAddress || "Nao informado").toUpperCase();
 
   lines.push(center("MENFI'S BURGER"));
-  lines.push(center("VIA DO CLIENTE"));
+  lines.push(center("NOTA DO PEDIDO"));
   lines.push(line());
-  lines.push("");
   lines.push(center(`PEDIDO ${order.id}`));
-  lines.push("");
-  lines.push(`Tipo: ${receiptType(order)}`);
-  lines.push(leftRight("Codigo:", deliveryConfirmationCode(order)));
+  lines.push(leftRight(receiptType(order), deliveryConfirmationCode(order)));
+  lines.push(new Date(order.timestamp).toLocaleString("pt-BR"));
+  lines.push(line("="));
+  lines.push("CLIENTE");
+  pushWrapped(customerName);
+  if (order.customerPhone) pushWrapped(`TEL ${order.customerPhone}`);
+  lines.push(line("="));
+  lines.push("ENDERECO");
+  pushWrapped(customerAddress);
   lines.push(line());
-  lines.push("Data:");
-  pushWrapped(new Date(order.timestamp).toLocaleString("pt-BR"));
-  lines.push("");
-  lines.push("Cliente:");
-  pushWrapped(order.customerName || "Nao informado");
-  lines.push("");
-  lines.push("Telefone:");
-  pushWrapped(order.customerPhone || "Nao informado");
-  lines.push("");
-  lines.push("Endereco:");
-  pushWrapped(order.customerAddress || "Nao informado");
-  lines.push(line());
-  lines.push("ITENS DO PEDIDO");
-  lines.push("");
+  lines.push("ITENS");
 
   order.items.forEach((item) => {
     lines.push(...itemLine(item.qty, item.name, item.price * item.qty));
@@ -583,33 +577,17 @@ export function generateCustomerReceipt(order: Order) {
   }
 
   lines.push(line());
-  lines.push("RESUMO DO PEDIDO");
-  lines.push("");
+  lines.push("RESUMO");
   lines.push(leftRight("Subtotal itens:", money(financials.itemsSubtotal)));
   lines.push(leftRight("Taxa entrega:", money(financials.deliveryFee)));
-  lines.push(leftRight("Taxa servico:", money(financials.serviceFee)));
-  lines.push(leftRight("Desconto:", money(financials.discount)));
+  if (financials.serviceFee > 0) lines.push(leftRight("Taxa servico:", money(financials.serviceFee)));
+  if (financials.discount > 0) lines.push(leftRight("Desconto:", `-${money(financials.discount)}`));
   lines.push(line());
   lines.push(leftRight("TOTAL:", money(financials.total)));
   lines.push(line());
-  lines.push("COMO CHEGAMOS AO TOTAL");
-  lines.push("");
-  lines.push(leftRight("Itens:", money(financials.itemsSubtotal)));
-  lines.push(leftRight("Entrega:", money(financials.deliveryFee)));
-  lines.push(leftRight("Servico:", money(financials.serviceFee)));
-  lines.push(leftRight("Desconto:", `-${money(financials.discount)}`));
+  pushWrapped(`Pagto: ${paymentMethodLabel(order)}`);
+  pushWrapped(`Status: ${paymentStatusLabel(order)}`);
   lines.push(line());
-  lines.push(leftRight("Total:", money(financials.total)));
-  lines.push(line());
-  lines.push("PAGAMENTO");
-  lines.push("");
-  lines.push("Forma:");
-  pushWrapped(paymentMethodLabel(order));
-  lines.push("");
-  lines.push("Status:");
-  pushWrapped(paymentStatusLabel(order));
-  lines.push(line());
-  lines.push(center("Obrigado pela preferencia!"));
   lines.push(center("Menfi's Burger"));
 
   const receipt = lines.map((value) => value.slice(0, LINE_WIDTH)).join("\n").replace(/\n{3,}/g, "\n\n");
@@ -633,15 +611,15 @@ export function printOrderReceipts(order: Order) {
       html, body { width: 58mm; margin: 0; padding: 0; background: #fff; }
       body { margin: 0; padding: 0; }
       .receipt {
-        width: 48mm;
-        max-width: 48mm;
+        width: 54mm;
+        max-width: 54mm;
         margin: 0 auto;
         padding: 0;
         font-family: "Courier New", monospace;
-        font-size: 9px;
-        line-height: 1.25;
+        font-size: 11px;
+        line-height: 1.18;
         color: #000;
-        font-weight: 700;
+        font-weight: 800;
         white-space: pre-wrap;
         overflow-wrap: normal;
         word-break: normal;
@@ -650,8 +628,8 @@ export function printOrderReceipts(order: Order) {
         @page { size: 58mm auto; margin: 0; }
         html, body { width: 58mm; margin: 0; padding: 0; }
         .receipt {
-          width: 48mm;
-          max-width: 48mm;
+          width: 54mm;
+          max-width: 54mm;
           margin: 0 auto;
         }
       }

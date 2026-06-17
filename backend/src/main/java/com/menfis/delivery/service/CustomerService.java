@@ -199,6 +199,15 @@ public class CustomerService {
         from orders o
         left join customers c on c.id = o.customer_id
         group by coalesce(c.phone_digits, regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g'))
+      ),
+      last_order_address as (
+        select distinct on (coalesce(c.phone_digits, regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g')))
+          coalesce(c.phone_digits, regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g')) as phone_digits,
+          o.customer_address
+        from orders o
+        left join customers c on c.id = o.customer_id
+        where coalesce(o.customer_address, '') <> ''
+        order by coalesce(c.phone_digits, regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g')), o.created_at desc
       )
       select
         p.id,
@@ -221,13 +230,14 @@ public class CustomerService {
         ), 0) as delivered_count,
         os.last_order_at,
         min(a.cep) as cep,
-        min(a.street) as street,
+        coalesce(nullif(min(a.street), ''), min(loa.customer_address)) as street,
         min(a.house_number) as number,
         min(a.neighborhood) as neighborhood,
         min(a.city) as city
       from profiles p
       left join order_stats os on os.phone_digits = p.phone_digits
       left join addresses a on a.customer_id = p.id and a.is_default = true
+      left join last_order_address loa on loa.phone_digits = p.phone_digits
       group by p.id, p.phone_digits, p.name, p.phone, p.email, p.cpf, p.internal_notes, p.created_at, p.birthday, p.last_login_at, p.updated_at, os.order_count, os.total_spent, os.last_order_at
       order by os.last_order_at desc nulls last, p.updated_at desc
       limit 500
