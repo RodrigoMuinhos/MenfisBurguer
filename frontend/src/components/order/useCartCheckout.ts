@@ -13,7 +13,6 @@ import {
   buildCheckoutPricing,
   findCoupon,
   findCouponFromBackend,
-  getOperatingHoursBlockMessage,
   loadSaved,
   lookupCEP,
   maskPhone,
@@ -398,12 +397,6 @@ export function useCartCheckout({
     }
 
     if (!canCreatePayment) return;
-    const hoursBlockMessage =
-      kioskMode || counterServiceMode ? "" : getOperatingHoursBlockMessage();
-    if (hoursBlockMessage) {
-      setPaymentError(hoursBlockMessage);
-      return;
-    }
     closeKioskKeyboard();
 
     const removedByItemId = getRemovedByItemId();

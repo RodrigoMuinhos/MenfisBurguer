@@ -17,6 +17,7 @@ import {
 } from "./tracking";
 import { TrackingSupportSection } from "./tracking/TrackingSupportSection";
 import { TrackingTimelineSection } from "./tracking/TrackingTimelineSection";
+import { getOperatingHoursBlockMessage } from "./checkout";
 
 const KIOSK_REVIEWS_KEY = "menfis_kiosk_mob_reviews";
 
@@ -217,6 +218,8 @@ export function TrackingScreen({
     !reviewAlreadyDone(reviewKey);
   const isKioskMobReview =
     String(order.customerName ?? "").trim().toUpperCase().replace(/_/g, "-") === "KIOSK-MOB";
+  const operatingHoursMessage =
+    order.deliveryType === "delivery" && !isKioskMobReview ? getOperatingHoursBlockMessage() : "";
 
   const markReviewActivity = useCallback(() => {
     setIdlePromptOpen(false);
@@ -568,6 +571,14 @@ export function TrackingScreen({
       </div>
 
       <div className="flex-1 flex flex-col px-4 py-4 gap-4">
+        {operatingHoursMessage && (
+          <div
+            className="rounded-[22px] p-4 text-xs font-bold leading-relaxed whitespace-pre-line"
+            style={{ background: `${ROSA}75`, color: VERDE, border: `1.5px solid ${ROSA}` }}
+          >
+            {operatingHoursMessage}
+          </div>
+        )}
         <TrackingTimelineSection
           order={order}
           current={current}
