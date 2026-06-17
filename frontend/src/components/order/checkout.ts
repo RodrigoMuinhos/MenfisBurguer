@@ -31,16 +31,19 @@ export const ITEM_DESC: Record<string, string> = {
   burger:
     "Pão brioche · Burger 100g · Queijo · Alface Crocante · Cebola Caramelizada · Molho Menfi's",
   "double-burger":
-    "Pão brioche · 2 burgers · Queijo · Alface Crocante · Cebola Caramelizada · Molho Menfi's",
+    "Pão brioche · 2 carnes Menfi's de 100g · Queijo · Alface Crocante · Cebola Caramelizada · Molho Menfi's",
   "menfis-bacon":
     "Pão brioche · Burger 100g · Queijo · Bacon · Alface Crocante · Cebola Caramelizada · Molho Menfi's",
   "double-menfis-bacon":
-    "Pão brioche · 2 burgers · Queijo · Bacon · Alface Crocante · Cebola Caramelizada · Molho Menfi's",
+    "Pão brioche · 2 carnes Menfi's de 100g · Queijo · Bacon · Alface Crocante · Cebola Caramelizada · Molho Menfi's",
+  "double-menfis-chicken":
+    "Pão brioche · 2 carnes de chicken de 120g · Queijo · Alface Crocante · Molho Menfi's",
   combo: "Menfi's Burger · Coca-Cola 350ml · Batata Frita 250g",
-  "double-combo": "Double Menfi's · Coca-Cola 350ml · Batata Frita 250g",
+  "double-combo": "Double Menfi's com 2 carnes de 100g · Coca-Cola 350ml · Batata Frita 250g",
   "combo-upgrade": "Batata frita 250g · Coca-Cola 350ml",
   "bacon-combo": "Menfi's Bacon · Coca-Cola 350ml · Batata Frita 250g",
-  "double-bacon-combo": "Double Menfi's Bacon · Coca-Cola 350ml · Batata Frita 250g",
+  "double-bacon-combo": "Double Menfi's Bacon com 2 carnes de 100g · Coca-Cola 350ml · Batata Frita 250g",
+  "double-chicken-combo": "Double Menfi's Chicken com 2 carnes de 120g · Coca-Cola 350ml · Batata Frita 250g",
   "bacon-super-combo": "2 Menfi's Bacon · 2 bebidas · Batata Frita 250g",
   "extra-carne": "Burger 100g adicional",
   "extra-frango": "Filé de frango adicional",
