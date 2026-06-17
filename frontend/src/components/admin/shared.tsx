@@ -436,7 +436,7 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-const LINE_WIDTH = 28;
+const LINE_WIDTH = 24;
 
 function receiptText(value: string) {
   return String(value ?? "")
@@ -605,7 +605,6 @@ export function printOrderReceipts(order: Order) {
 
   const receipt = escapeReceipt(generateCustomerReceipt(order));
   const routeUrl = googleMapsDirectionsUrl(order.customerAddress || "");
-  const escapedRouteUrl = escapeReceipt(routeUrl);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(routeUrl)}`;
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
@@ -615,13 +614,13 @@ export function printOrderReceipts(order: Order) {
       html, body { width: 58mm; margin: 0; padding: 0; background: #fff; }
       body { margin: 0; padding: 0; }
       .receipt {
-        width: 54mm;
-        max-width: 54mm;
+        width: 46mm;
+        max-width: 46mm;
         margin: 0 auto;
         padding: 0;
         font-family: "Courier New", monospace;
-        font-size: 11px;
-        line-height: 1.18;
+        font-size: 10px;
+        line-height: 1.14;
         color: #000;
         font-weight: 800;
         white-space: pre-wrap;
@@ -629,37 +628,30 @@ export function printOrderReceipts(order: Order) {
         word-break: normal;
       }
       .route {
-        width: 54mm;
-        max-width: 54mm;
+        width: 46mm;
+        max-width: 46mm;
         margin: 4px auto 0;
         text-align: center;
         font-family: Arial, sans-serif;
         color: #000;
       }
       .route img {
-        width: 34mm;
-        height: 34mm;
+        width: 30mm;
+        height: 30mm;
         display: block;
         margin: 0 auto 3px;
       }
       .route b {
         display: block;
-        font-size: 10px;
+        font-size: 9px;
         line-height: 1.1;
-      }
-      .route span {
-        display: block;
-        margin-top: 2px;
-        font-size: 8px;
-        line-height: 1.1;
-        word-break: break-word;
       }
       @media print {
         @page { size: 58mm auto; margin: 0; }
         html, body { width: 58mm; margin: 0; padding: 0; }
         .receipt, .route {
-          width: 54mm;
-          max-width: 54mm;
+          width: 46mm;
+          max-width: 46mm;
           margin: 0 auto;
         }
       }
@@ -667,7 +659,6 @@ export function printOrderReceipts(order: Order) {
     <div class="route">
       <img src="${escapeReceipt(qrUrl)}" alt="QR Code da rota" />
       <b>ESCANEIE PARA ABRIR A ROTA</b>
-      <span>${escapedRouteUrl}</span>
     </div>
     <script>window.onload=()=>{setTimeout(()=>window.print(),900);}<\/script></body></html>
   `;
