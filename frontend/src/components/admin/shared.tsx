@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 import { VERDE } from "@/utils/theme";
+import { formatAddressForReceipt, googleMapsDirectionsUrl } from "@/utils/address";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
 
@@ -282,7 +283,7 @@ export function customerWhatsappUrl(order: Order) {
       `Data: ${new Date(order.timestamp).toLocaleString("pt-BR")}\n` +
       `Cliente: ${order.customerName || "Não informado"}\n` +
       `Telefone: ${order.customerPhone || "Não informado"}\n` +
-      `Endereço: ${order.customerAddress || "Não informado"}\n\n` +
+      `Endereço: ${formatAddressForReceipt(order.customerAddress || "Não informado")}\n\n` +
       `ITENS DO PEDIDO\n${items}\n\n` +
       `Forma de pagamento: ${paymentMethodLabel(order)}\n` +
       `Status do pagamento: ${paymentStatusLabel(order)}\n` +
@@ -365,7 +366,7 @@ export function buildOrderTxt(order: Order) {
     "",
     `Cliente: ${order.customerName || "Não informado"}`,
     `Telefone: ${order.customerPhone || "Não informado"}`,
-    `Endereco: ${order.customerAddress || "Não informado"}`,
+    `Endereco: ${formatAddressForReceipt(order.customerAddress || "Não informado")}`,
     "",
     `Forma de pagamento: ${paymentMethodLabel(order)}`,
     `Status do pagamento: ${paymentStatusLabel(order)}`,
@@ -542,7 +543,7 @@ export function generateCustomerReceipt(order: Order) {
   const financials = receiptFinancials(order);
   const pushWrapped = (value: string, indent = 0) => lines.push(...wrapIndented(value, indent));
   const customerName = receiptText(order.customerName || "Nao informado").toUpperCase();
-  const customerAddress = receiptText(order.customerAddress || "Nao informado").toUpperCase();
+  const customerAddress = formatAddressForReceipt(order.customerAddress || "Nao informado").toUpperCase();
 
   lines.push(center("MENFI'S BURGER"));
   lines.push(center("NOTA DO PEDIDO"));
@@ -556,7 +557,7 @@ export function generateCustomerReceipt(order: Order) {
   if (order.customerPhone) pushWrapped(`TEL ${order.customerPhone}`);
   lines.push(line("="));
   lines.push("ENDERECO");
-  pushWrapped(customerAddress);
+  customerAddress.split("\n").forEach((addressLine) => pushWrapped(addressLine));
   lines.push(line());
   lines.push("ITENS");
 
@@ -603,6 +604,9 @@ export function printOrderReceipts(order: Order) {
   if (!window.confirm("Imprimir via do cliente agora?")) return;
 
   const receipt = escapeReceipt(generateCustomerReceipt(order));
+  const routeUrl = googleMapsDirectionsUrl(order.customerAddress || "");
+  const escapedRouteUrl = escapeReceipt(routeUrl);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(routeUrl)}`;
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
     <style>
@@ -624,17 +628,48 @@ export function printOrderReceipts(order: Order) {
         overflow-wrap: normal;
         word-break: normal;
       }
+      .route {
+        width: 54mm;
+        max-width: 54mm;
+        margin: 4px auto 0;
+        text-align: center;
+        font-family: Arial, sans-serif;
+        color: #000;
+      }
+      .route img {
+        width: 34mm;
+        height: 34mm;
+        display: block;
+        margin: 0 auto 3px;
+      }
+      .route b {
+        display: block;
+        font-size: 10px;
+        line-height: 1.1;
+      }
+      .route span {
+        display: block;
+        margin-top: 2px;
+        font-size: 8px;
+        line-height: 1.1;
+        word-break: break-word;
+      }
       @media print {
         @page { size: 58mm auto; margin: 0; }
         html, body { width: 58mm; margin: 0; padding: 0; }
-        .receipt {
+        .receipt, .route {
           width: 54mm;
           max-width: 54mm;
           margin: 0 auto;
         }
       }
     </style></head><body><pre class="receipt">${receipt}</pre>
-    <script>window.onload=()=>{window.print();}<\/script></body></html>
+    <div class="route">
+      <img src="${escapeReceipt(qrUrl)}" alt="QR Code da rota" />
+      <b>ESCANEIE PARA ABRIR A ROTA</b>
+      <span>${escapedRouteUrl}</span>
+    </div>
+    <script>window.onload=()=>{setTimeout(()=>window.print(),900);}<\/script></body></html>
   `;
   const iframe = document.createElement("iframe");
   iframe.style.position = "fixed";

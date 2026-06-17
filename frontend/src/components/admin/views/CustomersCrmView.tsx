@@ -1,6 +1,7 @@
 import { KeyRound, MapPin, MessageCircle, Plus, Save, Search, Trash2, UserRound, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ROSA, VERDE } from "@/utils/theme";
+import { formatAddressForReceipt, formatDeliveryAddress } from "@/utils/address";
 import { API_URL, fmt } from "../shared";
 
 export type CrmCustomer = {
@@ -19,6 +20,7 @@ export type CrmCustomer = {
   cep?: string;
   street?: string;
   number?: string;
+  complement?: string;
   neighborhood?: string;
   city?: string;
 };
@@ -218,7 +220,7 @@ export function CustomersCrmView({
                   <p className="mt-1 text-xs font-bold opacity-50">{customer.email || "Sem e-mail"}</p>
                   <p className="mt-2 flex items-start gap-1.5 text-xs font-black leading-snug" style={{ color: VERDE }}>
                     <MapPin className="mt-0.5 shrink-0" size={13} />
-                    <span>{address || "Sem endereço cadastrado"}</span>
+                    <span className="whitespace-pre-line">{address || "Sem endereço cadastrado"}</span>
                   </p>
                 </button>
               );
@@ -253,7 +255,7 @@ export function CustomersCrmView({
                 </span>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-55">Endereço do cliente</p>
-                  <p className="mt-1 text-base font-black leading-snug">
+                  <p className="mt-1 whitespace-pre-line text-base font-black leading-snug">
                     {form.id && active ? formatCustomerAddress(active) || "Sem endereço cadastrado" : "Selecione um cliente para ver o endereço"}
                   </p>
                 </div>
@@ -356,10 +358,14 @@ function total(customers: CrmCustomer[], key: keyof CrmCustomer) {
 }
 
 function formatCustomerAddress(customer: CrmCustomer) {
-  const streetLine = [customer.street, customer.number].filter(Boolean).join(", ");
-  return [streetLine, customer.neighborhood, customer.city, customer.cep ? `CEP ${customer.cep}` : ""]
-    .filter(Boolean)
-    .join(" - ");
+  if (!customer.street) return "";
+  if (customer.number) {
+    const region = [customer.neighborhood, customer.city].filter(Boolean).join(" - ");
+    const street = region ? `${customer.street}, ${region}` : customer.street;
+    const address = formatDeliveryAddress({ street, number: customer.number, complement: customer.complement });
+    return [address, customer.cep ? `CEP ${customer.cep}` : ""].filter(Boolean).join("\n");
+  }
+  return formatAddressForReceipt(customer.street);
 }
 
 function formatDate(value: string) {

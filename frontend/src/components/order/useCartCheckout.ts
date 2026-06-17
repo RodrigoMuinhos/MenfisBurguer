@@ -23,6 +23,7 @@ import {
 import { submitCheckoutOrder } from "./cartFinalize";
 import { inputStyle } from "./cartInputStyle";
 import { readMemberProfile } from "@/components/product/shared";
+import { formatDeliveryAddress } from "@/utils/address";
 
 function normalizeKioskMobName(value?: string) {
   return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "-").replace(/-+/g, "-");
@@ -325,7 +326,7 @@ export function useCartCheckout({
   const getCustomerAddress = () =>
     effectiveDelivery === "retirada"
       ? `Retirada na loja - ${PICKUP_ADDRESS}`
-      : `${street}, ${number}${complement ? ` ${complement}` : ""}`;
+      : formatDeliveryAddress({ street, number, complement });
 
   const handleFinalize = async () => {
     if (paying) return;

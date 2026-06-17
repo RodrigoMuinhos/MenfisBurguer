@@ -30,6 +30,7 @@ import { DELIVERY_FEE, FREE_SHIPPING_MINIMUM, SERVICE_FEE } from "@/components/o
 import { deliveryConfirmationCode, normalizeBackendOrder } from "@/services/orders/normalize";
 import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY, readMemberProfile } from "@/components/product/shared";
 import { MemberNotification } from "@/components/product/notifications";
+import { formatDeliveryAddress } from "@/utils/address";
 
 const NOTIFIABLE_STATUSES = new Set([
   "PAYMENT_PENDING",
@@ -642,7 +643,7 @@ function guestDeliveryScope() {
     };
     const address =
       saved.street && saved.number
-        ? `${saved.street}, ${saved.number}${saved.complement ? ` ${saved.complement}` : ""}`
+        ? formatDeliveryAddress({ street: saved.street, number: saved.number, complement: saved.complement })
         : "";
     return {
       phone: digits(saved.phone),

@@ -232,6 +232,7 @@ public class CustomerService {
         min(a.cep) as cep,
         coalesce(nullif(min(a.street), ''), min(loa.customer_address)) as street,
         min(a.house_number) as number,
+        min(a.complement) as complement,
         min(a.neighborhood) as neighborhood,
         min(a.city) as city
       from profiles p
