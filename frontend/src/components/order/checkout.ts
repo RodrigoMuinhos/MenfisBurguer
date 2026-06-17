@@ -77,6 +77,11 @@ export const DEFAULT_DELIVERY_TYPE: DeliveryType = "delivery";
 export const ALLOWED_DELIVERY_TYPES: DeliveryType[] = ["delivery", "retirada"];
 
 export const DEFAULT_COUPONS: Coupon[] = [];
+export const BUSINESS_HOURS_LABEL = "Funcionamento: terça a domingo, das 18:00 às 22:00.";
+export const BEFORE_OPEN_MESSAGE =
+  "Oi! Já recebemos sua mensagem.\nNosso atendimento começa às 18:00.\nAssim que abrirmos, vamos te atender com todo carinho. 🍔";
+export const AFTER_CLOSE_MESSAGE =
+  "Oi! Hoje já encerramos nosso atendimento.\nFuncionamos de terça a domingo, das 18:00 às 22:00.\nAmanhã vai ser um prazer te atender. 🍔";
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
@@ -113,6 +118,15 @@ export function buildCheckoutPricing({
   const discount = roundMoney(couponDiscount(coupon, grossTotal, items));
   const total = Math.max(1, roundMoney(grossTotal - discount));
   return { subtotal, deliveryFee, serviceFee, grossTotal, discount, total };
+}
+
+export function getOperatingHoursBlockMessage(date = new Date()) {
+  const day = date.getDay();
+  const hour = date.getHours();
+  const openDay = day !== 1;
+  if (!openDay || hour >= 22) return AFTER_CLOSE_MESSAGE;
+  if (hour < 18) return BEFORE_OPEN_MESSAGE;
+  return "";
 }
 export const wait = (ms: number) =>
   new Promise((resolve) => window.setTimeout(resolve, ms));

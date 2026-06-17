@@ -32,6 +32,7 @@ import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY, readMemberProfile }
 import { MemberNotification } from "@/components/product/notifications";
 
 const NOTIFIABLE_STATUSES = new Set([
+  "PAYMENT_PENDING",
   "PAID",
   "ACCEPTED",
   "IN_PREPARATION",
@@ -44,7 +45,9 @@ function notificationForOrder(order: Order): Omit<MemberNotification, "id" | "cr
   if (!NOTIFIABLE_STATUSES.has(order.status)) return null;
   const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
   const title =
-    order.status === "PAID"
+    order.status === "PAYMENT_PENDING"
+      ? "Pedido recebido"
+      : order.status === "PAID"
       ? "Pedido recebido"
       : order.status === "ACCEPTED"
         ? "Pedido aceito"
@@ -60,7 +63,9 @@ function notificationForOrder(order: Order): Omit<MemberNotification, "id" | "cr
                   ? "Pedido cancelado"
                   : status.label;
   const message =
-    order.status === "READY"
+    order.status === "PAYMENT_PENDING"
+      ? "Recebemos seu pedido. A equipe vai confirmar o atendimento."
+      : order.status === "READY"
       ? "Seu pedido ficou pronto. Acompanhe a liberação."
       : order.status === "OUT_FOR_DELIVERY"
         ? "Seu pedido saiu para entrega."
@@ -241,7 +246,8 @@ export default function App({ mode }: { mode?: AppMode }) {
       orders.forEach((order) => {
         const previousStatus = snapshot.get(order.id);
         snapshot.set(order.id, order.status);
-        if (!previousStatus || previousStatus === order.status) return;
+        if (previousStatus === order.status) return;
+        if (!previousStatus && order.id !== lastOrderId) return;
         const notification = notificationForOrder(order);
         if (!notification) return;
         created.push({

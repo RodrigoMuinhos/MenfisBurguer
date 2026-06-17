@@ -114,11 +114,7 @@ export function OrderSummarySection({
                       style={{ color: VERDE, opacity: 0.64 }}
                     >
                       <span>
-                        {delivery === "retirada"
-                          ? "Retirada na loja"
-                          : freeShipping
-                            ? "Frete grátis Clube Menfi's"
-                            : "Taxa de entrega"}
+                        Frete
                       </span>
                       <span>
                         {delivery === "retirada" || freeShipping

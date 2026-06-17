@@ -13,6 +13,7 @@ import {
   buildCheckoutPricing,
   findCoupon,
   findCouponFromBackend,
+  getOperatingHoursBlockMessage,
   loadSaved,
   lookupCEP,
   maskPhone,
@@ -346,7 +347,7 @@ export function useCartCheckout({
         return;
       }
       closeKioskKeyboard();
-      setCheckoutStep("payment");
+      setCheckoutStep("review");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -396,6 +397,12 @@ export function useCartCheckout({
     }
 
     if (!canCreatePayment) return;
+    const hoursBlockMessage =
+      kioskMode || counterServiceMode ? "" : getOperatingHoursBlockMessage();
+    if (hoursBlockMessage) {
+      setPaymentError(hoursBlockMessage);
+      return;
+    }
     closeKioskKeyboard();
 
     const removedByItemId = getRemovedByItemId();
@@ -431,7 +438,7 @@ export function useCartCheckout({
       return;
     }
     if (checkoutStep === "review") {
-      setCheckoutStep(kioskMode ? "customer" : "payment");
+      setCheckoutStep(kioskMode ? "customer" : "delivery");
       return;
     }
     if (checkoutStep === "customer") {
@@ -495,13 +502,9 @@ export function useCartCheckout({
         ? "Dados"
         : checkoutStep === "customer"
           ? "Dados do cliente"
-        : checkoutStep === "payment"
-          ? kioskMode || counterServiceMode
-            ? "Pagamento"
-            : "Pagamento"
-          : kioskMode
-            ? "Revisão"
-            : "Pagamento";
+          : checkoutStep === "payment"
+          ? "Pagamento"
+          : "Revisão";
 
   const nextActionLabel =
     checkoutStep === "payment" && (kioskMode || counterServiceMode)
@@ -513,9 +516,7 @@ export function useCartCheckout({
         ? "Enviar para balcão"
         : kioskMode
         ? "Ir para pagamento"
-        : payment === "whatsapp"
-          ? "Enviar para atendimento"
-          : "Fazer pagamento"
+        : "Finalizar pedido"
       : "Continuar";
 
   const clearCart = () => {

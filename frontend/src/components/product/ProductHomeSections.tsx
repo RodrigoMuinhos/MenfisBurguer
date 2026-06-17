@@ -2,6 +2,7 @@ import Image from "next/image";
 import {
   Bell,
   Bike,
+  Clock3,
   ChevronRight,
   Flame,
   Gift,
@@ -169,7 +170,7 @@ export function ProductHero({
           <div className="flex flex-wrap gap-2">
             {(kioskMode
               ? ["Burger suculento", "Molho da casa", "Retirada rápida"]
-              : ["Burger suculento", "Molho da casa", "Entrega rápida"]
+              : ["Funcionamento: terça a domingo, das 18:00 às 22:00.", "Burger suculento", "Entrega rápida"]
             ).map((tag, index) => (
               <span
                 key={tag}
@@ -183,6 +184,9 @@ export function ProductHero({
                   userSelect: "none",
                 }}
               >
+                {!kioskMode && index === 0 && (
+                  <Clock3 size={12} strokeWidth={2.4} className="mr-1 inline-block" />
+                )}
                 {tag}
               </span>
             ))}

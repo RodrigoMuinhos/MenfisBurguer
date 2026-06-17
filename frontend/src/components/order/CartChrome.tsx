@@ -4,7 +4,7 @@ import { ChevronLeft, ReceiptText } from "lucide-react";
 import { CartItem } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import logoSkull from "@/imports/image-1.png";
-import { CheckoutStep } from "./checkout";
+import { BUSINESS_HOURS_LABEL, CheckoutStep } from "./checkout";
 
 export function EmptyCartState({ onBack }: { onBack: () => void }) {
   return (
@@ -149,11 +149,8 @@ export function CheckoutProgress({
           label: "Dados",
           active: ["delivery", "payment", "review"].includes(checkoutStep),
         },
-        {
-          label: "Forma de pagamento",
-          active: ["payment", "review"].includes(checkoutStep),
-        },
-        { label: "Fazer pagamento", active: checkoutStep === "review" },
+        { label: "Revisão", active: checkoutStep === "review" },
+        { label: "Finalizar", active: checkoutStep === "review" },
       ];
 
   return (
@@ -218,7 +215,7 @@ export function CheckoutIntro({
               ? `Etapa atual: ${stepLabel}. O pagamento será feito no balcão e o pedido será enviado para a cozinha.`
               : kioskMode
               ? `Etapa atual: ${stepLabel}. Primeiro informe os dados, depois revise e siga para o pagamento.`
-              : `Etapa atual: ${stepLabel}. Confirme o atendimento pelo WhatsApp para finalizar.`}
+              : `Etapa atual: ${stepLabel}. ${BUSINESS_HOURS_LABEL}`}
           </p>
         </div>
       </div>

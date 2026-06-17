@@ -54,6 +54,7 @@ import {
 import {
   BurgerBuilder,
   MenuCard,
+  ProductDetailModal,
   ProductCustomizer,
 } from "./ProductParts";
 import { MemberModals } from "./MemberModals";
@@ -115,6 +116,7 @@ export function ProductScreen({
     sauce: false,
   });
   const [customizer, setCustomizer] = useState<CustomizerState | null>(null);
+  const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
   const [loginOpen, setLoginOpen] = useState(() => {
     if (kioskMode || typeof window === "undefined") return false;
     return false;
@@ -158,10 +160,26 @@ export function ProductScreen({
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const filteredItems = useMemo(
-    () => MENU_ITEMS.filter((item) => item.category === category),
-    [category],
-  );
+  const filteredItems = useMemo(() => {
+    if (category === "chicken") {
+      return MENU_ITEMS.filter((item) => isChickenProduct(item));
+    }
+    if (category === "bacon") {
+      return MENU_ITEMS.filter((item) => {
+        const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
+        return text.includes("bacon");
+      });
+    }
+    if (category === "burger") {
+      return MENU_ITEMS.filter(
+        (item) =>
+          item.category === "burger" &&
+          !isChickenProduct(item) &&
+          !`${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase().includes("bacon"),
+      );
+    }
+    return MENU_ITEMS.filter((item) => item.category === category);
+  }, [category]);
   const featuredItem =
     MENU_ITEMS.find((item) => item.id === featuredProductId) ??
     MENU_ITEMS.find((item) => item.id === "chicken-super-combo") ??
@@ -610,6 +628,7 @@ export function ProductScreen({
                   builder={item.id === BURGER_ID ? builder : undefined}
                   onAdd={() => addMenuItem(item)}
                   onMinus={() => updateQty(item.id, -1)}
+                  onOpenDetails={() => setDetailItem(item)}
                 />
               ))}
             </div>
@@ -743,6 +762,16 @@ export function ProductScreen({
             state={customizer}
             setState={setCustomizer}
             onConfirm={confirmCustomizer}
+          />
+        )}
+        {detailItem && (
+          <ProductDetailModal
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
+            onAdd={() => {
+              setDetailItem(null);
+              addMenuItem(detailItem);
+            }}
           />
         )}
 

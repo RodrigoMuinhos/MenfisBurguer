@@ -1,5 +1,5 @@
 import type { StaticImageData } from "next/image";
-import { Beef, Package } from "lucide-react";
+import { Beef, Drumstick, Package } from "lucide-react";
 import { CartItem } from "@/types/order";
 import { MenuItem } from "@/features/catalog/types";
 
@@ -36,6 +36,8 @@ export type MemberProfile = {
 export const CATEGORIES = [
   { id: "combo", label: "Combos", Icon: Package },
   { id: "burger", label: "Burgers", Icon: Beef },
+  { id: "chicken", label: "Chicken", Icon: Drumstick },
+  { id: "bacon", label: "Bacon", Icon: Beef },
 ] as const;
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;

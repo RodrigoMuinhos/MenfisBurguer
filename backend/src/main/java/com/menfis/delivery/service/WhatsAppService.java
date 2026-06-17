@@ -7,6 +7,9 @@ import com.menfis.delivery.dto.WhatsAppDtos.WhatsAppWebhookPayload;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +22,13 @@ import org.springframework.web.client.RestClientException;
 @Service
 public class WhatsAppService {
   private static final Logger log = LoggerFactory.getLogger(WhatsAppService.class);
-  private static final String AUTO_REPLY = "Olá, recebemos sua mensagem. Em breve retornaremos.";
+  private static final ZoneId BUSINESS_ZONE = ZoneId.of("America/Sao_Paulo");
+  private static final LocalTime OPEN_TIME = LocalTime.of(18, 0);
+  private static final LocalTime CLOSE_TIME = LocalTime.of(22, 0);
+  private static final String BEFORE_OPEN_REPLY =
+      "Oi! Já recebemos sua mensagem.\nNosso atendimento começa às 18:00.\nAssim que abrirmos, vamos te atender com todo carinho. 🍔";
+  private static final String AFTER_CLOSE_REPLY =
+      "Oi! Hoje já encerramos nosso atendimento.\nFuncionamos de terça a domingo, das 18:00 às 22:00.\nAmanhã vai ser um prazer te atender. 🍔";
 
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
@@ -80,7 +89,12 @@ public class WhatsAppService {
       return;
     }
 
-    sendAutoReply(phone);
+    String autoReply = operatingHoursReply();
+    if (autoReply == null) {
+      log.info("WhatsApp inbound received inside business hours; no hours auto reply sent to={}", phone);
+      return;
+    }
+    sendAutoReply(phone, autoReply);
   }
 
   private boolean saveInboundMessage(String phone, String providerMessageId, String type, String text, Message message) {
@@ -116,10 +130,10 @@ public class WhatsAppService {
     );
   }
 
-  private void sendAutoReply(String phone) {
+  private void sendAutoReply(String phone, String text) {
     if (accessToken == null || accessToken.isBlank() || phoneNumberId == null || phoneNumberId.isBlank()) {
       log.warn("WhatsApp auto reply skipped because WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID is missing");
-      saveOutboundMessage(phone, AUTO_REPLY, "skipped_config", "{}");
+      saveOutboundMessage(phone, text, "skipped_config", "{}");
       return;
     }
 
@@ -127,7 +141,7 @@ public class WhatsAppService {
     payload.put("messaging_product", "whatsapp");
     payload.put("to", phone);
     payload.put("type", "text");
-    payload.put("text", Map.of("body", AUTO_REPLY));
+    payload.put("text", Map.of("body", text));
 
     try {
       Object response = restClient.post()
@@ -138,12 +152,25 @@ public class WhatsAppService {
         .retrieve()
         .body(Object.class);
 
-      saveOutboundMessage(phone, AUTO_REPLY, "sent", toJson(response));
+      saveOutboundMessage(phone, text, "sent", toJson(response));
       log.info("WhatsApp auto reply sent to={}", phone);
     } catch (RestClientException ex) {
-      saveOutboundMessage(phone, AUTO_REPLY, "failed", "{\"error\":\"" + jsonEscape(ex.getMessage()) + "\"}");
+      saveOutboundMessage(phone, text, "failed", "{\"error\":\"" + jsonEscape(ex.getMessage()) + "\"}");
       log.error("WhatsApp auto reply failed to={}: {}", phone, ex.getMessage());
     }
+  }
+
+  private String operatingHoursReply() {
+    ZonedDateTime now = ZonedDateTime.now(BUSINESS_ZONE);
+    boolean monday = now.getDayOfWeek().getValue() == 1;
+    LocalTime time = now.toLocalTime();
+    if (monday || !time.isBefore(CLOSE_TIME)) {
+      return AFTER_CLOSE_REPLY;
+    }
+    if (time.isBefore(OPEN_TIME)) {
+      return BEFORE_OPEN_REPLY;
+    }
+    return null;
   }
 
   private void saveOutboundMessage(String phone, String text, String status, String rawPayload) {

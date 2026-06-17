@@ -129,12 +129,14 @@ export function MenuCard({
   builder,
   onAdd,
   onMinus,
+  onOpenDetails,
 }: {
   item: MenuItem;
   qty: number;
   builder?: BuilderState;
   onAdd: () => void;
   onMinus: () => void;
+  onOpenDetails: () => void;
 }) {
   const displayPrice = builder ? buildBurger(builder).price : item.price;
   const discountPercent = item.originalPrice
@@ -153,7 +155,13 @@ export function MenuCard({
           : "0 10px 30px rgba(31,61,46,0.07)",
       }}
     >
-      <div className="relative h-40 overflow-hidden" style={{ background: CREME }}>
+      <button
+        type="button"
+        onClick={onOpenDetails}
+        className="relative block h-40 w-full overflow-hidden text-left"
+        style={{ background: CREME }}
+        aria-label={`Ver detalhes de ${item.name}`}
+      >
         {item.image ? (
           <Image
             src={item.image}
@@ -179,7 +187,7 @@ export function MenuCard({
             Destaque
           </span>
         )}
-      </div>
+      </button>
 
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
@@ -301,5 +309,121 @@ export function MenuCard({
         </div>
       </div>
     </motion.article>
+  );
+}
+
+export function ProductDetailModal({
+  item,
+  onClose,
+  onAdd,
+}: {
+  item: MenuItem;
+  onClose: () => void;
+  onAdd: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 28, scale: 0.98 }}
+        animate={{ y: 0, scale: 1 }}
+        exit={{ y: 18, scale: 0.98 }}
+        className="max-h-[92dvh] w-full overflow-auto rounded-t-[28px] bg-white sm:max-w-2xl sm:rounded-[28px]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="relative h-72 overflow-hidden bg-[#FFF8F2]">
+          {item.image ? (
+            <Image
+              src={item.image}
+              alt={item.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 672px"
+              style={{ objectFit: "cover", objectPosition: "center" }}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <ChefHat size={72} strokeWidth={1.5} style={{ color: VERDE, opacity: 0.28 }} />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full"
+            style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}18` }}
+            aria-label="Fechar detalhes"
+          >
+            <X size={20} strokeWidth={2.5} />
+          </button>
+        </div>
+        <div className="p-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-black/35">
+            {item.eyebrow}
+          </p>
+          <div className="mt-1 flex items-start justify-between gap-4">
+            <h2
+              className="uppercase"
+              style={{
+                color: VERDE,
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "2.5rem",
+                lineHeight: 0.95,
+                letterSpacing: 0,
+              }}
+            >
+              {item.name}
+            </h2>
+            <p
+              className="shrink-0"
+              style={{
+                color: VERDE,
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "2rem",
+                lineHeight: 1,
+              }}
+            >
+              {fmt(item.price)}
+            </p>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-black/65">{item.desc}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {item.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider"
+                style={{ background: `${VERDE}08`, color: `${VERDE}B8` }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+          <div className="mt-5 rounded-2xl p-4" style={{ background: "#FFF8F2", color: VERDE }}>
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
+              Opções disponíveis
+            </p>
+            <p className="mt-1 text-xs font-bold leading-relaxed opacity-70">
+              {item.category === "combo"
+                ? "Escolha ponto, molho, bebida e adicionais antes de adicionar ao pedido."
+                : item.category === "burger"
+                  ? "Escolha ponto, molho e adicionais antes de adicionar ao pedido."
+                  : "Adicione diretamente ao pedido ou personalize na próxima etapa quando disponível."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onAdd}
+            className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-xs font-black uppercase tracking-wider"
+            style={{ background: VERDE, color: ROSA }}
+          >
+            Adicionar ao pedido
+            <Plus size={16} strokeWidth={2.6} />
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -196,15 +196,13 @@ export function CheckoutReviewSection({
               style={{ background: `${ROSA}22`, color: VERDE }}
             >
               <div className="flex justify-between gap-3 text-[11px] font-bold">
-                <span>Itens</span>
+                <span>Subtotal</span>
                 <span>{fmt(subtotal)}</span>
               </div>
-              {fee > 0 && (
-                <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
-                  <span>Taxa de entrega</span>
-                  <span>{fmt(fee)}</span>
-                </div>
-              )}
+              <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
+                <span>Frete</span>
+                <span>{fee > 0 ? fmt(fee) : "Grátis"}</span>
+              </div>
               {serviceFee > 0 && (
                 <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
                   <span>Taxa de serviço</span>
@@ -270,9 +268,9 @@ export function CheckoutReviewSection({
                 rel="noreferrer"
                 className="inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
                 style={{
-                  background: VERDE,
-                  color: ROSA,
-                  border: `1px solid ${VERDE}`,
+                  background: "#fff",
+                  color: VERDE,
+                  border: `1px solid ${VERDE}24`,
                 }}
               >
                 <MessageCircle size={15} strokeWidth={2.4} />

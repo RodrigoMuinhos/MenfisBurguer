@@ -78,7 +78,7 @@ export function CartStickyCta({
                             : payment === "pagar_na_entrega"
                               ? "Enviar pedido"
                               : payment === "whatsapp"
-                                ? "Enviar ao atendimento"
+                                ? "Finalizar pedido"
                                 : "Fazer pagamento"}
                   </p>
                 </div>
@@ -110,12 +110,10 @@ export function CartStickyCta({
                   <span>Itens</span>
                   <span>{fmt(subtotal)}</span>
                 </div>
-                {fee > 0 && (
-                  <div className="flex justify-between gap-3">
-                    <span>Taxa de entrega</span>
-                    <span>{fmt(fee)}</span>
-                  </div>
-                )}
+                <div className="flex justify-between gap-3">
+                  <span>Frete</span>
+                  <span>{fee > 0 ? fmt(fee) : "Grátis"}</span>
+                </div>
                 {serviceFee > 0 && (
                   <div className="flex justify-between gap-3">
                     <span>Taxa de serviço</span>
