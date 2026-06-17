@@ -4,6 +4,7 @@ import { CartItem, Order, OrderStatus } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { DELIVERY_FEE } from "@/components/order/checkout";
 import { deliveryConfirmationCode } from "@/components/order/tracking";
+import { formatAddressForReceipt } from "@/utils/address";
 import {
   customerWhatsappUrl,
   copyOrderTxt,
@@ -71,6 +72,7 @@ export function OrdersView({
     (selected.status === "PAYMENT_PENDING" ||
       (selected.status === "CANCELLED" && selected.paymentProvider === "mercado_pago" && paymentRejected));
   const selectedIsKioskMob = isKioskMobOrder(selected);
+  const selectedAddress = formatAddressForReceipt(selected?.customerAddress || "Não informado");
   const editingItems = selected?.id === editingOrderId;
   const detailItems = editingItems ? draftItems : selected?.items ?? [];
   const selectedSubtotal = Number(selected?.subtotal ?? selected?.items.reduce((sum, item) => sum + item.price * item.qty, 0) ?? 0);
@@ -209,8 +211,8 @@ export function OrdersView({
                     )}
                   </div>
                   {order.deliveryType === "delivery" && !isKioskMobOrder(order) && (
-                    <p className="mt-1 line-clamp-2 text-[11px] font-bold" style={{ color: `${VERDE}99` }}>
-                      {order.customerAddress || "Endereço não informado"}
+                    <p className="mt-1 line-clamp-3 whitespace-pre-line text-[11px] font-bold" style={{ color: `${VERDE}99` }}>
+                      {formatAddressForReceipt(order.customerAddress || "Endereço não informado")}
                     </p>
                   )}
                 </button>
@@ -372,14 +374,14 @@ export function OrdersView({
             </div>
             {selected.deliveryType === "delivery" && !selectedIsKioskMob && (
               <div
-                className="rounded-xl p-3"
+                className="rounded-xl p-3 sm:col-span-2"
                 style={{ background: `${VERDE}08` }}
               >
                 <p className="text-[10px] font-black uppercase opacity-50">
                   Endereco
                 </p>
-                <p className="mt-1 text-sm font-bold">
-                  {selected.customerAddress || "Não informado"}
+                <p className="mt-1 whitespace-pre-line text-sm font-bold leading-snug">
+                  {selectedAddress}
                 </p>
               </div>
             )}
