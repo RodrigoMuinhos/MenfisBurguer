@@ -94,13 +94,14 @@ export async function PATCH(
 
   const current = await getPool().query<{
     status: string;
+    delivery_type: "retirada" | "delivery";
     items: unknown;
     subtotal: string | number | null;
     delivery_fee: string | number | null;
     total: string | number;
     discount_total: string | number | null;
   }>(
-    "select status, items, subtotal, delivery_fee, total, discount_total from orders where id = $1",
+    "select status, delivery_type, items, subtotal, delivery_fee, total, discount_total from orders where id = $1",
     [id],
   );
 
@@ -133,10 +134,14 @@ export async function PATCH(
     hasRequestedDeliveryFee && Number.isFinite(requestedDeliveryFee)
       ? Math.round(requestedDeliveryFee * 100) / 100
       : oldDeliveryFee;
+  const effectiveDeliveryFee =
+    current.rows[0].delivery_type === "delivery" && subtotal > 0
+      ? Math.max(deliveryFee, 7.1)
+      : deliveryFee;
   const oldTotal = Number(current.rows[0].total ?? 0);
   const discount = Number(current.rows[0].discount_total ?? 0);
   const serviceFee = Math.max(0, Math.round((oldTotal + discount - oldSubtotal - oldDeliveryFee) * 100) / 100);
-  const total = Math.max(1, Math.round((subtotal + deliveryFee + serviceFee - discount) * 100) / 100);
+  const total = Math.max(1, Math.round((subtotal + effectiveDeliveryFee + serviceFee - discount) * 100) / 100);
 
   const updated = await getPool().query<DbOrderRow>(
     `
@@ -149,7 +154,7 @@ export async function PATCH(
         total, payment_provider, payment_method, payment_status, payment_id,
         timestamp, status
     `,
-    [id, JSON.stringify(items), subtotal, deliveryFee, total],
+    [id, JSON.stringify(items), subtotal, effectiveDeliveryFee, total],
   );
 
   return NextResponse.json({ ok: true, order: mapOrder(updated.rows[0]) });

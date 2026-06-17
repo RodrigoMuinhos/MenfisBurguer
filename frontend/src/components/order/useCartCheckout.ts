@@ -6,7 +6,6 @@ import {
   CheckoutStep,
   DeliveryType,
   KioskKeyboardTarget,
-  MEMBER_KEY,
   PICKUP_ADDRESS,
   PaymentMethod,
   STORAGE_KEY,
@@ -69,7 +68,6 @@ export function useCartCheckout({
   const [kioskSuccessOrder, setKioskSuccessOrder] = useState<Order | null>(null);
   const [kioskKeyboardTarget, setKioskKeyboardTarget] =
     useState<KioskKeyboardTarget>(null);
-  const [freeShipping, setFreeShipping] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponError, setCouponError] = useState("");
@@ -171,10 +169,6 @@ export function useCartCheckout({
   }, [counterServiceMode]);
 
   useEffect(() => {
-    setFreeShipping(Boolean(localStorage.getItem(MEMBER_KEY)));
-  }, []);
-
-  useEffect(() => {
     if (kioskMode || !API_URL) return;
     fetch(`${API_URL}/settings/public`, { cache: "no-store" })
       .then((response) => response.json())
@@ -241,7 +235,6 @@ export function useCartCheckout({
   const pricing = buildCheckoutPricing({
     items: cart,
     delivery: effectiveDelivery,
-    freeShipping,
     coupon: appliedCoupon,
   });
   const subtotal = pricing.subtotal;
@@ -539,7 +532,6 @@ export function useCartCheckout({
     deliveryValid,
     discount,
     fee,
-    freeShipping,
     handleBack,
     handleFinalize,
     inputStyle,

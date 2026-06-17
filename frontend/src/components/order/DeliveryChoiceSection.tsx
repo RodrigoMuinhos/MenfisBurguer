@@ -3,7 +3,6 @@ import { Bike, Clock, MapPin, Store } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
   ALLOWED_DELIVERY_TYPES,
-  DELIVERY_FEE,
   DeliveryType,
   PICKUP_ADDRESS,
   deliveryEta,
@@ -24,7 +23,7 @@ export function DeliveryChoiceSection({
       {
         id: "delivery",
         label: "Entrega",
-        copy: `${deliveryEta} · ${fee > 0 ? fmt(fee) : "frete grátis"}`,
+        copy: `${deliveryEta} · taxa ${fmt(fee)}`,
         Icon: Bike,
       },
       {
@@ -104,9 +103,7 @@ export function DeliveryChoiceSection({
           <p className="text-xs font-bold mt-1">
             {delivery === "retirada"
               ? "Grátis na loja"
-              : fee > 0
-                ? `${fmt(fee)} de taxa`
-                : "Frete grátis"}
+              : `${fmt(fee)} de taxa`}
           </p>
         </div>
       </div>

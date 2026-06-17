@@ -201,7 +201,7 @@ export function CheckoutReviewSection({
               </div>
               <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
                 <span>Taxa de entrega</span>
-                <span>{fee > 0 ? fmt(fee) : "Frete grátis"}</span>
+                <span>{fee > 0 ? fmt(fee) : "Sem frete"}</span>
               </div>
               {serviceFee > 0 && (
                 <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">

@@ -10,7 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { CartItem, Order, OrderStatus } from "@/types/order";
-import { SERVICE_FEE } from "@/components/order/checkout";
+import { DELIVERY_FEE, SERVICE_FEE } from "@/components/order/checkout";
 import { VERDE } from "@/utils/theme";
 import { EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
 import { AdminHeader, AdminTabs, PaymentRequestsAlert } from "./AdminChrome";
@@ -182,7 +182,9 @@ export function AdminPanel({
         prev.map((order) => {
           if (order.id !== id) return order;
           const subtotal = Math.round(items.reduce((sum, item) => sum + item.price * item.qty, 0) * 100) / 100;
-          const deliveryFee = Number(options?.deliveryFee ?? order.deliveryFee ?? 0);
+          const deliveryFee = order.deliveryType === "delivery" && subtotal > 0
+            ? Math.max(Number(options?.deliveryFee ?? order.deliveryFee ?? 0), DELIVERY_FEE)
+            : Number(options?.deliveryFee ?? order.deliveryFee ?? 0);
           const discount = Number(order.discountTotal ?? 0);
           const serviceFee = order.deliveryType === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
           const total = Math.max(

@@ -13,6 +13,8 @@ type DbOrderRow = {
   customer_name: string | null;
   customer_phone: string | null;
   customer_address: string | null;
+  subtotal: string | number | null;
+  delivery_fee: string | number | null;
   total: string | number;
   payment_provider: string | null;
   payment_method: "pix" | "cartao" | null;
@@ -35,6 +37,8 @@ function mapOrder(row: DbOrderRow) {
     customerName: row.customer_name ?? undefined,
     customerPhone: row.customer_phone ?? undefined,
     customerAddress: row.customer_address ?? undefined,
+    subtotal: row.subtotal == null ? undefined : Number(row.subtotal),
+    deliveryFee: row.delivery_fee == null ? undefined : Number(row.delivery_fee),
     total: Number(row.total),
     paymentProvider: row.payment_provider ?? undefined,
     paymentMethod: row.payment_method ?? undefined,
@@ -105,6 +109,10 @@ export async function POST(request: Request) {
       ? body.customerName.trim()
       : null;
   const total = Number(body.total ?? 0);
+  const subtotal = Math.max(0, Number(body.subtotal ?? 0));
+  const deliveryFee = deliveryType === "delivery" && subtotal > 0
+    ? Math.max(Number(body.deliveryFee ?? 0), 7.1)
+    : 0;
   const paymentProvider =
     typeof body.paymentProvider === "string" && body.paymentProvider.trim()
       ? body.paymentProvider.trim()
@@ -143,6 +151,8 @@ export async function POST(request: Request) {
         customer_name,
         customer_phone,
         customer_address,
+        subtotal,
+        delivery_fee,
         total,
         payment_provider,
         payment_method,
@@ -168,6 +178,8 @@ export async function POST(request: Request) {
         $11,
         $12,
         $13,
+        $14,
+        $15,
         'PAID',
         now()
       from next_number
@@ -181,6 +193,8 @@ export async function POST(request: Request) {
         customer_name,
         customer_phone,
         customer_address,
+        subtotal,
+        delivery_fee,
         total,
         payment_provider,
         payment_method,
@@ -197,6 +211,8 @@ export async function POST(request: Request) {
       customerName,
       String(body.customerPhone ?? "") || null,
       String(body.customerAddress ?? "") || null,
+      subtotal,
+      deliveryFee,
       total,
       paymentProvider,
       paymentMethod,

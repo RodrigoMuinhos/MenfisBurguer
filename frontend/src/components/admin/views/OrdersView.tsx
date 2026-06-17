@@ -126,10 +126,9 @@ export function OrdersView({
     cancelItemEdit();
   };
   const canEditFinancials = Boolean(selected && EDITABLE_ITEM_STATUSES.includes(selected.status));
-  const toggleDeliveryFee = async () => {
+  const applyDeliveryFee = async () => {
     if (!selected || !canEditFinancials) return;
-    const nextDeliveryFee = selectedDeliveryFee > 0 ? 0 : DELIVERY_FEE;
-    await updateOrderItems(selected.id, selected.items, { deliveryFee: nextDeliveryFee });
+    await updateOrderItems(selected.id, selected.items, { deliveryFee: DELIVERY_FEE });
   };
 
   if (!selected) {
@@ -428,21 +427,19 @@ export function OrdersView({
                 <XCircle size={15} /> Cancelar pedido
               </button>
             )}
-            {canEditFinancials && (
+            {canEditFinancials && selected.deliveryType === "delivery" && selectedDeliveryFee <= 0 && (
               <button
                 type="button"
-                onClick={() => void toggleDeliveryFee()}
+                onClick={() => void applyDeliveryFee()}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{
-                  background: selectedDeliveryFee > 0 ? "#FEF2F2" : `${VERDE}08`,
-                  color: selectedDeliveryFee > 0 ? "#991B1B" : VERDE,
-                  border: `1.5px solid ${selectedDeliveryFee > 0 ? "#FCA5A5" : `${VERDE}22`}`,
+                  background: `${VERDE}08`,
+                  color: VERDE,
+                  border: `1.5px solid ${VERDE}22`,
                 }}
               >
-                {selectedDeliveryFee > 0 ? <Minus size={15} /> : <Plus size={15} />}
-                {selectedDeliveryFee > 0
-                  ? `Remover frete ${fmt(selectedDeliveryFee)}`
-                  : `Adicionar frete ${fmt(DELIVERY_FEE)}`}
+                <Plus size={15} />
+                Aplicar taxa de entrega {fmt(DELIVERY_FEE)}
               </button>
             )}
             {PREPARATION_STARTED_STATUSES.includes(selected.status) && (
@@ -666,7 +663,7 @@ export function OrdersView({
                 <span>Subtotal dos itens</span>
                 <strong>{fmt(detailSubtotal)}</strong>
               </div>
-              {selectedDeliveryFee > 0 && (
+              {selected.deliveryType === "delivery" && (
                 <div className="flex justify-between gap-4">
                   <span>Taxa de entrega</span>
                   <strong>{fmt(selectedDeliveryFee)}</strong>

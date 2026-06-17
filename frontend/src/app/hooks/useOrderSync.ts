@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { normalizeBackendOrder, normalizeOrderStatus } from "@/services/orders/normalize";
 import { CartItem, Order, OrderStatus } from "@/types/order";
+import { DELIVERY_FEE } from "@/components/order/checkout";
 import {
   API_URL,
   PENDING_ORDER_KEY,
@@ -305,7 +306,9 @@ export function useOrderSync({
       if (!existing) return;
       const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
       const currentDeliveryFee = Number(existing.deliveryFee ?? 0);
-      const deliveryFee = Number(options?.deliveryFee ?? currentDeliveryFee);
+      const deliveryFee = existing.deliveryType === "delivery" && subtotal > 0
+        ? Math.max(Number(options?.deliveryFee ?? currentDeliveryFee), DELIVERY_FEE)
+        : Number(options?.deliveryFee ?? currentDeliveryFee);
       const discount = Number(existing.discountTotal ?? 0);
       const currentSubtotal =
         existing.subtotal ?? existing.items.reduce((sum, item) => sum + item.price * item.qty, 0);

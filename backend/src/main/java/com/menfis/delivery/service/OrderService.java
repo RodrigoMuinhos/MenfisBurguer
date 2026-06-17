@@ -28,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OrderService {
   private static final BigDecimal DELIVERY_FEE = new BigDecimal("7.10");
-  private static final BigDecimal FREE_SHIPPING_MINIMUM = new BigDecimal("80.00");
   private static final BigDecimal SERVICE_FEE = new BigDecimal("0.99");
 
   private final JdbcTemplate jdbc;
@@ -77,7 +76,7 @@ public class OrderService {
       deliveryType == DeliveryType.DELIVERY
         && channel != OrderChannel.KIOSK
         && !kioskLocalCustomer
-        && price.subtotal().compareTo(FREE_SHIPPING_MINIMUM) < 0;
+        && price.subtotal().compareTo(BigDecimal.ZERO) > 0;
     BigDecimal deliveryFee = chargeDeliveryFees ? DELIVERY_FEE : BigDecimal.ZERO;
     BigDecimal serviceFee = chargeDeliveryFees ? SERVICE_FEE : BigDecimal.ZERO;
     BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(serviceFee);
@@ -220,7 +219,7 @@ public class OrderService {
   @Transactional
   public OrderResponse updateItems(String id, List<Map<String, Object>> rawItems, BigDecimal requestedDeliveryFee) {
     Map<String, Object> current = jdbc.queryForMap(
-      "select status, subtotal, delivery_fee, total, discount_total from orders where id = ?",
+      "select status, delivery_type, subtotal, delivery_fee, total, discount_total from orders where id = ?",
       id
     );
     OrderStatus status = OrderStatus.valueOf(String.valueOf(current.get("status")));
@@ -239,9 +238,13 @@ public class OrderService {
       .setScale(2, RoundingMode.HALF_UP);
     BigDecimal oldSubtotal = money(current.get("subtotal"));
     BigDecimal oldDeliveryFee = money(current.get("delivery_fee"));
-    BigDecimal deliveryFee = requestedDeliveryFee == null
+    BigDecimal requestedOrOldDeliveryFee = requestedDeliveryFee == null
       ? oldDeliveryFee
       : requestedDeliveryFee.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal deliveryFee = "DELIVERY".equals(String.valueOf(current.get("delivery_type")))
+      && newSubtotal.compareTo(BigDecimal.ZERO) > 0
+      ? requestedOrOldDeliveryFee.max(DELIVERY_FEE)
+      : requestedOrOldDeliveryFee;
     BigDecimal oldTotal = money(current.get("total"));
     BigDecimal discount = money(current.get("discount_total"));
     BigDecimal serviceFee = oldTotal.add(discount).subtract(oldSubtotal).subtract(oldDeliveryFee).max(BigDecimal.ZERO);

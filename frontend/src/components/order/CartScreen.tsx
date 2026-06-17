@@ -63,7 +63,6 @@ export function CartScreen({
     deliveryValid,
     discount,
     fee,
-    freeShipping,
     handleBack,
     handleFinalize,
     inputStyle,

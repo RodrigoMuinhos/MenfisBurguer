@@ -3,10 +3,8 @@ import { motion } from "motion/react";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
   CheckoutStep,
-  FREE_SHIPPING_MINIMUM,
   PaymentMethod,
   fmt,
-  freeShippingRemaining,
 } from "./checkout";
 
 export function CartStickyCta({
@@ -38,9 +36,6 @@ export function CartStickyCta({
   nextActionLabel: string;
   onFinalize: () => void | Promise<void>;
 }) {
-  const remainingForFreeShipping = freeShippingRemaining(subtotal);
-  const freeShippingProgress = Math.min(100, Math.max(0, (subtotal / FREE_SHIPPING_MINIMUM) * 100));
-
   return (
     <>
       
@@ -115,28 +110,13 @@ export function CartStickyCta({
                 className="mb-3 grid gap-1 rounded-xl px-3 py-2 text-[11px] font-bold"
                 style={{ background: `${ROSA}22`, color: VERDE }}
               >
-                {!kioskMode && !counterServiceMode && (
-                  <div className="mb-2">
-                    <div className="flex justify-between gap-3 text-[10px] font-black uppercase tracking-wide">
-                      <span>
-                        {remainingForFreeShipping > 0
-                          ? `Faltam ${fmt(remainingForFreeShipping)} para frete grátis`
-                          : "Frete grátis liberado"}
-                      </span>
-                      <span>{fmt(FREE_SHIPPING_MINIMUM)}</span>
-                    </div>
-                    <div className="mt-1 h-2 overflow-hidden rounded-full" style={{ background: `${ROSA}55` }}>
-                      <div className="h-full rounded-full" style={{ width: `${freeShippingProgress}%`, background: VERDE }} />
-                    </div>
-                  </div>
-                )}
                 <div className="flex justify-between gap-3">
                   <span>Itens</span>
                   <span>{fmt(subtotal)}</span>
                 </div>
                 <div className="flex justify-between gap-3">
                   <span>Taxa de entrega</span>
-                  <span>{fee > 0 ? fmt(fee) : "Frete grátis"}</span>
+                  <span>{fee > 0 ? fmt(fee) : "Sem frete"}</span>
                 </div>
                 {serviceFee > 0 && (
                   <div className="flex justify-between gap-3">

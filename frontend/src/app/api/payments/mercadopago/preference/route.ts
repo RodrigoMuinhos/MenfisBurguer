@@ -41,6 +41,10 @@ export async function POST(request: Request) {
   if (!Number.isFinite(total) || total <= 0) {
     return NextResponse.json({ error: "invalid_total" }, { status: 400 });
   }
+  const subtotal = Math.max(0, Number(body.subtotal ?? 0));
+  const deliveryFee = deliveryType === "delivery" && subtotal > 0
+    ? Math.max(Number(body.deliveryFee ?? 0), 7.1)
+    : 0;
 
   const customerPhone =
     typeof body.customerPhone === "string" && body.customerPhone.trim()
@@ -71,6 +75,8 @@ export async function POST(request: Request) {
         delivery_type,
         customer_phone,
         customer_address,
+        subtotal,
+        delivery_fee,
         total,
         payment_provider,
         payment_method,
@@ -88,10 +94,12 @@ export async function POST(request: Request) {
         $4,
         $5,
         $6,
-        'mercado_pago',
         $7,
-        'pending',
         $8,
+        'mercado_pago',
+        $9,
+        'pending',
+        $10,
         'PAID',
         now()
       from next_number
@@ -103,6 +111,8 @@ export async function POST(request: Request) {
       deliveryType,
       customerPhone,
       customerAddress,
+      subtotal,
+      deliveryFee,
       total,
       paymentMethod,
       Date.now(),
