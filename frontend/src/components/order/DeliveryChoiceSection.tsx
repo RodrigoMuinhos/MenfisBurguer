@@ -13,12 +13,10 @@ import {
 export function DeliveryChoiceSection({
   delivery,
   setDelivery,
-  freeShipping,
   fee,
 }: {
   delivery: DeliveryType;
   setDelivery: (delivery: DeliveryType) => void;
-  freeShipping: boolean;
   fee: number;
 }) {
   const choices = (
@@ -26,7 +24,7 @@ export function DeliveryChoiceSection({
       {
         id: "delivery",
         label: "Entrega",
-        copy: `${deliveryEta} · ${freeShipping ? "grátis" : fmt(DELIVERY_FEE)}`,
+        copy: `${deliveryEta} · ${fee > 0 ? fmt(fee) : "frete grátis"}`,
         Icon: Bike,
       },
       {
@@ -106,9 +104,9 @@ export function DeliveryChoiceSection({
           <p className="text-xs font-bold mt-1">
             {delivery === "retirada"
               ? "Grátis na loja"
-              : freeShipping
-                ? "Frete grátis"
-                : `${fmt(fee)} de taxa`}
+              : fee > 0
+                ? `${fmt(fee)} de taxa`
+                : "Frete grátis"}
           </p>
         </div>
       </div>

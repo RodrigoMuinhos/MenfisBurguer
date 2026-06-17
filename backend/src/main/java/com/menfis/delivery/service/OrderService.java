@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OrderService {
   private static final BigDecimal DELIVERY_FEE = new BigDecimal("7.10");
+  private static final BigDecimal FREE_SHIPPING_MINIMUM = new BigDecimal("80.00");
   private static final BigDecimal SERVICE_FEE = new BigDecimal("0.99");
 
   private final JdbcTemplate jdbc;
@@ -73,7 +74,10 @@ public class OrderService {
       : request.customerName() == null ? null : request.customerName().trim();
     PriceResult price = calculate(request.items());
     boolean chargeDeliveryFees =
-      deliveryType == DeliveryType.DELIVERY && channel != OrderChannel.KIOSK && !kioskLocalCustomer;
+      deliveryType == DeliveryType.DELIVERY
+        && channel != OrderChannel.KIOSK
+        && !kioskLocalCustomer
+        && price.subtotal().compareTo(FREE_SHIPPING_MINIMUM) < 0;
     BigDecimal deliveryFee = chargeDeliveryFees ? DELIVERY_FEE : BigDecimal.ZERO;
     BigDecimal serviceFee = chargeDeliveryFees ? SERVICE_FEE : BigDecimal.ZERO;
     BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(serviceFee);

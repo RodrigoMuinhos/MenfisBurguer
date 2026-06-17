@@ -61,6 +61,7 @@ export const ITEM_DESC: Record<string, string> = {
 export const deliveryEta = "25-45 min";
 export const PICKUP_ADDRESS = "Rua Doutor Gilberto Studart, 728";
 export const DELIVERY_FEE = 7.1;
+export const FREE_SHIPPING_MINIMUM = 80;
 export const SERVICE_FEE = 0.99;
 export const KIOSK_PIX_CODE =
   "00020126330014br.gov.bcb.pix0111044117503175204000053039865802BR5922RODRIGO ARAUJO MUINHOS6009FORTALEZA62070503***63044AEB";
@@ -112,12 +113,19 @@ export function buildCheckoutPricing({
   const subtotal = roundMoney(
     items.reduce((sum, item) => sum + item.price * item.qty, 0),
   );
-  const deliveryFee = delivery === "delivery" && !freeShipping ? DELIVERY_FEE : 0;
+  const deliveryFee =
+    delivery === "delivery" && subtotal > 0 && subtotal < FREE_SHIPPING_MINIMUM
+      ? DELIVERY_FEE
+      : 0;
   const serviceFee = delivery === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
   const grossTotal = roundMoney(subtotal + deliveryFee + serviceFee);
   const discount = roundMoney(couponDiscount(coupon, grossTotal, items));
   const total = Math.max(1, roundMoney(grossTotal - discount));
   return { subtotal, deliveryFee, serviceFee, grossTotal, discount, total };
+}
+
+export function freeShippingRemaining(subtotal: number) {
+  return roundMoney(Math.max(0, FREE_SHIPPING_MINIMUM - subtotal));
 }
 
 export function getOperatingHoursBlockMessage(date = new Date()) {

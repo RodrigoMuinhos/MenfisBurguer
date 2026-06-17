@@ -1,12 +1,20 @@
 import { CartItem } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
-import { CheckoutStep, Coupon, DELIVERY_FEE, DeliveryType, ITEM_DESC, deliveryEta, fmt } from "./checkout";
+import {
+  CheckoutStep,
+  Coupon,
+  DeliveryType,
+  FREE_SHIPPING_MINIMUM,
+  ITEM_DESC,
+  deliveryEta,
+  fmt,
+  freeShippingRemaining,
+} from "./checkout";
 
 export function OrderSummarySection({
   checkoutStep,
   cart,
   delivery,
-  freeShipping,
   fee,
   serviceFee,
   subtotal,
@@ -17,7 +25,6 @@ export function OrderSummarySection({
   checkoutStep: CheckoutStep;
   cart: CartItem[];
   delivery: DeliveryType;
-  freeShipping: boolean;
   fee: number;
   serviceFee: number;
   subtotal: number;
@@ -69,6 +76,9 @@ export function OrderSummarySection({
                       </p>
                     </div>
                   </div>
+                  {delivery === "delivery" && (
+                    <FreeShippingProgress subtotal={subtotal} />
+                  )}
                   {cart.map((item) => (
                     <div
                       key={item.id}
@@ -114,12 +124,10 @@ export function OrderSummarySection({
                       style={{ color: VERDE, opacity: 0.64 }}
                     >
                       <span>
-                        Frete delivery
+                        Taxa de entrega
                       </span>
                       <span>
-                        {delivery === "retirada" || freeShipping
-                          ? `Grátis (taxa ${fmt(DELIVERY_FEE)})`
-                          : fmt(fee)}
+                        {delivery === "retirada" ? "Sem frete" : fee > 0 ? fmt(fee) : "Frete grátis"}
                       </span>
                     </div>
                     {serviceFee > 0 && (
@@ -162,5 +170,25 @@ export function OrderSummarySection({
                 </div>
               )}
     </>
+  );
+}
+
+function FreeShippingProgress({ subtotal }: { subtotal: number }) {
+  const remaining = freeShippingRemaining(subtotal);
+  const progress = Math.min(100, Math.max(0, (subtotal / FREE_SHIPPING_MINIMUM) * 100));
+  return (
+    <div className="mb-3 rounded-2xl p-3" style={{ background: "#fff", border: `1px solid ${ROSA}` }}>
+      <div className="flex items-center justify-between gap-3 text-[11px] font-black">
+        <span style={{ color: VERDE }}>
+          {remaining > 0
+            ? `Faltam ${fmt(remaining)} para seu frete sair grátis`
+            : "Frete grátis liberado"}
+        </span>
+        <span style={{ color: `${VERDE}85` }}>{fmt(FREE_SHIPPING_MINIMUM)}</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full" style={{ background: `${ROSA}55` }}>
+        <div className="h-full rounded-full" style={{ width: `${progress}%`, background: VERDE }} />
+      </div>
+    </div>
   );
 }

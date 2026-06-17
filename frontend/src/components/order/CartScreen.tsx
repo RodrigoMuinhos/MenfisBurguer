@@ -182,7 +182,6 @@ export function CartScreen({
           checkoutStep={checkoutStep}
           cart={cart}
           delivery={delivery}
-          freeShipping={freeShipping}
           fee={fee}
           serviceFee={serviceFee}
           subtotal={subtotal}
@@ -195,7 +194,6 @@ export function CartScreen({
           <DeliveryChoiceSection
             delivery={delivery}
             setDelivery={setDelivery}
-            freeShipping={freeShipping}
             fee={fee}
           />
         )}

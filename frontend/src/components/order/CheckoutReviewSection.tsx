@@ -7,7 +7,6 @@ import {
   Coupon,
   KioskKeyboardTarget,
   PaymentMethod,
-  DELIVERY_FEE,
   SUPPORT_WHATSAPP_URL,
   fmt,
 } from "./checkout";
@@ -201,8 +200,8 @@ export function CheckoutReviewSection({
                 <span>{fmt(subtotal)}</span>
               </div>
               <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
-                <span>Frete delivery</span>
-                <span>{fee > 0 ? fmt(fee) : `Grátis (taxa ${fmt(DELIVERY_FEE)})`}</span>
+                <span>Taxa de entrega</span>
+                <span>{fee > 0 ? fmt(fee) : "Frete grátis"}</span>
               </div>
               {serviceFee > 0 && (
                 <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
