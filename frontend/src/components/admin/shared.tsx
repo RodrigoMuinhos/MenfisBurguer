@@ -436,7 +436,7 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-const LINE_WIDTH = 24;
+const LINE_WIDTH = 22;
 
 function receiptText(value: string) {
   return String(value ?? "")
@@ -612,11 +612,17 @@ export function printOrderReceipts(order: Order) {
       @page { size: 58mm auto; margin: 0; }
       * { box-sizing: border-box; }
       html, body { width: 58mm; margin: 0; padding: 0; background: #fff; }
-      body { margin: 0; padding: 0; }
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
       .receipt {
-        width: 46mm;
-        max-width: 46mm;
-        margin: 0 auto;
+        width: 42mm;
+        max-width: 42mm;
+        margin: 0;
         padding: 0;
         font-family: "Courier New", monospace;
         font-size: 10px;
@@ -628,37 +634,39 @@ export function printOrderReceipts(order: Order) {
         word-break: normal;
       }
       .route {
-        width: 46mm;
-        max-width: 46mm;
-        margin: 4px auto 0;
+        width: 42mm;
+        max-width: 42mm;
+        margin: 4px 0 0;
         text-align: center;
         font-family: Arial, sans-serif;
         color: #000;
       }
       .route img {
-        width: 30mm;
-        height: 30mm;
+        width: 28mm;
+        height: 28mm;
         display: block;
         margin: 0 auto 3px;
       }
       .route b {
         display: block;
-        font-size: 9px;
+        font-size: 8px;
         line-height: 1.1;
+        white-space: normal;
       }
       @media print {
         @page { size: 58mm auto; margin: 0; }
         html, body { width: 58mm; margin: 0; padding: 0; }
         .receipt, .route {
-          width: 46mm;
-          max-width: 46mm;
-          margin: 0 auto;
+          width: 42mm;
+          max-width: 42mm;
+          margin-left: 0;
+          margin-right: 0;
         }
       }
     </style></head><body><pre class="receipt">${receipt}</pre>
     <div class="route">
       <img src="${escapeReceipt(qrUrl)}" alt="QR Code da rota" />
-      <b>ESCANEIE PARA ABRIR A ROTA</b>
+      <b>ABRIR ROTA</b>
     </div>
     <script>window.onload=()=>{setTimeout(()=>window.print(),900);}<\/script></body></html>
   `;
