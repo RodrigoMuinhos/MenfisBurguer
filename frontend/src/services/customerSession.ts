@@ -40,6 +40,15 @@ type ResetPasswordPayload = {
   confirmPassword: string;
 };
 
+type UpdateProfilePayload = {
+  name: string;
+  phone: string;
+  email?: string;
+  currentPassword: string;
+  newPassword?: string;
+  confirmPassword?: string;
+};
+
 export async function saveCustomerSession(payload: CustomerPayload) {
   if (!API_URL) throw new Error("api_missing");
   const res = await fetch(`${API_URL}/customers/session`, {
@@ -113,6 +122,24 @@ export async function loadCustomerSession() {
   } catch {
     return cachedProfile;
   }
+}
+
+export async function updateCustomerProfile(payload: UpdateProfilePayload) {
+  const token = localStorage.getItem(MEMBER_TOKEN_KEY);
+  if (!API_URL || !token) throw new Error("api_missing");
+  const res = await fetch(`${API_URL}/customers/me`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "customer_update_failed");
+  const profile = normalizeCustomer(data);
+  localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+  return profile;
 }
 
 export function logoutCustomerSession() {

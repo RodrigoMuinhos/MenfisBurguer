@@ -49,6 +49,13 @@ public class CustomerController {
     return customers.profile(auth.requireCustomer(authorization));
   }
 
+  @PatchMapping("/me")
+  public CustomerProfileResponse updateMe(
+      @RequestHeader(name = "Authorization", required = false) String authorization,
+      @RequestBody Map<String, Object> request) {
+    return customers.updateOwnProfile(auth.requireCustomer(authorization), request);
+  }
+
   @GetMapping("/orders")
   public List<OrderResponse> orders(@RequestHeader(name = "Authorization", required = false) String authorization) {
     return orders.listForCustomer(auth.requireCustomer(authorization));

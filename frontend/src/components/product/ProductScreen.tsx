@@ -50,6 +50,7 @@ import {
   requestCustomerPasswordRecovery,
   resetCustomerPassword,
   saveCustomerSession,
+  updateCustomerProfile,
 } from "@/services/customerSession";
 import {
   BurgerBuilder,
@@ -424,6 +425,14 @@ export function ProductScreen({
     setLoginOpen(true);
   };
 
+  const applyMemberProfileUpdate = (profile: MemberProfile) => {
+    setMemberProfile(profile);
+    setMemberName(profile.name ?? "");
+    setMemberEmail(profile.email ?? "");
+    setMemberPhone(profile.phone ?? "");
+    setMemberBirthday(profile.birthday ?? "");
+  };
+
   const openHistory = () => {
     if (!hasRequiredCustomerProfile(memberProfile)) {
       setLoginOpen(true);
@@ -740,6 +749,11 @@ export function ProductScreen({
         requestPasswordRecovery={requestPasswordRecovery}
         resetMemberPassword={resetMemberPassword}
         editMember={editMember}
+        updateMemberProfile={async (payload) => {
+          const profile = await updateCustomerProfile(payload);
+          applyMemberProfileUpdate(profile);
+          return profile;
+        }}
         logoutMember={logoutMember}
         loginRequired={!customerProfileReady}
         closeLogin={() => {

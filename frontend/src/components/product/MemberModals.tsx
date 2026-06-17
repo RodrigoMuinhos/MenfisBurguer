@@ -71,6 +71,7 @@ export function MemberModals({
   requestPasswordRecovery,
   resetMemberPassword,
   editMember,
+  updateMemberProfile,
   logoutMember,
   loginRequired = false,
   closeLogin,
@@ -136,6 +137,14 @@ export function MemberModals({
     confirmPassword: string,
   ) => Promise<boolean>;
   editMember: () => void;
+  updateMemberProfile: (payload: {
+    name: string;
+    phone: string;
+    email?: string;
+    currentPassword: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  }) => Promise<MemberProfile>;
   logoutMember: () => void;
   loginRequired?: boolean;
   closeLogin: () => void;
@@ -164,6 +173,15 @@ export function MemberModals({
   const [recoveryPassword, setRecoveryPassword] = useState("");
   const [recoveryPasswordConfirm, setRecoveryPasswordConfirm] = useState("");
   const [recoverySentMessage, setRecoverySentMessage] = useState("");
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
+  const [profileEditName, setProfileEditName] = useState("");
+  const [profileEditPhone, setProfileEditPhone] = useState("");
+  const [profileEditEmail, setProfileEditEmail] = useState("");
+  const [profileCurrentPassword, setProfileCurrentPassword] = useState("");
+  const [profileNewPassword, setProfileNewPassword] = useState("");
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [profileEditError, setProfileEditError] = useState("");
+  const [profileEditSaving, setProfileEditSaving] = useState(false);
   const visibleActiveOrder =
     activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
       ? activeOrder
@@ -212,6 +230,67 @@ export function MemberModals({
       setRecoverySentMessage("");
     }
   }, [loginOpen]);
+
+  const openProfileEdit = () => {
+    if (!memberProfile) return;
+    setProfileEditName(memberProfile.name ?? "");
+    setProfileEditPhone(memberProfile.phone ?? "");
+    setProfileEditEmail(memberProfile.email ?? "");
+    setProfileCurrentPassword("");
+    setProfileNewPassword("");
+    setProfileConfirmPassword("");
+    setProfileEditError("");
+    setProfileEditOpen(true);
+  };
+
+  const submitProfileEdit = async () => {
+    const name = profileEditName.trim();
+    const phone = profileEditPhone.trim();
+    const email = profileEditEmail.trim().toLowerCase();
+    const currentPassword = profileCurrentPassword.trim();
+    const newPassword = profileNewPassword.trim();
+    const confirmPassword = profileConfirmPassword.trim();
+    setProfileEditError("");
+    if (!name) {
+      setProfileEditError("Informe seu nome.");
+      return;
+    }
+    if (phone.replace(/\D/g, "").length < 10) {
+      setProfileEditError("Informe um WhatsApp com DDD.");
+      return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setProfileEditError("Informe um e-mail válido.");
+      return;
+    }
+    if (currentPassword.length !== 6) {
+      setProfileEditError("Digite sua senha atual de 6 dígitos para editar.");
+      return;
+    }
+    if ((newPassword || confirmPassword) && (newPassword.length !== 6 || newPassword !== confirmPassword)) {
+      setProfileEditError("A nova senha precisa ter 6 dígitos e conferir com a confirmação.");
+      return;
+    }
+    setProfileEditSaving(true);
+    try {
+      await updateMemberProfile({
+        name,
+        phone,
+        email: email || undefined,
+        currentPassword,
+        newPassword: newPassword || undefined,
+        confirmPassword: confirmPassword || undefined,
+      });
+      setProfileEditOpen(false);
+      setProfileCurrentPassword("");
+      setProfileNewPassword("");
+      setProfileConfirmPassword("");
+    } catch {
+      setProfileEditError("Senha atual incorreta ou dados inválidos.");
+    } finally {
+      setProfileEditSaving(false);
+    }
+  };
 
   return (
     <>
@@ -683,9 +762,94 @@ export function MemberModals({
                         {memberProfile.email && <InfoLine label="E-mail" value={memberProfile.email} />}
                       </ProfileSection>
 
-                      <ProfileMenuButton icon={UserCog} label="Editar dados da conta" onClick={editMember} />
-                      <ProfileMenuButton icon={MapPin} label="Gerenciar endereços" onClick={editMember} />
-                      <ProfileMenuButton icon={KeyRound} label="Alterar senha / recuperar acesso" onClick={editMember} />
+                      {profileEditOpen ? (
+                        <div
+                          className="grid gap-3 rounded-2xl p-4"
+                          style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}
+                        >
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-wider">
+                              Editar dados da conta
+                            </p>
+                            <p className="mt-1 text-[11px] font-bold leading-relaxed opacity-60">
+                              Confirme sua senha atual antes de alterar o perfil.
+                            </p>
+                          </div>
+                          <ProfileInput label="Nome" value={profileEditName} onChange={setProfileEditName} />
+                          <ProfileInput
+                            label="Telefone / WhatsApp"
+                            value={profileEditPhone}
+                            onChange={(value) => setProfileEditPhone(value.replace(/[^\d\s()+-]/g, ""))}
+                            inputMode="tel"
+                          />
+                          <ProfileInput
+                            label="E-mail"
+                            value={profileEditEmail}
+                            onChange={setProfileEditEmail}
+                            inputMode="email"
+                          />
+                          <ProfileInput
+                            label="Senha atual"
+                            value={profileCurrentPassword}
+                            onChange={(value) => setProfileCurrentPassword(value.replace(/\D/g, "").slice(0, 6))}
+                            type="password"
+                            revealable
+                            inputMode="numeric"
+                            maxLength={6}
+                          />
+                          <ProfileInput
+                            label="Nova senha (opcional)"
+                            value={profileNewPassword}
+                            onChange={(value) => setProfileNewPassword(value.replace(/\D/g, "").slice(0, 6))}
+                            type="password"
+                            revealable
+                            inputMode="numeric"
+                            maxLength={6}
+                          />
+                          <ProfileInput
+                            label="Confirmar nova senha"
+                            value={profileConfirmPassword}
+                            onChange={(value) => setProfileConfirmPassword(value.replace(/\D/g, "").slice(0, 6))}
+                            type="password"
+                            revealable
+                            inputMode="numeric"
+                            maxLength={6}
+                          />
+                          {profileEditError && (
+                            <p
+                              className="rounded-2xl px-4 py-3 text-xs font-black leading-relaxed"
+                              style={{ background: `${ROSA}80`, color: VERDE }}
+                            >
+                              {profileEditError}
+                            </p>
+                          )}
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setProfileEditOpen(false)}
+                              className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                              style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}14` }}
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void submitProfileEdit()}
+                              disabled={profileEditSaving}
+                              className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55"
+                              style={{ background: VERDE, color: ROSA }}
+                            >
+                              {profileEditSaving ? "Salvando" : "Salvar"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <ProfileMenuButton icon={UserCog} label="Editar dados da conta" onClick={openProfileEdit} />
+                          <ProfileMenuButton icon={MapPin} label="Gerenciar endereços" onClick={openProfileEdit} />
+                          <ProfileMenuButton icon={KeyRound} label="Alterar senha / recuperar acesso" onClick={openProfileEdit} />
+                        </>
+                      )}
                       {ordersLoading && !visibleActiveOrder && (
                         <div
                           className="flex items-center gap-3 rounded-2xl p-4 text-xs font-black uppercase tracking-wider"

@@ -126,6 +126,50 @@ public class CustomerService {
     );
   }
 
+  @Transactional
+  public CustomerProfileResponse updateOwnProfile(long customerId, Map<String, Object> request) {
+    String currentPassword = stringValue(request.get("currentPassword")).trim();
+    if (currentPassword.length() != 6) throw new IllegalArgumentException("current_password_required");
+    String passwordHash = jdbc.queryForObject(
+      "select password_hash from customers where id = ?",
+      String.class,
+      customerId
+    );
+    if (passwordHash == null || !encoder.matches(currentPassword, passwordHash)) {
+      throw new IllegalArgumentException("invalid_current_password");
+    }
+
+    String name = clean(stringValue(request.get("name")));
+    String phone = clean(stringValue(request.get("phone")));
+    String phoneDigits = digits(phone);
+    String email = clean(stringValue(request.get("email")));
+    if (isBlank(name)) throw new IllegalArgumentException("customer_name_required");
+    if (phoneDigits.length() < 10) throw new IllegalArgumentException("customer_phone_required");
+
+    jdbc.update(
+      """
+      update customers set name = ?, phone = ?, phone_digits = ?, email = ?, updated_at = now()
+      where id = ?
+      """,
+      name,
+      phone,
+      phoneDigits,
+      email,
+      customerId
+    );
+
+    String newPassword = stringValue(request.get("newPassword")).trim();
+    String confirmPassword = stringValue(request.get("confirmPassword")).trim();
+    if (!newPassword.isBlank() || !confirmPassword.isBlank()) {
+      if (newPassword.length() != 6 || !newPassword.equals(confirmPassword)) {
+        throw new IllegalArgumentException("invalid_new_password");
+      }
+      jdbc.update("update customers set password_hash = ?, updated_at = now() where id = ?", encoder.encode(newPassword), customerId);
+    }
+
+    return profile(customerId);
+  }
+
   public List<Map<String, Object>> crm() {
     return jdbc.queryForList(
       """
