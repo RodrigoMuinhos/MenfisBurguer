@@ -12,6 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 public class OrderEventService {
   private final Map<String, List<SseEmitter>> emitters = new ConcurrentHashMap<>();
+  private final List<SseEmitter> allOrderEmitters = new CopyOnWriteArrayList<>();
 
   public SseEmitter subscribe(String orderId, OrderResponse current) {
     SseEmitter emitter = new SseEmitter(0L);
@@ -23,18 +24,41 @@ public class OrderEventService {
     return emitter;
   }
 
+  public SseEmitter subscribeAll(List<OrderResponse> current) {
+    SseEmitter emitter = new SseEmitter(0L);
+    allOrderEmitters.add(emitter);
+    emitter.onCompletion(() -> removeAll(emitter));
+    emitter.onTimeout(() -> removeAll(emitter));
+    emitter.onError(error -> removeAll(emitter));
+    sendSnapshot(emitter, current);
+    return emitter;
+  }
+
   public void publish(String orderId, OrderResponse order) {
     List<SseEmitter> orderEmitters = emitters.get(orderId);
-    if (orderEmitters == null || orderEmitters.isEmpty()) return;
-
-    for (SseEmitter emitter : orderEmitters) {
-      send(emitter, order);
+    if (orderEmitters != null && !orderEmitters.isEmpty()) {
+      for (SseEmitter emitter : orderEmitters) {
+        send(emitter, order);
+      }
+    }
+    if (!allOrderEmitters.isEmpty()) {
+      for (SseEmitter emitter : allOrderEmitters) {
+        send(emitter, order);
+      }
     }
   }
 
   private void send(SseEmitter emitter, OrderResponse order) {
     try {
       emitter.send(SseEmitter.event().name("order.updated").data(order));
+    } catch (IOException | IllegalStateException e) {
+      emitter.completeWithError(e);
+    }
+  }
+
+  private void sendSnapshot(SseEmitter emitter, List<OrderResponse> orders) {
+    try {
+      emitter.send(SseEmitter.event().name("orders.snapshot").data(orders));
     } catch (IOException | IllegalStateException e) {
       emitter.completeWithError(e);
     }
@@ -47,5 +71,9 @@ public class OrderEventService {
     if (orderEmitters.isEmpty()) {
       emitters.remove(orderId);
     }
+  }
+
+  private void removeAll(SseEmitter emitter) {
+    allOrderEmitters.remove(emitter);
   }
 }

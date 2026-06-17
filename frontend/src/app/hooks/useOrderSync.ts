@@ -22,6 +22,7 @@ export function useOrderSync({
 }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const pendingStatusUpdatesRef = useRef(new Map<string, OrderStatus>());
+  const adminEventsConnectedRef = useRef(false);
 
   const loadOrderById = useCallback(async (orderId: string) => {
     try {
@@ -61,6 +62,7 @@ export function useOrderSync({
       }
 
       if (API_URL && screen === "admin") {
+        if (adminEventsConnectedRef.current) return;
         const res = await fetch(`${API_URL}/orders`, {
           cache: "no-store",
           headers: { Authorization: `Bearer ${adminToken}` },
@@ -112,6 +114,73 @@ export function useOrderSync({
     );
     return () => window.clearInterval(timer);
   }, [screen, started, syncOrders]);
+
+  useEffect(() => {
+    if (!started || screen !== "admin" || !API_URL || !adminToken) return;
+
+    let source: EventSource;
+    try {
+      source = new EventSource(
+        `${API_URL}/orders/events?token=${encodeURIComponent(adminToken)}`,
+      );
+    } catch {
+      adminEventsConnectedRef.current = false;
+      return;
+    }
+
+    source.onopen = () => {
+      adminEventsConnectedRef.current = true;
+    };
+
+    source.addEventListener("orders.snapshot", (event) => {
+      try {
+        const rows = JSON.parse(event.data);
+        if (!Array.isArray(rows)) return;
+        const nextOrders = rows
+          .map(normalizeBackendOrder)
+          .map((order) => keepPendingStatus(order, pendingStatusUpdatesRef.current));
+        setOrders((prev) =>
+          nextOrders.map((order) =>
+            keepHighestVisibleStatus(
+              order,
+              prev.find((existing) => existing.id === order.id),
+            ),
+          ),
+        );
+      } catch {
+        // Polling fallback remains active if a stream payload is malformed.
+      }
+    });
+
+    source.addEventListener("order.updated", (event) => {
+      try {
+        const updated = keepPendingStatus(
+          normalizeBackendOrder(JSON.parse(event.data)),
+          pendingStatusUpdatesRef.current,
+        );
+        setOrders((prev) => [
+          keepHighestVisibleStatus(
+            updated,
+            prev.find((order) => order.id === updated.id),
+          ),
+          ...prev.filter((order) => order.id !== updated.id),
+        ]);
+      } catch {
+        // Polling fallback remains active if a stream payload is malformed.
+      }
+    });
+
+    source.onerror = () => {
+      adminEventsConnectedRef.current = false;
+      source.close();
+      void syncOrders();
+    };
+
+    return () => {
+      adminEventsConnectedRef.current = false;
+      source.close();
+    };
+  }, [adminToken, screen, started, syncOrders]);
 
   useEffect(() => {
     if (!started || screen !== "tracking" || !API_URL || !lastOrderId) return;

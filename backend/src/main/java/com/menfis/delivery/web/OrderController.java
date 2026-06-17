@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -69,6 +70,12 @@ public class OrderController {
   @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter events(@PathVariable String id) {
     return events.subscribe(id, orders.get(id));
+  }
+
+  @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter allEvents(@RequestParam(name = "token", required = false) String token) {
+    auth.requireAdmin(token == null || token.isBlank() ? null : "Bearer " + token);
+    return events.subscribeAll(orders.listRecent());
   }
 
   @PatchMapping("/{id}/status")
