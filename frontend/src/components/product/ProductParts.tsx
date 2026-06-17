@@ -30,6 +30,18 @@ import {
   requiredCustomizerCount,
 } from "./shared";
 
+function productStory(item: MenuItem) {
+  const name = item.name.toLowerCase();
+  if (name.includes("chicken")) {
+    return `${item.desc} Frango crocante, queijo derretido, alface fresca e molho especial no pão macio, com molho extra para acompanhar cada mordida.`;
+  }
+  if (item.category === "burger" || item.category === "combo") {
+    const quantity = name.includes("double") || name.includes("super") ? "cada burger" : "o burger";
+    return `${item.desc} Aqui ${quantity} vem com 100g de carne suculenta, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
+  }
+  return item.desc;
+}
+
 export function BurgerBuilder({
   builder,
   setBuilder,
@@ -389,7 +401,7 @@ export function ProductDetailModal({
               {fmt(item.price)}
             </p>
           </div>
-          <p className="mt-3 text-sm leading-6 text-black/65">{item.desc}</p>
+          <p className="mt-3 text-sm leading-6 text-black/68">{productStory(item)}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {item.tags.map((tag) => (
               <span

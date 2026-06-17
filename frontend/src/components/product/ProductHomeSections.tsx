@@ -167,14 +167,41 @@ export function ProductHero({
     >
       <div className="flex min-h-[290px] flex-col justify-between gap-5">
         <div>
+          {!kioskMode && (
+            <div
+              className="mb-3 flex items-center gap-2 rounded-2xl px-4 py-3"
+              style={{
+                background: "#65001F",
+                color: ROSA,
+                border: `2px solid ${VERDE}`,
+                boxShadow: "0 16px 36px rgba(101,0,31,0.22)",
+              }}
+            >
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full"
+                style={{ background: ROSA, color: "#65001F" }}
+              >
+                <Clock3 size={18} strokeWidth={2.8} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-75">
+                  Atendimento e delivery
+                </p>
+                <p className="text-sm font-black uppercase md:text-base">
+                  Funcionamento: terça a domingo, das 18:00 às 22:00.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             {(kioskMode
               ? ["Burger suculento", "Molho da casa", "Retirada rápida"]
-              : ["Funcionamento: terça a domingo, das 18:00 às 22:00.", "Burger suculento", "Entrega rápida"]
+              : ["Burger 100g", "Cheddar duplo", "Molho especial"]
             ).map((tag, index) => (
               <span
                 key={tag}
-                onClick={index === 0 ? onIdleShortcutTap : undefined}
+                onClick={kioskMode && index === 0 ? onIdleShortcutTap : undefined}
                 className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider"
                 style={{
                   background: `${VERDE}10`,
@@ -184,9 +211,6 @@ export function ProductHero({
                   userSelect: "none",
                 }}
               >
-                {!kioskMode && index === 0 && (
-                  <Clock3 size={12} strokeWidth={2.4} className="mr-1 inline-block" />
-                )}
                 {tag}
               </span>
             ))}
@@ -212,7 +236,7 @@ export function ProductHero({
           >
             {kioskMode
               ? "Monte seu pedido no totem. Nossa equipe confirma e prepara para retirada."
-              : "Combos generosos, burger suculento e entrega pensada para chegar quente na sua mesa."}
+              : "Nossos burgers levam 100g de carne, duas fatias de cheddar, cebola caramelizada, alface crocante e molho especial. Uma explosão de sabor com aquele extra de molho para acompanhar."}
           </p>
         </div>
 
