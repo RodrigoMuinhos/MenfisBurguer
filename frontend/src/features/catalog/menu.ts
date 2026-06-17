@@ -93,7 +93,7 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "combo2",
-    name: "Super Combo",
+    name: "Super Combo Menfi's",
     eyebrow: "Para dividir",
     desc: "Dois burgers, duas bebidas geladas e batata crocante para dividir.",
     price: 59.9,

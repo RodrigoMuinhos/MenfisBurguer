@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { ROSA, VERDE } from "@/utils/theme";
-import { CheckoutStep, PaymentMethod, fmt } from "./checkout";
+import { CheckoutStep, DELIVERY_FEE, PaymentMethod, fmt } from "./checkout";
 
 export function CartStickyCta({
   checkoutStep,
@@ -111,8 +111,8 @@ export function CartStickyCta({
                   <span>{fmt(subtotal)}</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span>Frete</span>
-                  <span>{fee > 0 ? fmt(fee) : "Grátis"}</span>
+                  <span>Frete delivery</span>
+                  <span>{fee > 0 ? fmt(fee) : `Grátis (taxa ${fmt(DELIVERY_FEE)})`}</span>
                 </div>
                 {serviceFee > 0 && (
                   <div className="flex justify-between gap-3">

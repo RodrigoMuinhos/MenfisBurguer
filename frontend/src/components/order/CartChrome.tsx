@@ -141,21 +141,18 @@ export function CheckoutProgress({
     : [
         {
           label: "Sacola",
-          active: ["bag", "delivery", "payment", "review"].includes(
-            checkoutStep,
-          ),
+          active: ["bag", "delivery", "payment", "review"].includes(checkoutStep),
         },
         {
           label: "Dados",
           active: ["delivery", "payment", "review"].includes(checkoutStep),
         },
-        { label: "Revisão", active: checkoutStep === "review" },
         { label: "Finalizar", active: checkoutStep === "review" },
       ];
 
   return (
     <div className="px-4 py-3" style={{ background: VERDE, color: ROSA }}>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
         {steps.map((step, index) => (
           <div key={step.label}>
             <div

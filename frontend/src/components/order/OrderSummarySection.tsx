@@ -1,6 +1,6 @@
 import { CartItem } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
-import { CheckoutStep, Coupon, DeliveryType, ITEM_DESC, deliveryEta, fmt } from "./checkout";
+import { CheckoutStep, Coupon, DELIVERY_FEE, DeliveryType, ITEM_DESC, deliveryEta, fmt } from "./checkout";
 
 export function OrderSummarySection({
   checkoutStep,
@@ -114,11 +114,11 @@ export function OrderSummarySection({
                       style={{ color: VERDE, opacity: 0.64 }}
                     >
                       <span>
-                        Frete
+                        Frete delivery
                       </span>
                       <span>
                         {delivery === "retirada" || freeShipping
-                          ? "Grátis"
+                          ? `Grátis (taxa ${fmt(DELIVERY_FEE)})`
                           : fmt(fee)}
                       </span>
                     </div>

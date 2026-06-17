@@ -12,6 +12,7 @@ import {
 import { CartItem } from "@/types/order";
 import { CREME, ROSA, VERDE } from "@/utils/theme";
 import { MenuItem } from "@/features/catalog/types";
+import { DELIVERY_FEE } from "@/components/order/checkout";
 import {
   BuilderState,
   CHEESE_PRICE,
@@ -250,6 +251,14 @@ export function MenuCard({
         <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5 text-black/58">
           {item.desc}
         </p>
+
+        <div
+          className="mt-3 flex items-center justify-between rounded-2xl px-3 py-2 text-[11px] font-black uppercase"
+          style={{ background: `${ROSA}35`, color: VERDE }}
+        >
+          <span>Frete delivery</span>
+          <span>{fmt(DELIVERY_FEE)}</span>
+        </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
           {item.tags.map((tag) => (
