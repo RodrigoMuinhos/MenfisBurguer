@@ -177,30 +177,37 @@ export function MobileMenuExperience({
           <TopTrustItem icon={Timer} title="30-35 min" subtitle="entrega media" />
         </div>
 
-        <div className="relative z-10 mt-4 grid min-h-[312px] grid-cols-[1fr_0.92fr] items-center gap-0">
-          <div className="min-w-0">
+        <div className="relative z-10 mt-4 min-h-[312px] overflow-visible">
+          <div className="relative z-20 max-w-[52%] pt-10">
             <p className="uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "4.35rem", lineHeight: 0.82, letterSpacing: 0, color: VINHO }}>
               Menfi's Burger
             </p>
             <p className="mt-3 text-lg font-black uppercase leading-tight">Hamburguer artesanal feito na hora.</p>
           </div>
-          <button type="button" onClick={() => heroItem && onOpenDetails(heroItem)} className="relative -mr-24 h-[315px] min-w-0 overflow-visible" aria-label={`Ver ${heroItem?.name ?? "produto"}`}>
+          <button type="button" onClick={() => heroItem && onOpenDetails(heroItem)} className="absolute -right-28 top-0 z-10 h-[330px] w-[78%] overflow-visible" aria-label={`Ver ${heroItem?.name ?? "produto"}`}>
             {heroItem?.image ? (
               <Image
                 src={imageSrc(heroItem.image)}
                 alt={heroItem.name}
                 fill
                 priority
-                sizes="52vw"
+                sizes="78vw"
                 style={{
                   objectFit: "contain",
                   objectPosition: "left center",
-                  transform: "scale(1.48)",
-                  filter: "drop-shadow(-18px 22px 28px rgba(101,0,31,0.18))",
+                  transform: "scale(1.24)",
+                  mixBlendMode: "multiply",
+                  filter: "drop-shadow(-18px 22px 28px rgba(101,0,31,0.22))",
                 }}
               />
             ) : null}
           </button>
+          <div
+            className="pointer-events-none absolute inset-y-0 left-[42%] z-10 w-24"
+            style={{
+              background: "linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.82) 48%, rgba(255,255,255,0) 100%)",
+            }}
+          />
         </div>
 
         <button type="button" onClick={() => setPanel("club")} className="relative z-10 mt-2 grid w-full grid-cols-[56px_1fr_auto] items-center gap-3 rounded-[18px] px-4 py-4 text-left text-white" style={{ background: VINHO }}>
@@ -510,14 +517,33 @@ function ClubPanel({ rewardCount, rewardRemaining, onClose, onOpenProfile }: { r
 
 function BestSellerCard({ item, badge, onAdd, onOpen }: { item: MenuItem; badge: string; onAdd: () => void; onOpen: () => void }) {
   return (
-    <article className="w-[224px] shrink-0 snap-start overflow-visible rounded-[18px] bg-white p-3 shadow-sm">
-      <button type="button" onClick={onOpen} className="relative -mt-6 h-40 w-full overflow-visible text-left" aria-label={`Ver detalhes de ${item.name}`}>
+    <article className="w-[224px] shrink-0 snap-start overflow-hidden rounded-[18px] bg-white p-3 shadow-sm">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="relative h-36 w-full overflow-hidden rounded-[16px] text-left"
+        style={{ background: `linear-gradient(135deg, ${PINK_SOFT} 0%, #fff 52%, ${PINK_SOFT} 100%)` }}
+        aria-label={`Ver detalhes de ${item.name}`}
+      >
         {item.image ? (
-          <Image src={imageSrc(item.image)} alt={item.name} fill sizes="224px" style={{ objectFit: "contain", objectPosition: "center", transform: "scale(1.15)", filter: "drop-shadow(0 16px 18px rgba(101,0,31,0.18))" }} />
+          <Image
+            src={imageSrc(item.image)}
+            alt={item.name}
+            fill
+            sizes="224px"
+            style={{
+              objectFit: "contain",
+              objectPosition: "center 58%",
+              transform: "scale(1.03)",
+              mixBlendMode: "multiply",
+              filter: "drop-shadow(0 14px 15px rgba(101,0,31,0.16))",
+            }}
+          />
         ) : null}
-        <span className="absolute left-3 top-7 rounded-full px-2.5 py-1 text-[10px] font-black uppercase" style={{ background: VINHO, color: ROSA }}>{badge}</span>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%)" }} />
+        <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-black uppercase" style={{ background: VINHO, color: ROSA }}>{badge}</span>
       </button>
-      <div>
+      <div className="pt-3">
         <h3 className="line-clamp-2 uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 0.95, letterSpacing: 0 }}>{item.name}</h3>
         <p className="mt-2 line-clamp-2 min-h-10 text-sm font-semibold opacity-65">{compactDescription(item)}</p>
         <div className="mt-3 flex items-center justify-between">
@@ -533,19 +559,36 @@ function BestSellerCard({ item, badge, onAdd, onOpen }: { item: MenuItem; badge:
 
 function MobileListItem({ item, onAdd, onOpen }: { item: MenuItem; onAdd: () => void; onOpen: () => void }) {
   return (
-    <article className="grid grid-cols-[1fr_128px] gap-3 overflow-visible rounded-[18px] bg-white p-3 shadow-sm">
+    <article className="grid grid-cols-[1fr_132px] gap-3 overflow-hidden rounded-[18px] bg-white p-3 shadow-sm">
       <button type="button" onClick={onOpen} className="min-w-0 text-left">
         <h3 className="line-clamp-2 uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 0.96, letterSpacing: 0 }}>{item.name}</h3>
         <p className="mt-1 line-clamp-2 text-sm font-semibold opacity-70">{compactDescription(item)}</p>
         <p className="mt-2 w-fit rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${ROSA}66` }}>{item.tags[0] ?? "Menfi's"}</p>
         <p className="mt-2" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 1, color: VINHO }}>{fmt(item.price)}</p>
       </button>
-      <div className="relative -mr-2 h-32 overflow-visible rounded-2xl" style={{ background: PINK_SOFT }}>
+      <div
+        className="relative h-32 overflow-hidden rounded-2xl"
+        style={{ background: `linear-gradient(90deg, #fff 0%, ${PINK_SOFT} 45%, #fff 100%)` }}
+      >
         <button type="button" onClick={onOpen} className="absolute inset-0" aria-label={`Ver detalhes de ${item.name}`}>
           {item.image ? (
-            <Image src={imageSrc(item.image)} alt={item.name} fill sizes="128px" style={{ objectFit: "contain", objectPosition: "center", transform: "scale(1.18)", filter: "drop-shadow(0 15px 16px rgba(101,0,31,0.18))" }} />
+            <Image
+              src={imageSrc(item.image)}
+              alt={item.name}
+              fill
+              sizes="132px"
+              style={{
+                objectFit: "contain",
+                objectPosition: "center",
+                transform: "scale(1.04)",
+                mixBlendMode: "multiply",
+                filter: "drop-shadow(0 12px 14px rgba(101,0,31,0.16))",
+              }}
+            />
           ) : null}
         </button>
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-10" style={{ background: "linear-gradient(90deg, #fff 0%, rgba(255,255,255,0) 100%)" }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-7" style={{ background: "linear-gradient(270deg, #fff 0%, rgba(255,255,255,0) 100%)" }} />
         <button type="button" onClick={onAdd} className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg" style={{ background: PINK, color: "#fff" }} aria-label={`Adicionar ${item.name}`}>
           <Plus size={22} strokeWidth={2.8} />
         </button>
