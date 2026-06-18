@@ -133,9 +133,6 @@ export function MobileMenuExperience({
   const rewardRemaining = Math.max(0, 10 - rewardCount);
   const normalizedQuery = query.trim().toLowerCase();
   const sortedItems = [...items].sort((a, b) => saleRank(a) - saleRank(b));
-  const bestSellers = BEST_SELLER_IDS
-    .map((id) => items.find((item) => item.id === id))
-    .filter(Boolean) as MenuItem[];
   const visibleItems = sortedItems.filter((item) => {
     const matchesSearch =
       !normalizedQuery ||
@@ -144,6 +141,14 @@ export function MobileMenuExperience({
         .includes(normalizedQuery);
     return matchesSearch && categoryMatches(item, category);
   });
+  const bestSellers =
+    category === "promo"
+      ? (BEST_SELLER_IDS
+          .map((id) => items.find((item) => item.id === id))
+          .filter(Boolean) as MenuItem[])
+      : visibleItems.slice(0, 3);
+  const categoryLabel =
+    MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label ?? "Produtos";
 
   return (
     <div className="md:hidden" style={{ background: SURFACE, color: VERDE }}>
@@ -283,7 +288,7 @@ export function MobileMenuExperience({
         <section className="pt-2">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black uppercase tracking-wide">
-              Mais vendidos
+              {category === "promo" ? "Mais vendidos" : `Mais vendidos em ${categoryLabel}`}
             </h2>
             <button
               type="button"
@@ -308,9 +313,7 @@ export function MobileMenuExperience({
 
         <section className="mt-5">
           <h2 className="text-lg font-black uppercase tracking-wide">
-            {category === "promo"
-              ? "Combos"
-              : MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label}
+            {category === "promo" ? "Combos" : categoryLabel}
           </h2>
           <div className="mt-3 grid gap-3">
             {visibleItems.map((item) => (
