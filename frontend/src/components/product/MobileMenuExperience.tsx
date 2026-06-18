@@ -23,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
-import { ROSA, SURFACE } from "@/utils/theme";
+import { ROSA } from "@/utils/theme";
 import { fmt, imageSrc, MemberProfile } from "./shared";
 
 type MobileCategory = "burger" | "chicken" | "bacon" | "combo" | "bebida" | "promo";
@@ -31,15 +31,13 @@ type MobileCategory = "burger" | "chicken" | "bacon" | "combo" | "bebida" | "pro
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
 const PINK = "#EC1767";
-const PINK_SOFT = "#FFE3ED";
-
 const MOBILE_CATEGORIES: Array<{ id: MobileCategory; label: string; icon: ElementType }> = [
+  { id: "promo", label: "Promocoes", icon: Flame },
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "chicken", label: "Chicken", icon: Drumstick },
   { id: "bacon", label: "Bacon", icon: Utensils },
   { id: "combo", label: "Combos", icon: Package },
   { id: "bebida", label: "Bebidas", icon: CupSoda },
-  { id: "promo", label: "Promocoes", icon: Flame },
 ];
 
 const BEST_SELLER_IDS = ["double-burger", "menfis-bacon", "menfis-chicken"];
@@ -102,6 +100,11 @@ function bestsellerBadge(index: number) {
   return "Novidade";
 }
 
+function discountPercent(item: MenuItem) {
+  if (!item.originalPrice || item.originalPrice <= item.price) return 0;
+  return Math.round((1 - item.price / item.originalPrice) * 100);
+}
+
 export function MobileMenuExperience({
   items,
   cartCount,
@@ -125,7 +128,7 @@ export function MobileMenuExperience({
   onOpenDetails: (item: MenuItem) => void;
   goToCart: () => void;
 }) {
-  const [category, setCategory] = useState<MobileCategory>("burger");
+  const [category, setCategory] = useState<MobileCategory>("promo");
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<"reviews" | "club" | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -150,9 +153,9 @@ export function MobileMenuExperience({
   };
 
   return (
-    <div className="md:hidden" style={{ background: SURFACE, color: VINHO }}>
+    <div className="md:hidden bg-white" style={{ color: VINHO }}>
       <header className="relative overflow-hidden bg-white px-4 pb-5 pt-4">
-        <div className="pointer-events-none absolute -right-20 top-24 h-56 w-56 rounded-full" style={{ background: PINK_SOFT }} />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-white" />
         <div className="relative z-10 flex items-center justify-between gap-3">
           <IconButton label="Abrir menu" icon={Menu} onClick={onOpenMember} filled />
           <button type="button" onClick={onOpenMember} className="text-center">
@@ -177,14 +180,14 @@ export function MobileMenuExperience({
           <TopTrustItem icon={Timer} title="30-35 min" subtitle="entrega media" />
         </div>
 
-        <div className="relative z-10 mt-4 min-h-[312px] overflow-visible">
-          <div className="relative z-20 max-w-[52%] pt-10">
+        <div className="relative z-10 mt-4 min-h-[312px] overflow-hidden bg-white">
+          <div className="relative z-30 max-w-[52%] pt-10">
             <p className="uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "4.35rem", lineHeight: 0.82, letterSpacing: 0, color: VINHO }}>
               Menfi's Burger
             </p>
             <p className="mt-3 text-lg font-black uppercase leading-tight">Hamburguer artesanal feito na hora.</p>
           </div>
-          <button type="button" onClick={() => heroItem && onOpenDetails(heroItem)} className="absolute -right-28 top-0 z-10 h-[330px] w-[78%] overflow-visible" aria-label={`Ver ${heroItem?.name ?? "produto"}`}>
+          <button type="button" onClick={() => heroItem && onOpenDetails(heroItem)} className="absolute -right-20 top-0 z-10 h-[330px] w-[72%] overflow-visible bg-white" aria-label={`Ver ${heroItem?.name ?? "produto"}`}>
             {heroItem?.image ? (
               <Image
                 src={imageSrc(heroItem.image)}
@@ -198,14 +201,18 @@ export function MobileMenuExperience({
                   transform: "scale(1.24)",
                   mixBlendMode: "multiply",
                   filter: "drop-shadow(-18px 22px 28px rgba(101,0,31,0.22))",
+                  WebkitMaskImage:
+                    "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.18) 9%, #000 23%, #000 100%)",
+                  maskImage:
+                    "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.18) 9%, #000 23%, #000 100%)",
                 }}
               />
             ) : null}
           </button>
           <div
-            className="pointer-events-none absolute inset-y-0 left-[42%] z-10 w-24"
+            className="pointer-events-none absolute inset-y-0 left-[39%] z-20 w-32"
             style={{
-              background: "linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.82) 48%, rgba(255,255,255,0) 100%)",
+              background: "linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.98) 36%, rgba(255,255,255,0.72) 70%, rgba(255,255,255,0) 100%)",
             }}
           />
         </div>
@@ -239,15 +246,6 @@ export function MobileMenuExperience({
 
       <main className="px-4 pb-44">
         <section id="menfis-products" className="pt-5">
-          <SectionTitle title="Produtos" action="Ver burgers" onClick={() => setCategory("burger")} />
-          <div className="mt-3 flex snap-x gap-3 overflow-x-auto pb-3">
-            {bestSellers.map((item, index) => (
-              <BestSellerCard key={item.id} item={item} badge={bestsellerBadge(index)} onAdd={() => onQuickAdd(item)} onOpen={() => onOpenDetails(item)} />
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-4">
           <h2 className="text-lg font-black uppercase tracking-wide">{category === "promo" ? "Promocoes ativas" : categoryLabel}</h2>
           <div className="mt-3 grid gap-3">
             {(category === "promo" ? promoItems : visibleItems).map((item) => (
@@ -258,6 +256,15 @@ export function MobileMenuExperience({
                 Nenhum produto encontrado nesta categoria.
               </div>
             )}
+          </div>
+        </section>
+
+        <section className="mt-5">
+          <SectionTitle title="Produtos" action="Ver burgers" onClick={() => setCategory("burger")} />
+          <div className="mt-3 flex snap-x gap-3 overflow-x-auto pb-3">
+            {bestSellers.map((item, index) => (
+              <BestSellerCard key={item.id} item={item} badge={bestsellerBadge(index)} onAdd={() => onQuickAdd(item)} onOpen={() => onOpenDetails(item)} />
+            ))}
           </div>
         </section>
 
@@ -451,7 +458,7 @@ function ReviewsPanel({ onClose }: { onClose: () => void }) {
   ];
   return (
     <PanelShell title="Avaliacoes Menfi's" onClose={onClose}>
-      <div className="mt-4 rounded-2xl p-4" style={{ background: PINK_SOFT }}>
+      <div className="mt-4 rounded-2xl p-4" style={{ background: "#fff" }}>
         <p style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "3.2rem", lineHeight: 0.9 }}>4.9</p>
         <p className="mt-1 text-sm font-black uppercase tracking-wide">Avaliacao media dos clientes</p>
         <p className="mt-2 text-sm font-semibold opacity-70">Prova social real para decidir rapido.</p>
@@ -482,7 +489,7 @@ function ClubPanel({ rewardCount, rewardRemaining, onClose, onOpenProfile }: { r
   ];
   return (
     <PanelShell title="Clube Menfi's" onClose={onClose}>
-      <div className="mt-4 rounded-2xl p-4" style={{ background: PINK_SOFT }}>
+      <div className="mt-4 rounded-2xl p-4" style={{ background: "#fff" }}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-black uppercase tracking-wide">{rewardCount}/10 pedidos</p>
@@ -522,7 +529,7 @@ function BestSellerCard({ item, badge, onAdd, onOpen }: { item: MenuItem; badge:
         type="button"
         onClick={onOpen}
         className="relative h-36 w-full overflow-hidden rounded-[16px] text-left"
-        style={{ background: `linear-gradient(135deg, ${PINK_SOFT} 0%, #fff 52%, ${PINK_SOFT} 100%)` }}
+        style={{ background: "#fff" }}
         aria-label={`Ver detalhes de ${item.name}`}
       >
         {item.image ? (
@@ -540,14 +547,14 @@ function BestSellerCard({ item, badge, onAdd, onOpen }: { item: MenuItem; badge:
             }}
           />
         ) : null}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 100%)" }} />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.76) 62%, #fff 100%)" }} />
         <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-black uppercase" style={{ background: VINHO, color: ROSA }}>{badge}</span>
       </button>
       <div className="pt-3">
         <h3 className="line-clamp-2 uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 0.95, letterSpacing: 0 }}>{item.name}</h3>
         <p className="mt-2 line-clamp-2 min-h-10 text-sm font-semibold opacity-65">{compactDescription(item)}</p>
         <div className="mt-3 flex items-center justify-between">
-          <p style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.55rem", lineHeight: 1, color: VINHO }}>{fmt(item.price)}</p>
+          <PriceBlock item={item} size="card" />
           <button type="button" onClick={onAdd} className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: PINK, color: "#fff" }} aria-label={`Adicionar ${item.name}`}>
             <Plus size={22} strokeWidth={2.6} />
           </button>
@@ -564,11 +571,11 @@ function MobileListItem({ item, onAdd, onOpen }: { item: MenuItem; onAdd: () => 
         <h3 className="line-clamp-2 uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 0.96, letterSpacing: 0 }}>{item.name}</h3>
         <p className="mt-1 line-clamp-2 text-sm font-semibold opacity-70">{compactDescription(item)}</p>
         <p className="mt-2 w-fit rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${ROSA}66` }}>{item.tags[0] ?? "Menfi's"}</p>
-        <p className="mt-2" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 1, color: VINHO }}>{fmt(item.price)}</p>
+        <PriceBlock item={item} className="mt-2" />
       </button>
       <div
         className="relative h-32 overflow-hidden rounded-2xl"
-        style={{ background: `linear-gradient(90deg, #fff 0%, ${PINK_SOFT} 45%, #fff 100%)` }}
+        style={{ background: "#fff" }}
       >
         <button type="button" onClick={onOpen} className="absolute inset-0" aria-label={`Ver detalhes de ${item.name}`}>
           {item.image ? (
@@ -587,12 +594,31 @@ function MobileListItem({ item, onAdd, onOpen }: { item: MenuItem; onAdd: () => 
             />
           ) : null}
         </button>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-10" style={{ background: "linear-gradient(90deg, #fff 0%, rgba(255,255,255,0) 100%)" }} />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-7" style={{ background: "linear-gradient(270deg, #fff 0%, rgba(255,255,255,0) 100%)" }} />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-12" style={{ background: "linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.82) 52%, rgba(255,255,255,0) 100%)" }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-10" style={{ background: "linear-gradient(270deg, #fff 0%, rgba(255,255,255,0.74) 58%, rgba(255,255,255,0) 100%)" }} />
         <button type="button" onClick={onAdd} className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg" style={{ background: PINK, color: "#fff" }} aria-label={`Adicionar ${item.name}`}>
           <Plus size={22} strokeWidth={2.8} />
         </button>
       </div>
     </article>
+  );
+}
+
+function PriceBlock({ item, className = "", size = "list" }: { item: MenuItem; className?: string; size?: "list" | "card" }) {
+  const discount = discountPercent(item);
+  return (
+    <div className={className}>
+      {discount > 0 && item.originalPrice ? (
+        <div className="mb-1 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-black uppercase line-through opacity-45">{fmt(item.originalPrice)}</span>
+          <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: `${ROSA}66`, color: VINHO }}>
+            -{discount}%
+          </span>
+        </div>
+      ) : null}
+      <p style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: size === "card" ? "1.55rem" : "1.45rem", lineHeight: 1, color: VINHO }}>
+        {fmt(item.price)}
+      </p>
+    </div>
   );
 }
