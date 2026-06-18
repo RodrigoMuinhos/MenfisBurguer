@@ -65,6 +65,7 @@ import {
   ProductHeader,
   ProductHero,
 } from "./ProductHomeSections";
+import { MobileMenuExperience } from "./MobileMenuExperience";
 import { MemberNotification } from "./notifications";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
@@ -329,6 +330,31 @@ export function ProductScreen({
 
   const addMenuItem = (item: MenuItem) => {
     openCustomizer(item);
+  };
+
+  const quickAddMenuItem = (item: MenuItem) => {
+    if (!requireCustomerProfile()) return;
+    const components =
+      item.category === "combo" || item.category === "burger"
+        ? [
+            item.name,
+            ...(item.category === "combo"
+              ? ["Guaraná Zero", "Batata Frita 250g"]
+              : []),
+            "Maionese Alho Frito",
+          ]
+        : undefined;
+
+    addToCart({
+      id:
+        item.category === "combo" || item.category === "burger"
+          ? `quick-${item.id}`
+          : item.id,
+      productId: item.id,
+      name: item.name.toUpperCase(),
+      price: item.price,
+      components,
+    });
   };
 
   const handleGoToCart = () => {
@@ -598,105 +624,122 @@ export function ProductScreen({
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      <ProductHeader
-        kioskMode={kioskMode}
-        cartCount={cartCount}
-        onAdminTap={handleAdminTap}
-        goToCart={handleGoToCart}
-        memberProfile={memberProfile}
-        notificationCount={unreadNotificationCount}
-        onOpenMember={openMemberAccess}
-        onOpenNotifications={openNotifications}
-        onLogoutMember={logoutMember}
-      />
+      {!kioskMode && (
+        <MobileMenuExperience
+          items={MENU_ITEMS}
+          cartCount={cartCount}
+          cartTotal={cartTotal}
+          memberProfile={memberProfile}
+          notificationCount={unreadNotificationCount}
+          onOpenMember={openMemberAccess}
+          onOpenNotifications={openNotifications}
+          onQuickAdd={quickAddMenuItem}
+          onOpenDetails={setDetailItem}
+          goToCart={handleGoToCart}
+        />
+      )}
 
-      <main className="w-full px-0 pb-36 pt-0">
-        <ProductHero
+      <div className={!kioskMode ? "hidden md:block" : undefined}>
+        <ProductHeader
           kioskMode={kioskMode}
-          featuredItem={featuredItem}
-          onIdleShortcutTap={handleIdleShortcutTap}
-          onAddFeatured={() => addMenuItem(featuredItem)}
+          cartCount={cartCount}
+          onAdminTap={handleAdminTap}
+          goToCart={handleGoToCart}
+          memberProfile={memberProfile}
+          notificationCount={unreadNotificationCount}
+          onOpenMember={openMemberAccess}
+          onOpenNotifications={openNotifications}
+          onLogoutMember={logoutMember}
         />
 
-        {!kioskMode && (
-          <MemberAccessBanner
-            memberProfile={memberProfile}
-            onOpen={openMemberAccess}
+        <main className="w-full px-0 pb-36 pt-0">
+          <ProductHero
+            kioskMode={kioskMode}
+            featuredItem={featuredItem}
+            onIdleShortcutTap={handleIdleShortcutTap}
+            onAddFeatured={() => addMenuItem(featuredItem)}
           />
-        )}
 
-        <CategoryTabs category={category} setCategory={setCategory} />
-        <section className="mt-6 px-4">
-          <div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredItems.map((item) => (
-                <MenuCard
-                  key={item.id}
-                  item={item}
-                  qty={qty(item.id)}
-                  builder={item.id === BURGER_ID ? builder : undefined}
-                  onAdd={() => addMenuItem(item)}
-                  onMinus={() => updateQty(item.id, -1)}
-                  onOpenDetails={() => setDetailItem(item)}
-                />
-              ))}
+          {!kioskMode && (
+            <MemberAccessBanner
+              memberProfile={memberProfile}
+              onOpen={openMemberAccess}
+            />
+          )}
+
+          <CategoryTabs category={category} setCategory={setCategory} />
+          <section className="mt-6 px-4">
+            <div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredItems.map((item) => (
+                  <MenuCard
+                    key={item.id}
+                    item={item}
+                    qty={qty(item.id)}
+                    builder={item.id === BURGER_ID ? builder : undefined}
+                    onAdd={() => addMenuItem(item)}
+                    onMinus={() => updateQty(item.id, -1)}
+                    onOpenDetails={() => setDetailItem(item)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </main>
 
-      <div
-        className="fixed inset-x-0 bottom-0 z-50"
-        style={{
-          background: "rgba(255,248,242,0.94)",
-          borderTop: `1px solid ${VERDE}14`,
-          backdropFilter: "blur(18px)",
-        }}
-      >
-        {cartCount > 0 && (
-          <div className="flex w-full items-center gap-3 px-4 pt-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
-                Total do pedido
-              </p>
-              <p
-                style={{
-                  color: VERDE,
-                  fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                  fontSize: "1.75rem",
-                  lineHeight: 1,
-                }}
+        <div
+          className="fixed inset-x-0 bottom-0 z-50"
+          style={{
+            background: "rgba(255,248,242,0.94)",
+            borderTop: `1px solid ${VERDE}14`,
+            backdropFilter: "blur(18px)",
+          }}
+        >
+          {cartCount > 0 && (
+            <div className="flex w-full items-center gap-3 px-4 pt-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-black/40">
+                  Total do pedido
+                </p>
+                <p
+                  style={{
+                    color: VERDE,
+                    fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                    fontSize: "1.75rem",
+                    lineHeight: 1,
+                  }}
+                >
+                  {fmt(cartTotal)}
+                </p>
+              </div>
+              <button
+                onClick={handleGoToCart}
+                className="flex min-h-12 items-center gap-2 rounded-2xl px-5 text-xs font-black uppercase tracking-wider"
+                style={{ background: VERDE, color: ROSA, border: "none" }}
               >
-                {fmt(cartTotal)}
-              </p>
+                <ShoppingBag size={17} strokeWidth={2.4} />
+                Fechar pedido
+              </button>
             </div>
-            <button
-              onClick={handleGoToCart}
-              className="flex min-h-12 items-center gap-2 rounded-2xl px-5 text-xs font-black uppercase tracking-wider"
-              style={{ background: VERDE, color: ROSA, border: "none" }}
-            >
-              <ShoppingBag size={17} strokeWidth={2.4} />
-              Fechar pedido
-            </button>
+          )}
+          <div className="grid grid-cols-5 gap-1 px-2 pb-2 pt-2">
+            <BottomNavButton
+              icon={PackageSearch}
+              label="Pedidos"
+              active={Boolean(activeOrder) || kioskMobLoggedIn}
+              onClick={() => (activeOrder || kioskMobLoggedIn ? onOpenActiveOrder?.() : openHistory())}
+            />
+            <BottomNavButton icon={Clock3} label="Histórico" onClick={openHistory} />
+            <BottomNavButton icon={Home} label="Início" active onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
+            <BottomNavButton
+              icon={Bell}
+              label="Avisos"
+              badge={unreadNotificationCount}
+              active={unreadNotificationCount > 0}
+              onClick={openNotifications}
+            />
+            <BottomNavButton icon={UserRound} label="Perfil" onClick={openMemberAccess} />
           </div>
-        )}
-        <div className="grid grid-cols-5 gap-1 px-2 pb-2 pt-2">
-          <BottomNavButton
-            icon={PackageSearch}
-            label="Pedidos"
-            active={Boolean(activeOrder) || kioskMobLoggedIn}
-            onClick={() => (activeOrder || kioskMobLoggedIn ? onOpenActiveOrder?.() : openHistory())}
-          />
-          <BottomNavButton icon={Clock3} label="Histórico" onClick={openHistory} />
-          <BottomNavButton icon={Home} label="Início" active onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
-          <BottomNavButton
-            icon={Bell}
-            label="Avisos"
-            badge={unreadNotificationCount}
-            active={unreadNotificationCount > 0}
-            onClick={openNotifications}
-          />
-          <BottomNavButton icon={UserRound} label="Perfil" onClick={openMemberAccess} />
         </div>
       </div>
 
