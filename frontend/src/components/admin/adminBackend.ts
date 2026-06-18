@@ -52,6 +52,17 @@ export function mapCoupon(row: ApiRow): Coupon {
     type: String(row.type) === "fixed_total" ? "fixed_total" : "percent",
     value: asNumber(row.value),
     active: row.active !== false,
+    maxUsesPerDay: asNumber(row.maxUsesPerDay ?? row.max_uses_per_day) || undefined,
+    maxUsesTotal: asNumber(row.maxUsesTotal ?? row.max_uses_total) || undefined,
+    startsAt: row.startsAt || row.starts_at ? String(row.startsAt ?? row.starts_at).slice(0, 10) : undefined,
+    endsAt: row.endsAt || row.ends_at ? String(row.endsAt ?? row.ends_at).slice(0, 10) : undefined,
+    productIds: Array.isArray(row.productIds)
+      ? row.productIds.map(String)
+      : Array.isArray(row.product_ids)
+        ? row.product_ids.map(String)
+        : undefined,
+    oncePerCustomer: row.oncePerCustomer === true || row.once_per_customer === true,
+    blockSamePhone: row.blockSamePhone === true || row.block_same_phone === true,
   };
 }
 

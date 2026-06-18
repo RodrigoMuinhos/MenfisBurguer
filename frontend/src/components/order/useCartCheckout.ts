@@ -28,8 +28,35 @@ import { inputStyle } from "./cartInputStyle";
 import { readMemberProfile } from "@/components/product/shared";
 import { formatDeliveryAddress } from "@/utils/address";
 
+const COUPON_USAGE_STORAGE_KEY = "menfis_coupon_usage";
+
 function normalizeKioskMobName(value?: string) {
   return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "-").replace(/-+/g, "-");
+}
+
+function couponUsageKey(coupon: Coupon, userId: string, phoneDigits: string) {
+  const parts = [
+    coupon.oncePerCustomer && userId ? `user:${userId}` : "",
+    coupon.blockSamePhone && phoneDigits ? `phone:${phoneDigits}` : "",
+  ].filter(Boolean);
+  if (!parts.length) return "";
+  return `${coupon.code.toUpperCase()}::${parts.join("|")}`;
+}
+
+function readCouponUsage() {
+  try {
+    return JSON.parse(localStorage.getItem(COUPON_USAGE_STORAGE_KEY) ?? "{}") as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function couponDailyKey(coupon: Coupon) {
+  return `${coupon.code.toUpperCase()}::day:${new Date().toISOString().slice(0, 10)}`;
+}
+
+function couponTotalKey(coupon: Coupon) {
+  return `${coupon.code.toUpperCase()}::total`;
 }
 
 export function useCartCheckout({
@@ -328,6 +355,47 @@ export function useCartCheckout({
       setCouponError("Cupom inválido ou inativo.");
       return;
     }
+    const now = new Date();
+    if (coupon.startsAt && now < new Date(`${coupon.startsAt}T00:00:00`)) {
+      setAppliedCoupon(null);
+      setCouponError("Cupom ainda não começou.");
+      return;
+    }
+    if (coupon.endsAt && now > new Date(`${coupon.endsAt}T23:59:59`)) {
+      setAppliedCoupon(null);
+      setCouponError("Cupom encerrado.");
+      return;
+    }
+    if (coupon.productIds?.length) {
+      const allowed = new Set(coupon.productIds.map((id) => id.toLowerCase()));
+      const hasParticipant = cart.some((item) =>
+        allowed.has(String(item.productId ?? item.id).toLowerCase()),
+      );
+      if (!hasParticipant) {
+        setAppliedCoupon(null);
+        setCouponError("Cupom não vale para os produtos do carrinho.");
+        return;
+      }
+    }
+    const userId = memberProfile?.id ? String(memberProfile.id) : "";
+    const phoneDigits = (memberProfile?.phone || phone).replace(/\D/g, "");
+    const usageKey = couponUsageKey(coupon, userId, phoneDigits);
+    const usage = readCouponUsage();
+    if (usageKey && usage[usageKey]) {
+      setAppliedCoupon(null);
+      setCouponError("Cupom já utilizado por este cliente ou telefone.");
+      return;
+    }
+    if (coupon.maxUsesPerDay && (usage[couponDailyKey(coupon)] ?? 0) >= coupon.maxUsesPerDay) {
+      setAppliedCoupon(null);
+      setCouponError("Limite diário deste cupom atingido.");
+      return;
+    }
+    if (coupon.maxUsesTotal && (usage[couponTotalKey(coupon)] ?? 0) >= coupon.maxUsesTotal) {
+      setAppliedCoupon(null);
+      setCouponError("Limite total deste cupom atingido.");
+      return;
+    }
     setAppliedCoupon(coupon);
     setCouponCode(coupon.code);
     setCouponError("");
@@ -462,6 +530,23 @@ export function useCartCheckout({
       confirmCounterPrint,
       clearCartItems: clearCart,
     });
+    if (appliedCoupon) {
+      const userId = memberProfile?.id ? String(memberProfile.id) : "";
+      const phoneDigits = (memberProfile?.phone || phone).replace(/\D/g, "");
+      const usageKey = couponUsageKey(appliedCoupon, userId, phoneDigits);
+      if (usageKey || appliedCoupon.maxUsesPerDay || appliedCoupon.maxUsesTotal) {
+        const usage = readCouponUsage();
+        localStorage.setItem(
+          COUPON_USAGE_STORAGE_KEY,
+          JSON.stringify({
+            ...usage,
+            ...(usageKey ? { [usageKey]: Date.now() } : {}),
+            [couponDailyKey(appliedCoupon)]: (usage[couponDailyKey(appliedCoupon)] ?? 0) + 1,
+            [couponTotalKey(appliedCoupon)]: (usage[couponTotalKey(appliedCoupon)] ?? 0) + 1,
+          }),
+        );
+      }
+    }
   };
   const handleBack = () => {
     closeKioskKeyboard();

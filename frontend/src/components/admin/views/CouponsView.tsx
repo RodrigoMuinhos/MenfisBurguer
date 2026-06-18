@@ -1,15 +1,29 @@
 import { Check, Pencil, Power, TicketPercent, Trash2, X } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
-import { Coupon, DEFAULT_COUPONS, couponLabel, fmt } from "../shared";
+import { Coupon, DEFAULT_COUPONS } from "../shared";
 export function CouponsView({
   coupons,
   couponCode,
   couponValue,
   couponType,
+  couponMaxUsesPerDay,
+  couponMaxUsesTotal,
+  couponStartsAt,
+  couponEndsAt,
+  couponProductIds,
+  couponOncePerCustomer,
+  couponBlockSamePhone,
   editingCouponCode,
   setCouponCode,
   setCouponValue,
   setCouponType,
+  setCouponMaxUsesPerDay,
+  setCouponMaxUsesTotal,
+  setCouponStartsAt,
+  setCouponEndsAt,
+  setCouponProductIds,
+  setCouponOncePerCustomer,
+  setCouponBlockSamePhone,
   onSave,
   onCancelEdit,
   onEdit,
@@ -20,10 +34,24 @@ export function CouponsView({
   couponCode: string;
   couponValue: string;
   couponType: "percent" | "fixed_total";
+  couponMaxUsesPerDay: string;
+  couponMaxUsesTotal: string;
+  couponStartsAt: string;
+  couponEndsAt: string;
+  couponProductIds: string;
+  couponOncePerCustomer: boolean;
+  couponBlockSamePhone: boolean;
   editingCouponCode: string;
   setCouponCode: (value: string) => void;
   setCouponValue: (value: string) => void;
   setCouponType: (value: "percent" | "fixed_total") => void;
+  setCouponMaxUsesPerDay: (value: string) => void;
+  setCouponMaxUsesTotal: (value: string) => void;
+  setCouponStartsAt: (value: string) => void;
+  setCouponEndsAt: (value: string) => void;
+  setCouponProductIds: (value: string) => void;
+  setCouponOncePerCustomer: (value: boolean) => void;
+  setCouponBlockSamePhone: (value: boolean) => void;
   onSave: () => void;
   onCancelEdit: () => void;
   onEdit: (coupon: Coupon) => void;
@@ -87,6 +115,67 @@ export function CouponsView({
             {editing ? "Salvar" : "Inserir"}
           </button>
         </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <input
+            value={couponMaxUsesPerDay}
+            onChange={(event) => setCouponMaxUsesPerDay(event.target.value.replace(/\D/g, ""))}
+            placeholder="Usos max. por dia"
+            className="rounded-xl px-3 py-3 text-sm outline-none"
+            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
+          />
+          <input
+            value={couponMaxUsesTotal}
+            onChange={(event) => setCouponMaxUsesTotal(event.target.value.replace(/\D/g, ""))}
+            placeholder="Usos max. total"
+            className="rounded-xl px-3 py-3 text-sm outline-none"
+            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
+          />
+          <input
+            type="date"
+            value={couponStartsAt}
+            onChange={(event) => setCouponStartsAt(event.target.value)}
+            className="rounded-xl px-3 py-3 text-sm outline-none"
+            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
+          />
+          <input
+            type="date"
+            value={couponEndsAt}
+            onChange={(event) => setCouponEndsAt(event.target.value)}
+            className="rounded-xl px-3 py-3 text-sm outline-none"
+            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
+          />
+        </div>
+        <input
+          value={couponProductIds}
+          onChange={(event) => setCouponProductIds(event.target.value)}
+          placeholder="Produtos participantes: burger, combo2, coca-zero"
+          className="mt-2 w-full rounded-xl px-3 py-3 text-sm outline-none"
+          style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
+        />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <label
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black uppercase"
+            style={{ border: `1px solid ${VERDE}14`, color: VERDE }}
+          >
+            <input
+              type="checkbox"
+              checked={couponOncePerCustomer}
+              onChange={(event) => setCouponOncePerCustomer(event.target.checked)}
+            />
+            Uma vez por cliente
+          </label>
+          <label
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black uppercase"
+            style={{ border: `1px solid ${VERDE}14`, color: VERDE }}
+          >
+            <input
+              type="checkbox"
+              checked={couponBlockSamePhone}
+              onChange={(event) => setCouponBlockSamePhone(event.target.checked)}
+            />
+            Bloquear mesmo telefone
+          </label>
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <p className="text-[11px]" style={{ color: VERDE, opacity: 0.55 }}>
             Cupons desativados não aparecem no checkout.
@@ -135,6 +224,17 @@ export function CouponsView({
                     style={{ color: VERDE, opacity: 0.58 }}
                   >
                     {coupon.label}
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold" style={{ color: VERDE, opacity: 0.62 }}>
+                    {[
+                      coupon.oncePerCustomer ? "1x por cliente" : "",
+                      coupon.blockSamePhone ? "bloqueia telefone repetido" : "",
+                      coupon.maxUsesPerDay ? `${coupon.maxUsesPerDay}/dia` : "",
+                      coupon.maxUsesTotal ? `${coupon.maxUsesTotal} total` : "",
+                      coupon.startsAt ? `inicio ${coupon.startsAt}` : "",
+                      coupon.endsAt ? `fim ${coupon.endsAt}` : "",
+                      coupon.productIds?.length ? `produtos: ${coupon.productIds.join(", ")}` : "",
+                    ].filter(Boolean).join(" · ") || "Sem limites adicionais"}
                   </p>
                 </div>
                 <span

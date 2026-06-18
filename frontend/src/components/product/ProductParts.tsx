@@ -97,10 +97,10 @@ function productAllergens(item: MenuItem) {
 function DetailInfo({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="rounded-2xl bg-white p-3" style={{ border: `1px solid ${VERDE}12` }}>
-      <p className="text-[10px] font-black uppercase tracking-widest text-black/35">
+      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${VERDE}59` }}>
         {title}
       </p>
-      <p className="mt-1 text-xs font-bold leading-relaxed text-black/68">{copy}</p>
+      <p className="mt-1 text-xs font-bold leading-relaxed" style={{ color: `${VERDE}AD` }}>{copy}</p>
     </div>
   );
 }
@@ -138,7 +138,7 @@ export function BurgerBuilder({
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/35">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: `${VERDE}59` }}>
             Personalize o burger
           </p>
           <p className="mt-1 text-sm font-black uppercase" style={{ color: VERDE }}>
@@ -267,7 +267,7 @@ export function MenuCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-black/35">
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${VERDE}59` }}>
               {item.eyebrow}
             </p>
             <h2
@@ -286,7 +286,7 @@ export function MenuCard({
           <div className="shrink-0 text-right">
             {item.originalPrice && !builder && (
               <div className="mb-1 flex items-center justify-end gap-1.5">
-                <span className="text-[10px] font-bold text-black/35 line-through">
+                <span className="text-[10px] font-bold line-through" style={{ color: `${VERDE}59` }}>
                   {fmt(item.originalPrice)}
                 </span>
                 <span
@@ -310,7 +310,7 @@ export function MenuCard({
           </div>
         </div>
 
-        <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5 text-black/58">
+        <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5" style={{ color: `${VERDE}94` }}>
           {item.desc}
         </p>
 
@@ -412,7 +412,7 @@ export function ProductDetailModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-[rgba(101,0,31,0.45)] p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -447,7 +447,7 @@ export function ProductDetailModal({
           </button>
         </div>
         <div className="p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-black/35">
+          <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${VERDE}59` }}>
             {item.eyebrow}
           </p>
           <div className="mt-1 flex items-start justify-between gap-4">
@@ -475,7 +475,7 @@ export function ProductDetailModal({
               {fmt(item.price)}
             </p>
           </div>
-          <p className="mt-3 text-sm leading-6 text-black/68">{productStory(item)}</p>
+          <p className="mt-3 text-sm leading-6" style={{ color: `${VERDE}AD` }}>{productStory(item)}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {item.tags.map((tag) => (
               <span

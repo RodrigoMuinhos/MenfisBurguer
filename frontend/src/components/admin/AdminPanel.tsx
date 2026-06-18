@@ -87,6 +87,13 @@ export function AdminPanel({
   const [couponType, setCouponType] = useState<"percent" | "fixed_total">(
     "percent",
   );
+  const [couponMaxUsesPerDay, setCouponMaxUsesPerDay] = useState("");
+  const [couponMaxUsesTotal, setCouponMaxUsesTotal] = useState("");
+  const [couponStartsAt, setCouponStartsAt] = useState("");
+  const [couponEndsAt, setCouponEndsAt] = useState("");
+  const [couponProductIds, setCouponProductIds] = useState("");
+  const [couponOncePerCustomer, setCouponOncePerCustomer] = useState(true);
+  const [couponBlockSamePhone, setCouponBlockSamePhone] = useState(true);
   const [editingCouponCode, setEditingCouponCode] = useState("");
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(true);
   const [testModeEnabled, setTestModeEnabled] = useState(false);
@@ -463,6 +470,13 @@ export function AdminPanel({
   const resetCouponForm = () => {
     setCouponCode("");
     setCouponValue(couponType === "percent" ? "10" : "1");
+    setCouponMaxUsesPerDay("");
+    setCouponMaxUsesTotal("");
+    setCouponStartsAt("");
+    setCouponEndsAt("");
+    setCouponProductIds("");
+    setCouponOncePerCustomer(true);
+    setCouponBlockSamePhone(true);
     setEditingCouponCode("");
   };
 
@@ -476,6 +490,16 @@ export function AdminPanel({
       type: couponType,
       value,
       active: true,
+      maxUsesPerDay: Number(couponMaxUsesPerDay) > 0 ? Number(couponMaxUsesPerDay) : undefined,
+      maxUsesTotal: Number(couponMaxUsesTotal) > 0 ? Number(couponMaxUsesTotal) : undefined,
+      startsAt: couponStartsAt || undefined,
+      endsAt: couponEndsAt || undefined,
+      productIds: couponProductIds
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      oncePerCustomer: couponOncePerCustomer,
+      blockSamePhone: couponBlockSamePhone,
     };
     const nextCoupons = [
       coupon,
@@ -502,6 +526,13 @@ export function AdminPanel({
     setCouponCode(coupon.code);
     setCouponValue(String(coupon.value).replace(".", ","));
     setCouponType(coupon.type);
+    setCouponMaxUsesPerDay(coupon.maxUsesPerDay ? String(coupon.maxUsesPerDay) : "");
+    setCouponMaxUsesTotal(coupon.maxUsesTotal ? String(coupon.maxUsesTotal) : "");
+    setCouponStartsAt(coupon.startsAt ?? "");
+    setCouponEndsAt(coupon.endsAt ?? "");
+    setCouponProductIds((coupon.productIds ?? []).join(", "));
+    setCouponOncePerCustomer(coupon.oncePerCustomer !== false);
+    setCouponBlockSamePhone(coupon.blockSamePhone !== false);
   };
 
   const toggleCoupon = async (coupon: Coupon) => {
@@ -670,10 +701,24 @@ export function AdminPanel({
             couponCode={couponCode}
             couponValue={couponValue}
             couponType={couponType}
+            couponMaxUsesPerDay={couponMaxUsesPerDay}
+            couponMaxUsesTotal={couponMaxUsesTotal}
+            couponStartsAt={couponStartsAt}
+            couponEndsAt={couponEndsAt}
+            couponProductIds={couponProductIds}
+            couponOncePerCustomer={couponOncePerCustomer}
+            couponBlockSamePhone={couponBlockSamePhone}
             editingCouponCode={editingCouponCode}
             setCouponCode={setCouponCode}
             setCouponValue={setCouponValue}
             setCouponType={setCouponType}
+            setCouponMaxUsesPerDay={setCouponMaxUsesPerDay}
+            setCouponMaxUsesTotal={setCouponMaxUsesTotal}
+            setCouponStartsAt={setCouponStartsAt}
+            setCouponEndsAt={setCouponEndsAt}
+            setCouponProductIds={setCouponProductIds}
+            setCouponOncePerCustomer={setCouponOncePerCustomer}
+            setCouponBlockSamePhone={setCouponBlockSamePhone}
             onSave={saveCoupon}
             onCancelEdit={resetCouponForm}
             onEdit={editCoupon}

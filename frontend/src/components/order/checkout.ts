@@ -31,6 +31,13 @@ export type Coupon = {
   type: "percent" | "fixed_total";
   value: number;
   active: boolean;
+  maxUsesPerDay?: number;
+  maxUsesTotal?: number;
+  startsAt?: string;
+  endsAt?: string;
+  productIds?: string[];
+  oncePerCustomer?: boolean;
+  blockSamePhone?: boolean;
 };
 
 export const REMOVE_OPTIONS = [
@@ -93,7 +100,20 @@ export const ORDER_RUNTIME_MODE: OrderRuntimeMode =
 export const DEFAULT_DELIVERY_TYPE: DeliveryType = "delivery";
 export const ALLOWED_DELIVERY_TYPES: DeliveryType[] = ["delivery", "retirada"];
 
-export const DEFAULT_COUPONS: Coupon[] = [];
+export const DEFAULT_COUPONS: Coupon[] = [
+  {
+    code: "MFB10",
+    label: "10% de desconto na primeira compra",
+    type: "percent",
+    value: 10,
+    active: true,
+    maxUsesPerDay: 0,
+    maxUsesTotal: 0,
+    productIds: [],
+    oncePerCustomer: true,
+    blockSamePhone: true,
+  },
+];
 export const BUSINESS_HOURS_LABEL = "Funcionamento: terça a domingo, das 18:00 às 22:00.";
 export const BEFORE_OPEN_MESSAGE =
   "Oi! Já recebemos sua mensagem.\nNosso atendimento começa às 18:00.\nAssim que abrirmos, vamos te atender com todo carinho. 🍔";
@@ -329,6 +349,17 @@ function normalizeCoupon(row: unknown): Coupon | null {
     type,
     value,
     active: data.active !== false,
+    maxUsesPerDay: Number(data.maxUsesPerDay ?? data.max_uses_per_day ?? 0) || undefined,
+    maxUsesTotal: Number(data.maxUsesTotal ?? data.max_uses_total ?? 0) || undefined,
+    startsAt: typeof data.startsAt === "string" ? data.startsAt : typeof data.starts_at === "string" ? data.starts_at : undefined,
+    endsAt: typeof data.endsAt === "string" ? data.endsAt : typeof data.ends_at === "string" ? data.ends_at : undefined,
+    productIds: Array.isArray(data.productIds)
+      ? data.productIds.map(String)
+      : Array.isArray(data.product_ids)
+        ? data.product_ids.map(String)
+        : undefined,
+    oncePerCustomer: data.oncePerCustomer === true || data.once_per_customer === true,
+    blockSamePhone: data.blockSamePhone === true || data.block_same_phone === true,
   };
 }
 

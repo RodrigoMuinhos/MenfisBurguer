@@ -20,9 +20,29 @@ export type Coupon = {
   type: "percent" | "fixed_total";
   value: number;
   active: boolean;
+  maxUsesPerDay?: number;
+  maxUsesTotal?: number;
+  startsAt?: string;
+  endsAt?: string;
+  productIds?: string[];
+  oncePerCustomer?: boolean;
+  blockSamePhone?: boolean;
 };
 
-export const DEFAULT_COUPONS: Coupon[] = [];
+export const DEFAULT_COUPONS: Coupon[] = [
+  {
+    code: "MFB10",
+    label: "10% de desconto na primeira compra",
+    type: "percent",
+    value: 10,
+    active: true,
+    maxUsesPerDay: 0,
+    maxUsesTotal: 0,
+    productIds: [],
+    oncePerCustomer: true,
+    blockSamePhone: true,
+  },
+];
 
 export type SupportTicket = {
   id: string;
