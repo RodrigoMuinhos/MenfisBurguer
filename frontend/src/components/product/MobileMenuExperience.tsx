@@ -1,13 +1,15 @@
 import Image from "next/image";
-import { useState, type ElementType } from "react";
+import { useRef, useState, type ElementType } from "react";
 import {
   Beef,
   Bell,
   ChevronRight,
+  ClipboardList,
   CupSoda,
   Drumstick,
   Flame,
   Gift,
+  Home,
   Menu,
   Package,
   Plus,
@@ -16,6 +18,8 @@ import {
   Star,
   Timer,
   Utensils,
+  UserRound,
+  X,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA, SURFACE, VERDE } from "@/utils/theme";
@@ -123,7 +127,10 @@ export function MobileMenuExperience({
 }) {
   const [category, setCategory] = useState<MobileCategory>("promo");
   const [query, setQuery] = useState("");
+  const [panel, setPanel] = useState<"reviews" | "club" | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const rewardCount = memberProfile?.orders ? memberProfile.orders % 10 : 0;
+  const rewardRemaining = Math.max(0, 10 - rewardCount);
   const normalizedQuery = query.trim().toLowerCase();
   const sortedItems = [...items].sort((a, b) => saleRank(a) - saleRank(b));
   const bestSellers = BEST_SELLER_IDS
@@ -197,12 +204,17 @@ export function MobileMenuExperience({
           </button>
         </div>
 
-        <div className="mt-3 grid grid-cols-3 rounded-[20px] bg-white text-center shadow-sm">
-          <CompactInfo icon={Star} title="4,9" subtitle="avaliacao" />
-          <CompactInfo icon={Timer} title="25-35 min" subtitle="entrega" />
+        <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[20px] bg-white text-center shadow-sm">
+          <CompactInfo
+            icon={Star}
+            title="4,9"
+            subtitle="avaliacao"
+            onClick={() => setPanel("reviews")}
+          />
+          <CompactInfo icon={Timer} title="30-45 min" subtitle="entrega" />
           <button
             type="button"
-            onClick={onOpenMember}
+            onClick={() => setPanel("club")}
             className="flex items-center justify-center gap-2 border-l px-2 py-3 text-left"
             style={{ borderColor: `${VERDE}12` }}
           >
@@ -225,6 +237,7 @@ export function MobileMenuExperience({
         >
           <Search size={18} strokeWidth={2.4} style={{ opacity: 0.7 }} />
           <input
+            ref={searchRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Buscar"
@@ -266,7 +279,7 @@ export function MobileMenuExperience({
         })}
       </nav>
 
-      <main className="px-4 pb-32">
+      <main className="px-4 pb-44">
         <section className="pt-2">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black uppercase tracking-wide">
@@ -313,7 +326,7 @@ export function MobileMenuExperience({
       </main>
 
       {cartCount > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-50 p-4">
+        <div className="fixed inset-x-0 bottom-[72px] z-50 p-4">
           <button
             type="button"
             onClick={goToCart}
@@ -350,6 +363,25 @@ export function MobileMenuExperience({
           </button>
         </div>
       )}
+
+      <MobileBottomNav
+        cartCount={cartCount}
+        onHome={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        onSearch={() => searchRef.current?.focus()}
+        onOrders={goToCart}
+        onClub={() => setPanel("club")}
+        onProfile={onOpenMember}
+      />
+
+      {panel === "reviews" && <ReviewsPanel onClose={() => setPanel(null)} />}
+      {panel === "club" && (
+        <ClubPanel
+          rewardCount={rewardCount}
+          rewardRemaining={rewardRemaining}
+          onClose={() => setPanel(null)}
+          onOpenProfile={onOpenMember}
+        />
+      )}
     </div>
   );
 }
@@ -358,14 +390,19 @@ function CompactInfo({
   icon: Icon,
   title,
   subtitle,
+  onClick,
 }: {
   icon: ElementType;
   title: string;
   subtitle: string;
+  onClick?: () => void;
 }) {
+  const Component = onClick ? "button" : "div";
   return (
-    <div
-      className="flex items-center justify-center gap-2 border-r px-2 py-3"
+    <Component
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className="flex items-center justify-center gap-2 border-r px-2 py-3 text-left"
       style={{ borderColor: `${VERDE}12` }}
     >
       <Icon size={21} strokeWidth={2.4} style={{ color: VERDE }} />
@@ -373,7 +410,218 @@ function CompactInfo({
         <span className="block text-sm font-black leading-tight">{title}</span>
         <span className="block text-[11px] font-bold opacity-55">{subtitle}</span>
       </span>
+    </Component>
+  );
+}
+
+function MobileBottomNav({
+  cartCount,
+  onHome,
+  onSearch,
+  onOrders,
+  onClub,
+  onProfile,
+}: {
+  cartCount: number;
+  onHome: () => void;
+  onSearch: () => void;
+  onOrders: () => void;
+  onClub: () => void;
+  onProfile: () => void;
+}) {
+  const items = [
+    { label: "Inicio", icon: Home, onClick: onHome, active: true },
+    { label: "Buscar", icon: Search, onClick: onSearch },
+    { label: "Pedidos", icon: ClipboardList, onClick: onOrders, badge: cartCount },
+    { label: "Clube", icon: Gift, onClick: onClub },
+    { label: "Perfil", icon: UserRound, onClick: onProfile },
+  ];
+  return (
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-white px-2 pb-2 pt-2 shadow-[0_-12px_30px_rgba(101,0,31,0.08)]"
+      style={{ borderColor: `${VERDE}12` }}
+    >
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.label}
+            type="button"
+            onClick={item.onClick}
+            className="relative flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-black"
+            style={{ color: item.active ? VERDE : `${VERDE}99` }}
+          >
+            <span className="relative">
+              <Icon size={21} strokeWidth={2.4} />
+              {Boolean(item.badge) && (
+                <span
+                  className="absolute -right-3 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black"
+                  style={{ background: ROSA, color: VERDE }}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </span>
+            {item.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function PanelShell({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[80] bg-black/35" onClick={onClose}>
+      <section
+        className="absolute inset-x-0 bottom-0 max-h-[86dvh] overflow-auto rounded-t-[28px] bg-white p-5"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-black uppercase tracking-wide">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full"
+            style={{ background: `${ROSA}70`, color: VERDE }}
+            aria-label="Fechar"
+          >
+            <X size={20} strokeWidth={2.5} />
+          </button>
+        </div>
+        {children}
+      </section>
     </div>
+  );
+}
+
+function ReviewsPanel({ onClose }: { onClose: () => void }) {
+  const reviews = [
+    {
+      name: "Artur G.",
+      text: "Burger chegou quente, molho muito bom e entrega dentro do prazo.",
+    },
+    {
+      name: "Mariane C.",
+      text: "Super Combo vale a pena para dividir. Batata crocante e bebida gelada.",
+    },
+    {
+      name: "Paulo M.",
+      text: "Double Menfi's veio bem servido. Carne suculenta e cheddar no ponto.",
+    },
+  ];
+  return (
+    <PanelShell title="Avaliacoes Menfi's" onClose={onClose}>
+      <div className="mt-4 rounded-2xl p-4" style={{ background: `${ROSA}55` }}>
+        <p
+          style={{
+            fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+            fontSize: "3.2rem",
+            lineHeight: 0.9,
+          }}
+        >
+          4,9
+        </p>
+        <p className="mt-1 text-sm font-black uppercase tracking-wide">
+          Baseado em 86 avaliacoes
+        </p>
+        <p className="mt-2 text-sm font-semibold opacity-70">
+          Clientes destacam entrega quente, combos bem servidos e molho da casa.
+        </p>
+      </div>
+      <div className="mt-4 grid gap-3">
+        {reviews.map((review) => (
+          <article
+            key={review.name}
+            className="rounded-2xl bg-white p-4"
+            style={{ border: `1px solid ${VERDE}12` }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-black">{review.name}</p>
+              <p className="text-sm font-black">★★★★★</p>
+            </div>
+            <p className="mt-2 text-sm font-semibold leading-relaxed opacity-70">
+              {review.text}
+            </p>
+          </article>
+        ))}
+      </div>
+    </PanelShell>
+  );
+}
+
+function ClubPanel({
+  rewardCount,
+  rewardRemaining,
+  onClose,
+  onOpenProfile,
+}: {
+  rewardCount: number;
+  rewardRemaining: number;
+  onClose: () => void;
+  onOpenProfile: () => void;
+}) {
+  const progress = Math.min(100, (rewardCount / 10) * 100);
+  return (
+    <PanelShell title="Clube Menfi's" onClose={onClose}>
+      <div className="mt-4 rounded-2xl p-4" style={{ background: `${ROSA}55` }}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black uppercase tracking-wide">
+              {rewardCount}/10 pedidos
+            </p>
+            <p className="mt-1 text-sm font-semibold opacity-70">
+              {rewardRemaining > 0
+                ? `Faltam ${rewardRemaining} para ganhar um beneficio.`
+                : "Voce ja pode resgatar seu beneficio."}
+            </p>
+          </div>
+          <Gift size={34} strokeWidth={2.2} />
+        </div>
+        <div className="mt-4 h-3 overflow-hidden rounded-full bg-white">
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${progress}%`, background: VERDE }}
+          />
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3">
+        {["1 burger gratis", "Frete gratis", "Molho extra", "Cupom exclusivo"].map((benefit) => (
+          <div
+            key={benefit}
+            className="flex items-center gap-3 rounded-2xl p-4"
+            style={{ border: `1px solid ${VERDE}12` }}
+          >
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-full"
+              style={{ background: `${ROSA}70` }}
+            >
+              <Gift size={19} strokeWidth={2.4} />
+            </span>
+            <p className="font-black">{benefit}</p>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          onClose();
+          onOpenProfile();
+        }}
+        className="mt-5 flex h-13 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide"
+        style={{ background: VERDE, color: ROSA }}
+      >
+        Ver minha conta
+      </button>
+    </PanelShell>
   );
 }
 
