@@ -58,7 +58,7 @@ export function useCartCheckout({
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("bag");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [payment, setPayment] = useState<PaymentMethod>(
-    kioskMode || counterServiceMode ? "pix" : "whatsapp",
+    kioskMode || counterServiceMode ? "pix" : "pix",
   );
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -159,7 +159,14 @@ export function useCartCheckout({
   useEffect(() => {
     if (kioskMode || counterServiceMode) return;
     setDelivery("delivery");
-    setPayment("whatsapp");
+    setPayment((current) =>
+      current === "pix" ||
+      current === "cartao" ||
+      current === "pagar_na_entrega" ||
+      current === "presencial"
+        ? current
+        : "pix",
+    );
   }, [counterServiceMode, kioskMode]);
 
   useEffect(() => {
@@ -167,6 +174,16 @@ export function useCartCheckout({
     setDelivery("retirada");
     setPayment("presencial");
   }, [counterServiceMode]);
+
+  useEffect(() => {
+    if (kioskMode || counterServiceMode) return;
+    if (delivery === "retirada" && payment === "pagar_na_entrega") {
+      setPayment("presencial");
+    }
+    if (delivery === "delivery" && payment === "presencial") {
+      setPayment("pix");
+    }
+  }, [counterServiceMode, delivery, kioskMode, payment]);
 
   useEffect(() => {
     if (kioskMode || !API_URL) return;
@@ -177,7 +194,7 @@ export function useCartCheckout({
         setPayOnDeliveryEnabled(enabled);
         if (!enabled) {
           setPayment((current) =>
-            current === "pagar_na_entrega" ? "whatsapp" : current,
+            current === "pagar_na_entrega" ? "pix" : current,
           );
         }
       })

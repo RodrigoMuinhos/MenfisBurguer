@@ -3,9 +3,9 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   CreditCard,
   LockKeyhole,
-  MessageCircle,
   QrCode,
   Store,
+  Truck,
 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -28,6 +28,45 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function PaymentHint({
+  title,
+  copy,
+  total,
+}: {
+  title: string;
+  copy: string;
+  total: number;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-4"
+      style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-black uppercase tracking-wide">
+            {title}
+          </p>
+          <p className="mt-1 text-xs font-bold leading-relaxed opacity-65">
+            {copy}
+          </p>
+        </div>
+        <p
+          className="shrink-0 text-right"
+          style={{
+            color: VERDE,
+            fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+            fontSize: "1.55rem",
+            lineHeight: 1,
+          }}
+        >
+          {fmt(total)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function PaymentStepSection({
   checkoutStep,
   kioskMode,
@@ -45,6 +84,8 @@ export function PaymentStepSection({
   deliveryValid,
   inputStyle,
   total,
+  delivery,
+  payOnDeliveryEnabled,
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
@@ -62,6 +103,8 @@ export function PaymentStepSection({
   deliveryValid: boolean;
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
+  delivery: "retirada" | "delivery";
+  payOnDeliveryEnabled: boolean;
 }) {
   return (
     <>
@@ -190,11 +233,15 @@ export function PaymentStepSection({
                                 ? "Pagamento presencial no balcão"
                                 : kioskMode
                                 ? "Escolha a forma de pagamento"
-                                : payment === "pagar_na_entrega"
-                                  ? "Pagamento no recebimento"
-                                  : payment === "whatsapp"
-                                    ? "Pagamento pelo atendimento"
-                                  : "Pagamento seguro"}
+                                : payment === "pix"
+                                  ? "Pix Mercado Pago"
+                                  : payment === "cartao"
+                                    ? "Cartão online Mercado Pago"
+                                    : payment === "pagar_na_entrega"
+                                      ? "Cartão na entrega"
+                                      : payment === "presencial"
+                                        ? "Pagar no balcão"
+                                        : "Pagamento seguro"}
                             </p>
                             <p
                               className="text-[11px] leading-relaxed mt-1"
@@ -205,10 +252,10 @@ export function PaymentStepSection({
                                 : kioskMode
                                 ? "Se for PIX, confira os dados abaixo. Se for cartão, aguarde o atendente levar a maquininha."
                                 : payment === "pagar_na_entrega"
-                                  ? "Seu pedido será preparado e você pagará quando receber."
-                                  : payment === "whatsapp"
-                                    ? "A equipe chamará no WhatsApp para receber e liberar seu pedido para a cozinha."
-                                  : "Você finaliza pelo Mercado Pago e acompanha a confirmação do pedido."}
+                                  ? "O pedido será preparado e o pagamento será feito na maquininha da entrega."
+                                  : payment === "presencial"
+                                    ? "O pedido será enviado para a loja e o pagamento será feito no balcão."
+                                    : "Você finaliza pelo Mercado Pago. Assim que aprovar, o pedido entra na cozinha."}
                             </p>
                           </div>
                         </div>
@@ -240,28 +287,53 @@ export function PaymentStepSection({
                       )}
                       {!kioskMode && !counterServiceMode && (
                         <div className="grid gap-3">
-                          <div className="grid gap-3 md:grid-cols-1">
+                          <div className="grid gap-3 sm:grid-cols-2">
                             {(
                               [
                                 {
-                                  id: "whatsapp" as PaymentMethod,
-                                  label: "Pagamento WhatsApp",
-                                  copy: "Atendimento confirma a forma de pagamento",
-                                  Icon: MessageCircle,
+                                  id: "pix" as PaymentMethod,
+                                  label: "Pix online",
+                                  copy: "QR Code ou Mercado Pago",
+                                  Icon: QrCode,
+                                  show: true,
+                                },
+                                {
+                                  id: "cartao" as PaymentMethod,
+                                  label: "Cartão online",
+                                  copy: "Crédito ou débito pelo Mercado Pago",
+                                  Icon: CreditCard,
+                                  show: true,
+                                },
+                                {
+                                  id: "pagar_na_entrega" as PaymentMethod,
+                                  label: "Cartão na entrega",
+                                  copy: "Maquininha com o entregador",
+                                  Icon: Truck,
+                                  show: delivery === "delivery" && payOnDeliveryEnabled,
+                                },
+                                {
+                                  id: "presencial" as PaymentMethod,
+                                  label: "Pagar no balcão",
+                                  copy: "Para retirada ou consumo local",
+                                  Icon: Store,
+                                  show: delivery === "retirada",
                                 },
                               ] as {
                                 id: PaymentMethod;
                                 label: string;
                                 copy: string;
                                 Icon: React.ElementType;
+                                show: boolean;
                               }[]
-                            ).map(({ id, label, copy, Icon }) => {
+                            )
+                              .filter((option) => option.show)
+                              .map(({ id, label, copy, Icon }) => {
                               const active = payment === id;
                               return (
                                 <button
                                   key={id}
                                   onClick={() => setPayment(id)}
-                                  className="mx-auto flex min-h-[104px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-4 py-5 text-sm font-black uppercase tracking-wider md:max-w-md"
+                                  className="flex min-h-[104px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-4 py-5 text-sm font-black uppercase tracking-wider"
                                   style={{
                                     background: active ? VERDE : "#fff",
                                     color: active ? ROSA : VERDE,
@@ -283,6 +355,34 @@ export function PaymentStepSection({
                               );
                             })}
                           </div>
+                          {payment === "pix" && (
+                            <PaymentHint
+                              title="Pix online"
+                              copy="Ao finalizar, abrimos o Mercado Pago. Se o QR Code Pix for retornado, ele aparece no acompanhamento. Enquanto não confirmar, mostraremos: Estamos aguardando confirmação do pagamento."
+                              total={total}
+                            />
+                          )}
+                          {payment === "cartao" && (
+                            <PaymentHint
+                              title="Cartão online"
+                              copy="O cliente paga no ambiente seguro do Mercado Pago. Pagamento aprovado libera o pedido para a cozinha automaticamente."
+                              total={total}
+                            />
+                          )}
+                          {payment === "pagar_na_entrega" && (
+                            <PaymentHint
+                              title="Cartão na entrega"
+                              copy="Pagamento na entrega selecionado. Tenha o cartão disponível para o entregador."
+                              total={total}
+                            />
+                          )}
+                          {payment === "presencial" && (
+                            <PaymentHint
+                              title="Pagar no balcão"
+                              copy="Use esta opção para retirada/local. O pedido segue para a loja e o pagamento fica marcado para o balcão."
+                              total={total}
+                            />
+                          )}
                         </div>
                       )}
                       {kioskMode && (

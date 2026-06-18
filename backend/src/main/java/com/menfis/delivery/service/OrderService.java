@@ -88,8 +88,9 @@ public class OrderService {
     }
     boolean payOnDelivery = request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA;
     boolean payByWhatsapp = request.paymentMethod() == PaymentMethod.WHATSAPP;
+    boolean payAtCounter = request.paymentMethod() == PaymentMethod.PRESENCIAL;
     boolean paidKiosk = channel == OrderChannel.KIOSK && !kioskLocalCustomer;
-    OrderStatus status = payOnDelivery || paidKiosk ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
+    OrderStatus status = payOnDelivery || paidKiosk || payAtCounter ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
     if (channel == OrderChannel.KIOSK
         && (isBlank(customerName) || normalizedPhone(request.customerPhone()).length() < 10)) {
       throw new IllegalArgumentException("kiosk_customer_required");
@@ -127,7 +128,7 @@ public class OrderService {
       request.paymentMethod().name(),
       paidKiosk
         ? "approved"
-        : payOnDelivery ? "awaiting_delivery" : payByWhatsapp ? "awaiting_whatsapp" : "pending",
+        : payAtCounter ? "awaiting_counter" : payOnDelivery ? "awaiting_delivery" : payByWhatsapp ? "awaiting_whatsapp" : "pending",
       System.currentTimeMillis(),
       status.name(),
       cleanIdempotency(request.idempotencyKey()),

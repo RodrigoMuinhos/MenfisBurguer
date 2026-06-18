@@ -264,6 +264,26 @@ export async function submitCheckoutOrder({
       return;
     }
 
+    if (payment === "presencial") {
+      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, buildLocalCreatedOrder({
+        createdOrder,
+        cart,
+        removedByItemId,
+        effectiveDelivery,
+        customerName,
+        phone,
+        address,
+        total,
+        overrides: {
+          channel: effectiveDelivery === "retirada" ? "KIOSK" : "DELIVERY",
+          paymentMethod: "presencial",
+          paymentStatus: "awaiting_counter",
+          status: "PAID",
+        },
+      }));
+      return;
+    }
+
     if (payment === "pagar_na_entrega") {
       await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, buildLocalCreatedOrder({
         createdOrder,
