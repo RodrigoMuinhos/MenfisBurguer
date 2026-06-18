@@ -151,6 +151,12 @@ export async function submitCheckoutOrder({
     kioskMode || counterServiceMode ? "retirada" : delivery,
   );
   const effectiveChannel = kioskMode || counterServiceMode ? "KIOSK" : "DELIVERY";
+  const backendPaymentMethod =
+    payment === "mercadopago"
+      ? "MERCADO_PAGO"
+      : payment === "pix_qrcode"
+        ? "PIX"
+        : payment.toUpperCase();
   const orderFingerprint = [
     phone.replace(/\D/g, ""),
     address.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim(),
@@ -185,7 +191,7 @@ export async function submitCheckoutOrder({
         })),
         channel: effectiveChannel,
         deliveryType: effectiveDelivery.toUpperCase(),
-        paymentMethod: payment.toUpperCase(),
+        paymentMethod: backendPaymentMethod,
         customerName: customerName.trim() || undefined,
         customerPhone: phone || undefined,
         customerAddress: address,
@@ -334,7 +340,7 @@ export async function submitCheckoutOrder({
 
     const data = await paymentRes.json().catch(() => ({}));
     if (
-      payment === "pix" &&
+      (payment === "pix" || payment === "pix_qrcode") &&
       (data?.qrCode || data?.qrCodeBase64 || data?.ticketUrl)
     ) {
       await onPlaceOrder(
@@ -354,7 +360,7 @@ export async function submitCheckoutOrder({
           overrides: {
             channel: "DELIVERY",
             paymentProvider: "mercado_pago",
-            paymentMethod: "pix",
+            paymentMethod: payment === "pix_qrcode" ? "pix_qrcode" : "pix",
             paymentStatus: String(
               data.status ?? createdOrder.paymentStatus ?? "action_required",
             ),

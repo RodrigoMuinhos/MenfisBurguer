@@ -15,6 +15,8 @@ type DbOrderRow = {
   customer_address: string | null;
   subtotal: string | number | null;
   delivery_fee: string | number | null;
+  coupon_code: string | null;
+  discount_total: string | number | null;
   total: string | number;
   payment_provider: string | null;
   payment_method: "pix" | "cartao" | null;
@@ -39,6 +41,8 @@ function mapOrder(row: DbOrderRow) {
     customerAddress: row.customer_address ?? undefined,
     subtotal: row.subtotal == null ? undefined : Number(row.subtotal),
     deliveryFee: row.delivery_fee == null ? undefined : Number(row.delivery_fee),
+    couponCode: row.coupon_code ?? undefined,
+    discountTotal: row.discount_total == null ? undefined : Number(row.discount_total),
     total: Number(row.total),
     paymentProvider: row.payment_provider ?? undefined,
     paymentMethod: row.payment_method ?? undefined,
@@ -73,6 +77,10 @@ export async function GET() {
         customer_name,
         customer_phone,
         customer_address,
+        subtotal,
+        delivery_fee,
+        coupon_code,
+        discount_total,
         total,
         payment_provider,
         payment_method,
@@ -113,6 +121,11 @@ export async function POST(request: Request) {
   const deliveryFee = deliveryType === "delivery" && subtotal > 0
     ? Math.max(Number(body.deliveryFee ?? 0), 7.1)
     : 0;
+  const couponCode =
+    typeof body.couponCode === "string" && body.couponCode.trim()
+      ? body.couponCode.trim()
+      : null;
+  const discountTotal = Math.max(0, Number(body.couponDiscount ?? body.discountTotal ?? 0));
   const paymentProvider =
     typeof body.paymentProvider === "string" && body.paymentProvider.trim()
       ? body.paymentProvider.trim()
@@ -153,6 +166,8 @@ export async function POST(request: Request) {
         customer_address,
         subtotal,
         delivery_fee,
+        coupon_code,
+        discount_total,
         total,
         payment_provider,
         payment_method,
@@ -180,6 +195,8 @@ export async function POST(request: Request) {
         $13,
         $14,
         $15,
+        $16,
+        $17,
         'PAID',
         now()
       from next_number
@@ -195,6 +212,8 @@ export async function POST(request: Request) {
         customer_address,
         subtotal,
         delivery_fee,
+        coupon_code,
+        discount_total,
         total,
         payment_provider,
         payment_method,
@@ -213,6 +232,8 @@ export async function POST(request: Request) {
       String(body.customerAddress ?? "") || null,
       subtotal,
       deliveryFee,
+      couponCode,
+      discountTotal,
       total,
       paymentProvider,
       paymentMethod,

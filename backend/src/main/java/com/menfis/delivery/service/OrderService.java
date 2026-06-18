@@ -173,8 +173,8 @@ public class OrderService {
     return jdbc.queryForObject(
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
-        subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
-        payment_id, status, paid_at, confirmed_at
+        subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
+        payment_id, timestamp, created_at, status, paid_at, confirmed_at
       from orders where id = ?
       """,
       this::mapOrder,
@@ -186,8 +186,8 @@ public class OrderService {
     return jdbc.query(
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
-        subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
-        payment_id, status, paid_at, confirmed_at
+        subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
+        payment_id, timestamp, created_at, status, paid_at, confirmed_at
       from orders
       where test_mode = ?
       order by created_at desc
@@ -218,9 +218,20 @@ public class OrderService {
   }
 
   @Transactional
-  public OrderResponse updateItems(String id, List<Map<String, Object>> rawItems, BigDecimal requestedDeliveryFee) {
+  public OrderResponse updateItems(
+      String id,
+      List<Map<String, Object>> rawItems,
+      BigDecimal requestedDeliveryFee,
+      String customerName,
+      String customerPhone,
+      String customerAddress,
+      DeliveryType requestedDeliveryType,
+      String paymentMethod,
+      String paymentStatus,
+      String couponCode,
+      BigDecimal requestedDiscountTotal) {
     Map<String, Object> current = jdbc.queryForMap(
-      "select status, delivery_type, subtotal, delivery_fee, total, discount_total from orders where id = ?",
+      "select status, delivery_type, subtotal, delivery_fee, total, coupon_code, discount_total from orders where id = ?",
       id
     );
     OrderStatus status = OrderStatus.valueOf(String.valueOf(current.get("status")));
@@ -239,26 +250,67 @@ public class OrderService {
       .setScale(2, RoundingMode.HALF_UP);
     BigDecimal oldSubtotal = money(current.get("subtotal"));
     BigDecimal oldDeliveryFee = money(current.get("delivery_fee"));
+    String nextDeliveryType = requestedDeliveryType == null
+      ? String.valueOf(current.get("delivery_type"))
+      : requestedDeliveryType.name();
     BigDecimal requestedOrOldDeliveryFee = requestedDeliveryFee == null
       ? oldDeliveryFee
       : requestedDeliveryFee.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
-    BigDecimal deliveryFee = "DELIVERY".equals(String.valueOf(current.get("delivery_type")))
+    BigDecimal deliveryFee = "DELIVERY".equals(nextDeliveryType)
       && newSubtotal.compareTo(BigDecimal.ZERO) > 0
       ? requestedOrOldDeliveryFee.max(DELIVERY_FEE)
       : requestedOrOldDeliveryFee;
     BigDecimal oldTotal = money(current.get("total"));
-    BigDecimal discount = money(current.get("discount_total"));
-    BigDecimal serviceFee = oldTotal.add(discount).subtract(oldSubtotal).subtract(oldDeliveryFee).max(BigDecimal.ZERO);
+    BigDecimal oldDiscount = money(current.get("discount_total"));
+    BigDecimal discount = requestedDiscountTotal == null
+      ? oldDiscount
+      : requestedDiscountTotal.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal serviceFee = oldTotal.add(oldDiscount).subtract(oldSubtotal).subtract(oldDeliveryFee).max(BigDecimal.ZERO);
     BigDecimal newTotal = newSubtotal.add(deliveryFee).add(serviceFee).subtract(discount)
       .max(new BigDecimal("1.00"))
       .setScale(2, RoundingMode.HALF_UP);
+    String nextCouponCode = null;
+    if (discount.compareTo(BigDecimal.ZERO) > 0) {
+      String requestedCoupon = couponCode == null ? null : couponCode.trim();
+      String existingCoupon = current.get("coupon_code") == null
+        ? null
+        : String.valueOf(current.get("coupon_code")).trim();
+      String effectiveCoupon = requestedCoupon == null ? existingCoupon : requestedCoupon;
+      nextCouponCode = effectiveCoupon == null || effectiveCoupon.isBlank()
+        ? null
+        : effectiveCoupon.toUpperCase();
+    }
 
     jdbc.update(
-      "update orders set items = ?::jsonb, subtotal = ?, delivery_fee = ?, total = ?, updated_at = now() where id = ?",
+      """
+      update orders
+      set items = ?::jsonb,
+          subtotal = ?,
+          delivery_fee = ?,
+          total = ?,
+          customer_name = coalesce(?, customer_name),
+          customer_phone = coalesce(?, customer_phone),
+          customer_address = coalesce(?, customer_address),
+          delivery_type = ?,
+          payment_method = coalesce(?, payment_method),
+          payment_status = coalesce(?, payment_status),
+          coupon_code = ?,
+          discount_total = ?,
+          updated_at = now()
+      where id = ?
+      """,
       toJson(items),
       newSubtotal,
       deliveryFee,
       newTotal,
+      blankToNull(customerName),
+      blankToNull(customerPhone),
+      blankToNull(customerAddress),
+      nextDeliveryType,
+      blankToNull(paymentMethod),
+      blankToNull(paymentStatus),
+      nextCouponCode,
+      discount,
       id
     );
     jdbc.update("delete from order_items where order_id = ?", id);
@@ -288,8 +340,8 @@ public class OrderService {
     return jdbc.query(
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
-        subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
-        payment_id, status, paid_at, confirmed_at
+        subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
+        payment_id, timestamp, created_at, status, paid_at, confirmed_at
       from orders
       where delivery_type = 'DELIVERY'
         and status = 'OUT_FOR_DELIVERY'
@@ -306,8 +358,8 @@ public class OrderService {
     return jdbc.query(
       """
       select o.id, o.number, o.items, o.channel, o.delivery_type, o.customer_name, o.customer_phone, o.customer_address,
-        o.subtotal, o.delivery_fee, o.total, o.payment_provider, o.payment_method, o.payment_status,
-        o.payment_id, o.status, o.paid_at, o.confirmed_at
+        o.subtotal, o.delivery_fee, o.coupon_code, o.discount_total, o.total, o.payment_provider, o.payment_method, o.payment_status,
+        o.payment_id, o.timestamp, o.created_at, o.status, o.paid_at, o.confirmed_at
       from orders o
       join customers c on c.id = ?
       where o.test_mode = ?
@@ -552,15 +604,31 @@ public class OrderService {
       rs.getString("customer_address"),
       rs.getBigDecimal("subtotal"),
       rs.getBigDecimal("delivery_fee"),
+      rs.getString("coupon_code"),
+      rs.getBigDecimal("discount_total"),
       rs.getBigDecimal("total"),
       rs.getString("payment_provider"),
       rs.getString("payment_method"),
       rs.getString("payment_status"),
       rs.getString("payment_id"),
+      orderTimestamp(rs),
+      offset(rs, "created_at"),
       rs.getString("status"),
       offset(rs, "paid_at"),
       offset(rs, "confirmed_at")
     );
+  }
+
+  private String blankToNull(String value) {
+    if (value == null || value.isBlank()) return null;
+    return value.trim();
+  }
+
+  private long orderTimestamp(ResultSet rs) throws SQLException {
+    OffsetDateTime createdAt = offset(rs, "created_at");
+    if (createdAt != null) return createdAt.toInstant().toEpochMilli();
+    long timestamp = rs.getLong("timestamp");
+    return !rs.wasNull() && timestamp > 0 ? timestamp : System.currentTimeMillis();
   }
 
   private List<Map<String, Object>> readItems(String json) {

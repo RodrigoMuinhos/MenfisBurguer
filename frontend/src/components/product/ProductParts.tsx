@@ -35,11 +35,74 @@ function productStory(item: MenuItem) {
   if (name.includes("chicken")) {
     return `${item.desc} Frango crocante, queijo derretido, alface fresca e molho especial no pão macio, com molho extra para acompanhar cada mordida.`;
   }
+  if (name.includes("bacon")) {
+    const quantity = name.includes("double") || name.includes("super") ? "cada burger" : "o burger";
+    return `${item.desc} Aqui ${quantity} vem com 100g de carne suculenta, 40g de bacon crocante, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
+  }
   if (item.category === "burger" || item.category === "combo") {
     const quantity = name.includes("double") || name.includes("super") ? "cada burger" : "o burger";
     return `${item.desc} Aqui ${quantity} vem com 100g de carne suculenta, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
   }
   return item.desc;
+}
+
+function productIngredients(item: MenuItem) {
+  const name = item.name.toLowerCase();
+  if (name.includes("chicken")) {
+    return "Pão brioche, chicken 120g, queijo cheddar, alface, tomate e molho especial.";
+  }
+  if (name.includes("bacon")) {
+    return "Pão brioche, carne 100g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's.";
+  }
+  if (item.category === "combo") {
+    return "Burger Menfi's, batata 200g, bebida gelada e molho extra para acompanhar.";
+  }
+  if (item.category === "bebida") {
+    return "Bebida gelada selecionada.";
+  }
+  if (item.category === "extra") {
+    return item.desc;
+  }
+  return "Pão brioche, carne 100g, cheddar, cebola caramelizada, alface e molho Menfi's.";
+}
+
+function productWeight(item: MenuItem) {
+  const name = item.name.toLowerCase();
+  const isDouble = name.includes("double");
+  const isSuper = name.includes("super");
+  if (name.includes("chicken")) {
+    const chicken = isDouble || isSuper ? "2 filés de 120g" : "1 filé de 120g";
+    return item.category === "combo"
+      ? `${chicken}, batata 200g${isSuper ? " por pessoa" : ""}.`
+      : chicken;
+  }
+  if (name.includes("bacon")) {
+    const burger = isDouble || isSuper ? "2 carnes de 100g" : "1 carne de 100g";
+    return `${burger}, 40g de bacon${item.category === "combo" ? " e batata 200g" : ""}.`;
+  }
+  if (item.category === "combo") {
+    return `${isDouble || isSuper ? "2 carnes de 100g" : "1 carne de 100g"} e batata 200g.`;
+  }
+  if (item.category === "burger") {
+    return isDouble ? "2 carnes de 100g." : "1 carne de 100g.";
+  }
+  return "Porção conforme seleção.";
+}
+
+function productAllergens(item: MenuItem) {
+  if (item.category === "bebida") return "Consulte o rótulo da bebida.";
+  return "Contém glúten, leite e derivados. Pode conter ovo e soja.";
+}
+
+function DetailInfo({ title, copy }: { title: string; copy: string }) {
+  return (
+    <div className="rounded-2xl bg-white p-3" style={{ border: `1px solid ${VERDE}12` }}>
+      <p className="text-[10px] font-black uppercase tracking-widest text-black/35">
+        {title}
+      </p>
+      <p className="mt-1 text-xs font-bold leading-relaxed text-black/68">{copy}</p>
+    </div>
+  );
 }
 
 export function BurgerBuilder({
@@ -333,6 +396,17 @@ export function ProductDetailModal({
   onClose: () => void;
   onAdd: () => void;
 }) {
+  const baconExtra = EXTRA_OPTIONS.find((option) => option.id === "extra-bacon");
+  const cheddarExtra = EXTRA_OPTIONS.find((option) => option.id === "extra-cheddar");
+  const smartAddons = [
+    baconExtra
+      ? { label: "Adicionar bacon", price: baconExtra.price }
+      : { label: "Adicionar bacon", price: 4 },
+    cheddarExtra
+      ? { label: "Adicionar cheddar", price: cheddarExtra.price }
+      : { label: "Adicionar cheddar", price: 3 },
+    { label: "Transformar em combo", price: COMBO_UPGRADE_PRICE },
+  ];
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -413,6 +487,36 @@ export function ProductDetailModal({
               </span>
             ))}
           </div>
+          <div className="mt-5 grid gap-3">
+            <DetailInfo title="Ingredientes" copy={productIngredients(item)} />
+            <div className="grid grid-cols-2 gap-3">
+              <DetailInfo title="Peso" copy={productWeight(item)} />
+              <DetailInfo title="Alérgenos" copy={productAllergens(item)} />
+            </div>
+            <DetailInfo
+              title="Observações"
+              copy="Ponto da carne, molhos, bebidas, adicionais e quantidade são escolhidos antes de adicionar ao carrinho."
+            />
+          </div>
+          {(item.category === "burger" || item.category === "combo") && (
+            <div className="mt-5 rounded-2xl p-4" style={{ background: "#FFF0F5", color: VERDE }}>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
+                Adicionais inteligentes
+              </p>
+              <div className="mt-3 grid gap-2">
+                {smartAddons.map((addon) => (
+                  <div
+                    key={addon.label}
+                    className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm font-black"
+                    style={{ border: `1px solid ${VERDE}10` }}
+                  >
+                    <span>{addon.label}</span>
+                    <span style={{ color: ROSA }}>+ {fmt(addon.price)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="mt-5 rounded-2xl p-4" style={{ background: "#FFF8F2", color: VERDE }}>
             <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
               Opções disponíveis

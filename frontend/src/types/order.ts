@@ -14,6 +14,8 @@ export type OrderStatus =
 export type DeliveryType = "retirada" | "delivery";
 export type PaymentMethod =
   | "pix"
+  | "pix_qrcode"
+  | "mercadopago"
   | "cartao"
   | "credito"
   | "debito"
@@ -47,6 +49,7 @@ export interface Order {
   customerAddress?: string;
   subtotal?: number;
   deliveryFee?: number;
+  couponCode?: string;
   discountTotal?: number;
   total: number;
   paymentProvider?: string;
@@ -59,3 +62,15 @@ export interface Order {
   timestamp: number;
   status: OrderStatus;
 }
+
+export type OrderUpdateOptions = {
+  deliveryFee?: number;
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  deliveryType?: DeliveryType;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: string;
+  couponCode?: string;
+  discountTotal?: number;
+};

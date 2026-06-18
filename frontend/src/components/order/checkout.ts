@@ -3,6 +3,8 @@ import { CartItem } from "@/types/order";
 export type DeliveryType = "retirada" | "delivery";
 export type PaymentMethod =
   | "pix"
+  | "pix_qrcode"
+  | "mercadopago"
   | "cartao"
   | "presencial"
   | "pagar_na_entrega"
@@ -10,6 +12,18 @@ export type PaymentMethod =
 export type CheckoutStep = "bag" | "delivery" | "customer" | "payment" | "review";
 export type KioskKeyboardTarget = "name" | "phone" | "coupon" | null;
 export type OrderRuntimeMode = "counter" | "delivery";
+
+export type OperatingDay = {
+  day: number;
+  label: string;
+  open: boolean;
+  start: string;
+  end: string;
+};
+
+export type OperatingHoursConfig = {
+  days: OperatingDay[];
+};
 
 export type Coupon = {
   code: string;
@@ -86,6 +100,18 @@ export const BEFORE_OPEN_MESSAGE =
 export const AFTER_CLOSE_MESSAGE =
   "Oi! Hoje já encerramos nosso atendimento.\nFuncionamos de terça a domingo, das 18:00 às 22:00.\nAmanhã vai ser um prazer te atender. 🍔";
 
+export const DEFAULT_OPERATING_HOURS: OperatingHoursConfig = {
+  days: [
+    { day: 0, label: "Domingo", open: true, start: "18:00", end: "22:00" },
+    { day: 1, label: "Segunda", open: false, start: "18:00", end: "22:00" },
+    { day: 2, label: "Terça", open: true, start: "18:00", end: "22:00" },
+    { day: 3, label: "Quarta", open: true, start: "18:00", end: "22:00" },
+    { day: 4, label: "Quinta", open: true, start: "18:00", end: "22:00" },
+    { day: 5, label: "Sexta", open: true, start: "18:00", end: "22:00" },
+    { day: 6, label: "Sábado", open: true, start: "18:00", end: "22:00" },
+  ],
+};
+
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
 export type CheckoutPricing = {
@@ -124,12 +150,48 @@ export function buildCheckoutPricing({
   return { subtotal, deliveryFee, serviceFee, grossTotal, discount, total };
 }
 
-export function getOperatingHoursBlockMessage(date = new Date()) {
-  const day = date.getDay();
-  const hour = date.getHours();
-  const openDay = day !== 1;
-  if (!openDay || hour >= 22) return AFTER_CLOSE_MESSAGE;
-  if (hour < 18) return BEFORE_OPEN_MESSAGE;
+function minutesFromTime(value: string) {
+  const [hours, minutes] = value.split(":").map((part) => Number(part));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 0;
+  return hours * 60 + minutes;
+}
+
+export function normalizeOperatingHours(value: unknown): OperatingHoursConfig {
+  const raw =
+    value && typeof value === "object" && Array.isArray((value as OperatingHoursConfig).days)
+      ? (value as OperatingHoursConfig).days
+      : DEFAULT_OPERATING_HOURS.days;
+  const byDay = new Map(raw.map((day) => [Number(day.day), day]));
+  return {
+    days: DEFAULT_OPERATING_HOURS.days.map((fallback) => {
+      const day = byDay.get(fallback.day);
+      return {
+        day: fallback.day,
+        label: fallback.label,
+        open: typeof day?.open === "boolean" ? day.open : fallback.open,
+        start: typeof day?.start === "string" && day.start ? day.start : fallback.start,
+        end: typeof day?.end === "string" && day.end ? day.end : fallback.end,
+      };
+    }),
+  };
+}
+
+export function getOperatingHoursBlockMessage(
+  date = new Date(),
+  config: OperatingHoursConfig = DEFAULT_OPERATING_HOURS,
+) {
+  const normalized = normalizeOperatingHours(config);
+  const today = normalized.days.find((day) => day.day === date.getDay());
+  if (!today?.open) return AFTER_CLOSE_MESSAGE;
+  const nowMinutes = date.getHours() * 60 + date.getMinutes();
+  const start = minutesFromTime(today.start);
+  const end = minutesFromTime(today.end);
+  if (nowMinutes < start) {
+    return `Oi! Já recebemos sua mensagem.\nNosso atendimento começa às ${today.start}.\nAssim que abrirmos, vamos te atender pelo WhatsApp. 🍔`;
+  }
+  if (nowMinutes >= end) {
+    return `Oi! Hoje já encerramos nosso atendimento.\nFuncionamos hoje até ${today.end}.\nVamos continuar pelo WhatsApp. 🍔`;
+  }
   return "";
 }
 export const wait = (ms: number) =>

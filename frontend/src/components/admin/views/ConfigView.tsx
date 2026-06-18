@@ -1,6 +1,7 @@
-import { FlaskConical, RotateCcw, Table2 } from "lucide-react";
+import { CalendarClock, FlaskConical, RotateCcw, Table2 } from "lucide-react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
+import { OperatingHoursConfig, normalizeOperatingHours } from "@/components/order/checkout";
 import { PayOnDeliverySettings } from "../AdminChrome";
 
 export function ConfigView({
@@ -8,26 +9,42 @@ export function ConfigView({
   testModeEnabled,
   demoTableEnabled,
   featuredProductId,
+  operatingHours,
   saving,
   disabled,
   onTogglePayOnDelivery,
   onToggleTestMode,
   onToggleDemoTable,
   onFeaturedProductChange,
+  onOperatingHoursChange,
   onResetRealOperation,
 }: {
   payOnDeliveryEnabled: boolean;
   testModeEnabled: boolean;
   demoTableEnabled: boolean;
   featuredProductId: string;
+  operatingHours: OperatingHoursConfig;
   saving: boolean;
   disabled: boolean;
   onTogglePayOnDelivery: () => void;
   onToggleTestMode: () => void;
   onToggleDemoTable: () => void;
   onFeaturedProductChange: (productId: string) => void;
+  onOperatingHoursChange: (config: OperatingHoursConfig) => void;
   onResetRealOperation: () => void;
 }) {
+  const normalizedOperatingHours = normalizeOperatingHours(operatingHours);
+  const changeOperatingDay = (
+    dayNumber: number,
+    patch: Partial<OperatingHoursConfig["days"][number]>,
+  ) => {
+    onOperatingHoursChange({
+      days: normalizedOperatingHours.days.map((day) =>
+        day.day === dayNumber ? { ...day, ...patch } : day,
+      ),
+    });
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <PayOnDeliverySettings
@@ -58,6 +75,68 @@ export function ConfigView({
               </option>
             ))}
           </select>
+        </div>
+      </section>
+
+      <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
+        <div className="mb-4 flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
+            <CalendarClock size={19} strokeWidth={2.4} />
+          </div>
+          <div>
+            <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Horários de atendimento</p>
+            <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
+              Dias fechados ou fora do horário bloqueiam pagamento automático e mandam o cliente para o WhatsApp.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-2">
+          {normalizedOperatingHours.days.map((day) => (
+            <div
+              key={day.day}
+              className="grid gap-3 rounded-xl p-3 md:grid-cols-[120px_130px_1fr] md:items-center"
+              style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}
+            >
+              <p className="text-sm font-black" style={{ color: VERDE }}>{day.label}</p>
+              <button
+                type="button"
+                onClick={() => changeOperatingDay(day.day, { open: !day.open })}
+                disabled={saving || disabled}
+                className="rounded-full px-4 py-2 text-xs font-black uppercase"
+                style={{
+                  background: day.open ? VERDE : "#E5E7EB",
+                  color: day.open ? ROSA : "#4B5563",
+                  opacity: saving || disabled ? 0.6 : 1,
+                }}
+              >
+                {day.open ? "Aberto" : "Fechado"}
+              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                  Abre
+                  <input
+                    type="time"
+                    value={day.start}
+                    onChange={(event) => changeOperatingDay(day.day, { start: event.target.value })}
+                    disabled={saving || disabled || !day.open}
+                    className="min-h-11 rounded-xl px-3 text-sm font-black outline-none"
+                    style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+                  />
+                </label>
+                <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                  Fecha
+                  <input
+                    type="time"
+                    value={day.end}
+                    onChange={(event) => changeOperatingDay(day.day, { end: event.target.value })}
+                    disabled={saving || disabled || !day.open}
+                    className="min-h-11 rounded-xl px-3 text-sm font-black outline-none"
+                    style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

@@ -1,241 +1,409 @@
-import { useState } from "react";
-import { Cell, Pie, PieChart, Tooltip } from "recharts";
 import {
-  Bike,
+  AlertTriangle,
+  BellRing,
+  Boxes,
+  ChefHat,
+  ClipboardList,
   DollarSign,
-  Package,
-  Store,
-  TicketPercent,
+  MessageCircle,
+  PackageSearch,
+  Send,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { Order } from "@/types/order";
+import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
-import { STAGE_COLOR, STAGE_LABEL, fmt, isBillableOrder } from "../shared";
+import { Movement, StockItem, getStatus } from "../EstoqueView";
+import { CrmCustomer } from "./CustomersCrmView";
+import { MENU_STOCK_MAP, SupportTicket, fmt, isBillableOrder } from "../shared";
+
+type ProductStat = {
+  id: string;
+  name: string;
+  qty: number;
+  revenue: number;
+  cost: number;
+  margin: number;
+  cmv: number;
+};
+
 export function DashboardView({
   orders,
+  stockItems = [],
+  stockMovements = [],
+  customers = [],
+  supportTickets = [],
 }: {
   orders: Order[];
+  stockItems?: StockItem[];
+  stockMovements?: Movement[];
+  customers?: CrmCustomer[];
+  supportTickets?: SupportTicket[];
 }) {
-  const [channelFilter, setChannelFilter] = useState<"ALL" | Order["channel"]>(
-    "ALL",
-  );
   const billableOrders = orders.filter(isBillableOrder);
-  const filteredOrders = billableOrders.filter(
-    (order) => channelFilter === "ALL" || order.channel === channelFilter,
+  const activeOrders = orders.filter(
+    (order) => !["DELIVERED", "CANCELLED"].includes(order.status),
   );
-  const filteredRevenue = filteredOrders.reduce(
-    (sum, order) => sum + order.total,
-    0,
-  );
-  const deliveryCount = billableOrders.filter((o) => o.channel === "DELIVERY").length;
-  const kioskCount = billableOrders.filter((o) => o.channel === "KIOSK").length;
-  const avgTicket = filteredOrders.length
-    ? filteredRevenue / filteredOrders.length
-    : 0;
-
-  const kpis = [
-    {
-      label: "Vendas",
-      value: fmt(filteredRevenue),
-      Icon: DollarSign,
-      sub: `${filteredOrders.length} pedidos`,
-    },
-    {
-      label: "Ticket Médio",
-      value: fmt(avgTicket),
-      Icon: TrendingUp,
-      sub: "por pedido",
-    },
-    {
-      label: "Delivery",
-      value: String(deliveryCount),
-      Icon: Bike,
-      sub: "para entrega",
-    },
-    {
-      label: "Kiosk",
-      value: String(kioskCount),
-      Icon: Store,
-      sub: "presencial",
-    },
-  ];
-
-  const pieData = [
-    { name: "Kiosk", value: Math.max(kioskCount, 0.01), color: VERDE },
-    { name: "Delivery", value: Math.max(deliveryCount, 0.01), color: ROSA },
-  ];
+  const revenue = billableOrders.reduce((sum, order) => sum + order.total, 0);
+  const avgTicket = billableOrders.length ? revenue / billableOrders.length : 0;
+  const productStats = buildProductStats(billableOrders, stockItems);
+  const topProduct = productStats[0];
+  const totalEstimatedCost = productStats.reduce((sum, item) => sum + item.cost, 0);
+  const totalCmv = revenue > 0 ? totalEstimatedCost / revenue : 0;
+  const lowStock = stockItems.filter((item) => ["baixo", "zerado"].includes(getStatus(item)));
+  const stockValue = stockItems.reduce((sum, item) => sum + item.qty * item.unitCost, 0);
+  const outgoingToday = stockMovements.filter(
+    (movement) =>
+      movement.type === "saida" &&
+      new Date(movement.timestamp).toDateString() === new Date().toDateString(),
+  ).length;
+  const openTickets = supportTickets.filter((ticket) => ticket.status !== "RESOLVED");
+  const vipCustomers = [...customers]
+    .sort((a, b) => Number(b.total_spent ?? 0) - Number(a.total_spent ?? 0))
+    .slice(0, 4);
+  const crmAudience = customers.filter((customer) => Number(customer.order_count ?? 0) > 0);
+  const inactiveCustomers = customers.filter((customer) => isInactive(customer.last_order_at));
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
-        {(["ALL", "DELIVERY", "KIOSK"] as const).map((channel) => (
-          <button
-            key={channel}
-            onClick={() => setChannelFilter(channel)}
-            className="rounded-full px-4 py-2 text-xs font-black uppercase"
-            style={{
-              background: channelFilter === channel ? VERDE : "#fff",
-              color: channelFilter === channel ? ROSA : VERDE,
-            }}
-          >
-            {channel === "ALL" ? "Todos" : channel}
-          </button>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {kpis.map(({ label, value, Icon, sub }) => (
-          <div
-            key={label}
-            className="rounded-2xl p-4"
-            style={{
-              background: "#fff",
-              border: `1.5px solid ${VERDE}10`,
-              boxShadow: "0 2px 10px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span
-                className="text-[9px] font-black uppercase tracking-widest"
-                style={{ color: VERDE, opacity: 0.4 }}
-              >
-                {label}
-              </span>
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ background: ROSA }}
-              >
-                <Icon size={13} strokeWidth={2} style={{ color: VERDE }} />
-              </div>
-            </div>
-            <p
-              className="font-black"
-              style={{
-                color: VERDE,
-                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                fontSize: "1.25rem",
-                lineHeight: 1.1,
-              }}
-            >
-              {value}
+    <div className="mx-auto grid max-w-[1600px] gap-5 text-[#65001F]">
+      <section
+        className="rounded-3xl p-5"
+        style={{
+          background: VERDE,
+          color: "#fff",
+          boxShadow: "0 18px 44px rgba(101,0,31,0.18)",
+        }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em]" style={{ color: ROSA }}>
+              Central ADM Menfi's
             </p>
-            <p
-              className="text-[10px] mt-1"
-              style={{ color: VERDE, opacity: 0.35 }}
-            >
-              {sub}
+            <h1 className="mt-2 text-3xl font-black uppercase tracking-wide">
+              Operação, vendas, estoque e CRM
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm font-semibold opacity-75">
+              Visão desktop para decidir rápido: quem mais pede, o que mais sai,
+              CMV estimado por produto, alertas de estoque e ações de atendimento.
             </p>
           </div>
-        ))}
-      </div>
+          <div className="grid min-w-[320px] grid-cols-2 gap-3">
+            <HeroMetric label="Pedidos ativos" value={String(activeOrders.length)} icon={ClipboardList} />
+            <HeroMetric label="Produto líder" value={topProduct?.name ?? "-"} icon={ChefHat} />
+          </div>
+        </div>
+      </section>
 
-      <div
-        className="rounded-2xl p-4"
-        style={{ background: "#fff", border: `1.5px solid ${VERDE}10` }}
-      >
-        <p
-          className="text-[10px] font-black uppercase tracking-widest mb-4"
-          style={{ color: VERDE, opacity: 0.4 }}
-        >
-          Canal de pedidos
-        </p>
-        <div className="flex items-center gap-4">
-          <PieChart width={100} height={100}>
-            <Pie
-              data={pieData}
-              dataKey="value"
-              cx="50%"
-              cy="50%"
-              innerRadius={26}
-              outerRadius={48}
-              paddingAngle={3}
-              strokeWidth={0}
-            >
-              {pieData.map((_, i) => (
-                <Cell key={i} fill={pieData[i].color} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(v) => [v, ""]}
-              contentStyle={{
-                background: "#fff",
-                border: `1px solid ${VERDE}20`,
-                borderRadius: 8,
-                fontSize: 11,
-              }}
-            />
-          </PieChart>
-          <div className="flex flex-col gap-3 flex-1">
-            {pieData.map((d) => (
-              <div key={d.name} className="flex items-center gap-2">
-                <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ background: d.color }}
+      <section className="grid gap-3 lg:grid-cols-4">
+        <AdminMetric label="Faturamento" value={fmt(revenue)} sub={`${billableOrders.length} pedidos pagos`} icon={DollarSign} />
+        <AdminMetric label="Ticket médio" value={fmt(avgTicket)} sub="por pedido vendido" icon={TrendingUp} />
+        <AdminMetric label="CMV estimado" value={`${Math.round(totalCmv * 100)}%`} sub={`${fmt(totalEstimatedCost)} em insumos`} icon={PackageSearch} />
+        <AdminMetric label="Clientes CRM" value={String(customers.length)} sub={`${crmAudience.length} com histórico`} icon={Users} />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[1.3fr_0.9fr]">
+        <Panel title="Produtos que mais saem" icon={TrendingUp}>
+          <div className="grid gap-3">
+            {productStats.slice(0, 7).map((product, index) => (
+              <ProductRow key={product.id} product={product} rank={index + 1} />
+            ))}
+            {productStats.length === 0 && (
+              <EmptyState text="Ainda não há pedidos faturados para calcular ranking." />
+            )}
+          </div>
+        </Panel>
+
+        <Panel title="CMV por produto" icon={PackageSearch}>
+          <div className="grid gap-3">
+            {productStats.slice(0, 6).map((product) => (
+              <CmvRow key={product.id} product={product} />
+            ))}
+            {productStats.length === 0 && (
+              <EmptyState text="Cadastre custos no estoque para ver o CMV." />
+            )}
+          </div>
+        </Panel>
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-3">
+        <Panel title="Estoque inteligente" icon={Boxes}>
+          <div className="grid gap-3">
+            <MiniMetric label="Valor em estoque" value={fmt(stockValue)} />
+            <MiniMetric label="Alertas de ruptura" value={String(lowStock.length)} />
+            <MiniMetric label="Saídas hoje" value={String(outgoingToday)} />
+            <div className="mt-1 grid gap-2">
+              {lowStock.slice(0, 5).map((item) => (
+                <AlertLine
+                  key={item.id}
+                  title={item.name}
+                  copy={`${formatQty(item.qty, item.unit)} disponível · mínimo ${formatQty(item.minQty, item.unit)}`}
                 />
-                <span className="text-xs flex-1" style={{ color: VERDE }}>
-                  {d.name}
-                </span>
-                <span className="text-xs font-black" style={{ color: VERDE }}>
-                  {billableOrders.length
-                    ? Math.round((d.value / billableOrders.length) * 100)
-                    : 0}
-                  %
-                </span>
-              </div>
+              ))}
+              {lowStock.length === 0 && <EmptyState text="Nenhum item abaixo do mínimo." />}
+            </div>
+          </div>
+        </Panel>
+
+        <Panel title="Atendimento" icon={BellRing}>
+          <div className="grid gap-3">
+            <MiniMetric label="Chamados abertos" value={String(openTickets.length)} />
+            <MiniMetric label="Pedidos em andamento" value={String(activeOrders.length)} />
+            <MiniMetric
+              label="Aguardando pagamento"
+              value={String(orders.filter((order) => order.status === "PAYMENT_PENDING").length)}
+            />
+            {openTickets.slice(0, 4).map((ticket) => (
+              <AlertLine
+                key={ticket.id}
+                title={`Pedido ${ticket.orderId}`}
+                copy={`${ticket.reason} · ${ticket.status}`}
+              />
             ))}
           </div>
-        </div>
-      </div>
+        </Panel>
 
-      {orders.length > 0 && (
-        <div>
-          <p
-            className="text-[10px] font-black uppercase tracking-widest mb-2"
-            style={{ color: VERDE, opacity: 0.35 }}
-          >
-            Últimos pedidos
-          </p>
-          <div className="flex flex-col gap-2">
-            {[...orders]
-              .reverse()
-              .slice(0, 5)
-              .map((o) => {
-                const sc = STAGE_COLOR[o.status];
-                return (
-                  <div
-                    key={o.id}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-                    style={{
-                      background: "#fff",
-                      border: `1.5px solid ${VERDE}08`,
-                    }}
-                  >
-                    <span
-                      className="font-black shrink-0"
-                      style={{
-                        color: VERDE,
-                        fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                      }}
-                    >
-                      {o.id}
-                    </span>
-                    <span
-                      className="text-[10px] flex-1 truncate"
-                      style={{ color: VERDE, opacity: 0.45 }}
-                    >
-                      {o.items.map((i) => `${i.qty}× ${i.name}`).join(", ")}
-                    </span>
-                    <span
-                      className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase shrink-0"
-                      style={{ background: sc.bg, color: sc.text }}
-                    >
-                      {STAGE_LABEL[o.status]}
-                    </span>
-                  </div>
-                );
-              })}
+        <Panel title="CRM inteligente" icon={MessageCircle}>
+          <div className="grid gap-3">
+            <MiniMetric label="Base para disparo" value={String(crmAudience.length)} />
+            <MiniMetric label="Inativos 30+ dias" value={String(inactiveCustomers.length)} />
+            <a
+              href={buildCampaignWhatsappUrl(inactiveCustomers)}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase"
+              style={{ background: VERDE, color: ROSA }}
+            >
+              <Send size={15} />
+              Disparo de reativação
+            </a>
+            <div className="grid gap-2">
+              {vipCustomers.map((customer) => (
+                <CustomerLine key={customer.id} customer={customer} />
+              ))}
+              {vipCustomers.length === 0 && <EmptyState text="Clientes aparecerão após pedidos." />}
+            </div>
           </div>
-        </div>
-      )}
+        </Panel>
+      </section>
     </div>
   );
+}
+
+function buildProductStats(orders: Order[], stockItems: StockItem[]): ProductStat[] {
+  const productNames = new Map(MENU_ITEMS.map((item) => [item.id, item.name]));
+  const stockById = new Map(stockItems.map((item) => [item.id, item]));
+  const byProduct = new Map<string, ProductStat>();
+
+  orders.forEach((order) => {
+    order.items.forEach((item) => {
+      const productId = normalizeProductId(item.productId ?? item.id);
+      const qty = Number(item.qty ?? 0);
+      const revenue = Number(item.price ?? 0) * qty;
+      const costUnit = estimateProductUnitCost(productId, stockById);
+      const current = byProduct.get(productId) ?? {
+        id: productId,
+        name: productNames.get(productId) ?? item.name,
+        qty: 0,
+        revenue: 0,
+        cost: 0,
+        margin: 0,
+        cmv: 0,
+      };
+      current.qty += qty;
+      current.revenue += revenue;
+      current.cost += costUnit * qty;
+      current.margin = current.revenue - current.cost;
+      current.cmv = current.revenue > 0 ? current.cost / current.revenue : 0;
+      byProduct.set(productId, current);
+    });
+  });
+
+  return [...byProduct.values()].sort((a, b) => b.qty - a.qty);
+}
+
+function normalizeProductId(value: string) {
+  return value.replace(/^quick-/, "");
+}
+
+function estimateProductUnitCost(productId: string, stockById: Map<string, StockItem>) {
+  const recipe = MENU_STOCK_MAP[productId] ?? [];
+  return recipe.reduce((sum, ingredient) => {
+    const stock = stockById.get(ingredient.stockId);
+    return sum + Number(stock?.unitCost ?? 0) * ingredient.qty;
+  }, 0);
+}
+
+function isInactive(lastOrderAt?: string) {
+  if (!lastOrderAt) return false;
+  const days = (Date.now() - new Date(lastOrderAt).getTime()) / 86400000;
+  return days >= 30;
+}
+
+function buildCampaignWhatsappUrl(customers: CrmCustomer[]) {
+  const first = customers.find((customer) => customer.phone);
+  const phone = String(first?.phone ?? "5585997883764").replace(/\D/g, "");
+  const text = encodeURIComponent(
+    "Oi! Sentimos sua falta na Menfi's. Hoje temos combos quentinhos e um atendimento rápido para você pedir de novo. 🍔",
+  );
+  return `https://wa.me/${phone || "5585997883764"}?text=${text}`;
+}
+
+function HeroMetric({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ElementType;
+}) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.08)" }}>
+      <div className="flex items-center gap-2">
+        <Icon size={17} strokeWidth={2.4} style={{ color: ROSA }} />
+        <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: ROSA }}>
+          {label}
+        </p>
+      </div>
+      <p className="mt-2 line-clamp-1 text-lg font-black">{value}</p>
+    </div>
+  );
+}
+
+function AdminMetric({
+  label,
+  value,
+  sub,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  icon: React.ElementType;
+}) {
+  return (
+    <article className="rounded-3xl bg-white p-5" style={{ border: `1px solid ${VERDE}12` }}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">{label}</p>
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: `${ROSA}80` }}>
+          <Icon size={18} strokeWidth={2.4} />
+        </span>
+      </div>
+      <p className="mt-3 text-3xl font-black">{value}</p>
+      <p className="mt-1 text-xs font-bold opacity-55">{sub}</p>
+    </article>
+  );
+}
+
+function Panel({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl bg-white p-5" style={{ border: `1px solid ${VERDE}12` }}>
+      <div className="mb-4 flex items-center gap-2">
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: `${ROSA}70` }}>
+          <Icon size={18} strokeWidth={2.4} />
+        </span>
+        <h2 className="text-sm font-black uppercase tracking-wider">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ProductRow({ product, rank }: { product: ProductStat; rank: number }) {
+  const max = Math.max(product.qty, 1);
+  return (
+    <div className="grid gap-2 rounded-2xl p-3" style={{ background: "#FFF8F2" }}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase">
+            #{rank} {product.name}
+          </p>
+          <p className="text-[11px] font-bold opacity-55">
+            {product.qty} vendidos · {fmt(product.revenue)}
+          </p>
+        </div>
+        <p className="text-sm font-black">{fmt(product.margin)}</p>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-white">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${Math.min(100, (product.qty / max) * 100)}%`, background: VERDE }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CmvRow({ product }: { product: ProductStat }) {
+  const cmv = Math.round(product.cmv * 100);
+  return (
+    <div className="rounded-2xl p-3" style={{ background: "#FFF8F2" }}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 text-xs font-black uppercase">{product.name}</p>
+        <p className="text-sm font-black">{cmv}%</p>
+      </div>
+      <p className="mt-1 text-[11px] font-bold opacity-55">
+        Custo {fmt(product.cost)} · Venda {fmt(product.revenue)}
+      </p>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${Math.min(cmv, 100)}%`, background: cmv > 35 ? "#DC2626" : VERDE }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl p-3" style={{ background: "#FFF8F2" }}>
+      <p className="text-[10px] font-black uppercase tracking-widest opacity-45">{label}</p>
+      <p className="mt-1 text-xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function AlertLine({ title, copy }: { title: string; copy: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-2xl p-3" style={{ background: "#FEF2F2", color: "#991B1B" }}>
+      <AlertTriangle className="mt-0.5 shrink-0" size={16} strokeWidth={2.4} />
+      <div className="min-w-0">
+        <p className="text-xs font-black uppercase">{title}</p>
+        <p className="mt-0.5 text-[11px] font-bold opacity-70">{copy}</p>
+      </div>
+    </div>
+  );
+}
+
+function CustomerLine({ customer }: { customer: CrmCustomer }) {
+  return (
+    <div className="rounded-2xl p-3" style={{ background: "#FFF8F2" }}>
+      <p className="text-xs font-black uppercase">{customer.name ?? "Cliente"}</p>
+      <p className="mt-1 text-[11px] font-bold opacity-55">
+        {customer.phone ?? "Sem telefone"} · {fmt(Number(customer.total_spent ?? 0))}
+      </p>
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="rounded-2xl p-4 text-sm font-bold opacity-60" style={{ background: "#FFF8F2" }}>
+      {text}
+    </div>
+  );
+}
+
+function formatQty(value: number, unit: string) {
+  return `${value % 1 === 0 ? value : value.toFixed(1)} ${unit}`;
 }

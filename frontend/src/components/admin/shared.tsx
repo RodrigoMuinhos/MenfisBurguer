@@ -145,6 +145,14 @@ export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+export function localDateKey(timestamp: number) {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function paymentMethodLabel(order: Order) {
   const method = String(order.paymentMethod ?? "").toLowerCase();
   const provider = String(order.paymentProvider ?? "").toLowerCase();
@@ -370,6 +378,9 @@ export function buildOrderTxt(order: Order) {
     "",
     `Forma de pagamento: ${paymentMethodLabel(order)}`,
     `Status do pagamento: ${paymentStatusLabel(order)}`,
+    order.couponCode && financials.discount > 0
+      ? `Cupom: ${order.couponCode} usado (-${fmt(financials.discount)})`
+      : "Cupom: não usado",
     `Status do pedido: ${STAGE_LABEL[order.status] ?? order.status}`,
     "",
     "ITENS DO PEDIDO",
@@ -582,6 +593,11 @@ export function generateCustomerReceipt(order: Order) {
   lines.push(leftRight("Subtotal itens:", money(financials.itemsSubtotal)));
   lines.push(leftRight("Taxa entrega:", money(financials.deliveryFee)));
   if (financials.serviceFee > 0) lines.push(leftRight("Taxa servico:", money(financials.serviceFee)));
+  if (order.couponCode && financials.discount > 0) {
+    pushWrapped(`Cupom usado: ${order.couponCode}`);
+  } else {
+    pushWrapped("Cupom: nao usado");
+  }
   if (financials.discount > 0) lines.push(leftRight("Desconto:", `-${money(financials.discount)}`));
   lines.push(line());
   lines.push(leftRight("TOTAL:", money(financials.total)));

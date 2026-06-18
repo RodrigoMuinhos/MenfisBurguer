@@ -38,6 +38,8 @@ function normalizePaymentMethod(value?: string | null): PaymentMethod | undefine
   if (normalized === "PRESENCIAL") return "presencial";
   if (normalized === "PAGAR_NA_ENTREGA") return "pagar_na_entrega";
   if (normalized === "WHATSAPP") return "whatsapp";
+  if (normalized === "MERCADO_PAGO") return "mercadopago";
+  if (normalized === "PIX_QRCODE") return "pix_qrcode";
   if (normalized === "DINHEIRO") return "dinheiro";
   if (normalized === "CREDITO" || normalized === "CREDIT_CARD")
     return "credit_card";
@@ -101,6 +103,7 @@ export function normalizeBackendOrder(raw: any): Order {
       raw.deliveryFee == null && raw.delivery_fee == null
         ? undefined
         : Number(raw.deliveryFee ?? raw.delivery_fee),
+    couponCode: raw.couponCode ?? raw.coupon_code ?? undefined,
     discountTotal:
       raw.discountTotal == null && raw.discount_total == null
         ? undefined
@@ -115,12 +118,12 @@ export function normalizeBackendOrder(raw: any): Order {
     pixQrCode: raw.pixQrCode ?? raw.pix_qr_code ?? undefined,
     pixQrCodeBase64: raw.pixQrCodeBase64 ?? raw.pix_qr_code_base64 ?? undefined,
     pixTicketUrl: raw.pixTicketUrl ?? raw.pix_ticket_url ?? undefined,
-    timestamp: raw.timestamp
-      ? Number(raw.timestamp)
-      : raw.createdAt
-        ? new Date(raw.createdAt).getTime()
-        : raw.created_at
-          ? new Date(raw.created_at).getTime()
+    timestamp: raw.createdAt
+      ? new Date(raw.createdAt).getTime()
+      : raw.created_at
+        ? new Date(raw.created_at).getTime()
+        : raw.timestamp
+          ? Number(raw.timestamp)
           : Date.now(),
     status,
   };

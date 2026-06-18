@@ -3,18 +3,23 @@ import { CartItem, Order } from "@/types/order";
 import {
   API_URL,
   Coupon,
+  DEFAULT_OPERATING_HOURS,
   CheckoutStep,
   DeliveryType,
   KioskKeyboardTarget,
+  OperatingHoursConfig,
   PICKUP_ADDRESS,
   PaymentMethod,
   STORAGE_KEY,
+  SUPPORT_WHATSAPP_URL,
   buildCheckoutPricing,
   findCoupon,
   findCouponFromBackend,
+  getOperatingHoursBlockMessage,
   loadSaved,
   lookupCEP,
   maskPhone,
+  normalizeOperatingHours,
   playAttendantBeep,
   resolveRuntimeDeliveryType,
 } from "./checkout";
@@ -64,6 +69,7 @@ export function useCartCheckout({
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(false);
+  const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [kioskSuccessOpen, setKioskSuccessOpen] = useState(false);
   const [kioskSuccessOrder, setKioskSuccessOrder] = useState<Order | null>(null);
   const [kioskKeyboardTarget, setKioskKeyboardTarget] =
@@ -193,6 +199,7 @@ export function useCartCheckout({
       .then((settings) => {
         const enabled = settings.payOnDeliveryEnabled === true;
         setPayOnDeliveryEnabled(enabled);
+        setOperatingHours(normalizeOperatingHours(settings.operatingHours));
         if (!enabled) {
           setPayment((current) =>
             current === "pagar_na_entrega" ? "pix" : current,
@@ -310,7 +317,7 @@ export function useCartCheckout({
     Boolean(payment) &&
     (kioskMode || counterServiceMode
       ? checkoutStep === "payment"
-      : checkoutStep === "review");
+      : checkoutStep === "payment");
 
   const applyCoupon = async () => {
     closeKioskKeyboard();
@@ -392,11 +399,6 @@ export function useCartCheckout({
       }
       if (kioskMode || counterServiceMode) {
         if (!canCreatePayment) return;
-      } else {
-        closeKioskKeyboard();
-        setCheckoutStep("review");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
       }
     }
 
@@ -407,8 +409,33 @@ export function useCartCheckout({
       return;
     }
 
+    if (checkoutStep === "review" && !kioskMode && !counterServiceMode) {
+      closeKioskKeyboard();
+      setCheckoutStep("payment");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (!canCreatePayment) return;
     closeKioskKeyboard();
+
+    if (!kioskMode && !counterServiceMode) {
+      const blockMessage = getOperatingHoursBlockMessage(new Date(), operatingHours);
+      if (blockMessage) {
+        const text = [
+          blockMessage,
+          "",
+          "Quero fazer meu pedido pelo WhatsApp.",
+        ].join("\n");
+        window.open(
+          `${SUPPORT_WHATSAPP_URL}?text=${encodeURIComponent(text)}`,
+          "_blank",
+          "noopener,noreferrer",
+        );
+        setPaymentError("Estamos fora do horário de pagamento automático. Continue pelo WhatsApp.");
+        return;
+      }
+    }
 
     const removedByItemId = getRemovedByItemId();
     const address = getCustomerAddress();
@@ -451,7 +478,7 @@ export function useCartCheckout({
       return;
     }
     if (checkoutStep === "payment") {
-      setCheckoutStep(kioskMode || counterServiceMode ? "bag" : "delivery");
+      setCheckoutStep(kioskMode || counterServiceMode ? "bag" : "review");
       return;
     }
     if (checkoutStep === "delivery") {
@@ -516,12 +543,20 @@ export function useCartCheckout({
       ? counterServiceMode
         ? "Pagar no balcão"
         : "Enviar pedido para a cozinha"
+      : checkoutStep === "payment"
+      ? payment === "whatsapp"
+        ? "Enviar para WhatsApp"
+        : payment === "mercadopago"
+        ? "Abrir Mercado Pago"
+        : payment === "pix_qrcode" || payment === "pix"
+        ? "Gerar QR Code Pix"
+        : "Finalizar pagamento"
       : checkoutStep === "review"
       ? counterServiceMode
         ? "Enviar para balcão"
         : kioskMode
         ? "Ir para pagamento"
-        : "Finalizar pedido"
+        : "Escolher pagamento"
       : "Continuar";
 
   const clearCart = () => {

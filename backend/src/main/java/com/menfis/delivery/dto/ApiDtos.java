@@ -50,11 +50,15 @@ public class ApiDtos {
     String customerAddress,
     BigDecimal subtotal,
     BigDecimal deliveryFee,
+    String couponCode,
+    BigDecimal discountTotal,
     BigDecimal total,
     String paymentProvider,
     String paymentMethod,
     String paymentStatus,
     String paymentId,
+    long timestamp,
+    OffsetDateTime createdAt,
     String status,
     OffsetDateTime paidAt,
     OffsetDateTime confirmedAt
@@ -64,7 +68,18 @@ public class ApiDtos {
 
   public record PatchStatusRequest(@NotNull String status, String actor, String reason) {}
 
-  public record UpdateOrderItemsRequest(@NotEmpty List<Map<String, Object>> items, BigDecimal deliveryFee) {}
+  public record UpdateOrderItemsRequest(
+    @NotEmpty List<Map<String, Object>> items,
+    BigDecimal deliveryFee,
+    String customerName,
+    String customerPhone,
+    String customerAddress,
+    DeliveryType deliveryType,
+    String paymentMethod,
+    String paymentStatus,
+    String couponCode,
+    BigDecimal discountTotal
+  ) {}
 
   public record ConfirmDeliveryRequest(@NotBlank String code, String actor) {}
 

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BellRing, Check, FileText, MessageCircle, Minus, Pencil, Phone, Plus, Printer, Save, Trash2, XCircle } from "lucide-react";
-import { CartItem, Order, OrderStatus } from "@/types/order";
+import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { DELIVERY_FEE } from "@/components/order/checkout";
 import { deliveryConfirmationCode } from "@/components/order/tracking";
@@ -10,6 +10,7 @@ import {
   copyOrderTxt,
   fmt,
   isKioskMobOrder,
+  localDateKey,
   orderReadyWhatsappUrl,
   orderItemComponents,
   orderItemNote,
@@ -29,6 +30,17 @@ const PREPARATION_STARTED_STATUSES: OrderStatus[] = [
   "DELIVERED",
 ];
 
+function dateLabel(value: string) {
+  if (!value) return "Sem data";
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export function OrdersView({
   orders,
   updateOrderStatus,
@@ -38,7 +50,7 @@ export function OrdersView({
   orders: Order[];
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   deleteOrder: (id: string) => void | Promise<void>;
-  updateOrderItems: (id: string, items: CartItem[], options?: { deliveryFee?: number }) => void | Promise<void>;
+  updateOrderItems: (id: string, items: CartItem[], options?: OrderUpdateOptions) => void | Promise<void>;
 }) {
   const [channelFilter, setChannelFilter] = useState<"ALL" | Order["channel"]>(
     "ALL",
@@ -47,16 +59,45 @@ export function OrdersView({
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [editingOrderId, setEditingOrderId] = useState("");
   const [draftItems, setDraftItems] = useState<CartItem[]>([]);
-  const filteredOrders = orders.filter(
-    (order) => channelFilter === "ALL" || order.channel === channelFilter,
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [draftDetails, setDraftDetails] = useState({
+    customerName: "",
+    customerPhone: "",
+    customerAddress: "",
+    deliveryType: "delivery" as Order["deliveryType"],
+    paymentMethod: "presencial" as NonNullable<Order["paymentMethod"]>,
+    paymentStatus: "",
+    couponCode: "",
+    discountTotal: "",
+    deliveryFee: "",
+  });
+  const availableDates = useMemo(
+    () => [...new Set(orders.map((order) => localDateKey(order.timestamp)))].sort().reverse(),
+    [orders],
   );
-  const oldestTimestamp = filteredOrders.reduce(
-    (oldest, order) => Math.min(oldest, order.timestamp),
-    filteredOrders[0]?.timestamp ?? Date.now(),
+  const [selectedDate, setSelectedDate] = useState("");
+  useEffect(() => {
+    if (!selectedDate && availableDates.length > 0) {
+      setSelectedDate(availableDates[0]);
+    }
+  }, [availableDates, selectedDate]);
+  const filteredOrders = orders.filter(
+    (order) =>
+      (!selectedDate || localDateKey(order.timestamp) === selectedDate) &&
+      (channelFilter === "ALL" || order.channel === channelFilter),
   );
   const selected =
     filteredOrders.find((order) => order.id === selectedId) ??
     filteredOrders[0];
+  useEffect(() => {
+    if (!selected && selectedId) {
+      setSelectedId("");
+      return;
+    }
+    if (selected && selected.id !== selectedId) {
+      setSelectedId(selected.id);
+    }
+  }, [selected?.id, selectedId]);
   const selectedPaymentStatus = String(selected?.paymentStatus ?? "").toLowerCase();
   const paymentRejected = [
     "rejected",
@@ -84,16 +125,76 @@ export function OrdersView({
     0,
     Math.round((selectedTotal + selectedDiscount - selectedSubtotal - selectedDeliveryFee) * 100) / 100,
   );
+  const editedDiscount = editingDetails
+    ? Math.max(0, Number(draftDetails.discountTotal.replace(",", ".") || 0))
+    : selectedDiscount;
+  const editedDeliveryFee = editingDetails
+    ? Math.max(0, Number(draftDetails.deliveryFee.replace(",", ".") || 0))
+    : selectedDeliveryFee;
+  const editedCouponCode = editingDetails
+    ? draftDetails.couponCode.trim()
+    : selected?.couponCode ?? "";
   const detailSubtotal = editingItems ? draftSubtotal : selectedSubtotal;
   const detailTotal = editingItems
     ? Math.max(
         1,
-        Math.round((detailSubtotal + selectedDeliveryFee + selectedServiceFee - selectedDiscount) * 100) / 100,
+        Math.round((detailSubtotal + editedDeliveryFee + selectedServiceFee - editedDiscount) * 100) / 100,
       )
-    : selectedTotal;
+    : editingDetails
+      ? Math.max(
+          1,
+          Math.round((detailSubtotal + editedDeliveryFee + selectedServiceFee - editedDiscount) * 100) / 100,
+        )
+      : selectedTotal;
   const selectedRemoved = Object.entries(selected?.removedByItemId ?? {})
     .flatMap(([, values]) => values)
     .filter((value, index, values) => values.indexOf(value) === index);
+  const updateDraftDetail = (key: keyof typeof draftDetails, value: string) => {
+    setDraftDetails((current) => ({ ...current, [key]: value }));
+  };
+  const startDetailEdit = () => {
+    if (!selected || !canEditFinancials) return;
+    setEditingDetails(true);
+    setDraftDetails({
+      customerName: selected.customerName ?? "",
+      customerPhone: selected.customerPhone ?? "",
+      customerAddress: selected.customerAddress ?? "",
+      deliveryType: selected.deliveryType,
+      paymentMethod: selected.paymentMethod ?? "presencial",
+      paymentStatus: selected.paymentStatus ?? "",
+      couponCode: selected.couponCode ?? "",
+      discountTotal: selectedDiscount > 0 ? String(selectedDiscount).replace(".", ",") : "",
+      deliveryFee: String(selectedDeliveryFee).replace(".", ","),
+    });
+  };
+  const cancelDetailEdit = () => {
+    setEditingDetails(false);
+  };
+  const removeDraftCoupon = () => {
+    setDraftDetails((current) => ({
+      ...current,
+      couponCode: "",
+      discountTotal: "",
+    }));
+  };
+  const saveDetailEdit = async () => {
+    if (!selected || !canEditFinancials) return;
+    const discountTotal = Math.max(0, Number(draftDetails.discountTotal.replace(",", ".") || 0));
+    const deliveryFee = Math.max(0, Number(draftDetails.deliveryFee.replace(",", ".") || 0));
+    await updateOrderItems(selected.id, detailItems, {
+      customerName: draftDetails.customerName.trim(),
+      customerPhone: draftDetails.customerPhone.trim(),
+      customerAddress: draftDetails.customerAddress.trim(),
+      deliveryType: draftDetails.deliveryType,
+      paymentMethod: draftDetails.paymentMethod,
+      paymentStatus: draftDetails.paymentStatus.trim(),
+      couponCode: discountTotal > 0 ? draftDetails.couponCode.trim() : "",
+      discountTotal,
+      deliveryFee,
+    });
+    setEditingDetails(false);
+    cancelItemEdit();
+  };
   const confirmDeleteFinished = (order: Order) => {
     if (!["CANCELLED", "DELIVERED"].includes(order.status)) return;
     const confirmed = window.confirm(`Excluir definitivamente o pedido ${order.id}?`);
@@ -131,32 +232,47 @@ export function OrdersView({
     await updateOrderItems(selected.id, selected.items, { deliveryFee: DELIVERY_FEE });
   };
 
-  if (!selected) {
-    return (
-      <p className="py-12 text-center text-sm font-bold opacity-40">
-        Nenhum pedido registrado.
-      </p>
-    );
-  }
-
   return (
     <div>
-      <div className="mb-4 flex gap-2">
-        {(["ALL", "DELIVERY", "KIOSK"] as const).map((channel) => (
-          <button
-            key={channel}
-            onClick={() => setChannelFilter(channel)}
-            className="rounded-full px-4 py-2 text-xs font-black uppercase"
-            style={{
-              background: channelFilter === channel ? VERDE : "#fff",
-              color: channelFilter === channel ? ROSA : VERDE,
-              border: `1px solid ${VERDE}22`,
-            }}
-          >
-            {channel === "ALL" ? "Todos" : channel}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="flex gap-2">
+          {(["ALL", "DELIVERY", "KIOSK"] as const).map((channel) => (
+            <button
+              key={channel}
+              onClick={() => setChannelFilter(channel)}
+              className="rounded-full px-4 py-2 text-xs font-black uppercase"
+              style={{
+                background: channelFilter === channel ? VERDE : "#fff",
+                color: channelFilter === channel ? ROSA : VERDE,
+                border: `1px solid ${VERDE}22`,
+              }}
+            >
+              {channel === "ALL" ? "Todos" : channel}
+            </button>
+          ))}
+        </div>
+        <label className="ml-auto flex min-h-10 items-center gap-2 rounded-full px-3 text-xs font-black uppercase" style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}22` }}>
+          Data
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(event) => setSelectedDate(event.target.value)}
+            className="bg-transparent text-xs font-black outline-none"
+            style={{ color: VERDE }}
+          />
+        </label>
+        <span className="rounded-full px-3 py-2 text-[10px] font-black uppercase" style={{ background: `${ROSA}55`, color: VERDE }}>
+          {dateLabel(selectedDate)} · {filteredOrders.length} pedido{filteredOrders.length === 1 ? "" : "s"}
+        </span>
       </div>
+      {!selected ? (
+        <div className="rounded-2xl border bg-white px-5 py-12 text-center" style={{ borderColor: `${VERDE}18`, color: VERDE }}>
+          <p className="text-sm font-black uppercase">Nenhum pedido nessa data.</p>
+          <p className="mt-1 text-xs font-bold opacity-55">
+            Quando entrarem pedidos novos para {selectedDate ? dateLabel(selectedDate) : "essa data"}, eles aparecem aqui.
+          </p>
+        </div>
+      ) : (
       <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.2fr)] lg:items-start">
         <div className="flex max-h-[calc(100dvh-190px)] min-h-0 flex-col gap-3 overflow-y-auto pr-1">
           {filteredOrders.map((order) => {
@@ -164,7 +280,7 @@ export function OrdersView({
             const createdAt = new Date(order.timestamp);
             const ageMinutes = Math.max(
               0,
-              Math.round((order.timestamp - oldestTimestamp) / 60000),
+              Math.round((Date.now() - order.timestamp) / 60000),
             );
             const itemsPreview = order.items
               .slice(0, 2)
@@ -289,7 +405,46 @@ export function OrdersView({
             </div>
           </div>
 
-          <div className="mt-5 grid gap-2 sm:grid-cols-4">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
+              Dados do pedido
+            </p>
+            {canEditFinancials && (
+              <div className="flex flex-wrap gap-2">
+                {editingDetails ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={cancelDetailEdit}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase"
+                      style={{ background: `${VERDE}08`, color: VERDE, border: `1.5px solid ${VERDE}18` }}
+                    >
+                      <XCircle size={13} /> Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveDetailEdit()}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase"
+                      style={{ background: "#16A34A", color: "#fff" }}
+                    >
+                      <Save size={13} /> Salvar dados
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startDetailEdit}
+                    className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase"
+                    style={{ background: VERDE, color: ROSA }}
+                  >
+                    <Pencil size={13} /> Editar dados
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2 grid gap-2 sm:grid-cols-4">
             <div
               className="rounded-xl p-3"
               style={{ background: `${VERDE}08` }}
@@ -297,9 +452,17 @@ export function OrdersView({
               <p className="text-[10px] font-black uppercase opacity-50">
                 Cliente
               </p>
-              <p className="mt-1 text-sm font-bold">
-                {selected.customerName || "Não informado"}
-              </p>
+              {editingDetails ? (
+                <input
+                  value={draftDetails.customerName}
+                  onChange={(event) => updateDraftDetail("customerName", event.target.value)}
+                  className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+                />
+              ) : (
+                <p className="mt-1 text-sm font-bold">
+                  {selected.customerName || "Não informado"}
+                </p>
+              )}
             </div>
             <div
               className="rounded-xl p-3"
@@ -308,9 +471,17 @@ export function OrdersView({
               <p className="text-[10px] font-black uppercase opacity-50">
                 Telefone
               </p>
-              <p className="mt-1 text-sm font-bold">
-                {selected.customerPhone || "Não informado"}
-              </p>
+              {editingDetails ? (
+                <input
+                  value={draftDetails.customerPhone}
+                  onChange={(event) => updateDraftDetail("customerPhone", event.target.value)}
+                  className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+                />
+              ) : (
+                <p className="mt-1 text-sm font-bold">
+                  {selected.customerPhone || "Não informado"}
+                </p>
+              )}
             </div>
             <div
               className="rounded-xl p-3"
@@ -319,13 +490,24 @@ export function OrdersView({
               <p className="text-[10px] font-black uppercase opacity-50">
                 Tipo
               </p>
-              <p className="mt-1 text-sm font-bold">
-                {selectedIsKioskMob
-                  ? "Balcão"
-                  : selected.deliveryType === "delivery"
-                    ? "Entrega"
-                    : "Retirada"}
-              </p>
+              {editingDetails ? (
+                <select
+                  value={draftDetails.deliveryType}
+                  onChange={(event) => updateDraftDetail("deliveryType", event.target.value)}
+                  className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+                >
+                  <option value="delivery">Entrega</option>
+                  <option value="retirada">Retirada</option>
+                </select>
+              ) : (
+                <p className="mt-1 text-sm font-bold">
+                  {selectedIsKioskMob
+                    ? "Balcão"
+                    : selected.deliveryType === "delivery"
+                      ? "Entrega"
+                      : "Retirada"}
+                </p>
+              )}
             </div>
             <div
               className="rounded-xl p-3"
@@ -345,9 +527,23 @@ export function OrdersView({
               <p className="text-[10px] font-black uppercase opacity-50">
                 Forma de pagamento
               </p>
-              <p className="mt-1 text-sm font-bold">
-                {paymentMethodLabel(selected)}
-              </p>
+              {editingDetails ? (
+                <select
+                  value={draftDetails.paymentMethod}
+                  onChange={(event) => updateDraftDetail("paymentMethod", event.target.value)}
+                  className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+                >
+                  <option value="presencial">Presencial</option>
+                  <option value="pagar_na_entrega">Pagar na entrega</option>
+                  <option value="pix">PIX</option>
+                  <option value="cartao">Cartão</option>
+                  <option value="dinheiro">Dinheiro</option>
+                </select>
+              ) : (
+                <p className="mt-1 text-sm font-bold">
+                  {paymentMethodLabel(selected)}
+                </p>
+              )}
             </div>
             <div
               className="rounded-xl p-3"
@@ -356,9 +552,18 @@ export function OrdersView({
               <p className="text-[10px] font-black uppercase opacity-50">
                 Status do pagamento
               </p>
-              <p className="mt-1 text-sm font-bold">
-                {paymentStatusLabel(selected)}
-              </p>
+              {editingDetails ? (
+                <input
+                  value={draftDetails.paymentStatus}
+                  onChange={(event) => updateDraftDetail("paymentStatus", event.target.value)}
+                  className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+                  placeholder="Pago"
+                />
+              ) : (
+                <p className="mt-1 text-sm font-bold">
+                  {paymentStatusLabel(selected)}
+                </p>
+              )}
             </div>
             <div
               className="rounded-xl p-3"
@@ -371,6 +576,63 @@ export function OrdersView({
                 {fmt(detailTotal)}
               </p>
             </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ background: `${VERDE}08` }}
+            >
+              <p className="text-[10px] font-black uppercase opacity-50">
+                Taxa de entrega
+              </p>
+              {editingDetails ? (
+                <input
+                  value={draftDetails.deliveryFee}
+                  onChange={(event) => updateDraftDetail("deliveryFee", event.target.value)}
+                  className="mt-1 w-full bg-transparent text-sm font-bold outline-none"
+                />
+              ) : (
+                <p className="mt-1 text-sm font-bold">
+                  {fmt(selectedDeliveryFee)}
+                </p>
+              )}
+            </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ background: `${VERDE}08` }}
+            >
+              <p className="text-[10px] font-black uppercase opacity-50">
+                Cupom
+              </p>
+              {editingDetails ? (
+                <div className="mt-1 grid gap-2">
+                  <input
+                    value={draftDetails.couponCode}
+                    onChange={(event) => updateDraftDetail("couponCode", event.target.value.toUpperCase())}
+                    className="w-full bg-transparent text-sm font-bold uppercase outline-none"
+                    placeholder="Código"
+                  />
+                  <input
+                    value={draftDetails.discountTotal}
+                    onChange={(event) => updateDraftDetail("discountTotal", event.target.value)}
+                    className="w-full bg-transparent text-sm font-bold outline-none"
+                    placeholder="Desconto R$"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeDraftCoupon}
+                    className="w-fit text-[10px] font-black uppercase"
+                    style={{ color: "#991B1B" }}
+                  >
+                    Remover cupom
+                  </button>
+                </div>
+              ) : (
+                <p className="mt-1 text-sm font-bold">
+                  {selected.couponCode && selectedDiscount > 0
+                    ? `Usado: ${selected.couponCode} (-${fmt(selectedDiscount)})`
+                    : "Não usado"}
+                </p>
+              )}
+            </div>
             {selected.deliveryType === "delivery" && !selectedIsKioskMob && (
               <div
                 className="rounded-xl p-3 sm:col-span-2"
@@ -379,9 +641,17 @@ export function OrdersView({
                 <p className="text-[10px] font-black uppercase opacity-50">
                   Endereco
                 </p>
-                <p className="mt-1 whitespace-pre-line text-sm font-bold leading-snug">
-                  {selectedAddress}
-                </p>
+                {editingDetails ? (
+                  <textarea
+                    value={draftDetails.customerAddress}
+                    onChange={(event) => updateDraftDetail("customerAddress", event.target.value)}
+                    className="mt-1 min-h-16 w-full resize-none bg-transparent text-sm font-bold leading-snug outline-none"
+                  />
+                ) : (
+                  <p className="mt-1 whitespace-pre-line text-sm font-bold leading-snug">
+                    {selectedAddress}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -666,7 +936,7 @@ export function OrdersView({
               {selected.deliveryType === "delivery" && (
                 <div className="flex justify-between gap-4">
                   <span>Taxa de entrega</span>
-                  <strong>{fmt(selectedDeliveryFee)}</strong>
+                  <strong>{fmt(editedDeliveryFee)}</strong>
                 </div>
               )}
               {selectedServiceFee > 0 && (
@@ -675,10 +945,18 @@ export function OrdersView({
                   <strong>{fmt(selectedServiceFee)}</strong>
                 </div>
               )}
-              {selectedDiscount > 0 && (
+              <div className="flex justify-between gap-4">
+                <span>Cupom</span>
+                <strong>
+                  {editedCouponCode && editedDiscount > 0
+                    ? `${editedCouponCode} usado`
+                    : "Não usado"}
+                </strong>
+              </div>
+              {editedDiscount > 0 && (
                 <div className="flex justify-between gap-4" style={{ color: "#15803D" }}>
                   <span>Desconto</span>
-                  <strong>-{fmt(selectedDiscount)}</strong>
+                  <strong>-{fmt(editedDiscount)}</strong>
                 </div>
               )}
               <div className="mt-2 flex justify-between gap-4 border-t pt-3 text-xl font-black" style={{ borderColor: `${VERDE}18` }}>
@@ -703,6 +981,7 @@ export function OrdersView({
           `}</style>
         </div>
       </div>
+      )}
       {cancelTarget && (
         <CancelOrderModal
           order={cancelTarget}

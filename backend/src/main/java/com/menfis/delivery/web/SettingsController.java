@@ -58,6 +58,14 @@ public class SettingsController {
     return settings.setFeaturedProductId(request.productId());
   }
 
+  @PatchMapping("/operating-hours")
+  public Map<String, Object> setOperatingHours(
+      @RequestBody OperatingHoursRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return settings.setOperatingHours(request.operatingHours());
+  }
+
   @PatchMapping("/reset-real-operation")
   public Map<String, Object> resetRealOperation(
       @RequestHeader(name = "Authorization", required = false) String authorization) {
@@ -69,4 +77,5 @@ public class SettingsController {
   public record TestModeRequest(boolean enabled) {}
   public record DemoTableRequest(boolean enabled) {}
   public record FeaturedProductRequest(String productId) {}
+  public record OperatingHoursRequest(Map<String, Object> operatingHours) {}
 }

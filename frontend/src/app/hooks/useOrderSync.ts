@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { normalizeBackendOrder, normalizeOrderStatus } from "@/services/orders/normalize";
-import { CartItem, Order, OrderStatus } from "@/types/order";
+import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import { DELIVERY_FEE } from "@/components/order/checkout";
 import {
   API_URL,
@@ -300,31 +300,59 @@ export function useOrderSync({
   );
 
   const updateOrderItems = useCallback(
-    async (id: string, items: CartItem[], options?: { deliveryFee?: number }) => {
+    async (id: string, items: CartItem[], options?: OrderUpdateOptions) => {
       if (items.length === 0) return;
       const existing = orders.find((order) => order.id === id);
       if (!existing) return;
       const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
       const currentDeliveryFee = Number(existing.deliveryFee ?? 0);
-      const deliveryFee = existing.deliveryType === "delivery" && subtotal > 0
+      const nextDeliveryType = options?.deliveryType ?? existing.deliveryType;
+      const deliveryFee = nextDeliveryType === "delivery" && subtotal > 0
         ? Math.max(Number(options?.deliveryFee ?? currentDeliveryFee), DELIVERY_FEE)
         : Number(options?.deliveryFee ?? currentDeliveryFee);
-      const discount = Number(existing.discountTotal ?? 0);
+      const discount = Math.max(0, Number(options?.discountTotal ?? existing.discountTotal ?? 0));
       const currentSubtotal =
         existing.subtotal ?? existing.items.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const currentDiscount = Number(existing.discountTotal ?? 0);
       const serviceFee = Math.max(
         0,
-        Math.round((existing.total + discount - currentSubtotal - currentDeliveryFee) * 100) / 100,
+        Math.round((existing.total + currentDiscount - currentSubtotal - currentDeliveryFee) * 100) / 100,
       );
       const total = Math.max(
         1,
         Math.round((subtotal + deliveryFee + serviceFee - discount) * 100) / 100,
       );
+      const couponCode =
+        discount > 0 ? options?.couponCode ?? existing.couponCode ?? "" : "";
       setOrders((prev) =>
         prev.map((order) =>
-          order.id === id ? { ...order, items, subtotal, deliveryFee, total } : order,
+          order.id === id
+            ? {
+                ...order,
+                ...options,
+                items,
+                subtotal,
+                deliveryFee,
+                deliveryType: nextDeliveryType,
+                couponCode: couponCode || undefined,
+                discountTotal: discount,
+                total,
+              }
+            : order,
         ),
       );
+      const body = {
+        items,
+        deliveryFee,
+        customerName: options?.customerName,
+        customerPhone: options?.customerPhone,
+        customerAddress: options?.customerAddress,
+        deliveryType: nextDeliveryType,
+        paymentMethod: options?.paymentMethod,
+        paymentStatus: options?.paymentStatus,
+        couponCode,
+        discountTotal: discount,
+      };
       try {
         const res = API_URL
           ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/items`, {
@@ -333,12 +361,12 @@ export function useOrderSync({
                 Authorization: `Bearer ${adminToken}`,
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ items, deliveryFee: options?.deliveryFee }),
+              body: JSON.stringify(body),
             })
           : await fetch(`/api/orders/${encodeURIComponent(id)}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ items, deliveryFee: options?.deliveryFee }),
+              body: JSON.stringify(body),
             });
         if (!res.ok) {
           await syncOrders();

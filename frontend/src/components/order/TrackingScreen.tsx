@@ -208,7 +208,7 @@ export function TrackingScreen({
     return Date.now() - new Date(ticket.createdAt).getTime() > 5 * 60000;
   });
   const showPixPayment =
-    order.paymentMethod === "pix" &&
+    (order.paymentMethod === "pix" || order.paymentMethod === "pix_qrcode") &&
     order.status === "PAYMENT_PENDING" &&
     Boolean(order.pixQrCode || order.pixQrCodeBase64 || order.pixTicketUrl);
   const reviewKey = `menfis_review_${order.id}`;

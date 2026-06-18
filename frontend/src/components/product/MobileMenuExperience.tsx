@@ -4,6 +4,7 @@ import {
   Beef,
   Bell,
   ChevronRight,
+  CheckCircle2,
   ClipboardList,
   CupSoda,
   Drumstick,
@@ -25,36 +26,46 @@ import { MenuItem } from "@/features/catalog/types";
 import { ROSA, SURFACE, VERDE } from "@/utils/theme";
 import { fmt, imageSrc, MemberProfile } from "./shared";
 
-type MobileCategory = "promo" | "burger" | "chicken" | "bacon" | "extra" | "bebida";
+type MobileCategory =
+  | "burger"
+  | "chicken"
+  | "bacon"
+  | "combo"
+  | "bebida"
+  | "promo"
+  | "sobremesa";
 
 const MOBILE_CATEGORIES: Array<{
   id: MobileCategory;
   label: string;
   icon: ElementType;
 }> = [
-  { id: "promo", label: "Promocoes", icon: Flame },
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "chicken", label: "Chicken", icon: Drumstick },
   { id: "bacon", label: "Bacon", icon: Utensils },
-  { id: "extra", label: "Acompanh.", icon: Package },
+  { id: "combo", label: "Combos", icon: Package },
   { id: "bebida", label: "Bebidas", icon: CupSoda },
+  { id: "promo", label: "Promos", icon: Flame },
+  { id: "sobremesa", label: "Sobremesas", icon: Gift },
 ];
 
-const BEST_SELLER_IDS = ["combo2", "combo", "double-combo"];
+const BEST_SELLER_IDS = ["double-burger", "menfis-bacon", "menfis-chicken"];
 const SALES_ORDER = [
+  "double-burger",
+  "menfis-bacon",
+  "menfis-chicken",
+  "burger",
+  "double-menfis-bacon",
+  "double-menfis-chicken",
   "combo2",
   "combo",
   "double-combo",
   "chicken-combo",
-  "bacon-combo",
   "double-chicken-combo",
-  "double-bacon-combo",
   "chicken-super-combo",
+  "bacon-combo",
+  "double-bacon-combo",
   "bacon-super-combo",
-  "menfis-chicken",
-  "menfis-bacon",
-  "burger",
-  "double-burger",
   "batata",
   "coca-zero",
   "guarana-zero",
@@ -68,20 +79,22 @@ function saleRank(item: MenuItem) {
 
 function compactDescription(item: MenuItem) {
   const name = item.name.toLowerCase();
-  if (item.id === "combo2") return "2 burgers + batata + 2 refrigerantes";
+  if (item.id === "combo2") {
+    return "2 burgers 100g + 2 batatas 200g + 2 refrigerantes";
+  }
   if (name.includes("super") && name.includes("chicken")) {
-    return "2 chicken + batata + 2 refrigerantes";
+    return "2 chickens 120g + 2 batatas 200g + 2 refrigerantes";
   }
   if (name.includes("super") && name.includes("bacon")) {
-    return "2 bacon + batata + 2 refrigerantes";
+    return "2 bacons 100g + 40g bacon cada + 2 batatas 200g";
   }
   if (name.includes("double") && name.includes("chicken")) {
-    return "2 chickens de 120g + batata + refri";
+    return "2 chickens de 120g + batata 200g + refri";
   }
-  if (name.includes("double")) return "2 carnes + batata + refrigerante";
-  if (name.includes("chicken")) return "Chicken + batata + refrigerante";
-  if (name.includes("bacon")) return "Bacon + batata + refrigerante";
-  if (item.category === "combo") return "Burger + batata + refrigerante";
+  if (name.includes("double")) return "2 carnes 100g + batata 200g + refri";
+  if (name.includes("chicken")) return "Chicken 120g + batata 200g + refri";
+  if (name.includes("bacon")) return "Bacon 100g + 40g bacon + batata 200g";
+  if (item.category === "combo") return "Burger 100g + batata 200g + refri";
   if (item.category === "bebida") return "Bebida gelada";
   if (item.category === "extra") return item.desc;
   return "Burger Menfi's com molho da casa";
@@ -89,9 +102,18 @@ function compactDescription(item: MenuItem) {
 
 function categoryMatches(item: MenuItem, category: MobileCategory) {
   const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
-  if (category === "promo") return true;
-  if (category === "chicken") return text.includes("chicken");
-  if (category === "bacon") return text.includes("bacon");
+  if (category === "promo") {
+    return Boolean(item.highlight || item.originalPrice || item.category === "combo");
+  }
+  if (category === "sobremesa") {
+    return text.includes("sobremesa") || text.includes("doce") || text.includes("brownie");
+  }
+  if (category === "chicken") {
+    return item.category === "burger" && text.includes("chicken");
+  }
+  if (category === "bacon") {
+    return item.category === "burger" && text.includes("bacon");
+  }
   if (category === "burger") {
     return (
       item.category === "burger" &&
@@ -100,6 +122,12 @@ function categoryMatches(item: MenuItem, category: MobileCategory) {
     );
   }
   return item.category === category;
+}
+
+function bestsellerBadge(index: number) {
+  if (index === 0) return "Mais vendido";
+  if (index === 1) return "Favorito dos clientes";
+  return "Novidade";
 }
 
 export function MobileMenuExperience({
@@ -125,7 +153,7 @@ export function MobileMenuExperience({
   onOpenDetails: (item: MenuItem) => void;
   goToCart: () => void;
 }) {
-  const [category, setCategory] = useState<MobileCategory>("promo");
+  const [category, setCategory] = useState<MobileCategory>("burger");
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<"reviews" | "club" | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -141,58 +169,56 @@ export function MobileMenuExperience({
         .includes(normalizedQuery);
     return matchesSearch && categoryMatches(item, category);
   });
-  const bestSellers =
-    category === "promo"
-      ? (BEST_SELLER_IDS
-          .map((id) => items.find((item) => item.id === id))
-          .filter(Boolean) as MenuItem[])
-      : visibleItems.slice(0, 3);
+  const bestSellers = BEST_SELLER_IDS
+    .map((id) => items.find((item) => item.id === id))
+    .filter(Boolean) as MenuItem[];
+  const heroItem =
+    items.find((item) => item.id === "double-burger") ?? bestSellers[0] ?? items[0];
+  const comboHighlight =
+    items.find((item) => item.id === "combo2") ??
+    sortedItems.find((item) => item.category === "combo");
+  const promoItems = sortedItems.filter((item) => categoryMatches(item, "promo")).slice(0, 3);
   const categoryLabel =
     MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label ?? "Produtos";
+  const scrollToProducts = () => {
+    document
+      .getElementById("menfis-best-sellers")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="md:hidden" style={{ background: SURFACE, color: VERDE }}>
-      <header
-        className="sticky top-0 z-40 border-b px-4 pb-3 pt-4"
-        style={{
-          background: "rgba(255,248,242,0.96)",
-          borderColor: `${VERDE}12`,
-          backdropFilter: "blur(18px)",
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
+      <header className="relative overflow-hidden bg-white px-4 pb-5 pt-4">
+        <div className="relative z-10 flex items-center justify-between gap-3">
           <button
             type="button"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-white"
-            style={{ border: `1px solid ${VERDE}12` }}
+            className="relative flex h-12 w-12 items-center justify-center rounded-full"
+            style={{ background: ROSA, color: "#fff" }}
             aria-label="Abrir menu"
             onClick={onOpenMember}
           >
-            <Menu size={22} strokeWidth={2.4} />
+            <Menu size={24} strokeWidth={2.7} />
           </button>
-          <button
-            type="button"
-            className="min-w-0 flex-1 text-left"
-            onClick={onOpenMember}
-          >
+          <button type="button" onClick={onOpenMember} className="text-center">
             <p
               className="uppercase"
               style={{
+                color: ROSA,
                 fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                fontSize: "2rem",
-                lineHeight: 0.86,
+                fontSize: "2.65rem",
+                lineHeight: 0.85,
                 letterSpacing: 0,
               }}
             >
               Menfi's
             </p>
-            <p className="text-[11px] font-black uppercase tracking-[0.28em]">
+            <p className="text-[11px] font-black uppercase tracking-[0.42em]">
               Burger
             </p>
           </button>
           <button
             type="button"
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white"
+            className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white"
             style={{ border: `1px solid ${VERDE}12` }}
             aria-label="Notificacoes"
             onClick={onOpenNotifications}
@@ -201,51 +227,119 @@ export function MobileMenuExperience({
             {notificationCount > 0 && (
               <span
                 className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black"
-                style={{ background: ROSA, color: VERDE }}
+                style={{ background: ROSA, color: "#fff" }}
               >
                 {notificationCount}
               </span>
             )}
           </button>
-        </div>
-
-        <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[20px] bg-white text-center shadow-sm">
-          <CompactInfo
-            icon={Star}
-            title="4,9"
-            subtitle="avaliacao"
-            onClick={() => setPanel("reviews")}
-          />
-          <CompactInfo icon={Timer} title="30-45 min" subtitle="entrega" />
           <button
             type="button"
-            onClick={() => setPanel("club")}
-            className="flex items-center justify-center gap-2 border-l px-2 py-3 text-left"
-            style={{ borderColor: `${VERDE}12` }}
+            onClick={goToCart}
+            className="relative flex h-14 min-w-[86px] items-center justify-center gap-2 rounded-2xl px-3"
+            style={{ background: ROSA, color: "#fff" }}
+            aria-label="Abrir carrinho"
           >
-            <Gift size={21} strokeWidth={2.4} style={{ color: VERDE }} />
-            <span className="min-w-0">
-              <span className="block text-[12px] font-black leading-tight">
-                Clube Menfi's
-              </span>
-              <span className="block text-[11px] font-bold opacity-55">
-                {rewardCount}/10 pedidos
+            <ShoppingCart size={24} strokeWidth={2.7} />
+            <span className="text-left">
+              <span className="block text-lg font-black leading-none">{cartCount}</span>
+              <span className="block text-[10px] font-black leading-none">
+                {fmt(cartTotal)}
               </span>
             </span>
-            <ChevronRight size={16} strokeWidth={2.4} />
           </button>
         </div>
 
+        <div className="relative z-10 mt-5 grid min-h-[265px] grid-cols-[1.05fr_0.95fr] items-center gap-1">
+          <div className="min-w-0">
+            <p
+              className="uppercase text-black"
+              style={{
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "4rem",
+                lineHeight: 0.82,
+                letterSpacing: 0,
+              }}
+            >
+              Menfi's Burger
+            </p>
+            <p className="mt-3 text-lg font-black uppercase leading-tight">
+              Hamburguer artesanal feito na hora.
+            </p>
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              <HeroMetric icon={Star} title="4,9" subtitle="avaliacao" onClick={() => setPanel("reviews")} />
+              <HeroMetric icon={Timer} title="25-35 min" subtitle="entrega" />
+              <HeroMetric icon={Flame} title="+500" subtitle="pedidos" />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => heroItem && onOpenDetails(heroItem)}
+            className="relative h-[250px] min-w-0 overflow-visible"
+            aria-label={`Ver ${heroItem?.name ?? "produto"}`}
+          >
+            {heroItem?.image ? (
+              <Image
+                src={imageSrc(heroItem.image)}
+                alt={heroItem.name}
+                fill
+                priority
+                sizes="52vw"
+                style={{ objectFit: "contain", objectPosition: "center" }}
+              />
+            ) : null}
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setPanel("club")}
+          className="relative z-10 mt-2 grid w-full grid-cols-[56px_1fr_auto] items-center gap-3 rounded-[18px] bg-black px-4 py-4 text-left text-white"
+        >
+          <span
+            className="flex h-12 w-12 items-center justify-center rounded-2xl"
+            style={{ background: ROSA }}
+          >
+            <Gift size={25} strokeWidth={2.6} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-black uppercase">Primeira compra?</span>
+            <span className="block text-3xl font-black uppercase leading-none" style={{ color: ROSA }}>
+              MFB10
+            </span>
+            <span className="block text-xs font-bold uppercase opacity-85">
+              Ganhe 10% OFF no primeiro pedido
+            </span>
+          </span>
+          <span className="text-right">
+            <span className="block text-4xl font-black leading-none" style={{ color: ROSA }}>
+              10%
+            </span>
+            <span className="block text-lg font-black leading-none" style={{ color: ROSA }}>
+              OFF
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={scrollToProducts}
+          className="relative z-10 mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase tracking-wide"
+          style={{ background: ROSA, color: "#fff" }}
+        >
+          Fazer pedido agora <ChevronRight size={20} strokeWidth={2.8} />
+        </button>
+
         <label
-          className="mt-3 flex h-11 items-center gap-2 rounded-full bg-white px-4"
-          style={{ border: `1px solid ${VERDE}10` }}
+          className="relative z-10 mt-4 flex h-12 items-center gap-2 rounded-2xl bg-white px-4 shadow-sm"
+          style={{ border: `1px solid ${VERDE}12` }}
         >
           <Search size={18} strokeWidth={2.4} style={{ opacity: 0.7 }} />
           <input
             ref={searchRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar"
+            placeholder="Buscar bacon, chicken, combo, batata, Coca"
             className="h-full min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:font-bold"
             style={{ color: VERDE }}
           />
@@ -253,10 +347,9 @@ export function MobileMenuExperience({
       </header>
 
       <nav
-        className="sticky top-[188px] z-30 flex gap-2 overflow-x-auto px-4 py-3"
+        className="sticky top-0 z-40 flex gap-3 overflow-x-auto border-y bg-white px-4 py-3 shadow-[0_12px_26px_rgba(101,0,31,0.08)]"
         style={{
-          background: "rgba(255,248,242,0.96)",
-          backdropFilter: "blur(18px)",
+          borderColor: `${VERDE}10`,
         }}
       >
         {MOBILE_CATEGORIES.map((tab) => {
@@ -267,13 +360,13 @@ export function MobileMenuExperience({
               key={tab.id}
               type="button"
               onClick={() => setCategory(tab.id)}
-              className="flex min-w-[92px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-3 text-xs font-black"
+              className="flex min-w-[86px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-3 text-[11px] font-black uppercase"
               style={{
-                background: active ? VERDE : "#fff",
+                background: active ? ROSA : "#fff",
                 color: active ? "#fff" : VERDE,
-                border: `1px solid ${active ? VERDE : `${VERDE}12`}`,
+                border: `1px solid ${active ? ROSA : `${VERDE}12`}`,
                 boxShadow: active
-                  ? "0 12px 26px rgba(101,0,31,0.22)"
+                  ? "0 12px 24px rgba(236,23,103,0.24)"
                   : "0 8px 20px rgba(101,0,31,0.06)",
               }}
             >
@@ -285,15 +378,17 @@ export function MobileMenuExperience({
       </nav>
 
       <main className="px-4 pb-44">
-        <section className="pt-2">
+        <section id="menfis-best-sellers" className="pt-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black uppercase tracking-wide">
-              {category === "promo" ? "Mais vendidos" : `Mais vendidos em ${categoryLabel}`}
+            <h2 className="flex items-center gap-2 text-xl font-black uppercase tracking-wide">
+              <Flame size={23} strokeWidth={2.5} style={{ color: ROSA }} />
+              Mais pedidos hoje
             </h2>
             <button
               type="button"
-              onClick={() => setCategory("promo")}
-              className="flex items-center gap-1 text-sm font-bold opacity-70"
+              onClick={() => setCategory("burger")}
+              className="flex items-center gap-1 text-xs font-black uppercase"
+              style={{ color: ROSA }}
             >
               Ver todos <ChevronRight size={16} strokeWidth={2.5} />
             </button>
@@ -303,7 +398,7 @@ export function MobileMenuExperience({
               <BestSellerCard
                 key={item.id}
                 item={item}
-                badge={index === 0 ? "Mais vendido" : index === 1 ? "Mais pedido" : "Fome de respeito"}
+                badge={bestsellerBadge(index)}
                 onAdd={() => onQuickAdd(item)}
                 onOpen={() => onOpenDetails(item)}
               />
@@ -311,12 +406,88 @@ export function MobileMenuExperience({
           </div>
         </section>
 
+        {comboHighlight && (
+          <section className="mt-5 overflow-hidden rounded-[22px] bg-black text-white">
+            <div className="grid grid-cols-[1fr_118px] items-center gap-1 p-4">
+              <div>
+                <p
+                  className="w-fit rounded-xl px-3 py-1 text-sm font-black uppercase"
+                  style={{ background: ROSA }}
+                >
+                  Combo destaque
+                </p>
+                <h2 className="mt-3 text-xl font-black uppercase leading-tight">
+                  {comboHighlight.name}
+                </h2>
+                <div className="mt-2 grid gap-1 text-sm font-bold opacity-90">
+                  <p>✓ 2 Hamburgueres</p>
+                  <p>✓ 2 Batatas</p>
+                  <p>✓ 2 Refrigerantes</p>
+                </div>
+                <div className="mt-3 flex items-end gap-2">
+                  {comboHighlight.originalPrice && (
+                    <span className="text-xs font-bold line-through opacity-55">
+                      De {fmt(comboHighlight.originalPrice)}
+                    </span>
+                  )}
+                  <span className="text-3xl font-black" style={{ color: ROSA }}>
+                    {fmt(comboHighlight.price)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenDetails(comboHighlight)}
+                  className="mt-3 rounded-xl px-4 py-2 text-xs font-black uppercase"
+                  style={{ background: ROSA, color: "#fff" }}
+                >
+                  Quero esse combo
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenDetails(comboHighlight)}
+                className="relative h-36 overflow-visible"
+                aria-label={`Ver ${comboHighlight.name}`}
+              >
+                {comboHighlight.image ? (
+                  <Image
+                    src={imageSrc(comboHighlight.image)}
+                    alt={comboHighlight.name}
+                    fill
+                    sizes="118px"
+                    style={{ objectFit: "contain", objectPosition: "center" }}
+                  />
+                ) : null}
+              </button>
+            </div>
+          </section>
+        )}
+
+        <section className="mt-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-black uppercase tracking-wide">Promocoes</h2>
+            <button
+              type="button"
+              onClick={() => setCategory("promo")}
+              className="text-xs font-black uppercase"
+              style={{ color: ROSA }}
+            >
+              Ver promos
+            </button>
+          </div>
+          <div className="mt-3 grid gap-3">
+            <PromoBanner title="MFB10" copy="10% OFF na primeira compra" />
+            <PromoBanner title="Quarta em dobro" copy="Segundo combo com 50% OFF" />
+            <PromoBanner title="Frete gratis" copy="Acima de R$ 49 no Clube Menfi's" />
+          </div>
+        </section>
+
         <section className="mt-5">
           <h2 className="text-lg font-black uppercase tracking-wide">
-            {category === "promo" ? "Combos" : categoryLabel}
+            {category === "promo" ? "Promocoes ativas" : categoryLabel}
           </h2>
           <div className="mt-3 grid gap-3">
-            {visibleItems.map((item) => (
+            {(category === "promo" ? promoItems : visibleItems).map((item) => (
               <MobileListItem
                 key={item.id}
                 item={item}
@@ -324,8 +495,67 @@ export function MobileMenuExperience({
                 onOpen={() => onOpenDetails(item)}
               />
             ))}
+            {(category === "sobremesa" || visibleItems.length === 0) && (
+              <div
+                className="rounded-[18px] bg-white p-5 text-sm font-bold leading-relaxed"
+                style={{ border: `1px solid ${VERDE}12` }}
+              >
+                Sobremesas entram aqui quando estiverem cadastradas no cardapio.
+              </div>
+            )}
           </div>
         </section>
+
+        {cartCount > 0 && (
+          <section className="mt-5 rounded-[20px] bg-white p-4" style={{ border: `1px solid ${VERDE}12` }}>
+            <p className="text-sm font-black uppercase">Seu pedido esta esperando.</p>
+            <p className="mt-1 text-sm font-semibold opacity-70">
+              Finalize agora e use MFB10 se for sua primeira compra.
+            </p>
+          </section>
+        )}
+
+        <section className="mt-5 grid gap-3">
+          <button
+            type="button"
+            onClick={() => setPanel("club")}
+            className="rounded-[20px] bg-white p-4 text-left"
+            style={{ border: `1px solid ${VERDE}12` }}
+          >
+            <p className="text-lg font-black uppercase">Clube Menfi's</p>
+            <p className="mt-1 text-sm font-semibold opacity-70">
+              Frete gratis, cupons, cashback e promocoes antecipadas.
+            </p>
+            <p className="mt-3 text-sm font-black">
+              {rewardCount}/10 pedidos para voucher de troca
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPanel("reviews")}
+            className="rounded-[20px] bg-white p-4 text-left"
+            style={{ border: `1px solid ${VERDE}12` }}
+          >
+            <p className="text-lg font-black uppercase">Prova social</p>
+            <p className="mt-2 text-sm font-black">★★★★★</p>
+            <p className="mt-1 text-sm font-semibold opacity-70">
+              "Melhor hamburguer de Fortaleza." Joao Silva
+            </p>
+            <p className="mt-1 text-sm font-semibold opacity-70">
+              "Chegou quente." Maria Santos
+            </p>
+          </button>
+        </section>
+
+        <footer className="mt-5 grid grid-cols-2 gap-2 pb-2 text-xs font-black uppercase">
+          {["Pix e cartao", "Ambiente seguro", "Atendimento WhatsApp", "Pedido protegido", "Politica de privacidade", "Termos de uso"].map((item) => (
+            <div key={item} className="flex items-center gap-2 rounded-2xl bg-white p-3" style={{ border: `1px solid ${VERDE}10` }}>
+              <CheckCircle2 size={16} strokeWidth={2.5} style={{ color: ROSA }} />
+              {item}
+            </div>
+          ))}
+        </footer>
       </main>
 
       {cartCount > 0 && (
@@ -414,6 +644,48 @@ function CompactInfo({
         <span className="block text-[11px] font-bold opacity-55">{subtitle}</span>
       </span>
     </Component>
+  );
+}
+
+function HeroMetric({
+  icon: Icon,
+  title,
+  subtitle,
+  onClick,
+}: {
+  icon: ElementType;
+  title: string;
+  subtitle: string;
+  onClick?: () => void;
+}) {
+  const Component = onClick ? "button" : "div";
+  return (
+    <Component
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      className="min-w-0 border-r px-1 text-center last:border-r-0"
+      style={{ borderColor: `${VERDE}16` }}
+    >
+      <Icon size={22} strokeWidth={2.7} style={{ color: ROSA, margin: "0 auto" }} />
+      <span className="mt-1 block text-sm font-black leading-tight">{title}</span>
+      <span className="block text-[10px] font-bold leading-tight opacity-70">
+        {subtitle}
+      </span>
+    </Component>
+  );
+}
+
+function PromoBanner({ title, copy }: { title: string; copy: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[18px] bg-white p-4 shadow-sm">
+      <span className="min-w-0">
+        <span className="block text-lg font-black uppercase" style={{ color: ROSA }}>
+          {title}
+        </span>
+        <span className="mt-1 block text-sm font-semibold opacity-70">{copy}</span>
+      </span>
+      <Gift size={26} strokeWidth={2.5} style={{ color: VERDE }} />
+    </div>
   );
 }
 
@@ -507,6 +779,7 @@ function PanelShell({
 }
 
 function ReviewsPanel({ onClose }: { onClose: () => void }) {
+  const [reviewText, setReviewText] = useState("");
   const reviews = [
     {
       name: "Artur G.",
@@ -540,6 +813,33 @@ function ReviewsPanel({ onClose }: { onClose: () => void }) {
           Clientes destacam entrega quente, combos bem servidos e molho da casa.
         </p>
       </div>
+      <form
+        className="mt-4 rounded-2xl bg-white p-4"
+        style={{ border: `1px solid ${VERDE}12` }}
+        onSubmit={(event) => {
+          event.preventDefault();
+          setReviewText("");
+        }}
+      >
+        <label className="block text-sm font-black uppercase tracking-wide">
+          Deixe sua avaliação
+        </label>
+        <textarea
+          value={reviewText}
+          onChange={(event) => setReviewText(event.target.value)}
+          className="mt-3 min-h-24 w-full resize-none rounded-2xl bg-transparent p-3 text-sm font-semibold leading-relaxed outline-none"
+          style={{ border: `1px solid ${VERDE}14`, color: VERDE }}
+          placeholder="Conte como foi seu pedido"
+        />
+        <button
+          type="submit"
+          disabled={!reviewText.trim()}
+          className="mt-3 flex h-11 w-full items-center justify-center rounded-2xl text-xs font-black uppercase tracking-wide disabled:opacity-40"
+          style={{ background: VERDE, color: ROSA }}
+        >
+          Enviar avaliação
+        </button>
+      </form>
       <div className="mt-4 grid gap-3">
         {reviews.map((review) => (
           <article
@@ -573,6 +873,29 @@ function ClubPanel({
   onOpenProfile: () => void;
 }) {
   const progress = Math.min(100, (rewardCount / 10) * 100);
+  const voucherValue = 21.9;
+  const exchangeItems = [
+    {
+      label: "Voucher Menfi's Burger",
+      value: voucherValue,
+      copy: "Liberado ao completar 10 pedidos.",
+    },
+    {
+      label: "Molho extra",
+      value: 2.9,
+      copy: "Valor de referência do adicional.",
+    },
+    {
+      label: "Extra queijo",
+      value: 2,
+      copy: "Valor de referência do adicional.",
+    },
+    {
+      label: "Refrigerante zero",
+      value: 8.9,
+      copy: "Valor de referência da bebida.",
+    },
+  ];
   return (
     <PanelShell title="Clube Menfi's" onClose={onClose}>
       <div className="mt-4 rounded-2xl p-4" style={{ background: `${ROSA}55` }}>
@@ -583,8 +906,8 @@ function ClubPanel({
             </p>
             <p className="mt-1 text-sm font-semibold opacity-70">
               {rewardRemaining > 0
-                ? `Faltam ${rewardRemaining} para ganhar um beneficio.`
-                : "Voce ja pode resgatar seu beneficio."}
+                ? `Faltam ${rewardRemaining} pedidos para liberar um voucher de troca.`
+                : `Voucher de ${fmt(voucherValue)} liberado para troca.`}
             </p>
           </div>
           <Gift size={34} strokeWidth={2.2} />
@@ -597,9 +920,9 @@ function ClubPanel({
         </div>
       </div>
       <div className="mt-4 grid gap-3">
-        {["1 burger gratis", "Frete gratis", "Molho extra", "Cupom exclusivo"].map((benefit) => (
+        {exchangeItems.map((benefit) => (
           <div
-            key={benefit}
+            key={benefit.label}
             className="flex items-center gap-3 rounded-2xl p-4"
             style={{ border: `1px solid ${VERDE}12` }}
           >
@@ -609,7 +932,22 @@ function ClubPanel({
             >
               <Gift size={19} strokeWidth={2.4} />
             </span>
-            <p className="font-black">{benefit}</p>
+            <span className="min-w-0 flex-1">
+              <span className="block font-black">{benefit.label}</span>
+              <span className="mt-1 block text-xs font-semibold opacity-60">
+                {benefit.copy}
+              </span>
+            </span>
+            <span
+              className="shrink-0"
+              style={{
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "1.4rem",
+                lineHeight: 1,
+              }}
+            >
+              {fmt(benefit.value)}
+            </span>
           </div>
         ))}
       </div>

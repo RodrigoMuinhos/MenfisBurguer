@@ -38,15 +38,21 @@ export function keepPendingStatus(
 
 export function keepHighestVisibleStatus(incoming: Order, existing?: Order) {
   if (!existing) return incoming;
+  const merged = {
+    ...incoming,
+    pixQrCode: incoming.pixQrCode ?? existing.pixQrCode,
+    pixQrCodeBase64: incoming.pixQrCodeBase64 ?? existing.pixQrCodeBase64,
+    pixTicketUrl: incoming.pixTicketUrl ?? existing.pixTicketUrl,
+  };
   if (incoming.status === "CANCELLED" || incoming.status === "DELIVERED") {
-    return incoming;
+    return merged;
   }
   const incomingRank = STATUS_RANK[incoming.status] ?? 0;
   const existingRank = STATUS_RANK[existing.status] ?? 0;
   if (incomingRank < existingRank) {
-    return { ...incoming, status: existing.status };
+    return { ...merged, status: existing.status };
   }
-  return incoming;
+  return merged;
 }
 
 export function registerMemberOrder() {

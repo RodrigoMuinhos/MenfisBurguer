@@ -76,7 +76,6 @@ export function CartScreen({
     number,
     numberRef,
     obsOpen,
-    payOnDeliveryEnabled,
     paying,
     payment,
     paymentError,
@@ -214,8 +213,6 @@ export function CartScreen({
           deliveryValid={deliveryValid}
           inputStyle={inputStyle}
           total={total}
-          delivery={delivery}
-          payOnDeliveryEnabled={payOnDeliveryEnabled}
         />
         <CheckoutReviewSection
           checkoutStep={checkoutStep}

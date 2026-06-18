@@ -9,8 +9,14 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { CartItem, Order, OrderStatus } from "@/types/order";
-import { DELIVERY_FEE, SERVICE_FEE } from "@/components/order/checkout";
+import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
+import {
+  DEFAULT_OPERATING_HOURS,
+  DELIVERY_FEE,
+  OperatingHoursConfig,
+  SERVICE_FEE,
+  normalizeOperatingHours,
+} from "@/components/order/checkout";
 import { VERDE } from "@/utils/theme";
 import { EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
 import { AdminHeader, AdminTabs, PaymentRequestsAlert } from "./AdminChrome";
@@ -49,7 +55,7 @@ interface Props {
   orders: Order[];
   updateOrderStatus: (id: string, status: OrderStatus) => void | Promise<void>;
   deleteOrder: (id: string) => void | Promise<void>;
-  updateOrderItems: (id: string, items: CartItem[], options?: { deliveryFee?: number }) => void | Promise<void>;
+  updateOrderItems: (id: string, items: CartItem[], options?: OrderUpdateOptions) => void | Promise<void>;
   onClose: () => void;
   initialTab?: AdminTab;
   adminToken: string;
@@ -86,6 +92,7 @@ export function AdminPanel({
   const [testModeEnabled, setTestModeEnabled] = useState(false);
   const [demoTableEnabled, setDemoTableEnabled] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
+  const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
   const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
 
@@ -176,22 +183,35 @@ export function AdminPanel({
     await deleteOrder(id);
   };
 
-  const handleUpdateOrderItems = async (id: string, items: CartItem[], options?: { deliveryFee?: number }) => {
+  const handleUpdateOrderItems = async (id: string, items: CartItem[], options?: OrderUpdateOptions) => {
     if (isDemoOrder(id)) {
       setDemoOrders((prev) =>
         prev.map((order) => {
           if (order.id !== id) return order;
           const subtotal = Math.round(items.reduce((sum, item) => sum + item.price * item.qty, 0) * 100) / 100;
-          const deliveryFee = order.deliveryType === "delivery" && subtotal > 0
+          const deliveryType = options?.deliveryType ?? order.deliveryType;
+          const deliveryFee = deliveryType === "delivery" && subtotal > 0
             ? Math.max(Number(options?.deliveryFee ?? order.deliveryFee ?? 0), DELIVERY_FEE)
             : Number(options?.deliveryFee ?? order.deliveryFee ?? 0);
-          const discount = Number(order.discountTotal ?? 0);
-          const serviceFee = order.deliveryType === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
+          const discount = Math.max(0, Number(options?.discountTotal ?? order.discountTotal ?? 0));
+          const serviceFee = deliveryType === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
           const total = Math.max(
             1,
             Math.round((subtotal + deliveryFee + serviceFee - discount) * 100) / 100,
           );
-          return { ...order, items, subtotal, deliveryFee, total };
+          const couponCode =
+            discount > 0 ? options?.couponCode ?? order.couponCode ?? "" : "";
+          return {
+            ...order,
+            ...options,
+            items,
+            subtotal,
+            deliveryType,
+            deliveryFee,
+            couponCode: couponCode || undefined,
+            discountTotal: discount,
+            total,
+          };
         }),
       );
       return;
@@ -264,18 +284,19 @@ export function AdminPanel({
     };
   }, [openPaymentRequests.map((order) => order.id).join("|")]);
 
+  const applyPublicSettings = (settings: Record<string, unknown>) => {
+    setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled !== false);
+    setTestModeEnabled(settings.testModeEnabled === true);
+    setDemoTableEnabled(settings.demoTableEnabled === true);
+    setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
+    setOperatingHours(normalizeOperatingHours(settings.operatingHours));
+  };
+
   useEffect(() => {
     if (!API_URL) return;
     fetch(`${API_URL}/settings/public`, { cache: "no-store" })
       .then((response) => response.json())
-      .then((settings) =>
-        {
-          setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled !== false);
-          setTestModeEnabled(settings.testModeEnabled === true);
-          setDemoTableEnabled(settings.demoTableEnabled === true);
-          setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
-        },
-      )
+      .then((settings) => applyPublicSettings(settings))
       .catch(() => undefined);
   }, []);
 
@@ -293,10 +314,7 @@ export function AdminPanel({
       });
       if (!response.ok) return;
       const settings = await response.json();
-      setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled === true);
-      setTestModeEnabled(settings.testModeEnabled === true);
-      setDemoTableEnabled(settings.demoTableEnabled === true);
-      setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
+      applyPublicSettings(settings);
       await syncCoupons();
     } finally {
       setSavingPayOnDelivery(false);
@@ -327,7 +345,29 @@ export function AdminPanel({
       });
       if (!response.ok) return;
       const settings = await response.json();
-      setFeaturedProductId(String(settings.featuredProductId ?? productId));
+      applyPublicSettings(settings);
+    } finally {
+      setSavingPayOnDelivery(false);
+    }
+  };
+
+  const updateOperatingHours = async (next: OperatingHoursConfig) => {
+    const normalized = normalizeOperatingHours(next);
+    setOperatingHours(normalized);
+    if (!API_URL || savingPayOnDelivery) return;
+    setSavingPayOnDelivery(true);
+    try {
+      const response = await fetch(`${API_URL}/settings/operating-hours`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ operatingHours: normalized }),
+      });
+      if (!response.ok) return;
+      const settings = await response.json();
+      applyPublicSettings(settings);
     } finally {
       setSavingPayOnDelivery(false);
     }
@@ -647,12 +687,14 @@ export function AdminPanel({
             testModeEnabled={testModeEnabled}
             demoTableEnabled={demoTableEnabled}
             featuredProductId={featuredProductId}
+            operatingHours={operatingHours}
             saving={savingPayOnDelivery}
             disabled={!API_URL}
             onTogglePayOnDelivery={togglePayOnDelivery}
             onToggleTestMode={toggleTestMode}
             onToggleDemoTable={toggleDemoTable}
             onFeaturedProductChange={updateFeaturedProduct}
+            onOperatingHoursChange={updateOperatingHours}
             onResetRealOperation={resetRealOperation}
           />
         )}

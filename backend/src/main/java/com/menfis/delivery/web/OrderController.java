@@ -93,7 +93,19 @@ public class OrderController {
       @Valid @RequestBody UpdateOrderItemsRequest request,
       @RequestHeader(name = "Authorization", required = false) String authorization) {
     auth.requireAdmin(authorization);
-    return orders.updateItems(id, request.items(), request.deliveryFee());
+    return orders.updateItems(
+      id,
+      request.items(),
+      request.deliveryFee(),
+      request.customerName(),
+      request.customerPhone(),
+      request.customerAddress(),
+      request.deliveryType(),
+      request.paymentMethod(),
+      request.paymentStatus(),
+      request.couponCode(),
+      request.discountTotal()
+    );
   }
 
   @DeleteMapping("/{id}")

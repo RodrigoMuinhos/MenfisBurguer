@@ -76,14 +76,16 @@ export function CartStickyCta({
                         : checkoutStep === "payment"
                           ? kioskMode || counterServiceMode
                             ? "Finalizar pagamento"
-                            : "Conferir antes de pagar"
+                            : payment === "whatsapp"
+                              ? "Abrir WhatsApp"
+                              : payment === "mercadopago"
+                                ? "Ir para Mercado Pago"
+                                : payment === "pix_qrcode" || payment === "pix"
+                                  ? "Gerar QR Code Pix"
+                                  : "Finalizar pagamento"
                           : kioskMode || counterServiceMode
                             ? "Ir para pagamento"
-                            : payment === "pagar_na_entrega"
-                              ? "Enviar pedido"
-                              : payment === "whatsapp"
-                                ? "Finalizar pedido"
-                                : "Fazer pagamento"}
+                            : "Escolher forma de pagamento"}
                   </p>
                 </div>
                 <div className="text-right">
@@ -157,8 +159,12 @@ export function CartStickyCta({
                   {paying
                     ? kioskMode || counterServiceMode
                       ? "ENVIANDO PEDIDO"
-                      : payment === "whatsapp"
+                        : payment === "whatsapp"
                         ? "ENVIANDO AO ATENDIMENTO"
+                        : payment === "mercadopago"
+                          ? "ABRINDO MERCADO PAGO"
+                          : payment === "pix_qrcode" || payment === "pix"
+                            ? "GERANDO QR CODE PIX"
                         : "INICIANDO PAGAMENTO"
                     : nextActionLabel}{" "}
                   - {fmt(total)}

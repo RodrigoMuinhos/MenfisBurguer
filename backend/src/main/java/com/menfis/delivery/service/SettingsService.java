@@ -1,6 +1,8 @@
 package com.menfis.delivery.service;
 
 import java.util.Map;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -10,11 +12,25 @@ public class SettingsService {
   public static final String TEST_MODE = "test_mode_enabled";
   public static final String FEATURED_PRODUCT = "featured_product_id";
   public static final String DEMO_TABLE = "demo_table_enabled";
+  public static final String OPERATING_HOURS = "operating_hours";
+  private static final String DEFAULT_OPERATING_HOURS = """
+    {"days":[
+      {"day":0,"label":"Domingo","open":true,"start":"18:00","end":"22:00"},
+      {"day":1,"label":"Segunda","open":false,"start":"18:00","end":"22:00"},
+      {"day":2,"label":"Terça","open":true,"start":"18:00","end":"22:00"},
+      {"day":3,"label":"Quarta","open":true,"start":"18:00","end":"22:00"},
+      {"day":4,"label":"Quinta","open":true,"start":"18:00","end":"22:00"},
+      {"day":5,"label":"Sexta","open":true,"start":"18:00","end":"22:00"},
+      {"day":6,"label":"Sábado","open":true,"start":"18:00","end":"22:00"}
+    ]}
+    """;
 
   private final JdbcTemplate jdbc;
+  private final ObjectMapper objectMapper;
 
-  public SettingsService(JdbcTemplate jdbc) {
+  public SettingsService(JdbcTemplate jdbc, ObjectMapper objectMapper) {
     this.jdbc = jdbc;
+    this.objectMapper = objectMapper;
   }
 
   public boolean payOnDeliveryEnabled() {
@@ -33,12 +49,25 @@ public class SettingsService {
     return Boolean.parseBoolean(value(DEMO_TABLE, "false"));
   }
 
+  public Map<String, Object> operatingHours() {
+    try {
+      return objectMapper.readValue(value(OPERATING_HOURS, DEFAULT_OPERATING_HOURS), new TypeReference<>() {});
+    } catch (Exception ignored) {
+      try {
+        return objectMapper.readValue(DEFAULT_OPERATING_HOURS, new TypeReference<>() {});
+      } catch (Exception fallbackError) {
+        return Map.of("days", java.util.List.of());
+      }
+    }
+  }
+
   public Map<String, Object> publicSettings() {
     return Map.of(
       "payOnDeliveryEnabled", payOnDeliveryEnabled(),
       "testModeEnabled", testModeEnabled(),
       "featuredProductId", featuredProductId(),
-      "demoTableEnabled", demoTableEnabled()
+      "demoTableEnabled", demoTableEnabled(),
+      "operatingHours", operatingHours()
     );
   }
 
@@ -92,6 +121,23 @@ public class SettingsService {
       DEMO_TABLE,
       Boolean.toString(enabled)
     );
+    return publicSettings();
+  }
+
+  public Map<String, Object> setOperatingHours(Map<String, Object> operatingHours) {
+    try {
+      jdbc.update(
+        """
+        insert into app_settings(key, value, updated_at)
+        values (?, ?, now())
+        on conflict (key) do update set value = excluded.value, updated_at = now()
+        """,
+        OPERATING_HOURS,
+        objectMapper.writeValueAsString(operatingHours == null ? Map.of() : operatingHours)
+      );
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Horário de funcionamento inválido.");
+    }
     return publicSettings();
   }
 

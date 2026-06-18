@@ -16,6 +16,7 @@ import {
   fmt,
   isBillableOrder,
   isKioskMobOrder,
+  localDateKey,
   MENU_STOCK_MAP,
   orderReadyWhatsappUrl,
   printOrderReceipts,
@@ -49,7 +50,7 @@ export function KitchenView({
   stockItems?: StockItem[];
   demoTableEnabled?: boolean;
 }) {
-  const today = demoTableEnabled ? "2026-06-12" : new Date().toISOString().slice(0, 10);
+  const today = demoTableEnabled ? "2026-06-12" : localDateKey(Date.now());
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedId, setSelectedId] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(() => {
@@ -78,7 +79,7 @@ export function KitchenView({
   const dayOrders = useMemo(
     () =>
       orders
-        .filter((order) => new Date(order.timestamp).toISOString().slice(0, 10) === selectedDate)
+        .filter((order) => localDateKey(order.timestamp) === selectedDate)
         .sort((a, b) => b.timestamp - a.timestamp),
     [orders, selectedDate],
   );

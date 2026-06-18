@@ -15,6 +15,8 @@ type DbOrderRow = {
   customer_address: string | null;
   subtotal: string | number | null;
   delivery_fee: string | number | null;
+  coupon_code: string | null;
+  discount_total: string | number | null;
   total: string | number;
   payment_provider: string | null;
   payment_method: string | null;
@@ -37,6 +39,8 @@ function mapOrder(row: DbOrderRow) {
     customerAddress: row.customer_address ?? undefined,
     subtotal: row.subtotal == null ? undefined : Number(row.subtotal),
     deliveryFee: row.delivery_fee == null ? undefined : Number(row.delivery_fee),
+    couponCode: row.coupon_code ?? undefined,
+    discountTotal: row.discount_total == null ? undefined : Number(row.discount_total),
     total: Number(row.total),
     paymentProvider: row.payment_provider ?? undefined,
     paymentMethod: row.payment_method ?? undefined,
@@ -99,9 +103,10 @@ export async function PATCH(
     subtotal: string | number | null;
     delivery_fee: string | number | null;
     total: string | number;
+    coupon_code: string | null;
     discount_total: string | number | null;
   }>(
-    "select status, delivery_type, items, subtotal, delivery_fee, total, discount_total from orders where id = $1",
+    "select status, delivery_type, items, subtotal, delivery_fee, total, coupon_code, discount_total from orders where id = $1",
     [id],
   );
 
@@ -134,27 +139,71 @@ export async function PATCH(
     hasRequestedDeliveryFee && Number.isFinite(requestedDeliveryFee)
       ? Math.round(requestedDeliveryFee * 100) / 100
       : oldDeliveryFee;
+  const requestedDeliveryType =
+    body.deliveryType === "delivery" || body.deliveryType === "retirada"
+      ? body.deliveryType
+      : current.rows[0].delivery_type;
   const effectiveDeliveryFee =
-    current.rows[0].delivery_type === "delivery" && subtotal > 0
+    requestedDeliveryType === "delivery" && subtotal > 0
       ? Math.max(deliveryFee, 7.1)
       : deliveryFee;
   const oldTotal = Number(current.rows[0].total ?? 0);
-  const discount = Number(current.rows[0].discount_total ?? 0);
-  const serviceFee = Math.max(0, Math.round((oldTotal + discount - oldSubtotal - oldDeliveryFee) * 100) / 100);
+  const oldDiscount = Number(current.rows[0].discount_total ?? 0);
+  const discount =
+    body.discountTotal == null
+      ? oldDiscount
+      : Math.max(0, Math.round(Number(body.discountTotal) * 100) / 100);
+  const serviceFee = Math.max(0, Math.round((oldTotal + oldDiscount - oldSubtotal - oldDeliveryFee) * 100) / 100);
   const total = Math.max(1, Math.round((subtotal + effectiveDeliveryFee + serviceFee - discount) * 100) / 100);
+  const couponCode =
+    discount <= 0
+      ? null
+      : typeof body.couponCode === "string"
+        ? body.couponCode.trim() || null
+        : current.rows[0].coupon_code;
+  const effectiveCouponCode =
+    couponCode && discount > 0
+      ? couponCode
+      : null;
 
   const updated = await getPool().query<DbOrderRow>(
     `
       update orders
-      set items = $2::jsonb, subtotal = $3, delivery_fee = $4, total = $5, updated_at = now()
+      set items = $2::jsonb,
+          subtotal = $3,
+          delivery_fee = $4,
+          total = $5,
+          customer_name = coalesce($6, customer_name),
+          customer_phone = coalesce($7, customer_phone),
+          customer_address = coalesce($8, customer_address),
+          delivery_type = $9,
+          payment_method = coalesce($10, payment_method),
+          payment_status = coalesce($11, payment_status),
+          coupon_code = $12,
+          discount_total = $13,
+          updated_at = now()
       where id = $1
       returning
         id, number, items, removed_by_item_id, channel, delivery_type,
         customer_name, customer_phone, customer_address, subtotal, delivery_fee,
-        total, payment_provider, payment_method, payment_status, payment_id,
+        coupon_code, discount_total, total, payment_provider, payment_method, payment_status, payment_id,
         timestamp, status
     `,
-    [id, JSON.stringify(items), subtotal, effectiveDeliveryFee, total],
+    [
+      id,
+      JSON.stringify(items),
+      subtotal,
+      effectiveDeliveryFee,
+      total,
+      typeof body.customerName === "string" ? body.customerName.trim() || null : null,
+      typeof body.customerPhone === "string" ? body.customerPhone.trim() || null : null,
+      typeof body.customerAddress === "string" ? body.customerAddress.trim() || null : null,
+      requestedDeliveryType,
+      typeof body.paymentMethod === "string" ? body.paymentMethod.trim() || null : null,
+      typeof body.paymentStatus === "string" ? body.paymentStatus.trim() || null : null,
+      effectiveCouponCode,
+      discount,
+    ],
   );
 
   return NextResponse.json({ ok: true, order: mapOrder(updated.rows[0]) });

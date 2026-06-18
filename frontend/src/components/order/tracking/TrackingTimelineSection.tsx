@@ -61,15 +61,19 @@ export function TrackingTimelineSection({
         : "Aguardando Pagamento";
   const method = String(order.paymentMethod ?? "").toLowerCase();
   const paymentMethodLabel =
-    method === "pix"
-      ? "PIX Mercado Pago"
+    method === "pix_qrcode" || method === "pix"
+      ? "QR Code Pix"
+      : method === "mercadopago"
+        ? "Mercado Pago"
       : method === "credit_card" || method === "credito"
         ? "Cartão de Crédito Mercado Pago"
         : method === "debit_card" || method === "debito"
           ? "Cartão de Débito Mercado Pago"
           : method === "cartao"
             ? "Cartão Mercado Pago"
-            : "Pagamento Presencial com Atendente";
+        : method === "whatsapp"
+          ? "Pagamento pelo WhatsApp"
+          : "Pagamento Presencial com Atendente";
   const steps = counterServiceMode ? STEPS.slice(0, 4) : STEPS;
   const displayCurrent = Math.min(current, steps.length - 1);
   const timelineCopy =
@@ -82,7 +86,9 @@ export function TrackingTimelineSection({
       : waitingPayment
       ? whatsappPayment
         ? "Seu pedido foi enviado ao atendimento. A equipe vai chamar no WhatsApp, receber o pagamento e liberar para a cozinha."
-        : "Finalize o pagamento pelo Mercado Pago. O pedido só entra na cozinha depois da confirmação."
+        : showPixPayment
+          ? "Pague pelo QR Code Pix abaixo. Depois do pagamento, retorne para esta tela para acompanhar a confirmação."
+          : "Finalize o pagamento pelo Mercado Pago. Depois do pagamento, retorne para esta tela para acompanhar a confirmação."
       : paymentFailed
         ? "Esse pagamento não foi aprovado. Tente novamente para enviar o pedido para a cozinha."
         : order.status === "PAID"
@@ -137,7 +143,7 @@ export function TrackingTimelineSection({
                 </p>
               )}
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {!whatsappPayment && (
+                {!whatsappPayment && !showPixPayment && (
                   <button
                     onClick={onRetryPayment}
                     disabled={retryingPayment}

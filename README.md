@@ -53,6 +53,25 @@ https://menfisburguer-production.up.railway.app/dashboard/summary
 
 Se retornar uma pagina HTML 404 do Next, o Railway ainda esta apontando para o frontend ou para a raiz errada.
 
+## Docker local
+
+Para rodar frontend e backend em containers locais:
+
+```powershell
+Copy-Item .env.docker.example .env.local
+# Edite .env.local e preencha DATABASE_URL/JWT_SECRET e tokens opcionais.
+docker compose up --build
+```
+
+URLs locais:
+
+```txt
+Frontend: http://localhost:3000
+Backend:  http://localhost:8080
+```
+
+O frontend do container e compilado apontando para `NEXT_PUBLIC_API_URL`, por padrao `http://localhost:8080`.
+
 ## Totem Electron
 
 O modo totem leva a interface kiosk dentro do executavel, abre em tela cheia e oferece somente:

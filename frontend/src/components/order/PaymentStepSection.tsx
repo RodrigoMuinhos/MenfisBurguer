@@ -6,7 +6,6 @@ import {
   MessageCircle,
   QrCode,
   Store,
-  Truck,
 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -85,8 +84,6 @@ export function PaymentStepSection({
   deliveryValid,
   inputStyle,
   total,
-  delivery,
-  payOnDeliveryEnabled,
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
@@ -104,8 +101,6 @@ export function PaymentStepSection({
   deliveryValid: boolean;
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
-  delivery: "retirada" | "delivery";
-  payOnDeliveryEnabled: boolean;
 }) {
   return (
     <>
@@ -234,10 +229,12 @@ export function PaymentStepSection({
                                 ? "Pagamento presencial no balcão"
                                 : kioskMode
                                 ? "Escolha a forma de pagamento"
-                                : payment === "pix"
-                                  ? "Pix Mercado Pago"
+                                  : payment === "mercadopago"
+                                  ? "Mercado Pago"
+                                  : payment === "pix_qrcode" || payment === "pix"
+                                  ? "QR Code Pix"
                                   : payment === "cartao"
-                                    ? "Cartão online Mercado Pago"
+                                    ? "Cartão online"
                                     : payment === "pagar_na_entrega"
                                       ? "Cartão na entrega"
                                         : payment === "presencial"
@@ -260,7 +257,11 @@ export function PaymentStepSection({
                                      ? "O pedido será enviado para a loja e o pagamento será feito no balcão."
                                       : payment === "whatsapp"
                                         ? "A equipe chama no WhatsApp para combinar o pagamento antes de liberar a cozinha."
-                                    : "Você finaliza pelo Mercado Pago. Assim que aprovar, o pedido entra na cozinha."}
+                                    : payment === "mercadopago"
+                                      ? "Você será direcionado para o Mercado Pago, onde pode escolher crédito ou Pix. Depois do pagamento, retorne para acompanhar o pedido."
+                                      : payment === "pix_qrcode" || payment === "pix"
+                                        ? "Vamos gerar um QR Code Pix. Pague no app do banco e retorne para esta tela para acompanhar a confirmação."
+                                        : "Você finaliza pelo Mercado Pago. Assim que aprovar, o pedido entra na cozinha."}
                             </p>
                           </div>
                         </div>
@@ -298,24 +299,24 @@ export function PaymentStepSection({
                               [
                                 {
                                   id: "whatsapp" as PaymentMethod,
-                                  label: "Pagar pelo WhatsApp",
-                                  copy: "Atendimento combina e libera",
+                                  label: "Pagar WhatsApp",
+                                  copy: "Atendente envia a forma de pagamento",
                                   Icon: MessageCircle,
                                   show: true,
                                 },
                                 {
-                                  id: "pagar_na_entrega" as PaymentMethod,
-                                  label: "Pagar na entrega",
-                                  copy: "Cartão com o entregador",
-                                  Icon: Truck,
-                                  show: delivery === "delivery" && payOnDeliveryEnabled,
+                                  id: "mercadopago" as PaymentMethod,
+                                  label: "Mercado Pago",
+                                  copy: "Crédito ou Pix na página segura",
+                                  Icon: CreditCard,
+                                  show: true,
                                 },
                                 {
-                                  id: "presencial" as PaymentMethod,
-                                  label: "Pagar no balcão",
-                                  copy: "Para retirada ou consumo local",
-                                  Icon: Store,
-                                  show: delivery === "retirada",
+                                  id: "pix_qrcode" as PaymentMethod,
+                                  label: "QR Code Pix",
+                                  copy: "Gera Pix para copiar ou escanear",
+                                  Icon: QrCode,
+                                  show: true,
                                 },
                               ] as {
                                 id: PaymentMethod;
@@ -354,82 +355,24 @@ export function PaymentStepSection({
                               );
                             })}
                           </div>
-                          <div
-                            className="rounded-2xl p-3"
-                            style={{
-                              background: `${VERDE}06`,
-                              border: `1px solid ${VERDE}12`,
-                            }}
-                          >
-                            <SectionLabel>Ou pague agora pelo Mercado Pago</SectionLabel>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              {(
-                                [
-                                  {
-                                    id: "pix" as PaymentMethod,
-                                    label: "Pix Mercado Pago",
-                                    copy: "QR Code ou copia e cola",
-                                    Icon: QrCode,
-                                  },
-                                  {
-                                    id: "cartao" as PaymentMethod,
-                                    label: "Cartão online",
-                                    copy: "Crédito ou débito",
-                                    Icon: CreditCard,
-                                  },
-                                ] as {
-                                  id: PaymentMethod;
-                                  label: string;
-                                  copy: string;
-                                  Icon: React.ElementType;
-                                }[]
-                              ).map(({ id, label, copy, Icon }) => {
-                                const active = payment === id;
-                                return (
-                                  <button
-                                    key={id}
-                                    onClick={() => setPayment(id)}
-                                    className="flex min-h-[96px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-black uppercase tracking-wider"
-                                    style={{
-                                      background: active ? VERDE : "#fff",
-                                      color: active ? ROSA : VERDE,
-                                      border: `2px solid ${active ? VERDE : ROSA}`,
-                                      cursor: "pointer",
-                                      transition:
-                                        "background 0.2s, color 0.2s, border-color 0.2s",
-                                    }}
-                                  >
-                                    <Icon size={24} strokeWidth={2.4} />
-                                    {label}
-                                    <span
-                                      className="text-[11px] normal-case tracking-normal font-bold"
-                                      style={{ opacity: 0.62 }}
-                                    >
-                                      {copy}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          {payment === "pix" && (
+                          {payment === "pix_qrcode" && (
                             <PaymentHint
-                              title="Pix online"
-                              copy="Ao finalizar, abrimos o Mercado Pago. Se o QR Code Pix for retornado, ele aparece no acompanhamento. Enquanto não confirmar, mostraremos: Estamos aguardando confirmação do pagamento."
+                              title="QR Code Pix"
+                              copy="Ao finalizar, geramos um Pix do Mercado Pago. A tela de acompanhamento mostra o QR Code e o copia e cola. Depois de pagar, é necessário retornar para a tela do pedido para acompanhar a confirmação."
                               total={total}
                             />
                           )}
                           {payment === "whatsapp" && (
                             <PaymentHint
                               title="Pagar pelo WhatsApp"
-                              copy="Ao finalizar, o pedido vai para o atendimento. A equipe chama no WhatsApp, confirma o pagamento e libera para a cozinha."
+                              copy="Ao finalizar, abrimos o WhatsApp com o resumo do pedido. A equipe confirma a forma de pagamento por lá e libera a cozinha depois da confirmação."
                               total={total}
                             />
                           )}
-                          {payment === "cartao" && (
+                          {payment === "mercadopago" && (
                             <PaymentHint
-                              title="Cartão online"
-                              copy="O cliente paga no ambiente seguro do Mercado Pago. Pagamento aprovado libera o pedido para a cozinha automaticamente."
+                              title="Mercado Pago"
+                              copy="Ao finalizar, você será direcionado para a página segura do Mercado Pago. Lá pode pagar no crédito ou no Pix. Depois de concluir, retorne para a tela do pedido para acompanhar o status."
                               total={total}
                             />
                           )}

@@ -174,7 +174,7 @@ export function CheckoutReviewSection({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>
-                {counterFlow ? "Envio direto para cozinha" : "Tudo pronto para pagar"}
+                {counterFlow ? "Envio direto para cozinha" : "Revise antes de escolher o pagamento"}
               </p>
               <p
                 className="mt-1 text-[11px] leading-relaxed"
@@ -182,11 +182,7 @@ export function CheckoutReviewSection({
               >
                 {counterFlow
                   ? "Ao confirmar, o pedido será enviado para a cozinha e o pagamento será feito no balcão."
-                  : payment === "pagar_na_entrega"
-                    ? "Ao continuar, o pedido será enviado para a cozinha e o pagamento será feito no recebimento."
-                    : payment === "whatsapp"
-                      ? "Ao continuar, o pedido será enviado ao atendimento. A equipe chamará no WhatsApp, receberá o pagamento e liberará para a cozinha."
-                      : "Ao continuar, o pedido será registrado no backend e você será enviado para o Mercado Pago para pagar com Pix ou cartão."}
+                  : "Confira os itens, entrega e total. Ao continuar, você escolhe entre WhatsApp, Mercado Pago ou QR Code Pix. Depois de pagar fora do app, retorne para a tela do pedido para acompanhar a confirmação."}
               </p>
             </div>
           </div>

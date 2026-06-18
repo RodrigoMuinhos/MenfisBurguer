@@ -62,6 +62,7 @@ export async function ensureOrdersSchema() {
       subtotal numeric(12,2),
       delivery_fee numeric(12,2) not null default 0,
       total numeric(12,2) not null,
+      coupon_code text,
       discount_total numeric(12,2) not null default 0,
       payment_provider text,
       payment_method text,
@@ -78,6 +79,7 @@ export async function ensureOrdersSchema() {
     alter table orders add column if not exists customer_name text;
     alter table orders add column if not exists subtotal numeric(12,2);
     alter table orders add column if not exists delivery_fee numeric(12,2) not null default 0;
+    alter table orders add column if not exists coupon_code text;
     alter table orders add column if not exists discount_total numeric(12,2) not null default 0;
     alter table orders add column if not exists payment_method text;
     alter table orders add column if not exists payment_status text not null default 'not_required';

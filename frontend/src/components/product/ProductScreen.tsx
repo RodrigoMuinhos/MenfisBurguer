@@ -78,6 +78,12 @@ function hasRequiredCustomerProfile(profile: MemberProfile | null) {
   );
 }
 
+function comboPotatoComponent(item: MenuItem) {
+  return requiredCustomizerCount(item) > 1
+    ? "2 Batatas Fritas 200g"
+    : "Batata Frita 200g";
+}
+
 interface Props {
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, "qty">) => void;
@@ -164,12 +170,14 @@ export function ProductScreen({
   const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const filteredItems = useMemo(() => {
     if (category === "chicken") {
-      return MENU_ITEMS.filter((item) => isChickenProduct(item));
+      return MENU_ITEMS.filter(
+        (item) => item.category === "burger" && isChickenProduct(item),
+      );
     }
     if (category === "bacon") {
       return MENU_ITEMS.filter((item) => {
         const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
-        return text.includes("bacon");
+        return item.category === "burger" && text.includes("bacon");
       });
     }
     if (category === "burger") {
@@ -339,7 +347,7 @@ export function ProductScreen({
         ? [
             item.name,
             ...(item.category === "combo"
-              ? ["Guaraná Zero", "Batata Frita 250g"]
+              ? ["Guaraná Zero", comboPotatoComponent(item)]
               : []),
             "Maionese Alho Frito",
           ]
@@ -387,7 +395,9 @@ export function ProductScreen({
       const components = [
         customizer.item.name,
         ...drinkLabels,
-        ...(customizer.item.category === "combo" ? ["Batata Frita 250g"] : []),
+        ...(customizer.item.category === "combo"
+          ? [comboPotatoComponent(customizer.item)]
+          : []),
         ...customizer.sauces,
       ];
       addToCart({
