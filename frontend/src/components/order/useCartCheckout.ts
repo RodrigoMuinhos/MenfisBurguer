@@ -58,7 +58,7 @@ export function useCartCheckout({
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("bag");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [payment, setPayment] = useState<PaymentMethod>(
-    kioskMode || counterServiceMode ? "pix" : "pix",
+    kioskMode || counterServiceMode ? "pix" : "whatsapp",
   );
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -163,9 +163,10 @@ export function useCartCheckout({
       current === "pix" ||
       current === "cartao" ||
       current === "pagar_na_entrega" ||
-      current === "presencial"
+      current === "presencial" ||
+      current === "whatsapp"
         ? current
-        : "pix",
+        : "whatsapp",
     );
   }, [counterServiceMode, kioskMode]);
 
