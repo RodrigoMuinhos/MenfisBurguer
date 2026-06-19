@@ -19,9 +19,9 @@ Configure o projeto Vercel com:
 Variaveis do frontend:
 
 ```env
-NEXT_PUBLIC_API_URL=https://menfisburguer-production.up.railway.app
-NEXT_PUBLIC_MP_PUBLIC_KEY=APP_USR-dc31a91c-3aef-4128-92b8-8359b01ba106
-APP_BASE_URL=https://www.menfisburguer.com.br
+NEXT_PUBLIC_API_URL=<URL_PUBLICA_DO_BACKEND>
+NEXT_PUBLIC_MP_PUBLIC_KEY=<PUBLIC_KEY_MERCADO_PAGO>
+APP_BASE_URL=<URL_PUBLICA_DO_FRONTEND>
 ```
 
 ## Railway
@@ -35,23 +35,17 @@ Configure o servico Railway com:
 Variaveis do backend ficam no Railway, nao na Vercel:
 
 ```env
-DATABASE_URL=postgresql://...
-MERCADO_PAGO_ACCESS_TOKEN=APP_USR-...
-MP_ACCESS_TOKEN=APP_USR-...
-FRONTEND_URL=https://www.menfisburguer.com.br
-BACKEND_URL=https://menfisburguer-production.up.railway.app
-JWT_SECRET=...
+DATABASE_URL=<CONNECTION_STRING_PRIVADA>
+MERCADO_PAGO_ACCESS_TOKEN=<TOKEN_PRIVADO_MERCADO_PAGO>
+MP_ACCESS_TOKEN=<TOKEN_PRIVADO_MERCADO_PAGO>
+FRONTEND_URL=<URL_PUBLICA_DO_FRONTEND>
+BACKEND_URL=<URL_PUBLICA_DO_BACKEND>
+JWT_SECRET=<SEGREDO_FORTE>
 ```
 
 ## Teste de backend
 
-Depois do deploy Railway, esta URL deve retornar JSON:
-
-```txt
-https://menfisburguer-production.up.railway.app/dashboard/summary
-```
-
-Se retornar uma pagina HTML 404 do Next, o Railway ainda esta apontando para o frontend ou para a raiz errada.
+Depois do deploy, valide a saude do backend usando a URL publica configurada no provedor. Nao publique endpoints internos ou URLs sensiveis no repositorio.
 
 ## Docker local
 
@@ -63,14 +57,7 @@ Copy-Item .env.docker.example .env.local
 docker compose up --build
 ```
 
-URLs locais:
-
-```txt
-Frontend: http://localhost:3000
-Backend:  http://localhost:8080
-```
-
-O frontend do container e compilado apontando para `NEXT_PUBLIC_API_URL`, por padrao `http://localhost:8080`.
+URLs locais devem ficar apenas no arquivo `.env.local` da maquina de desenvolvimento. O frontend do container e compilado apontando para `NEXT_PUBLIC_API_URL`.
 
 ## Totem Electron
 
@@ -126,13 +113,6 @@ Gere os dois com:
 cd frontend
 npm run build:apps
 ```
-
-### Rotas da aplicacao
-
-- `/delivery`: canal web com pagamento Mercado Pago.
-- `/kiosk`: canal presencial.
-- `/adm`: painel administrativo.
-- `/kds`: acesso direto ao quadro da cozinha.
 
 Pedidos usam `channel: DELIVERY | KIOSK` e os status canônicos definidos em
 `frontend/src/types/order.ts`. O backend converte pedidos legados pela migração

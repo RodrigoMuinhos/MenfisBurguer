@@ -9,8 +9,8 @@ services:
     environment:
       MENFIS_ENVIRONMENT: local
       PORT: 8080
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      FRONTEND_URL: ${FRONTEND_URL:?configure FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL:?configure BACKEND_URL}
       JAVA_OPTS: -Djava.net.preferIPv4Stack=true -Dnetworkaddress.cache.ttl=0
     dns:
       - 1.1.1.1
@@ -24,7 +24,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?configure NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY:-}
     container_name: menfis-frontend
     env_file:
@@ -33,7 +33,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?configure NEXT_PUBLIC_API_URL}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:

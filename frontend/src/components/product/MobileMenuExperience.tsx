@@ -1089,11 +1089,15 @@ function SubscriptionPanel({
       const data = await response.json().catch(() => ({}));
       const checkoutUrl = data.checkoutUrl || data.sandboxCheckoutUrl;
       if (!response.ok || !checkoutUrl) {
-        throw new Error(data.error || "club_checkout_failed");
+        throw new Error(
+          data.details?.message ||
+            data.error ||
+            "Nao foi possivel criar o checkout do Mercado Pago.",
+        );
       }
       window.location.href = checkoutUrl;
-    } catch {
-      setError("Nao foi possivel abrir o Mercado Pago. Tente novamente.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Nao foi possivel abrir o Mercado Pago. Tente novamente.");
       setSubscribingPlan(null);
     }
   };
@@ -1218,18 +1222,6 @@ function SubscriptionPanel({
         </div>
       </div>
 
-      <div
-        className="mt-4 rounded-2xl p-4"
-        style={{ background: `${ROSA}45`, border: `1px solid ${VINHO}10` }}
-      >
-        <p className="text-sm font-black uppercase tracking-wide">
-          Ativacao automatica
-        </p>
-        <p className="mt-2 text-xs font-semibold leading-relaxed opacity-70">
-          Apos aprovacao, o pacote fica vinculado ao ID do cliente e os
-          beneficios aparecem no fechamento do pedido.
-        </p>
-      </div>
       {error && (
         <p
           className="mt-3 rounded-2xl px-4 py-3 text-xs font-black leading-relaxed"

@@ -10,28 +10,24 @@ npm ci
 npm run dev
 ```
 
-Abra:
-
-```txt
-http://localhost:3000
-```
+Abra a URL local indicada pelo servidor de desenvolvimento.
 
 ## Variaveis
 
 Use `.env.local` nesta pasta para desenvolvimento local:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-NEXT_PUBLIC_MP_PUBLIC_KEY=APP_USR-...
-APP_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=<URL_LOCAL_OU_PUBLICA_DO_BACKEND>
+NEXT_PUBLIC_MP_PUBLIC_KEY=<PUBLIC_KEY_MERCADO_PAGO>
+APP_BASE_URL=<URL_LOCAL_OU_PUBLICA_DO_FRONTEND>
 ```
 
 Em producao na Vercel:
 
 ```env
-NEXT_PUBLIC_API_URL=https://menfisburguer-production.up.railway.app
-NEXT_PUBLIC_MP_PUBLIC_KEY=APP_USR-...
-APP_BASE_URL=https://www.menfisburguer.com.br
+NEXT_PUBLIC_API_URL=<URL_PUBLICA_DO_BACKEND>
+NEXT_PUBLIC_MP_PUBLIC_KEY=<PUBLIC_KEY_MERCADO_PAGO>
+APP_BASE_URL=<URL_PUBLICA_DO_FRONTEND>
 ```
 
 ## Deploy Vercel

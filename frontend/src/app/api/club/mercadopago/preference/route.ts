@@ -25,6 +25,24 @@ function isClubPlan(plan: unknown): plan is ClubPlan {
   return plan === "silver" || plan === "gold";
 }
 
+function isLocalUrl(value: string) {
+  try {
+    const hostname = new URL(value).hostname;
+    return hostname === "localhost" || hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
+function publicAppBaseUrl(origin: string) {
+  const envUrl = process.env.APP_BASE_URL?.replace(/\/$/, "") || "";
+  const appBaseUrl = origin || envUrl;
+  if (process.env.NODE_ENV === "production" && isLocalUrl(appBaseUrl)) {
+    return "";
+  }
+  return appBaseUrl;
+}
+
 export async function POST(request: Request) {
   const accessToken = process.env.MP_ACCESS_TOKEN;
   if (!accessToken) {
@@ -49,10 +67,10 @@ export async function POST(request: Request) {
     typeof body.origin === "string" && body.origin.startsWith("http")
       ? body.origin.replace(/\/$/, "")
       : "";
-  const appBaseUrl = process.env.APP_BASE_URL?.replace(/\/$/, "") || origin;
+  const appBaseUrl = publicAppBaseUrl(origin);
   if (!appBaseUrl) {
     return NextResponse.json(
-      { error: "app_base_url_required" },
+      { error: "public_app_base_url_required" },
       { status: 400 },
     );
   }
