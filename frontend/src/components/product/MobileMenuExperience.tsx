@@ -9,7 +9,6 @@ import {
   Flame,
   Gift,
   Home,
-  Menu,
   MessageCircle,
   Package,
   Plus,
@@ -31,6 +30,7 @@ type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon";
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
 const PINK = "#EC1767";
+const BRAND_M_LOGO = "/logo_M_square.png";
 const MOBILE_CATEGORIES: Array<{ id: MobileCategory; label: string; icon: ElementType }> = [
   { id: "promo", label: "Promocoes", icon: Flame },
   { id: "combo", label: "Combos", icon: Package },
@@ -119,7 +119,7 @@ export function MobileMenuExperience({
 }) {
   const [category, setCategory] = useState<MobileCategory>("combo");
   const [query, setQuery] = useState("");
-  const [panel, setPanel] = useState<"reviews" | "club" | null>(null);
+  const [panel, setPanel] = useState<"reviews" | "club" | "subscribe" | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const rewardCount = memberProfile?.orders ? memberProfile.orders % 10 : 0;
   const rewardRemaining = Math.max(0, 10 - rewardCount);
@@ -147,7 +147,7 @@ export function MobileMenuExperience({
       <header className="relative overflow-hidden bg-white px-4 pb-5 pt-4">
         <div className="pointer-events-none absolute inset-0 z-0 bg-white" />
         <div className="relative z-10 flex items-center justify-between gap-3">
-          <IconButton label="Abrir menu" icon={Menu} onClick={onOpenMember} filled />
+          <BrandMenuButton onClick={onOpenMember} />
           <button type="button" onClick={onOpenMember} className="text-center">
             <p className="uppercase" style={{ color: ROSA, fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "2.65rem", lineHeight: 0.85, letterSpacing: 0 }}>
               Menfi's
@@ -195,7 +195,7 @@ export function MobileMenuExperience({
           </button>
         </div>
 
-        <OfferCarousel onOpenClub={() => setPanel("club")} />
+        <OfferCarousel onOpenClub={() => setPanel("club")} onSubscribe={() => setPanel("subscribe")} />
 
         <button type="button" onClick={scrollToProducts} className="relative z-10 mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase tracking-wide" style={{ background: PINK, color: "#fff" }}>
           Fazer pedido agora <ChevronRight size={20} strokeWidth={2.8} />
@@ -246,7 +246,7 @@ export function MobileMenuExperience({
               <span className="block text-xl font-black leading-tight">{fmt(cartTotal)}</span>
             </span>
             <span className="flex h-12 shrink-0 items-center gap-2 rounded-2xl px-3 text-xs font-black" style={{ background: PINK, color: "#fff" }}>
-              FINALIZAR PEDIDO <ChevronRight size={17} strokeWidth={2.8} />
+              VER PEDIDO <ChevronRight size={17} strokeWidth={2.8} />
             </span>
           </button>
         </div>
@@ -258,7 +258,7 @@ export function MobileMenuExperience({
         rel="noreferrer"
         className="fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
         style={{
-          bottom: cartCount > 0 ? 160 : 86,
+          bottom: cartCount > 0 ? 178 : 86,
           background: VINHO,
           color: ROSA,
           boxShadow: "0 16px 34px rgba(101,0,31,0.32)",
@@ -270,8 +270,23 @@ export function MobileMenuExperience({
 
       <MobileBottomNav cartCount={cartCount} onHome={() => window.scrollTo({ top: 0, behavior: "smooth" })} onSearch={() => searchRef.current?.focus()} onOrders={goToCart} onClub={() => setPanel("club")} onProfile={onOpenMember} />
       {panel === "reviews" && <ReviewsPanel onClose={() => setPanel(null)} />}
-      {panel === "club" && <ClubPanel rewardCount={rewardCount} rewardRemaining={rewardRemaining} onClose={() => setPanel(null)} onOpenProfile={onOpenMember} />}
+      {panel === "club" && <ClubPanel rewardCount={rewardCount} rewardRemaining={rewardRemaining} onClose={() => setPanel(null)} onSubscribe={() => setPanel("subscribe")} />}
+      {panel === "subscribe" && <SubscriptionPanel memberProfile={memberProfile} onClose={() => setPanel(null)} onLogin={onOpenMember} />}
     </div>
+  );
+}
+
+function BrandMenuButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full"
+      style={{ background: "#fff", color: VINHO, border: `2px solid ${ROSA}`, boxShadow: "0 10px 22px rgba(101,0,31,0.12)" }}
+      aria-label="Abrir menu"
+      onClick={onClick}
+    >
+      <Image src={BRAND_M_LOGO} alt="Menfi's" fill sizes="48px" style={{ objectFit: "cover" }} />
+    </button>
   );
 }
 
@@ -314,7 +329,7 @@ function CategoryNav({ category, setCategory }: { category: MobileCategory; setC
   );
 }
 
-function OfferCarousel({ onOpenClub }: { onOpenClub: () => void }) {
+function OfferCarousel({ onOpenClub, onSubscribe }: { onOpenClub: () => void; onSubscribe: () => void }) {
   const offers = [
     {
       id: "mfb10",
@@ -335,6 +350,16 @@ function OfferCarousel({ onOpenClub }: { onOpenClub: () => void }) {
       suffix: "2o combo",
       icon: Flame,
       action: onOpenClub,
+    },
+    {
+      id: "club",
+      eyebrow: "Menfi's Club",
+      title: "Assinar agora",
+      copy: "Frete gratis e descontos exclusivos nos pedidos",
+      value: "R$ 6,90",
+      suffix: "ao mes",
+      icon: Gift,
+      action: onSubscribe,
     },
   ];
 
@@ -462,12 +487,12 @@ function ReviewsPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ClubPanel({ rewardCount, rewardRemaining, onClose, onOpenProfile }: { rewardCount: number; rewardRemaining: number; onClose: () => void; onOpenProfile: () => void }) {
+function ClubPanel({ rewardCount, rewardRemaining, onClose, onSubscribe }: { rewardCount: number; rewardRemaining: number; onClose: () => void; onSubscribe: () => void }) {
   const progress = Math.min(100, (rewardCount / 10) * 100);
   const benefits = [
-    { label: "Assinatura", value: "R$ 9,90/mes", copy: "Plano mensal do Clube Menfi's." },
-    { label: "10 vouchers de frete gratis", value: "Mensal", copy: "Acima de R$ 59,90 para membros." },
-    { label: "5 cupons de 10% OFF", value: "Opcao", copy: "Alternativa mensal aos vouchers de frete." },
+    { label: "Pacote Assinante", value: "R$ 6,90/mes", copy: "5 fretes gratis e 5 descontos de R$ 10,00." },
+    { label: "Pacote Assinante Plus", value: "R$ 12,90/mes", copy: "10 fretes gratis e 5 descontos de R$ 10,00." },
+    { label: "Escolha no checkout", value: "Pedido", copy: "Use frete gratis, R$ 10 OFF ou nenhum beneficio." },
     { label: "Promocoes exclusivas", value: "Clube", copy: "Ofertas especiais para membros." },
     { label: "Acesso antecipado", value: "Lancamentos", copy: "Novidades aparecem primeiro para membros." },
   ];
@@ -499,9 +524,68 @@ function ClubPanel({ rewardCount, rewardRemaining, onClose, onOpenProfile }: { r
           </div>
         ))}
       </div>
-      <button type="button" onClick={() => { onClose(); onOpenProfile(); }} className="mt-5 flex h-13 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide" style={{ background: VINHO, color: ROSA }}>
-        Ver minha conta
+      <button type="button" onClick={onSubscribe} className="mt-5 flex h-13 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide" style={{ background: VINHO, color: ROSA }}>
+        Assinar
       </button>
+    </PanelShell>
+  );
+}
+
+function SubscriptionPanel({ memberProfile, onClose, onLogin }: { memberProfile: MemberProfile | null; onClose: () => void; onLogin: () => void }) {
+  const plans = [
+    {
+      name: "Pacote Assinante",
+      price: "R$ 6,90/mes",
+      benefits: ["Frete gratis em ate 5 pedidos", "R$ 10,00 OFF em ate 5 pedidos"],
+    },
+    {
+      name: "Pacote Assinante Plus",
+      price: "R$ 12,90/mes",
+      benefits: ["Frete gratis em ate 10 pedidos", "R$ 10,00 OFF em ate 5 pedidos"],
+    },
+  ];
+  return (
+    <PanelShell title="Assinar Menfi's Club" onClose={onClose}>
+      <div className="mt-4 rounded-2xl p-4" style={{ background: `${ROSA}50`, border: `1px solid ${VINHO}10` }}>
+        <p className="text-sm font-black uppercase tracking-wide">Pagamento exclusivo via Mercado Pago</p>
+        <p className="mt-2 text-xs font-semibold leading-relaxed opacity-70">
+          A assinatura deve ser ativada pelo ID do cliente apos aprovacao do pagamento. No checkout, o assinante escolhe frete gratis, R$ 10,00 de desconto ou nenhum beneficio.
+        </p>
+      </div>
+      <div className="mt-4 grid gap-3">
+        {plans.map((plan) => (
+          <article key={plan.name} className="rounded-2xl bg-white p-4" style={{ border: `1px solid ${VINHO}12` }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-lg font-black uppercase leading-tight">{plan.name}</p>
+                <p className="mt-1 text-sm font-semibold opacity-70">Renovacao mensal</p>
+              </div>
+              <p className="shrink-0 text-right text-base font-black">{plan.price}</p>
+            </div>
+            <div className="mt-4 grid gap-2">
+              {plan.benefits.map((benefit) => (
+                <p key={benefit} className="rounded-xl px-3 py-2 text-xs font-black" style={{ background: `${ROSA}55` }}>
+                  {benefit}
+                </p>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!memberProfile) {
+                  onClose();
+                  onLogin();
+                }
+              }}
+              className="mt-4 flex h-12 w-full items-center justify-center rounded-2xl text-xs font-black uppercase tracking-wide disabled:opacity-70"
+              style={{ background: VINHO, color: ROSA }}
+              disabled={Boolean(memberProfile)}
+            >
+              {memberProfile ? "Mercado Pago em configuracao" : "Entrar para assinar"}
+            </button>
+          </article>
+        ))}
+      </div>
     </PanelShell>
   );
 }

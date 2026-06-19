@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState, type ElementType, type HTMLInputTypeAttribute, type ReactNode } from "react";
 import {
@@ -12,7 +13,6 @@ import {
   MapPin,
   PackageSearch,
   UserCog,
-  UserRound,
   X,
 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -22,6 +22,8 @@ import { API_URL, SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { STATUS_COPY, fmt } from "@/components/order/tracking";
 import { normalizeBackendOrder } from "@/services/orders/normalize";
 import { MemberNotification } from "./notifications";
+
+const BRAND_M_LOGO = "/logo_M_square.png";
 
 export function MemberModals({
   loginOpen,
@@ -708,13 +710,13 @@ export function MemberModals({
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <div
-                          className="grid h-12 w-12 shrink-0 place-items-center rounded-full"
+                          className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full"
                           style={{
-                            background: ROSA,
+                            background: "#fff",
                             border: `2px solid ${VERDE}`,
                           }}
                         >
-                          <UserRound size={22} strokeWidth={2.6} />
+                          <Image src={BRAND_M_LOGO} alt="Menfi's" fill sizes="48px" style={{ objectFit: "cover" }} />
                         </div>
                         <div className="min-w-0">
                           <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-55">
