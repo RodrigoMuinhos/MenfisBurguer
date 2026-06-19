@@ -30,6 +30,8 @@ export type MemberProfile = {
   freeShipping: boolean;
   orders: number;
   rewards: number;
+  clubLevel?: "Silver" | "Gold";
+  clubExpiresAt?: string;
   createdAt: number;
 };
 
@@ -145,6 +147,8 @@ export function readMemberProfile(): MemberProfile | null {
       freeShipping: Boolean(data.freeShipping),
       orders: Number(data.orders ?? data.orderCount ?? 0),
       rewards: Number(data.rewards ?? Math.floor(Number(data.orders ?? 0) / 10)),
+      clubLevel: data.clubLevel ?? data.club_level ?? undefined,
+      clubExpiresAt: data.clubExpiresAt ?? data.club_expires_at ?? undefined,
       createdAt: Number(data.createdAt ?? Date.now()),
     };
   } catch {

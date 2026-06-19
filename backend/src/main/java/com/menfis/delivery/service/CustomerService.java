@@ -117,7 +117,9 @@ public class CustomerService {
       select c.*,
         (select count(*) from orders o where o.customer_id = c.id) as order_count,
         (select coalesce(sum(o.total), 0) from orders o where o.status <> 'CANCELLED' and o.customer_id = c.id) as total_spent,
-        (select max(o.created_at) from orders o where o.customer_id = c.id) as last_order_at
+        (select max(o.created_at) from orders o where o.customer_id = c.id) as last_order_at,
+        case when c.club_expires_at > now() then c.club_level else null end as club_level,
+        case when c.club_expires_at > now() then c.club_expires_at else null end as club_expires_at
       from customers c
       where c.id = ?
       """,
@@ -185,7 +187,9 @@ public class CustomerService {
           c.created_at,
           c.birthday,
           c.last_login_at,
-          c.updated_at
+          c.updated_at,
+          case when c.club_expires_at > now() then c.club_level else null end as club_level,
+          case when c.club_expires_at > now() then c.club_expires_at else null end as club_expires_at
         from customers c
         where c.phone_digits is not null and c.phone_digits <> ''
         order by c.phone_digits, c.last_login_at desc nulls last, c.updated_at desc nulls last, c.id desc
@@ -219,6 +223,8 @@ public class CustomerService {
         p.created_at,
         p.birthday,
         p.last_login_at,
+        p.club_level,
+        p.club_expires_at,
         coalesce(os.order_count, 0) as order_count,
         coalesce(os.total_spent, 0) as total_spent,
         case when coalesce(os.order_count, 0) > 0 then coalesce(os.total_spent, 0) / os.order_count else 0 end as average_ticket,
@@ -239,7 +245,7 @@ public class CustomerService {
       left join order_stats os on os.phone_digits = p.phone_digits
       left join addresses a on a.customer_id = p.id and a.is_default = true
       left join last_order_address loa on loa.phone_digits = p.phone_digits
-      group by p.id, p.phone_digits, p.name, p.phone, p.email, p.cpf, p.internal_notes, p.created_at, p.birthday, p.last_login_at, p.updated_at, os.order_count, os.total_spent, os.last_order_at
+      group by p.id, p.phone_digits, p.name, p.phone, p.email, p.cpf, p.internal_notes, p.created_at, p.birthday, p.last_login_at, p.updated_at, p.club_level, p.club_expires_at, os.order_count, os.total_spent, os.last_order_at
       order by os.last_order_at desc nulls last, p.updated_at desc
       limit 500
       """
@@ -516,7 +522,9 @@ public class CustomerService {
       rs.getLong("order_count"),
       rs.getBigDecimal("total_spent") == null ? BigDecimal.ZERO : rs.getBigDecimal("total_spent"),
       rs.getObject("last_order_at", OffsetDateTime.class),
-      !isBlank(rs.getString("password_hash"))
+      !isBlank(rs.getString("password_hash")),
+      rs.getString("club_level"),
+      rs.getObject("club_expires_at", OffsetDateTime.class)
     );
   }
 
@@ -527,7 +535,9 @@ public class CustomerService {
         (select count(*) from orders o where o.customer_id = c.id) as order_count,
         (select coalesce(sum(o.total), 0) from orders o where o.status <> 'CANCELLED' and o.customer_id = c.id) as total_spent,
         (select max(o.created_at) from orders o where o.customer_id = c.id) as last_order_at,
-        (select count(*) from orders o where o.status = 'DELIVERED' and o.delivery_type = 'DELIVERY' and o.customer_id = c.id) as delivered_count
+        (select count(*) from orders o where o.status = 'DELIVERED' and o.delivery_type = 'DELIVERY' and o.customer_id = c.id) as delivered_count,
+        case when c.club_expires_at > now() then c.club_level else null end as club_level,
+        case when c.club_expires_at > now() then c.club_expires_at else null end as club_expires_at
       from customers c
       where c.id = ?
       """,

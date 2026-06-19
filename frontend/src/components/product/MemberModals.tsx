@@ -723,7 +723,7 @@ export function MemberModals({
                             Perfil Menfi's
                           </p>
                           <h2 className="truncate text-lg font-black leading-tight">
-                            {memberProfile.name}
+                            {formatClubName(memberProfile.name, memberProfile.clubLevel)}
                           </h2>
                           <p className="truncate text-xs font-bold opacity-65">
                             {memberProfile.phone}
@@ -1249,6 +1249,10 @@ function InfoLine({ label, value }: { label: string; value: string }) {
       <p className="mt-0.5 text-sm font-bold">{value}</p>
     </div>
   );
+}
+
+function formatClubName(name: string, clubLevel?: string) {
+  return clubLevel ? `${name} ⭐ ${clubLevel}` : name;
 }
 
 function ProfileMenuButton({

@@ -235,7 +235,7 @@ export function MobileMenuExperience({
       </main>
 
       {cartCount > 0 && (
-        <div className="fixed inset-x-0 bottom-[72px] z-50 p-4">
+        <div className="fixed inset-x-0 bottom-[64px] z-50 px-4 pb-0 pt-3">
           <button type="button" onClick={goToCart} className="flex h-20 w-full items-center justify-between gap-3 rounded-[28px] px-4 shadow-2xl" style={{ background: VINHO, color: "#fff", boxShadow: "0 18px 40px rgba(101,0,31,0.28)" }}>
             <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white">
               <ShoppingCart size={25} strokeWidth={2.6} style={{ color: VINHO }} />
@@ -258,7 +258,7 @@ export function MobileMenuExperience({
         rel="noreferrer"
         className="fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
         style={{
-          bottom: cartCount > 0 ? 178 : 86,
+          bottom: cartCount > 0 ? 168 : 86,
           background: VINHO,
           color: ROSA,
           boxShadow: "0 16px 34px rgba(101,0,31,0.32)",
@@ -344,7 +344,7 @@ function OfferCarousel({ onOpenClub, onSubscribe }: { onOpenClub: () => void; on
     {
       id: "combolove",
       eyebrow: "Quarta-feira",
-      title: "COMBOLOVE",
+      title: "LOV50",
       copy: "Na compra de um combo, o segundo sai com 50% OFF",
       value: "50%",
       suffix: "2o combo",
@@ -354,10 +354,10 @@ function OfferCarousel({ onOpenClub, onSubscribe }: { onOpenClub: () => void; on
     {
       id: "club",
       eyebrow: "Menfi's Club",
-      title: "Assinar agora",
-      copy: "Frete gratis e descontos exclusivos nos pedidos",
+      title: "CLUBE",
+      copy: "Frete gratis e descontos por 31 dias",
       value: "R$ 6,90",
-      suffix: "ao mes",
+      suffix: "31 dias",
       icon: Gift,
       action: onSubscribe,
     },
@@ -532,33 +532,72 @@ function ClubPanel({ rewardCount, rewardRemaining, onClose, onSubscribe }: { rew
 }
 
 function SubscriptionPanel({ memberProfile, onClose, onLogin }: { memberProfile: MemberProfile | null; onClose: () => void; onLogin: () => void }) {
+  const [subscribingPlan, setSubscribingPlan] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const plans = [
     {
-      name: "Pacote Assinante",
-      price: "R$ 6,90/mes",
+      id: "silver",
+      name: "Menfi's Club Silver",
+      price: "R$ 6,90",
       benefits: ["Frete gratis em ate 5 pedidos", "R$ 10,00 OFF em ate 5 pedidos"],
     },
     {
-      name: "Pacote Assinante Plus",
-      price: "R$ 12,90/mes",
+      id: "gold",
+      name: "Menfi's Club Gold",
+      price: "R$ 12,90",
       benefits: ["Frete gratis em ate 10 pedidos", "R$ 10,00 OFF em ate 5 pedidos"],
     },
   ];
+  const subscribe = async (plan: string) => {
+    setError("");
+    if (!memberProfile?.id) {
+      onClose();
+      onLogin();
+      return;
+    }
+    setSubscribingPlan(plan);
+    try {
+      const response = await fetch("/api/club/mercadopago/preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan,
+          customerId: memberProfile.id,
+          origin: window.location.origin,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      const checkoutUrl = data.checkoutUrl || data.sandboxCheckoutUrl;
+      if (!response.ok || !checkoutUrl) {
+        throw new Error(data.error || "club_checkout_failed");
+      }
+      window.location.href = checkoutUrl;
+    } catch {
+      setError("Nao foi possivel abrir o Mercado Pago. Tente novamente.");
+      setSubscribingPlan(null);
+    }
+  };
+
   return (
     <PanelShell title="Assinar Menfi's Club" onClose={onClose}>
       <div className="mt-4 rounded-2xl p-4" style={{ background: `${ROSA}50`, border: `1px solid ${VINHO}10` }}>
         <p className="text-sm font-black uppercase tracking-wide">Pagamento exclusivo via Mercado Pago</p>
         <p className="mt-2 text-xs font-semibold leading-relaxed opacity-70">
-          A assinatura deve ser ativada pelo ID do cliente apos aprovacao do pagamento. No checkout, o assinante escolhe frete gratis, R$ 10,00 de desconto ou nenhum beneficio.
+          Pacote avulso por 31 dias, sem renovacao automatica. A ativacao fica vinculada ao ID do cliente apos aprovacao do pagamento.
         </p>
       </div>
+      {error && (
+        <p className="mt-3 rounded-2xl px-4 py-3 text-xs font-black leading-relaxed" style={{ background: "#FEF2F2", color: "#991B1B" }}>
+          {error}
+        </p>
+      )}
       <div className="mt-4 grid gap-3">
         {plans.map((plan) => (
           <article key={plan.name} className="rounded-2xl bg-white p-4" style={{ border: `1px solid ${VINHO}12` }}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-lg font-black uppercase leading-tight">{plan.name}</p>
-                <p className="mt-1 text-sm font-semibold opacity-70">Renovacao mensal</p>
+                <p className="mt-1 text-sm font-semibold opacity-70">Valido por 31 dias</p>
               </div>
               <p className="shrink-0 text-right text-base font-black">{plan.price}</p>
             </div>
@@ -571,17 +610,12 @@ function SubscriptionPanel({ memberProfile, onClose, onLogin }: { memberProfile:
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (!memberProfile) {
-                  onClose();
-                  onLogin();
-                }
-              }}
+              onClick={() => void subscribe(plan.id)}
               className="mt-4 flex h-12 w-full items-center justify-center rounded-2xl text-xs font-black uppercase tracking-wide disabled:opacity-70"
               style={{ background: VINHO, color: ROSA }}
-              disabled={Boolean(memberProfile)}
+              disabled={subscribingPlan !== null}
             >
-              {memberProfile ? "Mercado Pago em configuracao" : "Entrar para assinar"}
+              {subscribingPlan === plan.id ? "Abrindo Mercado Pago" : memberProfile ? "Assinar no Mercado Pago" : "Entrar para assinar"}
             </button>
           </article>
         ))}

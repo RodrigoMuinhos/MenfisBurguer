@@ -161,6 +161,8 @@ function normalizeCustomer(raw: any): MemberProfile {
     freeShipping: orders === 0,
     orders,
     rewards: Math.floor(orders / 10),
+    clubLevel: raw.clubLevel ?? raw.club_level ?? undefined,
+    clubExpiresAt: raw.clubExpiresAt ?? raw.club_expires_at ?? undefined,
     createdAt: Date.now(),
   };
 }

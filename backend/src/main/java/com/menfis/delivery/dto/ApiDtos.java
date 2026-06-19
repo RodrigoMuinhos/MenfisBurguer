@@ -173,7 +173,9 @@ public class ApiDtos {
     long orderCount,
     BigDecimal totalSpent,
     OffsetDateTime lastOrderAt,
-    boolean hasPassword
+    boolean hasPassword,
+    String clubLevel,
+    OffsetDateTime clubExpiresAt
   ) {}
 
   public record CustomerSessionResponse(String token, String role, CustomerProfileResponse customer) {}
