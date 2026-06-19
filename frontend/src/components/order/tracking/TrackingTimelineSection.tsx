@@ -279,10 +279,10 @@ export function TrackingTimelineSection({
               {timelineCopy}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: "#FFF8F2", color: VERDE }}>
+              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: "#fff", color: VERDE }}>
                 {paymentMethodLabel}
               </span>
-              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: "#FFF8F2", color: VERDE }}>
+              <span className="rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: "#fff", color: VERDE }}>
                 {paymentStatusLabel}
               </span>
             </div>

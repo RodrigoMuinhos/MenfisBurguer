@@ -331,7 +331,7 @@ export function TrackingScreen({
     return (
       <div
         className="flex min-h-full items-center justify-center px-4 py-6"
-        style={{ background: "#FFF8F2" }}
+        style={{ background: "#fff" }}
         onPointerDown={markReviewActivity}
         onKeyDown={markReviewActivity}
       >
@@ -377,7 +377,7 @@ export function TrackingScreen({
                   setRating(value);
                 }}
                 className="flex h-12 w-12 items-center justify-center rounded-full"
-                style={{ background: value <= rating ? VERDE : "#FFF8F2", color: value <= rating ? ROSA : VERDE }}
+                style={{ background: value <= rating ? VERDE : "#fff", color: value <= rating ? ROSA : VERDE }}
                 aria-label={`${value} estrelas`}
               >
                 <Star size={22} fill={value <= rating ? "currentColor" : "none"} />
@@ -398,7 +398,7 @@ export function TrackingScreen({
               type="button"
               onClick={() => finishReview("later")}
               className="rounded-2xl px-4 py-3 text-xs font-black uppercase"
-              style={{ background: "#FFF8F2", color: VERDE }}
+              style={{ background: "#fff", color: VERDE }}
             >
               Lembrar depois
             </button>
@@ -422,7 +422,7 @@ export function TrackingScreen({
                   <div
                     key={`${item.orderId}-${item.at}`}
                     className="rounded-2xl p-3"
-                    style={{ background: "#FFF8F2", border: `1px solid ${VERDE}10` }}
+                    style={{ background: "#fff", border: `1px solid ${VERDE}10` }}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-xs font-black uppercase">{item.customerName}</p>
@@ -480,7 +480,7 @@ export function TrackingScreen({
   };
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: "#FFF8F2" }}>
+    <div className="flex flex-col min-h-full" style={{ background: "#fff" }}>
       <div
         className="relative px-5 pt-5 pb-6 overflow-hidden"
         style={{ background: VERDE, boxShadow: "0 16px 42px rgba(31,61,46,0.18)" }}
@@ -600,7 +600,7 @@ export function TrackingScreen({
               Use este código para chamar a pessoa no balcão quando o pedido ficar pronto.
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl p-3" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+              <div className="rounded-2xl p-3" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-45">Pedido</p>
                 <p className="mt-1 text-2xl font-black">{order.id}</p>
               </div>

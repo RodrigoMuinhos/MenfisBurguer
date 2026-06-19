@@ -7,7 +7,7 @@ import { CartScreen } from "@/components/order/CartScreen";
 import { TrackingScreen } from "@/components/order/TrackingScreen";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { CartItem, Order } from "@/types/order";
-import { CREME, ROSA, VERDE } from "@/utils/theme";
+import { ROSA, VERDE } from "@/utils/theme";
 import {
   AppMode,
   APP_SCREEN_KEY,
@@ -465,7 +465,7 @@ export default function App({ mode }: { mode?: AppMode }) {
         className="size-full flex flex-col"
         style={{
           fontFamily: "'Inter', system-ui, sans-serif",
-          background: CREME,
+          background: "#fff",
         }}
       >
         <div className="flex-1 overflow-auto">
@@ -501,7 +501,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       className="size-full flex flex-col"
       style={{
         fontFamily: "'Inter', system-ui, sans-serif",
-        background: CREME,
+        background: "#fff",
       }}
     >
       <div className="flex-1 overflow-auto">
@@ -712,7 +712,7 @@ function KioskMobQueueScreen({
   const sorted = [...orders].sort((a, b) => a.timestamp - b.timestamp);
 
   return (
-    <div className="min-h-full px-4 py-5" style={{ background: "#FFF8F2", color: VERDE }}>
+    <div className="min-h-full px-4 py-5" style={{ background: "#fff", color: VERDE }}>
       <button
         type="button"
         onClick={onBack}
@@ -729,7 +729,7 @@ function KioskMobQueueScreen({
         </p>
         <div className="mt-5 grid gap-3">
           {sorted.length === 0 ? (
-            <div className="rounded-2xl p-5 text-center text-sm font-black" style={{ background: "#FFF8F2" }}>
+            <div className="rounded-2xl p-5 text-center text-sm font-black" style={{ background: "#fff" }}>
               Nenhum pedido ativo no balcão.
             </div>
           ) : (
@@ -741,7 +741,7 @@ function KioskMobQueueScreen({
                   type="button"
                   onClick={() => onSelect(order)}
                   className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl p-4 text-left"
-                  style={{ background: "#FFF8F2", border: `1.5px solid ${VERDE}14` }}
+                  style={{ background: "#fff", border: `1.5px solid ${VERDE}14` }}
                 >
                   <span
                     className="flex h-11 w-11 items-center justify-center rounded-full text-lg font-black"

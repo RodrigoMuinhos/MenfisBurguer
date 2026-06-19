@@ -43,7 +43,7 @@ export default function Error({
     <main
       className="flex min-h-dvh items-center justify-center px-5 text-center"
       style={{
-        background: "#FFF8F2",
+        background: "#fff",
         color: "#65001F",
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
@@ -69,7 +69,7 @@ export default function Error({
           type="button"
           onClick={recoverToMenu}
           className="mt-3 w-full rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-wider"
-          style={{ background: "#FFF8F2", color: "#65001F" }}
+          style={{ background: "#fff", color: "#65001F" }}
         >
           Voltar ao cardapio
         </button>

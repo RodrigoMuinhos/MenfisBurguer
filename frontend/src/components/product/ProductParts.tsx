@@ -10,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { CartItem } from "@/types/order";
-import { CREME, ROSA, VERDE } from "@/utils/theme";
+import { ROSA, VERDE } from "@/utils/theme";
 import { MenuItem } from "@/features/catalog/types";
 import {
   BuilderState,
@@ -29,6 +29,10 @@ import {
   isChickenProduct,
   requiredCustomizerCount,
 } from "./shared";
+
+function comboPotatoLabel(item: MenuItem) {
+  return requiredCustomizerCount(item) > 1 ? "batata 200g" : "batata 100g";
+}
 
 function productStory(item: MenuItem) {
   const name = item.name.toLowerCase();
@@ -55,7 +59,7 @@ function productIngredients(item: MenuItem) {
     return "Pão brioche, carne 100g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's.";
   }
   if (item.category === "combo") {
-    return "Burger Menfi's, batata 200g, bebida gelada e molho extra para acompanhar.";
+    return `Burger Menfi's, ${comboPotatoLabel(item)}, bebida gelada e molho extra para acompanhar.`;
   }
   if (item.category === "bebida") {
     return "Bebida gelada selecionada.";
@@ -73,15 +77,15 @@ function productWeight(item: MenuItem) {
   if (name.includes("chicken")) {
     const chicken = isDouble || isSuper ? "2 filés de 120g" : "1 filé de 120g";
     return item.category === "combo"
-      ? `${chicken}, batata 200g${isSuper ? " por pessoa" : ""}.`
+      ? `${chicken}, ${comboPotatoLabel(item)}.`
       : chicken;
   }
   if (name.includes("bacon")) {
     const burger = isDouble || isSuper ? "2 carnes de 100g" : "1 carne de 100g";
-    return `${burger}, 40g de bacon${item.category === "combo" ? " e batata 200g" : ""}.`;
+    return `${burger}, 40g de bacon${item.category === "combo" ? ` e ${comboPotatoLabel(item)}` : ""}.`;
   }
   if (item.category === "combo") {
-    return `${isDouble || isSuper ? "2 carnes de 100g" : "1 carne de 100g"} e batata 200g.`;
+    return `${isDouble || isSuper ? "2 carnes de 100g" : "1 carne de 100g"} e ${comboPotatoLabel(item)}.`;
   }
   if (item.category === "burger") {
     return isDouble ? "2 carnes de 100g." : "1 carne de 100g.";
@@ -167,7 +171,7 @@ export function BurgerBuilder({
               }
               className="rounded-2xl p-3 text-left"
               style={{
-                background: active ? VERDE : "#FFF8F2",
+                background: active ? VERDE : "#fff",
                 color: active ? ROSA : VERDE,
                 border: `1.5px solid ${active ? VERDE : `${VERDE}12`}`,
               }}
@@ -234,7 +238,7 @@ export function MenuCard({
         type="button"
         onClick={onOpenDetails}
         className="relative block h-40 w-full overflow-hidden text-left"
-        style={{ background: CREME }}
+        style={{ background: "#fff" }}
         aria-label={`Ver detalhes de ${item.name}`}
       >
         {item.image ? (
@@ -422,7 +426,7 @@ export function ProductDetailModal({
         className="max-h-[92dvh] w-full overflow-auto rounded-t-[28px] bg-white sm:max-w-2xl sm:rounded-[28px]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative h-72 overflow-hidden bg-[#FFF8F2]">
+        <div className="relative h-72 overflow-hidden bg-white">
           {item.image ? (
             <Image
               src={item.image}
@@ -499,7 +503,7 @@ export function ProductDetailModal({
             />
           </div>
           {(item.category === "burger" || item.category === "combo") && (
-            <div className="mt-5 rounded-2xl p-4" style={{ background: "#FFF0F5", color: VERDE }}>
+            <div className="mt-5 rounded-2xl p-4" style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}10` }}>
               <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
                 Adicionais inteligentes
               </p>
@@ -517,7 +521,7 @@ export function ProductDetailModal({
               </div>
             </div>
           )}
-          <div className="mt-5 rounded-2xl p-4" style={{ background: "#FFF8F2", color: VERDE }}>
+          <div className="mt-5 rounded-2xl p-4" style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}10` }}>
             <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
               Opções disponíveis
             </p>

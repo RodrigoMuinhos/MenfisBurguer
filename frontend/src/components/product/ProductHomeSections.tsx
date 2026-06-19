@@ -43,7 +43,7 @@ export function ProductHeader({
         position: "sticky",
         top: 0,
         zIndex: 40,
-        background: "rgba(255,248,242,0.94)",
+        background: "rgba(255,255,255,0.96)",
         backdropFilter: "blur(18px)",
         borderBottom: `1px solid ${VERDE}14`,
       }}
@@ -160,7 +160,7 @@ export function ProductHero({
     <section
       className="mx-0 grid gap-4 overflow-hidden rounded-none p-4 md:grid-cols-[1.05fr_0.95fr] md:p-6"
       style={{
-        background: ROSA,
+        background: "#fff",
         color: VERDE,
         boxShadow: "0 24px 70px rgba(31,61,46,0.12)",
       }}
@@ -295,7 +295,7 @@ export function ProductHero({
 
       <div
         className="relative min-h-[280px] overflow-hidden rounded-[24px]"
-        style={{ background: "#F9D2C5" }}
+        style={{ background: "#fff" }}
       >
         <Image
           src={featuredItem.image ?? burgerPhoto}

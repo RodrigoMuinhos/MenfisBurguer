@@ -343,7 +343,7 @@ function SupportModal({
                     disabled={topic.type === "ORDER_CHANGE_REQUEST" && !canRequestChange}
                     className="w-full flex items-center gap-3 rounded-2xl px-4 py-4 text-left"
                     style={{
-                      background: "#FFF8F2",
+                      background: "#fff",
                       border: `1px solid ${ROSA}`,
                       color: VERDE,
                       opacity: topic.type === "ORDER_CHANGE_REQUEST" && !canRequestChange ? 0.45 : 1,
@@ -388,7 +388,7 @@ function SupportModal({
                     key={reason}
                     onClick={() => createSupportTicket(selectedTopic.type, reason)}
                     className="w-full rounded-2xl px-4 py-4 text-left text-sm font-bold"
-                    style={{ background: "#FFF8F2", border: `1px solid ${ROSA}`, color: VERDE }}
+                    style={{ background: "#fff", border: `1px solid ${ROSA}`, color: VERDE }}
                   >
                     {reason}
                   </button>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Bike, CheckCircle2, KeyRound, LogOut, MapPin, Phone, RefreshCw, User } from "lucide-react";
 import { normalizeBackendOrder } from "@/services/orders/normalize";
 import { Order } from "@/types/order";
-import { CREME, ROSA, VERDE } from "@/utils/theme";
+import { ROSA, VERDE } from "@/utils/theme";
 import { deliveryConfirmationCode, fmt } from "@/components/order/tracking";
 import { ITEM_DESC } from "@/components/order/checkout";
 
@@ -63,7 +63,7 @@ function DeliveryLogin({ onLogin }: { onLogin: (token: string) => void }) {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4" style={{ background: CREME }}>
+    <main className="flex min-h-screen items-center justify-center px-4" style={{ background: "#fff" }}>
       <form
         className="w-full max-w-sm rounded-[28px] bg-white p-6 shadow-xl"
         onSubmit={(event) => {
@@ -196,7 +196,7 @@ function DeliveryRoutePanel({ token, onLogout }: { token: string; onLogout: () =
   };
 
   return (
-    <main className="min-h-screen" style={{ background: CREME, color: VERDE }}>
+    <main className="min-h-screen" style={{ background: "#fff", color: VERDE }}>
       <header className="sticky top-0 z-30 px-4 py-4" style={{ background: VERDE, color: ROSA }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <div>
@@ -298,7 +298,7 @@ function DeliveryDetails({
         <Info icon={<Phone size={18} />} label="Telefone" value={order.customerPhone || "Nao informado"} />
       </div>
 
-      <div className="mt-5 rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${ROSA}` }}>
+      <div className="mt-5 rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${ROSA}` }}>
         <p className="text-[10px] font-black uppercase tracking-widest opacity-45">Itens</p>
         {order.items.map((item) => (
           <div key={`${order.id}-${item.id}`} className="border-b py-3 last:border-b-0" style={{ borderColor: ROSA }}>
@@ -340,7 +340,7 @@ function DeliveryDetails({
 
 function Info({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${ROSA}` }}>
+    <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${ROSA}` }}>
       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-50">
         {icon}
         {label}

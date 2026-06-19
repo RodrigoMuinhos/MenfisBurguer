@@ -29,25 +29,25 @@ const PRODUCTS = [
     id: "menfis-combo",
     name: "MENFI'S COMBO",
     price: 34.9,
-    components: ["Combo Menfi's", "Guaraná Zero", "Batata Frita 250g", "Maionese Barbecue"],
+    components: ["Combo Menfi's", "Guaraná Zero", "Batata Frita 100g", "Maionese Barbecue"],
   },
   {
     id: "combo-menfis-bacon",
     name: "COMBO MENFI'S BACON",
     price: 40.9,
-    components: ["Combo Menfi's Bacon", "Coca-Cola Zero", "Batata Frita 250g", "Maionese Alho Frito"],
+    components: ["Combo Menfi's Bacon", "Coca-Cola Zero", "Batata Frita 100g", "Maionese Alho Frito"],
   },
   {
     id: "super-combo",
     name: "SUPER COMBO",
     price: 59.9,
-    components: ["Super Combo", "Guaraná Zero", "Coca-Cola Zero", "Batata Frita 250g", "Maionese Barbecue"],
+    components: ["Super Combo", "Guaraná Zero", "Coca-Cola Zero", "Batata Frita 200g", "Maionese Barbecue"],
   },
   {
     id: "combo-double-bacon",
     name: "COMBO DOUBLE MENFI'S BACON",
     price: 48.9,
-    components: ["Combo Double Menfi's Bacon", "Coca-Cola Zero", "Batata Frita 250g", "Maionese Barbecue"],
+    components: ["Combo Double Menfi's Bacon", "Coca-Cola Zero", "Batata Frita 100g", "Maionese Barbecue"],
   },
 ];
 

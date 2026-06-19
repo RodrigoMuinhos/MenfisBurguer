@@ -1,6 +1,6 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import { CREME, ROSA, VERDE } from "@/utils/theme";
+import { ROSA, VERDE } from "@/utils/theme";
 
 export function AdminLoginScreen({
   username,
@@ -22,7 +22,7 @@ export function AdminLoginScreen({
   return (
     <div
       className="min-h-full flex items-center justify-center px-4 py-8"
-      style={{ background: CREME }}
+      style={{ background: "#fff" }}
     >
       <div
         className="w-full max-w-sm rounded-[28px] p-6"

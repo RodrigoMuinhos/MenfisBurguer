@@ -6,12 +6,11 @@ import {
   ChevronRight,
   CheckCircle2,
   ClipboardList,
-  CupSoda,
   Drumstick,
-  Flame,
   Gift,
   Home,
   Menu,
+  MessageCircle,
   Package,
   Plus,
   Search,
@@ -24,23 +23,21 @@ import {
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
+import { SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { fmt, imageSrc, MemberProfile } from "./shared";
 
-type MobileCategory = "burger" | "chicken" | "bacon" | "combo" | "bebida" | "promo";
+type MobileCategory = "combo" | "burger" | "chicken" | "bacon";
 
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
 const PINK = "#EC1767";
 const MOBILE_CATEGORIES: Array<{ id: MobileCategory; label: string; icon: ElementType }> = [
-  { id: "promo", label: "Promocoes", icon: Flame },
+  { id: "combo", label: "Combos", icon: Package },
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "chicken", label: "Chicken", icon: Drumstick },
   { id: "bacon", label: "Bacon", icon: Utensils },
-  { id: "combo", label: "Combos", icon: Package },
-  { id: "bebida", label: "Bebidas", icon: CupSoda },
 ];
 
-const BEST_SELLER_IDS = ["double-burger", "menfis-bacon", "menfis-chicken"];
 const SALES_ORDER = [
   "double-burger",
   "menfis-bacon",
@@ -68,36 +65,14 @@ function saleRank(item: MenuItem) {
   return index >= 0 ? index : SALES_ORDER.length + 1;
 }
 
-function compactDescription(item: MenuItem) {
-  const name = item.name.toLowerCase();
-  if (item.id === "combo2") return "2 burgers 100g + 2 batatas 200g + 2 refrigerantes";
-  if (name.includes("super") && name.includes("chicken")) return "2 chickens 120g + 2 batatas 200g + 2 refrigerantes";
-  if (name.includes("super") && name.includes("bacon")) return "2 bacons 100g + 40g bacon cada + 2 batatas 200g";
-  if (name.includes("double") && name.includes("chicken")) return "2 chickens de 120g + batata 200g + refri";
-  if (name.includes("double")) return "2 carnes 100g + batata 200g + refri";
-  if (name.includes("chicken")) return "Chicken 120g + batata 200g + refri";
-  if (name.includes("bacon")) return "Bacon 100g + 40g bacon + batata 200g";
-  if (item.category === "combo") return "Burger 100g + batata 200g + refri";
-  if (item.category === "bebida") return "Bebida gelada";
-  if (item.category === "extra") return item.desc;
-  return "Burger Menfi's com molho da casa";
-}
-
 function categoryMatches(item: MenuItem, category: MobileCategory) {
   const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
-  if (category === "promo") return Boolean(item.highlight || item.originalPrice || item.category === "combo");
   if (category === "chicken") return item.category === "burger" && text.includes("chicken");
   if (category === "bacon") return item.category === "burger" && text.includes("bacon");
   if (category === "burger") {
     return item.category === "burger" && !text.includes("chicken") && !text.includes("bacon");
   }
   return item.category === category;
-}
-
-function bestsellerBadge(index: number) {
-  if (index === 0) return "Mais vendido";
-  if (index === 1) return "Favorito";
-  return "Novidade";
 }
 
 function discountPercent(item: MenuItem) {
@@ -128,7 +103,7 @@ export function MobileMenuExperience({
   onOpenDetails: (item: MenuItem) => void;
   goToCart: () => void;
 }) {
-  const [category, setCategory] = useState<MobileCategory>("promo");
+  const [category, setCategory] = useState<MobileCategory>("combo");
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<"reviews" | "club" | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -143,10 +118,9 @@ export function MobileMenuExperience({
       `${item.name} ${item.desc} ${item.tags.join(" ")}`.toLowerCase().includes(normalizedQuery);
     return matchesSearch && categoryMatches(item, category);
   });
-  const bestSellers = BEST_SELLER_IDS.map((id) => items.find((item) => item.id === id)).filter(Boolean) as MenuItem[];
-  const heroItem = items.find((item) => item.id === "double-burger") ?? bestSellers[0] ?? items[0];
-  const promoItems = sortedItems.filter((item) => categoryMatches(item, "promo")).slice(0, 4);
+  const heroItem = items.find((item) => item.id === "double-burger") ?? items[0];
   const categoryLabel = MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label ?? "Produtos";
+  const whatsappText = encodeURIComponent("Oi, Menfi's! Quero fazer um pedido pelo WhatsApp.");
 
   const scrollToProducts = () => {
     document.getElementById("menfis-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -199,22 +173,10 @@ export function MobileMenuExperience({
                   objectFit: "contain",
                   objectPosition: "left center",
                   transform: "scale(1.24)",
-                  mixBlendMode: "multiply",
-                  filter: "drop-shadow(-18px 22px 28px rgba(101,0,31,0.22))",
-                  WebkitMaskImage:
-                    "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.18) 9%, #000 23%, #000 100%)",
-                  maskImage:
-                    "linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.18) 9%, #000 23%, #000 100%)",
                 }}
               />
             ) : null}
           </button>
-          <div
-            className="pointer-events-none absolute inset-y-0 left-[39%] z-20 w-32"
-            style={{
-              background: "linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.98) 36%, rgba(255,255,255,0.72) 70%, rgba(255,255,255,0) 100%)",
-            }}
-          />
         </div>
 
         <button type="button" onClick={() => setPanel("club")} className="relative z-10 mt-2 grid w-full grid-cols-[56px_1fr_auto] items-center gap-3 rounded-[18px] px-4 py-4 text-left text-white" style={{ background: VINHO }}>
@@ -246,37 +208,16 @@ export function MobileMenuExperience({
 
       <main className="px-4 pb-44">
         <section id="menfis-products" className="pt-5">
-          <h2 className="text-lg font-black uppercase tracking-wide">{category === "promo" ? "Promocoes ativas" : categoryLabel}</h2>
+          <h2 className="text-lg font-black uppercase tracking-wide">{categoryLabel}</h2>
           <div className="mt-3 grid gap-3">
-            {(category === "promo" ? promoItems : visibleItems).map((item) => (
+            {visibleItems.map((item) => (
               <MobileListItem key={item.id} item={item} onAdd={() => onQuickAdd(item)} onOpen={() => onOpenDetails(item)} />
             ))}
-            {visibleItems.length === 0 && category !== "promo" && (
+            {visibleItems.length === 0 && (
               <div className="rounded-[18px] bg-white p-5 text-sm font-bold leading-relaxed" style={{ border: `1px solid ${VINHO}12` }}>
                 Nenhum produto encontrado nesta categoria.
               </div>
             )}
-          </div>
-        </section>
-
-        <section className="mt-5">
-          <SectionTitle title="Produtos" action="Ver burgers" onClick={() => setCategory("burger")} />
-          <div className="mt-3 flex snap-x gap-3 overflow-x-auto pb-3">
-            {bestSellers.map((item, index) => (
-              <BestSellerCard key={item.id} item={item} badge={bestsellerBadge(index)} onAdd={() => onQuickAdd(item)} onOpen={() => onOpenDetails(item)} />
-            ))}
-          </div>
-        </section>
-
-        <ProductGroup title="Combos" action="Ver combos" items={sortedItems.filter((item) => item.category === "combo").slice(0, 3)} setCategory={() => setCategory("combo")} onQuickAdd={onQuickAdd} onOpenDetails={onOpenDetails} />
-        <ProductGroup title="Bebidas" action="Ver bebidas" items={sortedItems.filter((item) => item.category === "bebida").slice(0, 3)} setCategory={() => setCategory("bebida")} onQuickAdd={onQuickAdd} onOpenDetails={onOpenDetails} />
-
-        <section className="mt-5">
-          <SectionTitle title="Promocoes" action="Ver promos" onClick={() => setCategory("promo")} />
-          <div className="mt-3 grid gap-3">
-            <PromoBanner title="MFB10" copy="10% OFF na primeira compra" />
-            <PromoBanner title="Clube Menfi's" copy="Frete gratis acima de R$ 59,90 para membros" />
-            <PromoBanner title="Lancamentos" copy="Membros recebem acesso antecipado" />
           </div>
         </section>
 
@@ -323,6 +264,22 @@ export function MobileMenuExperience({
         </div>
       )}
 
+      <a
+        href={`${SUPPORT_WHATSAPP_URL}?text=${whatsappText}`}
+        target="_blank"
+        rel="noreferrer"
+        className="fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
+        style={{
+          bottom: cartCount > 0 ? 160 : 86,
+          background: VINHO,
+          color: ROSA,
+          boxShadow: "0 16px 34px rgba(101,0,31,0.32)",
+        }}
+        aria-label="Chamar Menfi's no WhatsApp"
+      >
+        <MessageCircle size={27} strokeWidth={2.6} />
+      </a>
+
       <MobileBottomNav cartCount={cartCount} onHome={() => window.scrollTo({ top: 0, behavior: "smooth" })} onSearch={() => searchRef.current?.focus()} onOrders={goToCart} onClub={() => setPanel("club")} onProfile={onOpenMember} />
       {panel === "reviews" && <ReviewsPanel onClose={() => setPanel(null)} />}
       {panel === "club" && <ClubPanel rewardCount={rewardCount} rewardRemaining={rewardRemaining} onClose={() => setPanel(null)} onOpenProfile={onOpenMember} />}
@@ -366,45 +323,6 @@ function CategoryNav({ category, setCategory }: { category: MobileCategory; setC
         );
       })}
     </nav>
-  );
-}
-
-function SectionTitle({ title, action, onClick }: { title: string; action: string; onClick: () => void }) {
-  return (
-    <div className="flex items-center justify-between">
-      <h2 className="flex items-center gap-2 text-xl font-black uppercase tracking-wide">
-        <Flame size={23} strokeWidth={2.5} style={{ color: PINK }} />
-        {title}
-      </h2>
-      <button type="button" onClick={onClick} className="flex items-center gap-1 text-xs font-black uppercase" style={{ color: PINK }}>
-        {action} <ChevronRight size={16} strokeWidth={2.5} />
-      </button>
-    </div>
-  );
-}
-
-function ProductGroup({ title, action, items, setCategory, onQuickAdd, onOpenDetails }: { title: string; action: string; items: MenuItem[]; setCategory: () => void; onQuickAdd: (item: MenuItem) => void; onOpenDetails: (item: MenuItem) => void }) {
-  return (
-    <section className="mt-5">
-      <SectionTitle title={title} action={action} onClick={setCategory} />
-      <div className="mt-3 grid gap-3">
-        {items.map((item) => (
-          <MobileListItem key={item.id} item={item} onAdd={() => onQuickAdd(item)} onOpen={() => onOpenDetails(item)} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function PromoBanner({ title, copy }: { title: string; copy: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-[18px] bg-white p-4 shadow-sm">
-      <span className="min-w-0">
-        <span className="block text-lg font-black uppercase" style={{ color: PINK }}>{title}</span>
-        <span className="mt-1 block text-sm font-semibold opacity-70">{copy}</span>
-      </span>
-      <Gift size={26} strokeWidth={2.5} style={{ color: VINHO }} />
-    </div>
   );
 }
 
@@ -522,54 +440,12 @@ function ClubPanel({ rewardCount, rewardRemaining, onClose, onOpenProfile }: { r
   );
 }
 
-function BestSellerCard({ item, badge, onAdd, onOpen }: { item: MenuItem; badge: string; onAdd: () => void; onOpen: () => void }) {
-  return (
-    <article className="w-[224px] shrink-0 snap-start overflow-hidden rounded-[18px] bg-white p-3 shadow-sm">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="relative h-36 w-full overflow-hidden rounded-[16px] text-left"
-        style={{ background: "#fff" }}
-        aria-label={`Ver detalhes de ${item.name}`}
-      >
-        {item.image ? (
-          <Image
-            src={imageSrc(item.image)}
-            alt={item.name}
-            fill
-            sizes="224px"
-            style={{
-              objectFit: "contain",
-              objectPosition: "center 58%",
-              transform: "scale(1.03)",
-              mixBlendMode: "multiply",
-              filter: "drop-shadow(0 14px 15px rgba(101,0,31,0.16))",
-            }}
-          />
-        ) : null}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.76) 62%, #fff 100%)" }} />
-        <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-black uppercase" style={{ background: VINHO, color: ROSA }}>{badge}</span>
-      </button>
-      <div className="pt-3">
-        <h3 className="line-clamp-2 uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 0.95, letterSpacing: 0 }}>{item.name}</h3>
-        <p className="mt-2 line-clamp-2 min-h-10 text-sm font-semibold opacity-65">{compactDescription(item)}</p>
-        <div className="mt-3 flex items-center justify-between">
-          <PriceBlock item={item} size="card" />
-          <button type="button" onClick={onAdd} className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: PINK, color: "#fff" }} aria-label={`Adicionar ${item.name}`}>
-            <Plus size={22} strokeWidth={2.6} />
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 function MobileListItem({ item, onAdd, onOpen }: { item: MenuItem; onAdd: () => void; onOpen: () => void }) {
   return (
     <article className="grid grid-cols-[1fr_132px] gap-3 overflow-hidden rounded-[18px] bg-white p-3 shadow-sm">
       <button type="button" onClick={onOpen} className="min-w-0 text-left">
         <h3 className="line-clamp-2 uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 0.96, letterSpacing: 0 }}>{item.name}</h3>
-        <p className="mt-1 line-clamp-2 text-sm font-semibold opacity-70">{compactDescription(item)}</p>
+        <p className="mt-1 line-clamp-2 text-sm font-semibold opacity-70">{item.desc}</p>
         <p className="mt-2 w-fit rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: `${ROSA}66` }}>{item.tags[0] ?? "Menfi's"}</p>
         <PriceBlock item={item} className="mt-2" />
       </button>
@@ -587,15 +463,12 @@ function MobileListItem({ item, onAdd, onOpen }: { item: MenuItem; onAdd: () => 
               style={{
                 objectFit: "contain",
                 objectPosition: "center",
-                transform: "scale(1.04)",
-                mixBlendMode: "multiply",
-                filter: "drop-shadow(0 12px 14px rgba(101,0,31,0.16))",
+                filter: "saturate(1.12) contrast(1.05)",
+                transform: "scale(1.18)",
               }}
             />
           ) : null}
         </button>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-12" style={{ background: "linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.82) 52%, rgba(255,255,255,0) 100%)" }} />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-10" style={{ background: "linear-gradient(270deg, #fff 0%, rgba(255,255,255,0.74) 58%, rgba(255,255,255,0) 100%)" }} />
         <button type="button" onClick={onAdd} className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg" style={{ background: PINK, color: "#fff" }} aria-label={`Adicionar ${item.name}`}>
           <Plus size={22} strokeWidth={2.8} />
         </button>

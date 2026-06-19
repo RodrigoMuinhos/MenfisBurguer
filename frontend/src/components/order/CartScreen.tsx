@@ -124,7 +124,7 @@ export function CartScreen({
   return (
     <div
       style={{
-        background: "#FFF8F2",
+        background: "#fff",
         fontFamily: "'Inter', system-ui, sans-serif",
         minHeight: "100%",
       }}

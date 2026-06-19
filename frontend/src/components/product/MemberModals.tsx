@@ -346,7 +346,7 @@ export function MemberModals({
                       )}
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl p-1" style={{ background: "#FFF8F2" }}>
+                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl p-1" style={{ background: "#fff" }}>
                       <button
                         onClick={() => setMemberAuthMode("register")}
                         className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wider"
@@ -448,7 +448,7 @@ export function MemberModals({
                           target="_blank"
                           rel="noreferrer"
                           className="rounded-2xl px-4 py-3 text-center text-xs font-black uppercase tracking-wider"
-                          style={{ background: "#FFF8F2", color: VERDE }}
+                          style={{ background: "#fff", color: VERDE }}
                         >
                           Falar com o suporte
                         </a>
@@ -578,12 +578,12 @@ export function MemberModals({
                     </div>
                     {registerStep === 2 && (
                       <div className="mt-4 grid gap-3">
-                        <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                        <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
                           <p className="font-black uppercase tracking-wider opacity-60">Confirmacao</p>
                           <p className="mt-2">Telefone: {memberPhone || "pendente"}</p>
                           <p>E-mail: {memberEmail || "não informado"}</p>
                         </div>
-                        <label className="flex items-start gap-3 rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                        <label className="flex items-start gap-3 rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
                           <input
                             type="checkbox"
                             checked={termsAccepted}
@@ -619,7 +619,7 @@ export function MemberModals({
                         type="button"
                         onClick={closeLogin}
                         className="mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                        style={{ background: "#FFF8F2", color: VERDE, border: `1.5px solid ${VERDE}12` }}
+                        style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}12` }}
                       >
                         Continuar sem cadastro
                       </button>
@@ -765,7 +765,7 @@ export function MemberModals({
                       {profileEditOpen ? (
                         <div
                           className="grid gap-3 rounded-2xl p-4"
-                          style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}
+                          style={{ background: "#fff", border: `1px solid ${VERDE}12` }}
                         >
                           <div>
                             <p className="text-xs font-black uppercase tracking-wider">
@@ -868,7 +868,7 @@ export function MemberModals({
                           }}
                         />
                       )}
-                      <div className="rounded-2xl p-4 text-xs font-black uppercase tracking-wider" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                      <div className="rounded-2xl p-4 text-xs font-black uppercase tracking-wider" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
                         Falar com o suporte
                       </div>
                       <ProfileMenuLink icon={Headphones} label="SAC" href={SUPPORT_WHATSAPP_URL} />
@@ -898,7 +898,7 @@ export function MemberModals({
                       </div>
                     )}
                     {!ordersLoading && customerOrders.length === 0 && (
-                      <p className="rounded-2xl p-4 text-xs font-bold opacity-60" style={{ background: "#FFF8F2" }}>
+                      <p className="rounded-2xl p-4 text-xs font-bold opacity-60" style={{ background: "#fff" }}>
                         Nenhum pedido encontrado neste perfil.
                       </p>
                     )}
@@ -934,7 +934,7 @@ export function MemberModals({
                           }}
                           className="rounded-2xl p-4 text-left"
                           style={{
-                            background: notification.read ? "#FFF8F2" : VERDE,
+                            background: notification.read ? "#fff" : VERDE,
                             color: notification.read ? VERDE : ROSA,
                             border: `1px solid ${notification.read ? `${VERDE}12` : VERDE}`,
                           }}
@@ -967,7 +967,7 @@ export function MemberModals({
                         </button>
                       ))
                     ) : (
-                      <div className="rounded-2xl p-4 text-xs font-bold" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                      <div className="rounded-2xl p-4 text-xs font-bold" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
                         Nenhuma notificação nova.
                       </div>
                     )}
@@ -991,7 +991,7 @@ export function MemberModals({
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center gap-3 rounded-2xl p-4 text-xs font-black uppercase tracking-wider"
-                      style={{ background: "#FFF8F2", color: VERDE, border: `1px solid ${VERDE}12` }}
+                      style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
                     >
                       <Headphones size={18} strokeWidth={2.4} />
                       Chat com atendimento
@@ -1005,7 +1005,7 @@ export function MemberModals({
 
               {favoritesOpen && (
                 <SidePanel title="Favoritos" onClose={closeFavorites}>
-                  <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                  <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
                     Seus favoritos aparecerão aqui para pedir de novo mais rápido.
                   </div>
                 </SidePanel>
@@ -1211,7 +1211,7 @@ function ProfileSection({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+    <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
       <p className="text-xs font-black uppercase tracking-wider">{title}</p>
       <div className="mt-3 grid gap-2">{children}</div>
     </div>
@@ -1240,7 +1240,7 @@ function ProfileMenuButton({
     <button
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-xs font-black uppercase tracking-wider"
-      style={{ background: "#FFF8F2", color: VERDE, border: `1px solid ${VERDE}12` }}
+      style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
     >
       <Icon size={18} strokeWidth={2.4} />
       {label}
@@ -1263,7 +1263,7 @@ function ProfileMenuLink({
       target="_blank"
       rel="noreferrer"
       className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-xs font-black uppercase tracking-wider"
-      style={{ background: "#FFF8F2", color: VERDE, border: `1px solid ${VERDE}12` }}
+      style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
     >
       <Icon size={18} strokeWidth={2.4} />
       {label}

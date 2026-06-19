@@ -9,7 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { CartItem } from "@/types/order";
-import { CREME, ROSA, VERDE } from "@/utils/theme";
+import { ROSA, VERDE } from "@/utils/theme";
 import { MenuItem } from "@/features/catalog/types";
 import {
   COMBO_DRINK_SURCHARGE_PRODUCT_ID,
@@ -131,7 +131,7 @@ export function ProductCustomizer({
         </div>
 
         <div className="max-h-[calc(92dvh-150px)] overflow-y-auto">
-          <div className="relative h-48 overflow-hidden" style={{ background: CREME }}>
+          <div className="relative h-48 overflow-hidden bg-white">
             {state.item.image ? (
               <img
                 src={imageSrc(state.item.image)}

@@ -56,7 +56,7 @@ export function CartOverlays({
                   exit={{ opacity: 0 }}
                   className="fixed inset-0 z-[70] flex items-center justify-center px-6"
                   style={{
-                    background: "rgba(255,248,242,0.96)",
+                    background: "rgba(255,255,255,0.96)",
                     backdropFilter: "blur(8px)",
                   }}
                 >
@@ -95,7 +95,7 @@ export function CartOverlays({
                       <>
                         <div
                           className="mx-auto mt-5 grid max-w-md grid-cols-3 gap-3 rounded-3xl p-4 text-left"
-                          style={{ background: "#FFF8F2", border: `1px solid ${ROSA}` }}
+                          style={{ background: "#fff", border: `1px solid ${ROSA}` }}
                         >
                           <div>
                             <p className="text-[10px] font-black uppercase opacity-50">Pedido</p>
@@ -153,7 +153,7 @@ export function CartOverlays({
                   exit={{ opacity: 0 }}
                   className="fixed inset-0 z-50 flex items-center justify-center px-6"
                   style={{
-                    background: "rgba(255,248,242,0.92)",
+                    background: "rgba(255,255,255,0.92)",
                     backdropFilter: "blur(6px)",
                   }}
                 >
@@ -226,7 +226,7 @@ export function CartOverlays({
                   exit={{ opacity: 0 }}
                   className="fixed inset-0 z-[80] flex items-center justify-center px-6"
                   style={{
-                    background: "rgba(255,248,242,0.92)",
+                    background: "rgba(255,255,255,0.92)",
                     color: VERDE,
                   }}
                 >

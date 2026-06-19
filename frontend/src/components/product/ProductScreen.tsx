@@ -16,7 +16,7 @@ import {
   PackageSearch,
 } from "lucide-react";
 import { CartItem, Order } from "@/types/order";
-import { CREME, ROSA, VERDE } from "@/utils/theme";
+import { ROSA, VERDE } from "@/utils/theme";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { MenuItem } from "@/features/catalog/types";
 import friesPhoto from "@/imports/image-20.png";
@@ -80,8 +80,8 @@ function hasRequiredCustomerProfile(profile: MemberProfile | null) {
 
 function comboPotatoComponent(item: MenuItem) {
   return requiredCustomizerCount(item) > 1
-    ? "2 Batatas Fritas 200g"
-    : "Batata Frita 200g";
+    ? "Batata Frita 200g"
+    : "Batata Frita 100g";
 }
 
 interface Props {
@@ -629,7 +629,7 @@ export function ProductScreen({
     <div
       style={{
         minHeight: "100dvh",
-        background: "#FFF8F2",
+        background: "#fff",
         color: VERDE,
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
@@ -700,7 +700,7 @@ export function ProductScreen({
         <div
           className="fixed inset-x-0 bottom-0 z-50"
           style={{
-            background: "rgba(255,248,242,0.94)",
+            background: "rgba(255,255,255,0.96)",
             borderTop: `1px solid ${VERDE}14`,
             backdropFilter: "blur(18px)",
           }}
