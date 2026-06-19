@@ -348,20 +348,41 @@ function OfferCarousel({ onOpenClub }: { onOpenClub: () => void }) {
               key={offer.id}
               type="button"
               onClick={offer.action}
-              className="grid min-h-[118px] w-[86vw] max-w-[380px] shrink-0 snap-start grid-cols-[56px_1fr_auto] items-center gap-3 rounded-[18px] px-4 py-4 text-left text-white"
+              className="relative min-h-[132px] w-[86vw] max-w-[380px] shrink-0 snap-start overflow-hidden rounded-[18px] px-4 py-4 text-left text-white"
               style={{ background: VINHO }}
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: ROSA, color: VINHO }}>
-                <Icon size={25} strokeWidth={2.6} />
+              <span
+                className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20"
+                style={{ background: ROSA }}
+              />
+              <span
+                className="absolute right-3 top-3 flex min-h-14 min-w-16 flex-col items-center justify-center rounded-2xl px-2 text-center"
+                style={{ background: ROSA, color: VINHO }}
+              >
+                <span className="text-2xl font-black leading-none">{offer.value}</span>
+                <span className="mt-0.5 max-w-[58px] text-[10px] font-black uppercase leading-[0.95]">{offer.suffix}</span>
               </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-black uppercase">{offer.eyebrow}</span>
-                <span className="block text-3xl font-black uppercase leading-none" style={{ color: ROSA }}>{offer.title}</span>
-                <span className="mt-1 block text-xs font-bold uppercase leading-snug opacity-85">{offer.copy}</span>
+
+              <span className="grid max-w-[calc(100%-82px)] grid-cols-[48px_minmax(0,1fr)] gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: ROSA, color: VINHO }}>
+                  <Icon size={24} strokeWidth={2.6} />
+                </span>
+                <span className="min-w-0 pt-0.5">
+                  <span className="block text-[13px] font-black uppercase leading-tight text-white">{offer.eyebrow}</span>
+                  <span
+                    className="mt-1 block truncate text-[clamp(1.75rem,8vw,2.35rem)] font-black uppercase leading-[0.9]"
+                    style={{ color: ROSA }}
+                  >
+                    {offer.title}
+                  </span>
+                  <span className="mt-2 block max-w-[210px] text-[11px] font-black uppercase leading-tight opacity-90">
+                    {offer.copy}
+                  </span>
+                </span>
               </span>
-              <span className="shrink-0 text-right">
-                <span className="block text-4xl font-black leading-none" style={{ color: ROSA }}>{offer.value}</span>
-                <span className="block max-w-[72px] text-sm font-black uppercase leading-none" style={{ color: ROSA }}>{offer.suffix}</span>
+
+              <span className="absolute bottom-3 left-4 right-4 h-1 overflow-hidden rounded-full bg-white/10">
+                <span className="block h-full w-1/2 rounded-full" style={{ background: ROSA }} />
               </span>
             </button>
           );
