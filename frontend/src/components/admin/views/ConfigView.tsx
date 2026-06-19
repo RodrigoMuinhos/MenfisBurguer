@@ -86,7 +86,7 @@ export function ConfigView({
           <div>
             <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Horários de atendimento</p>
             <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
-              Dias fechados ou fora do horário bloqueiam pagamento automático e mandam o cliente para o WhatsApp.
+              Dias fechados ou fora do horário mostram um aviso ao cliente após o pedido, sem bloquear o pagamento.
             </p>
           </div>
         </div>

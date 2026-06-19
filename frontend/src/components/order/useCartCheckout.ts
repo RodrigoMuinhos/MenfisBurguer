@@ -3,23 +3,18 @@ import { CartItem, Order } from "@/types/order";
 import {
   API_URL,
   Coupon,
-  DEFAULT_OPERATING_HOURS,
   CheckoutStep,
   DeliveryType,
   KioskKeyboardTarget,
-  OperatingHoursConfig,
   PICKUP_ADDRESS,
   PaymentMethod,
   STORAGE_KEY,
-  SUPPORT_WHATSAPP_URL,
   buildCheckoutPricing,
   findCoupon,
   findCouponFromBackend,
-  getOperatingHoursBlockMessage,
   loadSaved,
   lookupCEP,
   maskPhone,
-  normalizeOperatingHours,
   playAttendantBeep,
   resolveRuntimeDeliveryType,
 } from "./checkout";
@@ -96,7 +91,6 @@ export function useCartCheckout({
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(false);
-  const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [kioskSuccessOpen, setKioskSuccessOpen] = useState(false);
   const [kioskSuccessOrder, setKioskSuccessOrder] = useState<Order | null>(null);
   const [kioskKeyboardTarget, setKioskKeyboardTarget] =
@@ -226,7 +220,6 @@ export function useCartCheckout({
       .then((settings) => {
         const enabled = settings.payOnDeliveryEnabled === true;
         setPayOnDeliveryEnabled(enabled);
-        setOperatingHours(normalizeOperatingHours(settings.operatingHours));
         if (!enabled) {
           setPayment((current) =>
             current === "pagar_na_entrega" ? "pix" : current,
@@ -486,24 +479,6 @@ export function useCartCheckout({
 
     if (!canCreatePayment) return;
     closeKioskKeyboard();
-
-    if (!kioskMode && !counterServiceMode) {
-      const blockMessage = getOperatingHoursBlockMessage(new Date(), operatingHours);
-      if (blockMessage) {
-        const text = [
-          blockMessage,
-          "",
-          "Quero fazer meu pedido pelo WhatsApp.",
-        ].join("\n");
-        window.open(
-          `${SUPPORT_WHATSAPP_URL}?text=${encodeURIComponent(text)}`,
-          "_blank",
-          "noopener,noreferrer",
-        );
-        setPaymentError("Estamos fora do horário de pagamento automático. Continue pelo WhatsApp.");
-        return;
-      }
-    }
 
     const removedByItemId = getRemovedByItemId();
     const address = getCustomerAddress();
