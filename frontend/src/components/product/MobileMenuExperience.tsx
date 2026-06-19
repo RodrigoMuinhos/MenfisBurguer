@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ClipboardList,
   Drumstick,
+  Flame,
   Gift,
   Home,
   Menu,
@@ -25,12 +26,13 @@ import { ROSA } from "@/utils/theme";
 import { SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { fmt, imageSrc, MemberProfile } from "./shared";
 
-type MobileCategory = "combo" | "burger" | "chicken" | "bacon";
+type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon";
 
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
 const PINK = "#EC1767";
 const MOBILE_CATEGORIES: Array<{ id: MobileCategory; label: string; icon: ElementType }> = [
+  { id: "promo", label: "Promocoes", icon: Flame },
   { id: "combo", label: "Combos", icon: Package },
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "chicken", label: "Chicken", icon: Drumstick },
@@ -77,12 +79,14 @@ function itemSearchText(item: MenuItem) {
 
 function categoryMatches(item: MenuItem, category: MobileCategory) {
   const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
+  if (category === "promo") return item.category === "combo" && Boolean(item.highlight);
   if (category === "chicken") return item.category === "burger" && text.includes("chicken");
   if (category === "bacon") return item.category === "burger" && text.includes("bacon");
   if (category === "burger") {
     return item.category === "burger" && !text.includes("chicken") && !text.includes("bacon");
   }
-  return item.category === category;
+  if (category === "combo") return item.category === "combo" && !item.highlight;
+  return false;
 }
 
 function discountPercent(item: MenuItem) {
@@ -191,20 +195,7 @@ export function MobileMenuExperience({
           </button>
         </div>
 
-        <button type="button" onClick={() => setPanel("club")} className="relative z-10 mt-2 grid w-full grid-cols-[56px_1fr_auto] items-center gap-3 rounded-[18px] px-4 py-4 text-left text-white" style={{ background: VINHO }}>
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: ROSA, color: VINHO }}>
-            <Gift size={25} strokeWidth={2.6} />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-black uppercase">Primeira compra?</span>
-            <span className="block text-3xl font-black uppercase leading-none" style={{ color: ROSA }}>MFB10</span>
-            <span className="block text-xs font-bold uppercase opacity-85">Ganhe 10% OFF no primeiro pedido</span>
-          </span>
-          <span className="text-right">
-            <span className="block text-4xl font-black leading-none" style={{ color: ROSA }}>10%</span>
-            <span className="block text-lg font-black leading-none" style={{ color: ROSA }}>OFF</span>
-          </span>
-        </button>
+        <OfferCarousel onOpenClub={() => setPanel("club")} />
 
         <button type="button" onClick={scrollToProducts} className="relative z-10 mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase tracking-wide" style={{ background: PINK, color: "#fff" }}>
           Fazer pedido agora <ChevronRight size={20} strokeWidth={2.8} />
@@ -320,6 +311,63 @@ function CategoryNav({ category, setCategory }: { category: MobileCategory; setC
         );
       })}
     </nav>
+  );
+}
+
+function OfferCarousel({ onOpenClub }: { onOpenClub: () => void }) {
+  const offers = [
+    {
+      id: "mfb10",
+      eyebrow: "Primeira compra?",
+      title: "MFB10",
+      copy: "Ganhe 10% OFF no primeiro pedido",
+      value: "10%",
+      suffix: "OFF",
+      icon: Gift,
+      action: onOpenClub,
+    },
+    {
+      id: "combolove",
+      eyebrow: "Quarta-feira",
+      title: "COMBOLOVE",
+      copy: "Na compra de um combo, o segundo sai com 50% OFF",
+      value: "50%",
+      suffix: "2o combo",
+      icon: Flame,
+      action: onOpenClub,
+    },
+  ];
+
+  return (
+    <section className="relative z-10 mt-2 -mx-4 overflow-x-auto px-4 pb-1">
+      <div className="flex snap-x snap-mandatory gap-3">
+        {offers.map((offer) => {
+          const Icon = offer.icon;
+          return (
+            <button
+              key={offer.id}
+              type="button"
+              onClick={offer.action}
+              className="grid min-h-[118px] w-[86vw] max-w-[380px] shrink-0 snap-start grid-cols-[56px_1fr_auto] items-center gap-3 rounded-[18px] px-4 py-4 text-left text-white"
+              style={{ background: VINHO }}
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: ROSA, color: VINHO }}>
+                <Icon size={25} strokeWidth={2.6} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-black uppercase">{offer.eyebrow}</span>
+                <span className="block text-3xl font-black uppercase leading-none" style={{ color: ROSA }}>{offer.title}</span>
+                <span className="mt-1 block text-xs font-bold uppercase leading-snug opacity-85">{offer.copy}</span>
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-4xl font-black leading-none" style={{ color: ROSA }}>{offer.value}</span>
+                <span className="block max-w-[72px] text-sm font-black uppercase leading-none" style={{ color: ROSA }}>{offer.suffix}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
