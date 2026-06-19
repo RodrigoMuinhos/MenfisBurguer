@@ -234,24 +234,6 @@ export function MobileMenuExperience({
         </section>
       </main>
 
-      {cartCount > 0 && (
-        <div className="fixed inset-x-0 bottom-[64px] z-50 px-4 pb-0 pt-3">
-          <button type="button" onClick={goToCart} className="flex h-20 w-full items-center justify-between gap-3 rounded-[28px] px-4 shadow-2xl" style={{ background: VINHO, color: "#fff", boxShadow: "0 18px 40px rgba(101,0,31,0.28)" }}>
-            <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white">
-              <ShoppingCart size={25} strokeWidth={2.6} style={{ color: VINHO }} />
-              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-black" style={{ background: PINK, color: "#fff" }}>{cartCount}</span>
-            </span>
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block text-lg font-black leading-tight">{cartCount} {cartCount === 1 ? "item" : "itens"}</span>
-              <span className="block text-xl font-black leading-tight">{fmt(cartTotal)}</span>
-            </span>
-            <span className="flex h-12 shrink-0 items-center gap-2 rounded-2xl px-3 text-xs font-black" style={{ background: PINK, color: "#fff" }}>
-              VER PEDIDO <ChevronRight size={17} strokeWidth={2.8} />
-            </span>
-          </button>
-        </div>
-      )}
-
       <a
         href={`${SUPPORT_WHATSAPP_URL}?text=${whatsappText}`}
         target="_blank"
@@ -268,7 +250,7 @@ export function MobileMenuExperience({
         <MessageCircle size={27} strokeWidth={2.6} />
       </a>
 
-      <MobileBottomNav cartCount={cartCount} onHome={() => window.scrollTo({ top: 0, behavior: "smooth" })} onSearch={() => searchRef.current?.focus()} onOrders={goToCart} onClub={() => setPanel("club")} onProfile={onOpenMember} />
+      <MobileBottomNav cartCount={cartCount} cartTotal={cartTotal} onHome={() => window.scrollTo({ top: 0, behavior: "smooth" })} onSearch={() => searchRef.current?.focus()} onOrders={goToCart} onClub={() => setPanel("club")} onProfile={onOpenMember} />
       {panel === "reviews" && <ReviewsPanel onClose={() => setPanel(null)} />}
       {panel === "club" && <ClubPanel rewardCount={rewardCount} rewardRemaining={rewardRemaining} onClose={() => setPanel(null)} onSubscribe={() => setPanel("subscribe")} />}
       {panel === "subscribe" && <SubscriptionPanel memberProfile={memberProfile} onClose={() => setPanel(null)} onLogin={onOpenMember} />}
@@ -354,7 +336,7 @@ function OfferCarousel({ onOpenClub, onSubscribe }: { onOpenClub: () => void; on
     {
       id: "club",
       eyebrow: "Menfi's Club",
-      title: "CLUBE",
+      title: "VEMMM...",
       copy: "Frete gratis e descontos por 31 dias",
       value: "R$ 6,90",
       suffix: "31 dias",
@@ -417,7 +399,7 @@ function OfferCarousel({ onOpenClub, onSubscribe }: { onOpenClub: () => void; on
   );
 }
 
-function MobileBottomNav({ cartCount, onHome, onSearch, onOrders, onClub, onProfile }: { cartCount: number; onHome: () => void; onSearch: () => void; onOrders: () => void; onClub: () => void; onProfile: () => void }) {
+function MobileBottomNav({ cartCount, cartTotal, onHome, onSearch, onOrders, onClub, onProfile }: { cartCount: number; cartTotal: number; onHome: () => void; onSearch: () => void; onOrders: () => void; onClub: () => void; onProfile: () => void }) {
   const items = [
     { label: "Inicio", icon: Home, onClick: onHome, active: true },
     { label: "Buscar", icon: Search, onClick: onSearch },
@@ -426,20 +408,37 @@ function MobileBottomNav({ cartCount, onHome, onSearch, onOrders, onClub, onProf
     { label: "Perfil", icon: UserRound, onClick: onProfile },
   ];
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-white px-2 pb-2 pt-2 shadow-[0_-12px_30px_rgba(101,0,31,0.08)]" style={{ borderColor: `${VINHO}12` }}>
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
-          <button key={item.label} type="button" onClick={item.onClick} className="relative flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-black" style={{ color: item.active ? VINHO : `${VINHO}99` }}>
-            <span className="relative">
-              <Icon size={21} strokeWidth={2.4} />
-              {Boolean(item.badge) && <span className="absolute -right-3 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black" style={{ background: PINK, color: "#fff" }}>{item.badge}</span>}
-            </span>
-            {item.label}
-          </button>
-        );
-      })}
-    </nav>
+    <div className="fixed inset-x-0 bottom-0 z-50 overflow-hidden border-t bg-white shadow-[0_-14px_32px_rgba(101,0,31,0.10)]" style={{ borderColor: `${VINHO}12` }}>
+      {cartCount > 0 && (
+        <button type="button" onClick={onOrders} className="flex h-[74px] w-full items-center gap-3 border-b px-4 text-left" style={{ borderColor: `${VINHO}10`, color: VINHO }}>
+          <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" style={{ background: `${ROSA}55` }}>
+            <ShoppingCart size={23} strokeWidth={2.6} />
+            <span className="absolute -right-1.5 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-black" style={{ background: PINK, color: "#fff" }}>{cartCount}</span>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-black leading-tight">{cartCount} {cartCount === 1 ? "item" : "itens"}</span>
+            <span className="block text-2xl font-black leading-tight">{fmt(cartTotal)}</span>
+          </span>
+          <span className="flex h-12 shrink-0 items-center gap-2 rounded-2xl px-4 text-xs font-black uppercase" style={{ background: PINK, color: "#fff" }}>
+            Ver pedido <ChevronRight size={17} strokeWidth={2.8} />
+          </span>
+        </button>
+      )}
+      <nav className="grid grid-cols-5 px-2 pb-2 pt-2">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button key={item.label} type="button" onClick={item.onClick} className="relative flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-black" style={{ color: item.active ? VINHO : `${VINHO}99` }}>
+              <span className="relative">
+                <Icon size={21} strokeWidth={2.4} />
+                {Boolean(item.badge) && <span className="absolute -right-3 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black" style={{ background: PINK, color: "#fff" }}>{item.badge}</span>}
+              </span>
+              {item.label}
+            </button>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 
@@ -537,17 +536,27 @@ function SubscriptionPanel({ memberProfile, onClose, onLogin }: { memberProfile:
   const plans = [
     {
       id: "silver",
+      level: "Silver",
       name: "Menfi's Club Silver",
-      price: "R$ 6,90",
+      price: 6.9,
+      badge: "Essencial",
+      freeShippingCount: 5,
+      discountCount: 5,
       benefits: ["Frete gratis em ate 5 pedidos", "R$ 10,00 OFF em ate 5 pedidos"],
     },
     {
       id: "gold",
+      level: "Gold",
       name: "Menfi's Club Gold",
-      price: "R$ 12,90",
+      price: 12.9,
+      badge: "Melhor oferta",
+      freeShippingCount: 10,
+      discountCount: 5,
       benefits: ["Frete gratis em ate 10 pedidos", "R$ 10,00 OFF em ate 5 pedidos"],
     },
   ];
+  const [selectedPlanId, setSelectedPlanId] = useState("gold");
+  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[1];
   const subscribe = async (plan: string) => {
     setError("");
     if (!memberProfile?.id) {
@@ -580,10 +589,73 @@ function SubscriptionPanel({ memberProfile, onClose, onLogin }: { memberProfile:
 
   return (
     <PanelShell title="Assinar Menfi's Club" onClose={onClose}>
-      <div className="mt-4 rounded-2xl p-4" style={{ background: `${ROSA}50`, border: `1px solid ${VINHO}10` }}>
-        <p className="text-sm font-black uppercase tracking-wide">Pagamento exclusivo via Mercado Pago</p>
+      <div className="mt-5 text-center">
+        <div className="mx-auto flex w-fit items-center gap-2 rounded-full px-4 py-2" style={{ background: `${ROSA}45`, color: VINHO }}>
+          <Gift size={21} strokeWidth={2.6} />
+          <span className="text-sm font-black uppercase tracking-wide">Menfi's Club</span>
+        </div>
+        <p className="mt-6 text-2xl font-black">Resumo da compra</p>
+        <p className="mt-3 text-sm font-black" style={{ color: "#047857" }}>Pacote avulso por 31 dias</p>
+        <p className="mt-2" style={{ color: VINHO, fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "4.4rem", lineHeight: 0.9 }}>
+          {fmt(selectedPlan.price)}
+        </p>
+        <p className="mt-2 text-base font-black">sem renovacao automatica</p>
+      </div>
+
+      <div className="mt-7">
+        <p className="text-lg font-black">Detalhes dos beneficios</p>
+        <div className="mt-3 grid gap-3 text-sm font-bold leading-relaxed opacity-70">
+          <p>• {selectedPlan.freeShippingCount} usos de frete gratis em pedidos elegiveis</p>
+          <p>• {selectedPlan.discountCount} descontos de R$ 10,00 para usar no checkout</p>
+          <p>• Identificacao visual ⭐ {selectedPlan.level} no perfil e no painel administrativo</p>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-[24px] p-4" style={{ background: "#fff", border: `1px solid ${VINHO}12` }}>
+        <p className="text-base font-black">Escolha seu pacote</p>
+        <div className="mt-4 grid gap-3">
+          {plans.map((plan) => {
+            const selected = selectedPlanId === plan.id;
+            return (
+              <button
+                key={plan.id}
+                type="button"
+                onClick={() => setSelectedPlanId(plan.id)}
+                className="flex min-h-[118px] items-center gap-4 rounded-2xl p-4 text-left"
+                style={{
+                  border: `2px solid ${selected ? VINHO : `${VINHO}14`}`,
+                  background: selected ? "#fff" : "#FAFAFA",
+                  color: VINHO,
+                }}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block w-fit rounded-full px-3 py-1 text-[11px] font-black" style={{ background: selected ? `${ROSA}55` : "#fff", color: selected ? VINHO : `${VINHO}99` }}>
+                    <Star size={12} className="mr-1 inline" fill="currentColor" strokeWidth={2.4} />
+                    {plan.badge}
+                  </span>
+                  <span className="mt-3 block text-2xl font-black leading-tight">{fmt(plan.price)}</span>
+                  <span className="mt-1 block text-base font-black">{plan.name}</span>
+                  <span className="mt-1 block text-sm font-bold opacity-60">Para usar em 31 dias</span>
+                </span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ border: `7px solid ${selected ? PINK : "#EEE"}`, background: "#fff" }} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-[24px] p-4" style={{ background: "#F7F7F7", color: VINHO }}>
+        <p className="text-base font-black">Pagamento pelo Mercado Pago</p>
+        <div className="mt-4 rounded-2xl bg-white p-4">
+          <p className="text-sm font-black">Checkout seguro Mercado Pago</p>
+          <p className="mt-1 text-xs font-bold opacity-60">Voce sera redirecionado para concluir o pagamento.</p>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl p-4" style={{ background: `${ROSA}45`, border: `1px solid ${VINHO}10` }}>
+        <p className="text-sm font-black uppercase tracking-wide">Ativacao automatica</p>
         <p className="mt-2 text-xs font-semibold leading-relaxed opacity-70">
-          Pacote avulso por 31 dias, sem renovacao automatica. A ativacao fica vinculada ao ID do cliente apos aprovacao do pagamento.
+          Apos aprovacao, o pacote fica vinculado ao ID do cliente e os beneficios aparecem no fechamento do pedido.
         </p>
       </div>
       {error && (
@@ -591,34 +663,16 @@ function SubscriptionPanel({ memberProfile, onClose, onLogin }: { memberProfile:
           {error}
         </p>
       )}
-      <div className="mt-4 grid gap-3">
-        {plans.map((plan) => (
-          <article key={plan.name} className="rounded-2xl bg-white p-4" style={{ border: `1px solid ${VINHO}12` }}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-lg font-black uppercase leading-tight">{plan.name}</p>
-                <p className="mt-1 text-sm font-semibold opacity-70">Valido por 31 dias</p>
-              </div>
-              <p className="shrink-0 text-right text-base font-black">{plan.price}</p>
-            </div>
-            <div className="mt-4 grid gap-2">
-              {plan.benefits.map((benefit) => (
-                <p key={benefit} className="rounded-xl px-3 py-2 text-xs font-black" style={{ background: `${ROSA}55` }}>
-                  {benefit}
-                </p>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => void subscribe(plan.id)}
-              className="mt-4 flex h-12 w-full items-center justify-center rounded-2xl text-xs font-black uppercase tracking-wide disabled:opacity-70"
-              style={{ background: VINHO, color: ROSA }}
-              disabled={subscribingPlan !== null}
-            >
-              {subscribingPlan === plan.id ? "Abrindo Mercado Pago" : memberProfile ? "Assinar no Mercado Pago" : "Entrar para assinar"}
-            </button>
-          </article>
-        ))}
+      <div className="sticky bottom-0 -mx-5 mt-5 bg-white px-5 pb-2 pt-4">
+        <button
+          type="button"
+          onClick={() => void subscribe(selectedPlan.id)}
+          className="flex h-14 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide disabled:opacity-70"
+          style={{ background: PINK, color: "#fff" }}
+          disabled={subscribingPlan !== null}
+        >
+          {subscribingPlan ? "Abrindo Mercado Pago" : memberProfile ? "Continuar para Mercado Pago" : "Entrar para assinar"}
+        </button>
       </div>
     </PanelShell>
   );
