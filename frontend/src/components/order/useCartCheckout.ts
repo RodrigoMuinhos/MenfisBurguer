@@ -209,7 +209,7 @@ export function useCartCheckout({
       setPayment("presencial");
     }
     if (delivery === "delivery" && payment === "presencial") {
-      setPayment("pix");
+      setPayment("pix_qrcode");
     }
   }, [counterServiceMode, delivery, kioskMode, payment]);
 
