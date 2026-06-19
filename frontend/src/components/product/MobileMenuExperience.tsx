@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { useMemo, useRef, useState, type ElementType } from "react";
+import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 import {
   Beef,
   Bell,
@@ -32,6 +32,7 @@ const MAGENTA = "#B20B47";
 const PINK = "#EC1767";
 const BRAND_M_LOGO = "/logo_M_square.png";
 const REVIEWS_STORAGE_KEY = "menfis_mobile_reviews";
+const CLOSED_HOURS_ALERT_KEY = "menfis_closed_hours_alert_seen";
 const MOBILE_CATEGORIES: Array<{
   id: MobileCategory;
   label: string;
@@ -106,6 +107,14 @@ function discountPercent(item: MenuItem) {
   return Math.round((1 - item.price / item.originalPrice) * 100);
 }
 
+function isOfficialBusinessHours(date = new Date()) {
+  const day = date.getDay();
+  const openDay = day === 0 || (day >= 3 && day <= 6);
+  if (!openDay) return false;
+  const minutes = date.getHours() * 60 + date.getMinutes();
+  return minutes >= 18 * 60 + 30 && minutes < 21 * 60 + 30;
+}
+
 export function MobileMenuExperience({
   items,
   cartCount,
@@ -134,6 +143,7 @@ export function MobileMenuExperience({
   const [panel, setPanel] = useState<"reviews" | "club" | "subscribe" | null>(
     null,
   );
+  const [closedHoursOpen, setClosedHoursOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const rewardCount = memberProfile?.orders ? memberProfile.orders % 10 : 0;
   const rewardRemaining = Math.max(0, 10 - rewardCount);
@@ -165,6 +175,23 @@ export function MobileMenuExperience({
       .getElementById("menfis-products")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const closeClosedHoursAlert = () => {
+    sessionStorage.setItem(CLOSED_HOURS_ALERT_KEY, "1");
+    setClosedHoursOpen(false);
+  };
+
+  const reserveOrder = () => {
+    closeClosedHoursAlert();
+    window.setTimeout(scrollToProducts, 120);
+  };
+
+  useEffect(() => {
+    if (isOfficialBusinessHours()) return;
+    if (sessionStorage.getItem(CLOSED_HOURS_ALERT_KEY) === "1") return;
+    const timer = window.setTimeout(() => setClosedHoursOpen(true), 650);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
     <div className="md:hidden bg-white" style={{ color: VINHO }}>
@@ -391,6 +418,80 @@ export function MobileMenuExperience({
           onLogin={onOpenMember}
         />
       )}
+      {closedHoursOpen && (
+        <ClosedHoursModal
+          onReserve={reserveOrder}
+          onClose={closeClosedHoursAlert}
+        />
+      )}
+    </div>
+  );
+}
+
+function ClosedHoursModal({
+  onReserve,
+  onClose,
+}: {
+  onReserve: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-end bg-[rgba(101,0,31,0.42)] px-3 pb-4"
+      onClick={onClose}
+    >
+      <section
+        className="w-full rounded-[28px] bg-white p-5 shadow-[0_22px_60px_rgba(101,0,31,0.24)]"
+        style={{ color: VINHO }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-widest opacity-55">
+              Atendimento Menfi's
+            </p>
+            <h2 className="mt-2 text-2xl font-black leading-tight">
+              Estamos fechados no momento
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+            style={{ background: `${ROSA}55`, color: VINHO }}
+            aria-label="Fechar aviso"
+          >
+            <X size={21} strokeWidth={2.8} />
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-2xl p-4 text-sm font-bold leading-relaxed" style={{ background: `${ROSA}35` }}>
+          <p>Funcionamos de quarta a domingo, das 18:30 as 21:30.</p>
+          <p className="mt-3">
+            Voce pode reservar seu pedido agora, mas a preparacao e entrega
+            comecam somente a partir das 18:30.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          <button
+            type="button"
+            onClick={onReserve}
+            className="flex h-14 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide"
+            style={{ background: PINK, color: "#fff" }}
+          >
+            Reservar pedido
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide"
+            style={{ border: `1px solid ${VINHO}14`, color: VINHO }}
+          >
+            Entendi
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

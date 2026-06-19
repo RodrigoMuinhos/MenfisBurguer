@@ -16,10 +16,8 @@ import {
   BuilderState,
   CHEESE_PRICE,
   COMBO_DRINK_SURCHARGE_PRODUCT_ID,
-  COMBO_UPGRADE_PRICE,
   CustomizerState,
   DRINK_OPTIONS,
-  EXTRA_OPTIONS,
   MEAT_POINT_OPTIONS,
   SAUCE_OPTIONS,
   SAUCE_PRICE,
@@ -400,17 +398,6 @@ export function ProductDetailModal({
   onClose: () => void;
   onAdd: () => void;
 }) {
-  const baconExtra = EXTRA_OPTIONS.find((option) => option.id === "extra-bacon");
-  const cheddarExtra = EXTRA_OPTIONS.find((option) => option.id === "extra-cheddar");
-  const smartAddons = [
-    baconExtra
-      ? { label: "Adicionar bacon", price: baconExtra.price }
-      : { label: "Adicionar bacon", price: 4 },
-    cheddarExtra
-      ? { label: "Adicionar cheddar", price: cheddarExtra.price }
-      : { label: "Adicionar cheddar", price: 3 },
-    { label: "Transformar em combo", price: COMBO_UPGRADE_PRICE },
-  ];
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -502,25 +489,6 @@ export function ProductDetailModal({
               copy="Ponto da carne, molhos, bebidas, adicionais e quantidade são escolhidos antes de adicionar ao carrinho."
             />
           </div>
-          {(item.category === "burger" || item.category === "combo") && (
-            <div className="mt-5 rounded-2xl p-4" style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}10` }}>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                Adicionais inteligentes
-              </p>
-              <div className="mt-3 grid gap-2">
-                {smartAddons.map((addon) => (
-                  <div
-                    key={addon.label}
-                    className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm font-black"
-                    style={{ border: `1px solid ${VERDE}10` }}
-                  >
-                    <span>{addon.label}</span>
-                    <span style={{ color: ROSA }}>+ {fmt(addon.price)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           <div className="mt-5 rounded-2xl p-4" style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}10` }}>
             <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
               Opções disponíveis
