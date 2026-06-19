@@ -3,6 +3,7 @@ import { useEffect, useState, type ElementType, type HTMLInputTypeAttribute, typ
 import {
   Eye,
   EyeOff,
+  ChevronRight,
   Gift,
   Headphones,
   KeyRound,
@@ -1181,23 +1182,44 @@ function SidePanel({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[75] flex justify-end bg-black/45"
       onClick={onClose}
+      role="presentation"
     >
       <motion.div
-        initial={{ x: 420 }}
+        initial={{ x: "100%" }}
         animate={{ x: 0 }}
-        exit={{ x: 420 }}
+        exit={{ x: "100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 32 }}
-        className="h-full w-full max-w-[380px] overflow-y-auto overflow-x-hidden p-4"
-        style={{ background: "#fff", color: VERDE, boxShadow: "-24px 0 70px rgba(0,0,0,0.22)" }}
+        className="flex h-full w-full max-w-[420px] flex-col overflow-hidden"
+        style={{
+          background: "#fff",
+          color: VERDE,
+          boxShadow: "-24px 0 70px rgba(0,0,0,0.22)",
+          paddingTop: "env(safe-area-inset-top)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
         onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
       >
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-black uppercase tracking-wider">{title}</h2>
-          <button onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: `${VERDE}08`, color: VERDE }}>
+        <div
+          className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b px-4 py-3"
+          style={{ background: "rgba(255,255,255,0.96)", borderColor: `${VERDE}12`, backdropFilter: "blur(16px)" }}
+        >
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-45">Menfi's</p>
+            <h2 className="truncate text-base font-black uppercase tracking-wide">{title}</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+            style={{ background: `${VERDE}08`, color: VERDE }}
+            aria-label="Fechar painel"
+          >
             <X size={18} strokeWidth={2.4} />
           </button>
         </div>
-        <div className="mt-4">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">{children}</div>
       </motion.div>
     </motion.div>
   );
@@ -1242,8 +1264,11 @@ function ProfileMenuButton({
       className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-xs font-black uppercase tracking-wider"
       style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
     >
-      <Icon size={18} strokeWidth={2.4} />
-      {label}
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${ROSA}55` }}>
+        <Icon size={18} strokeWidth={2.4} />
+      </span>
+      <span className="min-w-0 flex-1">{label}</span>
+      <ChevronRight size={17} strokeWidth={2.6} className="shrink-0 opacity-55" />
     </button>
   );
 }
@@ -1265,8 +1290,11 @@ function ProfileMenuLink({
       className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-xs font-black uppercase tracking-wider"
       style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
     >
-      <Icon size={18} strokeWidth={2.4} />
-      {label}
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${ROSA}55` }}>
+        <Icon size={18} strokeWidth={2.4} />
+      </span>
+      <span className="min-w-0 flex-1">{label}</span>
+      <ChevronRight size={17} strokeWidth={2.6} className="shrink-0 opacity-55" />
     </a>
   );
 }

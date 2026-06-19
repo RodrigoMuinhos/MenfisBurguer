@@ -4,7 +4,6 @@ import {
   Beef,
   Bell,
   ChevronRight,
-  CheckCircle2,
   ClipboardList,
   Drumstick,
   Gift,
@@ -60,9 +59,20 @@ const SALES_ORDER = [
   "agua-com-gas",
 ];
 
+const SEARCHABLE_ITEM_FIELDS = ["name", "desc", "tags"] as const;
+
 function saleRank(item: MenuItem) {
   const index = SALES_ORDER.indexOf(item.id);
   return index >= 0 ? index : SALES_ORDER.length + 1;
+}
+
+function itemSearchText(item: MenuItem) {
+  return SEARCHABLE_ITEM_FIELDS.map((field) => {
+    const value = item[field];
+    return Array.isArray(value) ? value.join(" ") : value;
+  })
+    .join(" ")
+    .toLowerCase();
 }
 
 function categoryMatches(item: MenuItem, category: MobileCategory) {
@@ -112,12 +122,14 @@ export function MobileMenuExperience({
   const normalizedQuery = query.trim().toLowerCase();
 
   const sortedItems = useMemo(() => [...items].sort((a, b) => saleRank(a) - saleRank(b)), [items]);
-  const visibleItems = sortedItems.filter((item) => {
-    const matchesSearch =
-      !normalizedQuery ||
-      `${item.name} ${item.desc} ${item.tags.join(" ")}`.toLowerCase().includes(normalizedQuery);
-    return matchesSearch && categoryMatches(item, category);
-  });
+  const visibleItems = useMemo(
+    () =>
+      sortedItems.filter((item) => {
+        const matchesSearch = !normalizedQuery || itemSearchText(item).includes(normalizedQuery);
+        return matchesSearch && categoryMatches(item, category);
+      }),
+    [category, normalizedQuery, sortedItems],
+  );
   const heroItem = items.find((item) => item.id === "double-burger") ?? items[0];
   const categoryLabel = MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label ?? "Produtos";
   const whatsappText = encodeURIComponent("Oi, Menfi's! Quero fazer um pedido pelo WhatsApp.");
@@ -206,7 +218,7 @@ export function MobileMenuExperience({
 
       <CategoryNav category={category} setCategory={setCategory} />
 
-      <main className="px-4 pb-44">
+      <main className="px-3 pb-44 min-[390px]:px-4">
         <section id="menfis-products" className="pt-5">
           <h2 className="text-lg font-black uppercase tracking-wide">{categoryLabel}</h2>
           <div className="mt-3 grid gap-3">
@@ -228,22 +240,7 @@ export function MobileMenuExperience({
             <p className="mt-3 text-sm font-black">{rewardCount}/10 pedidos no seu historico</p>
           </button>
 
-          <button type="button" onClick={() => setPanel("reviews")} className="rounded-[20px] bg-white p-4 text-left" style={{ border: `1px solid ${VINHO}12` }}>
-            <p className="text-lg font-black uppercase">Avaliacoes</p>
-            <p className="mt-2 text-sm font-black">★★★★★ 4.9</p>
-            <p className="mt-1 text-sm font-semibold opacity-70">"Melhor hamburguer que ja pedi."</p>
-            <p className="mt-1 text-sm font-semibold opacity-70">"Chegou quente e muito rapido."</p>
-          </button>
         </section>
-
-        <footer className="mt-5 grid grid-cols-2 gap-2 pb-2 text-xs font-black uppercase">
-          {["Pix e cartao", "Ambiente seguro", "Atendimento WhatsApp", "Pedido protegido", "Politica de privacidade", "Termos de uso"].map((item) => (
-            <div key={item} className="flex items-center gap-2 rounded-2xl bg-white p-3" style={{ border: `1px solid ${VINHO}10` }}>
-              <CheckCircle2 size={16} strokeWidth={2.5} style={{ color: PINK }} />
-              {item}
-            </div>
-          ))}
-        </footer>
       </main>
 
       {cartCount > 0 && (
@@ -442,7 +439,7 @@ function ClubPanel({ rewardCount, rewardRemaining, onClose, onOpenProfile }: { r
 
 function MobileListItem({ item, onAdd, onOpen }: { item: MenuItem; onAdd: () => void; onOpen: () => void }) {
   return (
-    <article className="grid grid-cols-[1fr_132px] gap-3 overflow-hidden rounded-[18px] bg-white p-3 shadow-sm">
+    <article className="grid grid-cols-[minmax(0,1fr)_112px] gap-3 overflow-hidden rounded-[18px] bg-white p-3 shadow-sm min-[390px]:grid-cols-[minmax(0,1fr)_132px]">
       <button type="button" onClick={onOpen} className="min-w-0 text-left">
         <h3 className="line-clamp-2 uppercase" style={{ fontFamily: "'Bebas Neue','Arial Black',sans-serif", fontSize: "1.45rem", lineHeight: 0.96, letterSpacing: 0 }}>{item.name}</h3>
         <p className="mt-1 line-clamp-2 text-sm font-semibold opacity-70">{item.desc}</p>
@@ -450,7 +447,7 @@ function MobileListItem({ item, onAdd, onOpen }: { item: MenuItem; onAdd: () => 
         <PriceBlock item={item} className="mt-2" />
       </button>
       <div
-        className="relative h-32 overflow-hidden rounded-2xl"
+        className="relative h-28 overflow-hidden rounded-2xl min-[390px]:h-32"
         style={{ background: "#fff" }}
       >
         <button type="button" onClick={onOpen} className="absolute inset-0" aria-label={`Ver detalhes de ${item.name}`}>
