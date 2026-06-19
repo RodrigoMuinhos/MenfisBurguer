@@ -106,6 +106,16 @@ public class ApiDtos {
 
   public record PixRequest(@NotBlank String orderId) {}
 
+  public record ClubPreferenceRequest(@NotBlank String plan) {}
+
+  public record ClubPreferenceResponse(
+    String subscriptionId,
+    String checkoutUrl,
+    String sandboxCheckoutUrl,
+    String preferenceId,
+    String status
+  ) {}
+
   public record PixResponse(
     String orderId,
     String checkoutUrl,

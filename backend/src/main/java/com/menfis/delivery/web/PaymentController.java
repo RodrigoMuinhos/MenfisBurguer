@@ -1,8 +1,11 @@
 package com.menfis.delivery.web;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.menfis.delivery.dto.ApiDtos.ClubPreferenceRequest;
+import com.menfis.delivery.dto.ApiDtos.ClubPreferenceResponse;
 import com.menfis.delivery.dto.ApiDtos.PixRequest;
 import com.menfis.delivery.dto.ApiDtos.PixResponse;
+import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.PaymentService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,14 +20,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/payments")
 public class PaymentController {
   private final PaymentService payments;
+  private final AuthService auth;
 
-  public PaymentController(PaymentService payments) {
+  public PaymentController(PaymentService payments, AuthService auth) {
     this.payments = payments;
+    this.auth = auth;
   }
 
   @PostMapping("/pix")
   public PixResponse pix(@Valid @RequestBody PixRequest request) {
     return payments.createPix(request.orderId());
+  }
+
+  @PostMapping("/club/preference")
+  public ClubPreferenceResponse clubPreference(
+    @RequestHeader(name = "Authorization", required = false) String authorization,
+    @Valid @RequestBody ClubPreferenceRequest request
+  ) {
+    return payments.createClubPreference(auth.requireCustomer(authorization), request.plan());
   }
 
   @PostMapping("/webhook/mercadopago")

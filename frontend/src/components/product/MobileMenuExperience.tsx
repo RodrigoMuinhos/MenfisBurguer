@@ -22,8 +22,8 @@ import {
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
-import { SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
-import { fmt, imageSrc, MemberProfile } from "./shared";
+import { API_URL, SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
+import { fmt, imageSrc, MEMBER_TOKEN_KEY, MemberProfile } from "./shared";
 
 type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon";
 
@@ -1075,25 +1075,33 @@ function SubscriptionPanel({
       onLogin();
       return;
     }
+    const token = typeof window !== "undefined" ? localStorage.getItem(MEMBER_TOKEN_KEY) : "";
+    if (!API_URL || !token) {
+      onClose();
+      onLogin();
+      return;
+    }
     setSubscribingPlan(plan);
     try {
-      const response = await fetch("/api/club/mercadopago/preference", {
+      const response = await fetch(`${API_URL}/payments/club/preference`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           plan,
-          customerId: memberProfile.id,
-          origin: window.location.origin,
         }),
       });
       const data = await response.json().catch(() => ({}));
       const checkoutUrl = data.checkoutUrl || data.sandboxCheckoutUrl;
       if (!response.ok || !checkoutUrl) {
-        throw new Error(
-          data.details?.message ||
-            data.error ||
-            "Nao foi possivel criar o checkout do Mercado Pago.",
-        );
+        const errorCode = data.details?.message || data.error;
+        const safeMessage =
+          errorCode === "mercado_pago_not_configured"
+            ? "Mercado Pago indisponivel no momento. Tente novamente em alguns minutos."
+            : "Nao foi possivel criar o checkout do Mercado Pago.";
+        throw new Error(safeMessage);
       }
       window.location.href = checkoutUrl;
     } catch (error) {

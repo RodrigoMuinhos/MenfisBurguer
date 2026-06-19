@@ -2,6 +2,7 @@ package com.menfis.delivery.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.menfis.delivery.dto.ApiDtos.ClubPreferenceResponse;
 import com.menfis.delivery.dto.ApiDtos.PixResponse;
 import java.net.URLEncoder;
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,7 +61,7 @@ public class PaymentService {
 
   public PixResponse createPix(String orderId) {
     if (accessToken == null || accessToken.isBlank()) {
-      throw new IllegalStateException("MERCADO_PAGO_ACCESS_TOKEN is required");
+      throw new IllegalStateException("mercado_pago_not_configured");
     }
     validateEnvironment();
     var order = orders.get(orderId);
@@ -133,6 +135,82 @@ public class PaymentService {
       response.toString()
     );
     return new PixResponse(order.id(), selectedCheckoutUrl, sandboxUrl, preferenceId, null, null, "pending", null, null, null, null);
+  }
+
+  public ClubPreferenceResponse createClubPreference(long customerId, String planId) {
+    if (accessToken == null || accessToken.isBlank()) {
+      throw new IllegalStateException("mercado_pago_not_configured");
+    }
+    validateEnvironment();
+    ClubPlan plan = clubPlan(planId);
+    UUID subscriptionId = UUID.randomUUID();
+
+    jdbc.update(
+      """
+      insert into customer_club_subscriptions (
+        id,
+        customer_id,
+        plan,
+        status,
+        payment_status,
+        free_shipping_total,
+        discount_total,
+        updated_at
+      )
+      values (?, ?, ?, 'pending', 'pending', ?, ?, now())
+      """,
+      subscriptionId,
+      customerId,
+      plan.id(),
+      plan.freeShippingTotal(),
+      plan.discountTotal()
+    );
+
+    String externalReference = clubExternalReference(subscriptionId);
+    String encodedSubscriptionId = URLEncoder.encode(subscriptionId.toString(), StandardCharsets.UTF_8);
+    Map<String, Object> payload = new LinkedHashMap<>();
+    payload.put("items", List.of(Map.of(
+      "title", plan.label() + " - Menfi's Burger",
+      "quantity", 1,
+      "currency_id", "BRL",
+      "unit_price", plan.price()
+    )));
+    payload.put("external_reference", externalReference);
+    String notificationUrl = notificationUrl();
+    if (notificationUrl != null) payload.put("notification_url", notificationUrl);
+    payload.put("back_urls", Map.of(
+      "success", frontendUrl + "/?club=success&subscriptionId=" + encodedSubscriptionId,
+      "failure", frontendUrl + "/?club=failure&subscriptionId=" + encodedSubscriptionId,
+      "pending", frontendUrl + "/?club=pending&subscriptionId=" + encodedSubscriptionId
+    ));
+    payload.put("statement_descriptor", "MENFISCLUB");
+    if (frontendUrl != null && frontendUrl.startsWith("https://")) {
+      payload.put("auto_return", "approved");
+    }
+
+    JsonNode response = restClient.post()
+      .uri("/checkout/preferences")
+      .header("Authorization", "Bearer " + accessToken)
+      .contentType(MediaType.APPLICATION_JSON)
+      .body(payload)
+      .retrieve()
+      .body(JsonNode.class);
+
+    String preferenceId = response.path("id").asText();
+    String checkoutUrl = response.path("init_point").asText(null);
+    String sandboxUrl = response.path("sandbox_init_point").asText(null);
+    String selectedCheckoutUrl = preferSandboxCheckout() ? sandboxUrl : checkoutUrl;
+    if (selectedCheckoutUrl == null || selectedCheckoutUrl.isBlank()) {
+      throw new IllegalStateException("Mercado Pago did not return a checkout URL for " + environment);
+    }
+
+    jdbc.update(
+      "update customer_club_subscriptions set provider_preference_id = ?, updated_at = now() where id = ?",
+      preferenceId,
+      subscriptionId
+    );
+
+    return new ClubPreferenceResponse(subscriptionId.toString(), selectedCheckoutUrl, sandboxUrl, preferenceId, "pending");
   }
 
   private PixResponse createPixOrder(com.menfis.delivery.dto.ApiDtos.OrderResponse order) {
@@ -232,7 +310,13 @@ public class PaymentService {
       .retrieve()
       .body(JsonNode.class);
 
-    String orderId = internalOrderId(payment.path("external_reference").asText(""));
+    String externalReference = payment.path("external_reference").asText("");
+    if (externalReference.startsWith("MENFISCLUB-")) {
+      processClubPayment(payment, paymentId);
+      return;
+    }
+
+    String orderId = internalOrderId(externalReference);
     String status = payment.path("status").asText("unknown");
     if (!orderId.isBlank()) {
       updateOrderPaymentMethod(orderId, mercadoPagoPaymentMethod(payment));
@@ -300,6 +384,70 @@ public class PaymentService {
     );
   }
 
+  private void processClubPayment(JsonNode payment, String fallbackPaymentId) {
+    String externalReference = payment.path("external_reference").asText("");
+    String rawId = externalReference.substring("MENFISCLUB-".length());
+    UUID subscriptionId;
+    try {
+      subscriptionId = UUID.fromString(rawId);
+    } catch (IllegalArgumentException ex) {
+      return;
+    }
+    String status = payment.path("status").asText("unknown");
+    boolean active = "approved".equalsIgnoreCase(status);
+    String subscriptionStatus = active
+      ? "active"
+      : ("rejected".equalsIgnoreCase(status) || "cancelled".equalsIgnoreCase(status) ? "failed" : "pending");
+
+    var rows = jdbc.queryForList(
+      """
+      update customer_club_subscriptions
+      set
+        status = ?,
+        payment_status = ?,
+        provider_payment_id = ?,
+        started_at = case when ? then coalesce(started_at, now()) else started_at end,
+        expires_at = case when ? then coalesce(expires_at, now() + interval '31 days') else expires_at end,
+        updated_at = now()
+      where id = ?
+      returning customer_id, plan
+      """,
+      subscriptionStatus,
+      status,
+      payment.path("id").asText(fallbackPaymentId),
+      active,
+      active,
+      subscriptionId
+    );
+    if (!active || rows.isEmpty()) return;
+    Map<String, Object> row = rows.get(0);
+    String plan = String.valueOf(row.get("plan"));
+    jdbc.update(
+      """
+      update customers
+      set
+        club_level = ?,
+        club_expires_at = now() + interval '31 days',
+        club_subscription_id = ?,
+        updated_at = now()
+      where id = ?
+      """,
+      "gold".equalsIgnoreCase(plan) ? "Gold" : "Silver",
+      subscriptionId,
+      row.get("customer_id")
+    );
+  }
+
+  private ClubPlan clubPlan(String planId) {
+    if ("silver".equalsIgnoreCase(planId)) {
+      return new ClubPlan("silver", "Menfi's Club Silver", new BigDecimal("6.90"), 5, 5);
+    }
+    if ("gold".equalsIgnoreCase(planId)) {
+      return new ClubPlan("gold", "Menfi's Club Gold", new BigDecimal("12.90"), 10, 5);
+    }
+    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_club_plan");
+  }
+
   private String normalizeOrderPaymentStatus(JsonNode mpOrder, JsonNode payment) {
     String orderStatus = mpOrder.path("status").asText("");
     String orderDetail = mpOrder.path("status_detail").asText("");
@@ -365,6 +513,10 @@ public class PaymentService {
     return "MENFIS-" + orderId.replaceAll("[^0-9A-Za-z_-]", "");
   }
 
+  private String clubExternalReference(UUID subscriptionId) {
+    return "MENFISCLUB-" + subscriptionId;
+  }
+
   private String internalOrderId(String externalReference) {
     if (externalReference == null) return "";
     if (externalReference.startsWith("MENFIS-")) {
@@ -410,4 +562,6 @@ public class PaymentService {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Mercado Pago webhook signature validation failed", ex);
     }
   }
+
+  private record ClubPlan(String id, String label, BigDecimal price, int freeShippingTotal, int discountTotal) {}
 }
