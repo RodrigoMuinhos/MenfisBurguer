@@ -2,7 +2,6 @@ import { RefObject, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CreditCard,
-  Landmark,
   LockKeyhole,
   MessageCircle,
   QrCode,
@@ -244,8 +243,10 @@ export function PaymentStepSection({
                                 ? "Escolha a forma de pagamento"
                                   : payment === "mercadopago"
                                   ? "Cartao no Mercado Pago"
-                                  : payment === "pix_qrcode" || payment === "pix"
+                                  : payment === "pix_qrcode"
                                   ? "Pix Mercado Pago"
+                                  : payment === "pix"
+                                  ? "QR Code Pix Menfi's"
                                   : payment === "cartao"
                                     ? "Cartão online"
                                     : payment === "pagar_na_entrega"
@@ -272,8 +273,10 @@ export function PaymentStepSection({
                                         ? "A equipe chama no WhatsApp para combinar o pagamento antes de liberar a cozinha."
                                     : payment === "mercadopago"
                                       ? "Você será direcionado para pagar no cartão de crédito ou débito pela página segura do Mercado Pago."
-                                      : payment === "pix_qrcode" || payment === "pix"
-                                        ? "Vamos gerar um Pix do Mercado Pago para copiar ou escanear. Depois do pagamento, retorne para acompanhar a confirmação."
+                                      : payment === "pix_qrcode"
+                                        ? "Você será direcionado ao Mercado Pago para pagar com Pix na página segura."
+                                        : payment === "pix"
+                                        ? "Vamos mostrar o QR Code Pix direto da Menfi's para pagamento pelo app do banco."
                                         : "Você finaliza pelo Mercado Pago. Assim que aprovar, o pedido entra na cozinha."}
                             </p>
                           </div>
@@ -320,15 +323,15 @@ export function PaymentStepSection({
                                 {
                                   id: "mercadopago" as PaymentMethod,
                                   label: "Mercado Pago",
-                                  copy: "Pagamento processado automaticamente",
+                                  copy: "Cartão ou Pix na página segura",
                                   Icon: CreditCard,
                                   show: true,
                                 },
                                 {
                                   id: "pix" as PaymentMethod,
-                                  label: "PIX Direto Menfi's",
-                                  copy: "Pague direto para nossa chave Pix",
-                                  Icon: Landmark,
+                                  label: "QR Code Pix",
+                                  copy: "Pix direto Menfi's",
+                                  Icon: QrCode,
                                   show: true,
                                 },
                               ] as {
@@ -378,7 +381,7 @@ export function PaymentStepSection({
                           {payment === "pix_qrcode" && (
                             <PaymentHint
                               title="Pix Mercado Pago"
-                              copy="Ao finalizar, geramos um Pix do Mercado Pago. A tela de acompanhamento mostra o QR Code e o copia e cola. Depois de pagar, é necessário retornar para a tela do pedido para acompanhar a confirmação."
+                              copy="Ao continuar, você será direcionado para pagar com Pix dentro da página segura do Mercado Pago."
                               total={total}
                             />
                           )}
@@ -391,7 +394,7 @@ export function PaymentStepSection({
                           )}
                           {payment === "pix" && (
                             <PaymentHint
-                              title="PIX Direto Menfi's"
+                              title="QR Code Pix Menfi's"
                               copy="Ao finalizar, mostramos o QR Code Pix direto da Menfi's. Depois do pagamento, envie o comprovante para validação."
                               total={total}
                             />
@@ -635,7 +638,7 @@ export function PaymentStepSection({
 
                         <button
                           type="button"
-                          onClick={() => chooseMercadoPagoPayment("pix_qrcode")}
+                          onClick={() => chooseMercadoPagoPayment("mercadopago")}
                           disabled={paying}
                           className="flex min-h-[86px] items-center gap-4 rounded-2xl p-4 text-left"
                           style={{ border: `2px solid ${ROSA}`, color: VERDE }}

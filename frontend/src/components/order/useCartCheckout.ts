@@ -212,7 +212,7 @@ export function useCartCheckout({
       setPayment("presencial");
     }
     if (delivery === "delivery" && payment === "presencial") {
-      setPayment("pix_qrcode");
+      setPayment("mercadopago");
     }
   }, [counterServiceMode, delivery, kioskMode, payment]);
 
