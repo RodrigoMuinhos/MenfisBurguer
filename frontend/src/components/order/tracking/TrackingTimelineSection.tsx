@@ -97,7 +97,7 @@ export function TrackingTimelineSection({
         ? "Seu pedido foi enviado ao atendimento. A equipe vai chamar no WhatsApp, receber o pagamento e liberar para a cozinha."
         : showPixPayment
           ? "Pague pelo QR Code Pix abaixo. Depois do pagamento, retorne para esta tela para acompanhar a confirmação."
-          : "Finalize o pagamento pelo Mercado Pago. Depois do pagamento, retorne para esta tela para acompanhar a confirmação."
+          : "Finalize o pagamento pela forma escolhida. Depois, retorne para esta tela para acompanhar a confirmação."
       : paymentFailed
         ? "Esse pagamento não foi aprovado. Tente novamente para enviar o pedido para a cozinha."
         : order.status === "PAID"
@@ -141,10 +141,10 @@ export function TrackingTimelineSection({
               </p>
               <p className="mt-1 text-xs font-bold leading-relaxed opacity-75">
                 {paymentFailed
-                  ? "O Mercado Pago não aprovou esse pagamento. Você pode tentar pagar novamente."
+                  ? "O pagamento não foi aprovado. Você pode tentar novamente ou escolher outra forma de pagamento."
                   : whatsappPayment
                     ? "O pedido foi criado e está com o atendimento. A equipe vai chamar no WhatsApp para receber e liberar para a cozinha."
-                    : "O pedido foi criado, mas ainda não foi pago. Para enviar para a cozinha, finalize pelo Mercado Pago."}
+                    : "O pedido foi criado, mas ainda não foi pago. Para enviar para a cozinha, finalize o pagamento pela forma que preferir."}
               </p>
               {retryPaymentError && (
                 <p className="mt-2 rounded-xl px-3 py-2 text-xs font-black" style={{ background: "#fff" }}>
@@ -159,7 +159,7 @@ export function TrackingTimelineSection({
                     className="rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55"
                     style={{ background: VERDE, color: ROSA }}
                   >
-                    {retryingPayment ? "Abrindo Mercado Pago" : "Tentar novamente"}
+                    {retryingPayment ? "Abrindo pagamento" : "Escolher forma de pagamento"}
                   </button>
                 )}
                 <a

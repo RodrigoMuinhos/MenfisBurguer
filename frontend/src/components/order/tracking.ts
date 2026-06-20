@@ -37,7 +37,7 @@ export const STATUS_COPY: Record<
   },
   PAYMENT_PENDING: {
     label: "Aguardando pagamento",
-    copy: "Seu pedido foi criado, mas o Mercado Pago ainda não confirmou o pagamento.",
+    copy: "Seu pedido foi criado e aguarda a confirmação da forma de pagamento escolhida.",
     eta: "Pague para enviar",
   },
   PAYMENT_PROOF_PENDING: {

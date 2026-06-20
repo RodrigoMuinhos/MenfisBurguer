@@ -87,6 +87,7 @@ export function TrackingScreen({
   const [retryPaymentError, setRetryPaymentError] = useState("");
   const [retryChoiceOpen, setRetryChoiceOpen] = useState(false);
   const [pixTimeLeft, setPixTimeLeft] = useState(60);
+  const [pixModalOpen, setPixModalOpen] = useState(true);
   const [submittingProof, setSubmittingProof] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -101,7 +102,7 @@ export function TrackingScreen({
     : false;
 
   useEffect(() => {
-    if (!orderPlaced || !order || !goHome || autoReturnMs <= 0) return;
+    if (!orderPlaced || !order || !goHome || autoReturnMs <= 0 || order.status === "PAYMENT_PENDING") return;
 
     const timer = window.setTimeout(() => {
       goHome();
@@ -261,6 +262,7 @@ export function TrackingScreen({
 
   useEffect(() => {
     if (!showPixPayment) return;
+    setPixModalOpen(true);
     const startedAt = Date.now();
     const updateTimeLeft = () =>
       setPixTimeLeft(Math.max(0, Math.ceil((60_000 - (Date.now() - startedAt)) / 1_000)));
@@ -644,10 +646,15 @@ export function TrackingScreen({
           retryPaymentError={retryPaymentError}
           onRetryPayment={retryPayment}
         />
-        {showPixPayment && !pixExpired && (
+        {showPixPayment && !pixExpired && pixModalOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center bg-[rgba(20,10,14,0.78)] p-4">
             <section className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]" style={{ color: VERDE }}>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55">Pagamento Pix</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55">Pagamento Pix</p>
+                <button type="button" onClick={() => setPixModalOpen(false)} className="rounded-xl px-3 py-2 text-xs font-black uppercase" style={{ background: `${ROSA}55`, color: VERDE }}>
+                  Voltar
+                </button>
+              </div>
               <div className="mt-1 flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-black leading-tight">Escaneie o QR Code</h2>
@@ -674,6 +681,14 @@ export function TrackingScreen({
                   {pixCopied ? "Código Pix copiado" : "Copiar código Pix"}
                 </motion.button>
               )}
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <button type="button" onClick={sendPaymentProof} disabled={submittingProof} className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55" style={{ background: "#25D366", color: "#fff" }}>
+                  {submittingProof ? "Registrando..." : "Enviar comprovante"}
+                </button>
+                <button type="button" onClick={() => { setPixModalOpen(false); setRetryChoiceOpen(true); }} className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider" style={{ background: VERDE, color: ROSA }}>
+                  Retornar ao pagamento
+                </button>
+              </div>
               <p className="mt-4 text-center text-[11px] font-bold leading-relaxed opacity-60">Após o prazo, você poderá escolher outra forma de pagamento ou enviar o comprovante pelo WhatsApp.</p>
             </section>
           </div>
