@@ -88,6 +88,7 @@ export function TrackingScreen({
   const [retryChoiceOpen, setRetryChoiceOpen] = useState(false);
   const [pixTimeLeft, setPixTimeLeft] = useState(60);
   const [pixModalOpen, setPixModalOpen] = useState(true);
+  const [pixSession, setPixSession] = useState(0);
   const [submittingProof, setSubmittingProof] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -269,7 +270,7 @@ export function TrackingScreen({
     updateTimeLeft();
     const timer = window.setInterval(updateTimeLeft, 1_000);
     return () => window.clearInterval(timer);
-  }, [order.id, showPixPayment]);
+  }, [order.id, pixSession, showPixPayment]);
 
   const finishReview = (mode: "done" | "later") => {
     const savedReview: KioskReview = {
@@ -355,6 +356,14 @@ export function TrackingScreen({
   const retryPayment = () => {
     setRetryPaymentError("");
     setRetryChoiceOpen(true);
+  };
+
+  const restartPixPayment = () => {
+    setRetryPaymentError("");
+    setRetryChoiceOpen(false);
+    setPixTimeLeft(60);
+    setPixModalOpen(true);
+    setPixSession((session) => session + 1);
   };
 
   const sendPaymentProof = async () => {
@@ -756,8 +765,7 @@ export function TrackingScreen({
                 <button
                   type="button"
                   onClick={() => {
-                    setRetryChoiceOpen(false);
-                    setRetryPaymentError("Use o QR Code Pix Direto exibido nesta tela ou fale com o atendente para validar o comprovante.");
+                    restartPixPayment();
                   }}
                   className="flex min-h-[78px] items-center gap-4 rounded-2xl p-4 text-left"
                   style={{ border: `2px solid ${ROSA}`, color: VERDE }}
@@ -765,7 +773,7 @@ export function TrackingScreen({
                   <Landmark size={25} strokeWidth={2.5} />
                   <span>
                     <span className="block text-sm font-black uppercase">PIX Direto Menfi's</span>
-                    <span className="mt-1 block text-xs font-bold opacity-65">Use o QR Code direto e envie o comprovante.</span>
+                    <span className="mt-1 block text-xs font-bold opacity-65">Abrir um novo QR Code Pix nesta mesma tela.</span>
                   </span>
                 </button>
               </div>
