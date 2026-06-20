@@ -78,6 +78,28 @@ export const STATUS_COPY: Record<
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
+export function scheduledOrderInfo(order: Order) {
+  const address = order.customerAddress ?? "";
+  const scheduled = address.match(/PEDIDO AGENDADO: preparar para entrega as ([0-9:]+)/i);
+  if (scheduled?.[1]) {
+    return {
+      time: scheduled[1],
+      label: "Pedido agendado",
+      copy: `Seu pedido será preparado para entrega às ${scheduled[1]}.`,
+      eta: `Entrega às ${scheduled[1]}`,
+    };
+  }
+  if (/PEDIDO ANTECIPADO/i.test(address)) {
+    return {
+      time: "18:30",
+      label: "Pedido agendado",
+      copy: "Seu pedido será preparado assim que abrirmos, às 18:30.",
+      eta: "Entrega a partir das 18:30",
+    };
+  }
+  return null;
+}
+
 export function deliveryConfirmationCode(order: Order) {
   if (order.deliveryCode) return order.deliveryCode;
   const seed = Number(order.number || order.id.replace(/\D/g, "") || Date.now());

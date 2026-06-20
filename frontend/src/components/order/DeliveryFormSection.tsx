@@ -1,6 +1,6 @@
 import { RefObject } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CalendarClock, CheckCircle2, Loader2 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import { CheckoutStep, maskCEP, maskPhone } from "./checkout";
 
@@ -35,6 +35,11 @@ export function DeliveryFormSection({
   setComplement,
   phone,
   setPhone,
+  deliverySchedule,
+  setDeliverySchedule,
+  scheduledTime,
+  setScheduledTime,
+  scheduleTimes,
   inputStyle,
 }: {
   checkoutStep: CheckoutStep;
@@ -59,6 +64,11 @@ export function DeliveryFormSection({
   setComplement: (value: string) => void;
   phone: string;
   setPhone: (value: string) => void;
+  deliverySchedule: "opening" | "scheduled";
+  setDeliverySchedule: (value: "opening" | "scheduled") => void;
+  scheduledTime: string;
+  setScheduledTime: (value: string) => void;
+  scheduleTimes: string[];
   inputStyle: (err?: boolean) => React.CSSProperties;
 }) {
   return (
@@ -221,6 +231,70 @@ export function DeliveryFormSection({
                               style={inputStyle()}
                             />
                           </div>
+                        </div>
+                        <div
+                          className="rounded-2xl p-4"
+                          style={{
+                            background: "#fff",
+                            border: `1.5px solid ${ROSA}`,
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <CalendarClock size={17} strokeWidth={2.4} style={{ color: VERDE }} />
+                            <SectionLabel>Horario de entrega</SectionLabel>
+                          </div>
+                          <div className="grid gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setDeliverySchedule("opening")}
+                              className="rounded-2xl px-4 py-3 text-left text-sm font-black"
+                              style={{
+                                background: deliverySchedule === "opening" ? VERDE : "#fff",
+                                color: deliverySchedule === "opening" ? ROSA : VERDE,
+                                border: `2px solid ${deliverySchedule === "opening" ? VERDE : ROSA}`,
+                              }}
+                            >
+                              Entregar assim que abrir (18:30)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeliverySchedule("scheduled")}
+                              className="rounded-2xl px-4 py-3 text-left text-sm font-black"
+                              style={{
+                                background: deliverySchedule === "scheduled" ? VERDE : "#fff",
+                                color: deliverySchedule === "scheduled" ? ROSA : VERDE,
+                                border: `2px solid ${deliverySchedule === "scheduled" ? VERDE : ROSA}`,
+                              }}
+                            >
+                              Agendar horario
+                            </button>
+                          </div>
+                          {deliverySchedule === "scheduled" && (
+                            <div className="mt-3 grid grid-cols-3 gap-2">
+                              {scheduleTimes.map((time) => {
+                                const active = scheduledTime === time;
+                                return (
+                                  <button
+                                    key={time}
+                                    type="button"
+                                    onClick={() => setScheduledTime(time)}
+                                    className="h-11 rounded-xl text-sm font-black"
+                                    style={{
+                                      background: active ? VERDE : `${ROSA}45`,
+                                      color: active ? ROSA : VERDE,
+                                      border: `1.5px solid ${active ? VERDE : `${VERDE}12`}`,
+                                    }}
+                                  >
+                                    {time}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <p className="mt-3 text-[11px] font-bold leading-relaxed opacity-65">
+                            Pedido agendado: sua solicitacao fica reservada e entra
+                            na fila de preparo no horario escolhido.
+                          </p>
                         </div>
                       </>
                     )}

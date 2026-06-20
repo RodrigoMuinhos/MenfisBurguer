@@ -14,6 +14,7 @@ import {
   SupportTicket,
   WHATSAPP_URL,
   deliveryConfirmationCode,
+  scheduledOrderInfo,
 } from "./tracking";
 import { TrackingSupportSection } from "./tracking/TrackingSupportSection";
 import { TrackingTimelineSection } from "./tracking/TrackingTimelineSection";
@@ -194,7 +195,12 @@ export function TrackingScreen({
     hour: "2-digit",
     minute: "2-digit",
   });
-  const statusCopy = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+  const scheduledInfo = scheduledOrderInfo(order);
+  const baseStatusCopy = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+  const statusCopy =
+    scheduledInfo && ["PAYMENT_PENDING", "PAID"].includes(order.status)
+      ? scheduledInfo
+      : baseStatusCopy;
   const stepTimes = STEPS.map((_, index) => (index <= current ? timeStr : "-"));
   const canRequestChange = order.status === "PAID";
   const whatsappText = encodeURIComponent(

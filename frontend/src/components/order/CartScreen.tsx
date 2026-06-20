@@ -60,6 +60,7 @@ export function CartScreen({
     customerName,
     customerNameRef,
     delivery,
+    deliverySchedule,
     deliveryValid,
     discount,
     fee,
@@ -84,6 +85,8 @@ export function CartScreen({
     phoneRef,
     removed,
     savedBadge,
+    scheduledTime,
+    scheduleTimes,
     serviceFee,
     setAppliedCoupon,
     setCep,
@@ -93,11 +96,13 @@ export function CartScreen({
     setCouponError,
     setCustomerName,
     setDelivery,
+    setDeliverySchedule,
     setKioskKeyboardTarget,
     setNumber,
     setObsOpen,
     setPayment,
     setPhone,
+    setScheduledTime,
     setStreet,
     confirmCounterPrintChoice,
     skipCounterPrintChoice,
@@ -262,6 +267,11 @@ export function CartScreen({
           setComplement={setComplement}
           phone={phone}
           setPhone={setPhone}
+          deliverySchedule={deliverySchedule}
+          setDeliverySchedule={setDeliverySchedule}
+          scheduledTime={scheduledTime}
+          setScheduledTime={setScheduledTime}
+          scheduleTimes={scheduleTimes}
           inputStyle={inputStyle}
         />
       </div>

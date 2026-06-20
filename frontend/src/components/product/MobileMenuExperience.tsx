@@ -19,6 +19,7 @@ import {
   Utensils,
   UserRound,
   X,
+  CalendarClock,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
@@ -448,10 +449,10 @@ function ClosedHoursModal({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-black uppercase tracking-widest opacity-55">
-              Atendimento Menfi's
+              Pedido antecipado
             </p>
             <h2 className="mt-2 text-2xl font-black leading-tight">
-              Estamos fechados no momento
+              Ainda nao abrimos, mas voce ja pode reservar seu pedido
             </h2>
           </div>
           <button
@@ -466,11 +467,28 @@ function ClosedHoursModal({
         </div>
 
         <div className="mt-4 rounded-2xl p-4 text-sm font-bold leading-relaxed" style={{ background: `${ROSA}35` }}>
-          <p>Funcionamos de quarta a domingo, das 18:30 as 21:30.</p>
+          <p>Atendemos de quarta a domingo, das 18:30 as 21:30.</p>
           <p className="mt-3">
-            Voce pode reservar seu pedido agora, mas a preparacao e entrega
-            comecam somente a partir das 18:30.
+            No momento estamos fora do horario de funcionamento, mas voce ja
+            pode montar seu pedido normalmente e escolher o horario que deseja
+            receber.
           </p>
+          <p className="mt-3">
+            Assim que iniciarmos o atendimento, sua solicitacao entra na fila de
+            preparo.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: `${VINHO}12` }}>
+          <div className="flex items-center gap-2 text-sm font-black uppercase">
+            <CalendarClock size={18} strokeWidth={2.6} style={{ color: PINK }} />
+            Escolha o melhor horario para entrega
+          </div>
+          <div className="mt-3 grid gap-2 text-sm font-bold opacity-75">
+            <p>Receba no horario desejado</p>
+            <p>Evite filas e atrasos</p>
+            <p>Garanta seu pedido com antecedencia</p>
+          </div>
         </div>
 
         <div className="mt-5 grid gap-3">
@@ -480,7 +498,7 @@ function ClosedHoursModal({
             className="flex h-14 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide"
             style={{ background: PINK, color: "#fff" }}
           >
-            Reservar pedido
+            Agendar horario
           </button>
           <button
             type="button"
@@ -488,7 +506,7 @@ function ClosedHoursModal({
             className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide"
             style={{ border: `1px solid ${VINHO}14`, color: VINHO }}
           >
-            Entendi
+            Continuar comprando
           </button>
         </div>
       </section>

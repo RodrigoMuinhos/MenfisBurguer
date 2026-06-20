@@ -24,6 +24,7 @@ import { readMemberProfile } from "@/components/product/shared";
 import { formatDeliveryAddress } from "@/utils/address";
 
 const COUPON_USAGE_STORAGE_KEY = "menfis_coupon_usage";
+const SCHEDULE_TIMES = ["18:30", "19:00", "19:30", "20:00", "20:30", "21:00"] as const;
 
 function normalizeKioskMobName(value?: string) {
   return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "-").replace(/-+/g, "-");
@@ -91,6 +92,8 @@ export function useCartCheckout({
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(false);
+  const [deliverySchedule, setDeliverySchedule] = useState<"opening" | "scheduled">("opening");
+  const [scheduledTime, setScheduledTime] = useState("18:30");
   const [kioskSuccessOpen, setKioskSuccessOpen] = useState(false);
   const [kioskSuccessOrder, setKioskSuccessOrder] = useState<Order | null>(null);
   const [kioskKeyboardTarget, setKioskKeyboardTarget] =
@@ -404,7 +407,12 @@ export function useCartCheckout({
   const getCustomerAddress = () =>
     effectiveDelivery === "retirada"
       ? `Retirada na loja - ${PICKUP_ADDRESS}`
-      : formatDeliveryAddress({ street, number, complement });
+      : [
+          deliverySchedule === "scheduled"
+            ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
+            : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30.",
+          formatDeliveryAddress({ street, number, complement }),
+        ].join("\n");
 
   const handleFinalize = async () => {
     if (paying) return;
@@ -642,6 +650,7 @@ export function useCartCheckout({
     customerName,
     customerNameRef,
     delivery,
+    deliverySchedule,
     deliveryValid,
     discount,
     fee,
@@ -667,6 +676,8 @@ export function useCartCheckout({
     phoneRef,
     removed,
     savedBadge,
+    scheduledTime,
+    scheduleTimes: [...SCHEDULE_TIMES],
     serviceFee,
     setAppliedCoupon,
     setCep,
@@ -676,12 +687,14 @@ export function useCartCheckout({
     setCouponError,
     setCustomerName,
     setDelivery,
+    setDeliverySchedule,
     setKioskKeyboardTarget,
     closeKioskKeyboard,
     setNumber,
     setObsOpen,
     setPayment,
     setPhone,
+    setScheduledTime,
     setStreet,
     confirmCounterPrintChoice: () => resolveCounterPrintPrompt(true),
     skipCounterPrintChoice: () => resolveCounterPrintPrompt(false),

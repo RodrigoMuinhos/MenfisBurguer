@@ -1,5 +1,5 @@
 import type { ElementType } from "react";
-import { deliveryConfirmationCode } from "@/components/order/tracking";
+import { deliveryConfirmationCode, scheduledOrderInfo } from "@/components/order/tracking";
 import {
   Bike,
   CheckCircle2,
@@ -353,6 +353,13 @@ const DEFAULT_COMPOSITION: Record<string, string[]> = {
   "double-chicken-combo": ["Double Menfi's Chicken", "Coca-Cola 350ml", "Batata Frita 100g"],
   "chicken-super-combo": ["2x Menfi's Chicken", "2 bebidas", "Batata Frita 200g"],
 };
+
+export function orderStageLabel(order: Order) {
+  if (scheduledOrderInfo(order) && ["PAYMENT_PENDING", "PAID"].includes(order.status)) {
+    return "Pedido Agendado";
+  }
+  return STAGE_LABEL[order.status] ?? order.status;
+}
 
 export function orderItemComponents(item: Order["items"][number]) {
   if (item.components?.length) return item.components;

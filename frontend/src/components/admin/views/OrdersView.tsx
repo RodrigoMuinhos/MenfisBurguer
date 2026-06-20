@@ -12,13 +12,13 @@ import {
   isKioskMobOrder,
   localDateKey,
   orderReadyWhatsappUrl,
+  orderStageLabel,
   orderItemComponents,
   orderItemNote,
   paymentMethodLabel,
   paymentStatusLabel,
   printOrderReceipts,
   STAGE_COLOR,
-  STAGE_LABEL,
 } from "../shared";
 
 const CANCELLABLE_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAID", "ACCEPTED", "IN_PREPARATION"];
@@ -306,7 +306,7 @@ export function OrdersView({
                       className="text-[10px] font-black uppercase"
                       style={{ color: stage.text }}
                     >
-                      {STAGE_LABEL[order.status]}
+                      {orderStageLabel(order)}
                     </span>
                   </div>
                   <div className="mt-2 grid gap-1 text-xs font-bold" style={{ color: VERDE }}>
@@ -384,7 +384,7 @@ export function OrdersView({
                 className="text-xs font-black uppercase tracking-wide"
                 style={{ color: STAGE_COLOR[selected.status].text }}
               >
-                {STAGE_LABEL[selected.status]} · {paymentStatusLabel(selected)}
+                {orderStageLabel(selected)} · {paymentStatusLabel(selected)}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
