@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { ArrowLeft, Clock, Star } from "lucide-react";
+import { ArrowLeft, Clock, CreditCard, Landmark, MessageCircle, Star, X } from "lucide-react";
 import logoSkull from "@/imports/image-1.png";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -85,6 +85,7 @@ export function TrackingScreen({
   const [pixCopied, setPixCopied] = useState(false);
   const [retryingPayment, setRetryingPayment] = useState(false);
   const [retryPaymentError, setRetryPaymentError] = useState("");
+  const [retryChoiceOpen, setRetryChoiceOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewHandled, setReviewHandled] = useState(false);
@@ -304,7 +305,7 @@ export function TrackingScreen({
     }
   };
 
-  const retryPayment = async () => {
+  const retryMercadoPago = async () => {
     if (!order?.id || !API_URL || retryingPayment) return;
     setRetryingPayment(true);
     setRetryPaymentError("");
@@ -331,6 +332,11 @@ export function TrackingScreen({
     } finally {
       setRetryingPayment(false);
     }
+  };
+
+  const retryPayment = () => {
+    setRetryPaymentError("");
+    setRetryChoiceOpen(true);
   };
 
   if (showDeliveryReview) {
@@ -599,6 +605,85 @@ export function TrackingScreen({
           retryPaymentError={retryPaymentError}
           onRetryPayment={retryPayment}
         />
+        {retryChoiceOpen && (
+          <div
+            className="fixed inset-0 z-[120] flex items-end justify-center bg-[rgba(101,0,31,0.45)] p-3 sm:items-center"
+            onClick={() => setRetryChoiceOpen(false)}
+          >
+            <section
+              className="w-full max-w-md rounded-[26px] bg-white p-5 shadow-[0_24px_70px_rgba(101,0,31,0.28)]"
+              style={{ color: VERDE }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-55">
+                    Pagamento
+                  </p>
+                  <h3 className="mt-1 text-xl font-black uppercase leading-tight">
+                    Como deseja pagar?
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRetryChoiceOpen(false)}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: `${ROSA}66`, color: VERDE }}
+                  aria-label="Fechar opções de pagamento"
+                >
+                  <X size={19} strokeWidth={2.7} />
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <a
+                  href={`${WHATSAPP_URL}?text=${whatsappText}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex min-h-[78px] items-center gap-4 rounded-2xl p-4 text-left"
+                  style={{ border: `2px solid ${ROSA}`, color: VERDE, textDecoration: "none" }}
+                >
+                  <MessageCircle size={25} strokeWidth={2.5} />
+                  <span>
+                    <span className="block text-sm font-black uppercase">Pagar pelo WhatsApp</span>
+                    <span className="mt-1 block text-xs font-bold opacity-65">Escolha a forma de pagamento com um atendente.</span>
+                  </span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRetryChoiceOpen(false);
+                    void retryMercadoPago();
+                  }}
+                  disabled={retryingPayment}
+                  className="flex min-h-[78px] items-center gap-4 rounded-2xl p-4 text-left disabled:opacity-55"
+                  style={{ border: `2px solid ${ROSA}`, color: VERDE }}
+                >
+                  <CreditCard size={25} strokeWidth={2.5} />
+                  <span>
+                    <span className="block text-sm font-black uppercase">Mercado Pago</span>
+                    <span className="mt-1 block text-xs font-bold opacity-65">Reabrir pagamento automático.</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRetryChoiceOpen(false);
+                    setRetryPaymentError("Use o QR Code Pix Direto exibido nesta tela ou fale com o atendente para validar o comprovante.");
+                  }}
+                  className="flex min-h-[78px] items-center gap-4 rounded-2xl p-4 text-left"
+                  style={{ border: `2px solid ${ROSA}`, color: VERDE }}
+                >
+                  <Landmark size={25} strokeWidth={2.5} />
+                  <span>
+                    <span className="block text-sm font-black uppercase">PIX Direto Menfi's</span>
+                    <span className="mt-1 block text-xs font-bold opacity-65">Use o QR Code direto e envie o comprovante.</span>
+                  </span>
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
         {isKioskMobReview ? (
           <div className="rounded-[22px] p-4" style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}>
             <p className="text-sm font-black" style={{ color: VERDE }}>Controle da fila</p>

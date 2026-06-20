@@ -193,6 +193,15 @@ export function paymentInfo(order: Order) {
       border: "#6EE7B7",
     };
   }
+  if (order.paymentProvider === "menfis_pix" || status === "awaiting_direct_pix") {
+    return {
+      label: "Aguardando Pix Direto",
+      copy: "Pague pelo QR Code da Menfi's e envie o comprovante para validacao.",
+      color: "#92400E",
+      bg: "#FFFBEB",
+      border: "#FDE68A",
+    };
+  }
   const rejected = ["rejected", "cancelled", "refunded", "charged_back"].includes(status);
   const approved = status === "approved";
   const pending =

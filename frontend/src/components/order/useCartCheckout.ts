@@ -414,6 +414,58 @@ export function useCartCheckout({
           formatDeliveryAddress({ street, number, complement }),
         ].join("\n");
 
+  const submitSelectedPayment = async (selectedPayment: PaymentMethod) => {
+    if (paying || !deliveryValid) return;
+    setPayment(selectedPayment);
+    setPaymentError("");
+    closeKioskKeyboard();
+    if (checkoutStep === "bag") {
+      return;
+    }
+    const removedByItemId = getRemovedByItemId();
+    const address = getCustomerAddress();
+
+    await submitCheckoutOrder({
+      cart,
+      kioskMode,
+      counterServiceMode,
+      delivery: effectiveDelivery,
+      payment: selectedPayment,
+      customerName,
+      phone,
+      address,
+      appliedCoupon,
+      discount,
+      total,
+      removedByItemId,
+      onPlaceOrder,
+      setPaying,
+      setPaymentSlow,
+      setKioskSuccessOpen,
+      setKioskSuccessOrder,
+      setPaymentError,
+      confirmCounterPrint,
+      clearCartItems: clearCart,
+    });
+    if (appliedCoupon) {
+      const userId = memberProfile?.id ? String(memberProfile.id) : "";
+      const phoneDigits = (memberProfile?.phone || phone).replace(/\D/g, "");
+      const usageKey = couponUsageKey(appliedCoupon, userId, phoneDigits);
+      if (usageKey || appliedCoupon.maxUsesPerDay || appliedCoupon.maxUsesTotal) {
+        const usage = readCouponUsage();
+        localStorage.setItem(
+          COUPON_USAGE_STORAGE_KEY,
+          JSON.stringify({
+            ...usage,
+            ...(usageKey ? { [usageKey]: Date.now() } : {}),
+            [couponDailyKey(appliedCoupon)]: (usage[couponDailyKey(appliedCoupon)] ?? 0) + 1,
+            [couponTotalKey(appliedCoupon)]: (usage[couponTotalKey(appliedCoupon)] ?? 0) + 1,
+          }),
+        );
+      }
+    }
+  };
+
   const handleFinalize = async () => {
     if (paying) return;
 
@@ -488,48 +540,7 @@ export function useCartCheckout({
     if (!canCreatePayment) return;
     closeKioskKeyboard();
 
-    const removedByItemId = getRemovedByItemId();
-    const address = getCustomerAddress();
-
-    await submitCheckoutOrder({
-      cart,
-      kioskMode,
-      counterServiceMode,
-      delivery: effectiveDelivery,
-      payment,
-      customerName,
-      phone,
-      address,
-      appliedCoupon,
-      discount,
-      total,
-      removedByItemId,
-      onPlaceOrder,
-      setPaying,
-      setPaymentSlow,
-      setKioskSuccessOpen,
-      setKioskSuccessOrder,
-      setPaymentError,
-      confirmCounterPrint,
-      clearCartItems: clearCart,
-    });
-    if (appliedCoupon) {
-      const userId = memberProfile?.id ? String(memberProfile.id) : "";
-      const phoneDigits = (memberProfile?.phone || phone).replace(/\D/g, "");
-      const usageKey = couponUsageKey(appliedCoupon, userId, phoneDigits);
-      if (usageKey || appliedCoupon.maxUsesPerDay || appliedCoupon.maxUsesTotal) {
-        const usage = readCouponUsage();
-        localStorage.setItem(
-          COUPON_USAGE_STORAGE_KEY,
-          JSON.stringify({
-            ...usage,
-            ...(usageKey ? { [usageKey]: Date.now() } : {}),
-            [couponDailyKey(appliedCoupon)]: (usage[couponDailyKey(appliedCoupon)] ?? 0) + 1,
-            [couponTotalKey(appliedCoupon)]: (usage[couponTotalKey(appliedCoupon)] ?? 0) + 1,
-          }),
-        );
-      }
-    }
+    await submitSelectedPayment(payment);
   };
   const handleBack = () => {
     closeKioskKeyboard();
@@ -656,6 +667,7 @@ export function useCartCheckout({
     fee,
     handleBack,
     handleFinalize,
+    finalizeWithPayment: submitSelectedPayment,
     inputStyle,
     invalidDeliveryFields,
     kioskKeyboardOpen,

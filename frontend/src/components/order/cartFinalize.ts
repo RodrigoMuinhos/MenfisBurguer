@@ -6,6 +6,7 @@ import {
   API_URL,
   Coupon,
   DeliveryType,
+  KIOSK_PIX_CODE,
   PaymentMethod,
   SUPPORT_WHATSAPP_URL,
   fmt,
@@ -332,6 +333,34 @@ export async function submitCheckoutOrder({
       return;
     }
 
+    if (payment === "pix") {
+      await onPlaceOrder(
+        effectiveDelivery,
+        phone || undefined,
+        address,
+        removedByItemId,
+        buildLocalCreatedOrder({
+          createdOrder,
+          cart,
+          removedByItemId,
+          effectiveDelivery,
+          customerName,
+          phone,
+          address,
+          total,
+          overrides: {
+            channel: "DELIVERY",
+            paymentProvider: "menfis_pix",
+            paymentMethod: "pix",
+            paymentStatus: "awaiting_direct_pix",
+            pixQrCode: KIOSK_PIX_CODE,
+            status: "PAYMENT_PENDING",
+          },
+        }),
+      );
+      return;
+    }
+
     const paymentRes = await fetch(`${API_URL}/payments/pix`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -340,7 +369,7 @@ export async function submitCheckoutOrder({
 
     const data = await paymentRes.json().catch(() => ({}));
     if (
-      (payment === "pix" || payment === "pix_qrcode") &&
+      payment === "pix_qrcode" &&
       (data?.qrCode || data?.qrCodeBase64 || data?.ticketUrl)
     ) {
       await onPlaceOrder(

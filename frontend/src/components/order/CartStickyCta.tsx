@@ -80,8 +80,10 @@ export function CartStickyCta({
                               ? "Abrir WhatsApp"
                               : payment === "mercadopago"
                                 ? "Ir para Mercado Pago"
-                                : payment === "pix_qrcode" || payment === "pix"
-                                  ? "Gerar QR Code Pix"
+                                : payment === "pix_qrcode"
+                                  ? "Gerar Pix Mercado Pago"
+                                  : payment === "pix"
+                                    ? "Gerar Pix Menfi's"
                                   : "Finalizar pagamento"
                           : kioskMode || counterServiceMode
                             ? "Ir para pagamento"
@@ -163,8 +165,10 @@ export function CartStickyCta({
                         ? "ENVIANDO AO ATENDIMENTO"
                         : payment === "mercadopago"
                           ? "ABRINDO MERCADO PAGO"
-                          : payment === "pix_qrcode" || payment === "pix"
-                            ? "GERANDO QR CODE PIX"
+                          : payment === "pix_qrcode"
+                            ? "GERANDO PIX MERCADO PAGO"
+                            : payment === "pix"
+                              ? "GERANDO PIX MENFI'S"
                         : "INICIANDO PAGAMENTO"
                     : nextActionLabel}{" "}
                   - {fmt(total)}

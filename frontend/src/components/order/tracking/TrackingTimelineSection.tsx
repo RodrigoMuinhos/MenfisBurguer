@@ -47,6 +47,7 @@ export function TrackingTimelineSection({
   const paymentApproved = paymentStatus === "approved";
   const waitingPayment = order.status === "PAYMENT_PENDING" && !paymentApproved && !paymentFailed;
   const whatsappPayment = order.paymentMethod === "whatsapp";
+  const directPixPayment = order.paymentProvider === "menfis_pix";
   const paymentLabel = paymentApproved
     ? "Pagamento aprovado"
     : paymentFailed
@@ -184,7 +185,9 @@ export function TrackingTimelineSection({
                 Aguardando pagamento Pix
               </p>
               <p className="mt-1 text-xs leading-relaxed" style={{ color: VERDE, opacity: 0.62 }}>
-                Escaneie o QR Code ou copie o código. Assim que o Mercado Pago aprovar, o pedido entra na fila.
+                {directPixPayment
+                  ? "Escaneie o QR Code da Menfi's, pague pelo app do banco e envie o comprovante para validação."
+                  : "Escaneie o QR Code ou copie o código. Assim que o Mercado Pago aprovar, o pedido entra na fila."}
               </p>
             </div>
             <QrCode size={28} strokeWidth={2.2} style={{ color: VERDE }} />
@@ -199,6 +202,18 @@ export function TrackingTimelineSection({
                 <img
                   src={`data:image/png;base64,${order.pixQrCodeBase64}`}
                   alt="QR Code Pix"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            )}
+            {directPixPayment && !order.pixQrCodeBase64 && (
+              <div
+                className="mx-auto flex h-44 w-44 items-center justify-center rounded-2xl p-3"
+                style={{ background: "#fff", border: `1px solid ${ROSA}` }}
+              >
+                <img
+                  src="/pix-menfis.png"
+                  alt="QR Code Pix Direto Menfi's"
                   className="h-full w-full object-contain"
                 />
               </div>

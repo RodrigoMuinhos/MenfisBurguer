@@ -64,6 +64,7 @@ export function CartScreen({
     deliveryValid,
     discount,
     fee,
+    finalizeWithPayment,
     handleBack,
     handleFinalize,
     inputStyle,
@@ -218,6 +219,8 @@ export function CartScreen({
           deliveryValid={deliveryValid}
           inputStyle={inputStyle}
           total={total}
+          paying={paying}
+          onFinalizeWithPayment={finalizeWithPayment}
         />
         <CheckoutReviewSection
           checkoutStep={checkoutStep}
