@@ -261,12 +261,13 @@ export function TrackingScreen({
 
   useEffect(() => {
     if (!showPixPayment) return;
-    const expiresAt = order.timestamp + 60_000;
-    const updateTimeLeft = () => setPixTimeLeft(Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)));
+    const startedAt = Date.now();
+    const updateTimeLeft = () =>
+      setPixTimeLeft(Math.max(0, Math.ceil((60_000 - (Date.now() - startedAt)) / 1_000)));
     updateTimeLeft();
     const timer = window.setInterval(updateTimeLeft, 1_000);
     return () => window.clearInterval(timer);
-  }, [order.timestamp, showPixPayment]);
+  }, [order.id, showPixPayment]);
 
   const finishReview = (mode: "done" | "later") => {
     const savedReview: KioskReview = {
@@ -632,7 +633,7 @@ export function TrackingScreen({
           statusLabel={statusCopy.label}
           statusEta={statusCopy.eta}
           stepTimes={stepTimes}
-          showPixPayment={showPixPayment}
+          showPixPayment={showPixPayment && pixExpired}
           pixExpired={pixExpired}
           pixTimeLeft={pixTimeLeft}
           pixCopied={pixCopied}
@@ -643,6 +644,40 @@ export function TrackingScreen({
           retryPaymentError={retryPaymentError}
           onRetryPayment={retryPayment}
         />
+        {showPixPayment && !pixExpired && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-[rgba(20,10,14,0.78)] p-4">
+            <section className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]" style={{ color: VERDE }}>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55">Pagamento Pix</p>
+              <div className="mt-1 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-black leading-tight">Escaneie o QR Code</h2>
+                  <p className="mt-1 text-xs font-bold leading-relaxed opacity-65">Use o aplicativo do seu banco para pagar. Este QR Code fica disponível por 60 segundos.</p>
+                </div>
+                <span className="rounded-xl px-3 py-2 text-lg font-black" style={{ background: `${ROSA}55`, color: "#8A0030" }}>
+                  {String(Math.floor(pixTimeLeft / 60)).padStart(2, "0")}:{String(pixTimeLeft % 60).padStart(2, "0")}
+                </span>
+              </div>
+              <div className="mx-auto mt-5 flex w-full max-w-[290px] items-center justify-center rounded-2xl bg-white p-3" style={{ border: `2px solid ${ROSA}` }}>
+                <img
+                  src={order.pixQrCodeBase64 ? `data:image/png;base64,${order.pixQrCodeBase64}` : "/pix-menfis.png"}
+                  alt="QR Code Pix para pagamento"
+                  className="aspect-square w-full object-contain"
+                />
+              </div>
+              {order.pixQrCode && (
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={copyPixCode}
+                  className="mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                  style={{ background: VERDE, color: ROSA, border: "none" }}
+                >
+                  {pixCopied ? "Código Pix copiado" : "Copiar código Pix"}
+                </motion.button>
+              )}
+              <p className="mt-4 text-center text-[11px] font-bold leading-relaxed opacity-60">Após o prazo, você poderá escolher outra forma de pagamento ou enviar o comprovante pelo WhatsApp.</p>
+            </section>
+          </div>
+        )}
         {retryChoiceOpen && (
           <div
             className="fixed inset-0 z-[120] flex items-end justify-center bg-[rgba(101,0,31,0.45)] p-3 sm:items-center"
