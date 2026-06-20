@@ -227,6 +227,10 @@ export function TrackingScreen({
   const paymentProofWhatsappText = encodeURIComponent(
     `Olá, estou enviando o comprovante Pix do pedido ${order.id}.\n\nValor: R$ ${order.total.toFixed(2).replace(".", ",")}\nPedido: ${order.id}`,
   );
+  const pixAmount = order.total.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
   const reviewKey = `menfis_review_${order.id}`;
   const showDeliveryReview =
     order.status === "DELIVERED" &&
@@ -670,7 +674,7 @@ export function TrackingScreen({
         />
         {pixFlowActive && !pixExpired && pixModalOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center bg-[rgba(20,10,14,0.78)] p-4">
-            <section className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]" style={{ color: VERDE }}>
+            <section className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[28px] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]" style={{ color: VERDE }}>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55">Pagamento Pix</p>
                 <button type="button" onClick={() => setPixModalOpen(false)} className="rounded-xl px-3 py-2 text-xs font-black uppercase" style={{ background: `${ROSA}55`, color: VERDE }}>
@@ -680,13 +684,22 @@ export function TrackingScreen({
               <div className="mt-1 flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-black leading-tight">Escaneie o QR Code</h2>
-                  <p className="mt-1 text-xs font-bold leading-relaxed opacity-65">Use o aplicativo do seu banco para pagar. Este QR Code fica disponível por 60 segundos.</p>
+                  <p className="mt-1 text-xs font-bold leading-relaxed opacity-65">Abra o aplicativo do seu banco e use a opção Pix para escanear este código.</p>
                 </div>
                 <span className="rounded-xl px-3 py-2 text-lg font-black" style={{ background: `${ROSA}55`, color: "#8A0030" }}>
                   {String(Math.floor(pixTimeLeft / 60)).padStart(2, "0")}:{String(pixTimeLeft % 60).padStart(2, "0")}
                 </span>
               </div>
-              <div className="mx-auto mt-5 flex w-full max-w-[290px] items-center justify-center rounded-2xl bg-white p-3" style={{ border: `2px solid ${ROSA}` }}>
+              <div className="mt-4 rounded-2xl p-3" style={{ background: `${ROSA}22`, border: `1px solid ${ROSA}` }}>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-55">Valor a pagar</p>
+                <p className="mt-1 text-3xl font-black" style={{ color: "#8A0030" }}>{pixAmount}</p>
+                <ol className="mt-3 space-y-1 text-xs font-bold leading-relaxed opacity-75">
+                  <li>1. Abra o app do seu banco e toque em <strong>Pix</strong>.</li>
+                  <li>2. Escolha <strong>Ler QR Code</strong> e escaneie o código abaixo.</li>
+                  <li>3. Informe <strong>{pixAmount}</strong> e confirme o pagamento.</li>
+                </ol>
+              </div>
+              <div className="mx-auto mt-4 flex w-full max-w-[250px] items-center justify-center rounded-2xl bg-white p-3" style={{ border: `2px solid ${ROSA}` }}>
                 <img
                   src={order.pixQrCodeBase64 ? `data:image/png;base64,${order.pixQrCodeBase64}` : "/pix-menfis.png"}
                   alt="QR Code Pix para pagamento"
@@ -694,14 +707,17 @@ export function TrackingScreen({
                 />
               </div>
               {order.pixQrCode && (
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={copyPixCode}
-                  className="mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                  style={{ background: VERDE, color: ROSA, border: "none" }}
-                >
-                  {pixCopied ? "Código Pix copiado" : "Copiar código Pix"}
-                </motion.button>
+                <div className="mt-4">
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={copyPixCode}
+                    className="w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                    style={{ background: VERDE, color: ROSA, border: "none" }}
+                  >
+                    {pixCopied ? "Código Pix copiado" : "Copiar código Pix"}
+                  </motion.button>
+                  <p className="mt-2 text-center text-[10px] font-bold leading-relaxed opacity-60">Ao colar no app do banco, informe o valor de {pixAmount}.</p>
+                </div>
               )}
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <button type="button" onClick={sendPaymentProof} disabled={submittingProof} className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55" style={{ background: "#25D366", color: "#fff" }}>
