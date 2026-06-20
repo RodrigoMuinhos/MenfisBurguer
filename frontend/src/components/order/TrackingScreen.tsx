@@ -89,6 +89,7 @@ export function TrackingScreen({
   const [pixTimeLeft, setPixTimeLeft] = useState(60);
   const [pixModalOpen, setPixModalOpen] = useState(true);
   const [pixSession, setPixSession] = useState(0);
+  const [pixFlowActive, setPixFlowActive] = useState(false);
   const [submittingProof, setSubmittingProof] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
@@ -222,7 +223,7 @@ export function TrackingScreen({
     (order.paymentMethod === "pix" || order.paymentMethod === "pix_qrcode") &&
     order.status === "PAYMENT_PENDING" &&
     Boolean(order.pixQrCode || order.pixQrCodeBase64 || order.pixTicketUrl);
-  const pixExpired = showPixPayment && pixTimeLeft <= 0;
+  const pixExpired = pixFlowActive && pixTimeLeft <= 0;
   const paymentProofWhatsappText = encodeURIComponent(
     `Olá, estou enviando o comprovante Pix do pedido ${order.id}.\n\nValor: R$ ${order.total.toFixed(2).replace(".", ",")}\nPedido: ${order.id}`,
   );
@@ -263,6 +264,17 @@ export function TrackingScreen({
 
   useEffect(() => {
     if (!showPixPayment) return;
+    setPixFlowActive(true);
+  }, [order.id, showPixPayment]);
+
+  useEffect(() => {
+    if (order.status === "PAYMENT_PENDING") return;
+    setPixFlowActive(false);
+    setPixModalOpen(false);
+  }, [order.status]);
+
+  useEffect(() => {
+    if (!pixFlowActive) return;
     setPixModalOpen(true);
     const startedAt = Date.now();
     const updateTimeLeft = () =>
@@ -270,7 +282,7 @@ export function TrackingScreen({
     updateTimeLeft();
     const timer = window.setInterval(updateTimeLeft, 1_000);
     return () => window.clearInterval(timer);
-  }, [order.id, pixSession, showPixPayment]);
+  }, [order.id, pixFlowActive, pixSession]);
 
   const finishReview = (mode: "done" | "later") => {
     const savedReview: KioskReview = {
@@ -362,6 +374,7 @@ export function TrackingScreen({
     setRetryPaymentError("");
     setRetryChoiceOpen(false);
     setPixTimeLeft(60);
+    setPixFlowActive(true);
     setPixModalOpen(true);
     setPixSession((session) => session + 1);
   };
@@ -644,7 +657,7 @@ export function TrackingScreen({
           statusLabel={statusCopy.label}
           statusEta={statusCopy.eta}
           stepTimes={stepTimes}
-          showPixPayment={showPixPayment && pixExpired}
+          showPixPayment={pixFlowActive && pixExpired}
           pixExpired={pixExpired}
           pixTimeLeft={pixTimeLeft}
           pixCopied={pixCopied}
@@ -655,7 +668,7 @@ export function TrackingScreen({
           retryPaymentError={retryPaymentError}
           onRetryPayment={retryPayment}
         />
-        {showPixPayment && !pixExpired && pixModalOpen && (
+        {pixFlowActive && !pixExpired && pixModalOpen && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center bg-[rgba(20,10,14,0.78)] p-4">
             <section className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]" style={{ color: VERDE }}>
               <div className="flex items-center justify-between gap-3">
