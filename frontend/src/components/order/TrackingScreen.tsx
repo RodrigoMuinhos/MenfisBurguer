@@ -18,7 +18,7 @@ import {
 } from "./tracking";
 import { TrackingSupportSection } from "./tracking/TrackingSupportSection";
 import { TrackingTimelineSection } from "./tracking/TrackingTimelineSection";
-import { getOperatingHoursBlockMessage } from "./checkout";
+import { getOperatingHoursBlockMessage, KIOSK_PIX_CODE } from "./checkout";
 
 const KIOSK_REVIEWS_KEY = "menfis_kiosk_mob_reviews";
 
@@ -231,6 +231,7 @@ export function TrackingScreen({
     style: "currency",
     currency: "BRL",
   });
+  const pixCode = order.pixQrCode || KIOSK_PIX_CODE;
   const reviewKey = `menfis_review_${order.id}`;
   const showDeliveryReview =
     order.status === "DELIVERED" &&
@@ -330,11 +331,10 @@ export function TrackingScreen({
   };
 
   const copyPixCode = async () => {
-    if (!order.pixQrCode) return;
     try {
-      await navigator.clipboard.writeText(order.pixQrCode);
+      await navigator.clipboard.writeText(pixCode);
       setPixCopied(true);
-      window.setTimeout(() => setPixCopied(false), 1800);
+      window.setTimeout(() => setPixCopied(false), 3000);
     } catch {
       setPixCopied(false);
     }
@@ -706,19 +706,17 @@ export function TrackingScreen({
                   className="aspect-square w-full object-contain"
                 />
               </div>
-              {order.pixQrCode && (
-                <div className="mt-4">
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    onClick={copyPixCode}
-                    className="w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                    style={{ background: VERDE, color: ROSA, border: "none" }}
-                  >
-                    {pixCopied ? "Código Pix copiado" : "Copiar código Pix"}
-                  </motion.button>
-                  <p className="mt-2 text-center text-[10px] font-bold leading-relaxed opacity-60">Ao colar no app do banco, informe o valor de {pixAmount}.</p>
-                </div>
-              )}
+              <div className="mt-4">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={copyPixCode}
+                  className="w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
+                  style={{ background: VERDE, color: ROSA, border: "none" }}
+                >
+                  {pixCopied ? "Código Pix copiado" : "Copiar código Pix"}
+                </motion.button>
+                <p className="mt-2 text-center text-[10px] font-bold leading-relaxed opacity-60">Ao colar no app do banco, informe o valor de {pixAmount}.</p>
+              </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <button type="button" onClick={sendPaymentProof} disabled={submittingProof} className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55" style={{ background: "#25D366", color: "#fff" }}>
                   {submittingProof ? "Registrando..." : "Enviar comprovante"}
