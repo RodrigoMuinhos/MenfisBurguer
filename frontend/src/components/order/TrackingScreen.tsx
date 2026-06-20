@@ -86,6 +86,8 @@ export function TrackingScreen({
   const [retryingPayment, setRetryingPayment] = useState(false);
   const [retryPaymentError, setRetryPaymentError] = useState("");
   const [retryChoiceOpen, setRetryChoiceOpen] = useState(false);
+  const [pixTimeLeft, setPixTimeLeft] = useState(60);
+  const [submittingProof, setSubmittingProof] = useState(false);
   const [rating, setRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewHandled, setReviewHandled] = useState(false);
@@ -218,6 +220,10 @@ export function TrackingScreen({
     (order.paymentMethod === "pix" || order.paymentMethod === "pix_qrcode") &&
     order.status === "PAYMENT_PENDING" &&
     Boolean(order.pixQrCode || order.pixQrCodeBase64 || order.pixTicketUrl);
+  const pixExpired = showPixPayment && pixTimeLeft <= 0;
+  const paymentProofWhatsappText = encodeURIComponent(
+    `Olá, estou enviando o comprovante Pix do pedido ${order.id}.\n\nValor: R$ ${order.total.toFixed(2).replace(".", ",")}\nPedido: ${order.id}`,
+  );
   const reviewKey = `menfis_review_${order.id}`;
   const showDeliveryReview =
     order.status === "DELIVERED" &&
@@ -252,6 +258,15 @@ export function TrackingScreen({
 
     return () => window.clearTimeout(exitTimer);
   }, [goHome, idlePromptOpen, isKioskMobReview, showDeliveryReview]);
+
+  useEffect(() => {
+    if (!showPixPayment) return;
+    const expiresAt = order.timestamp + 60_000;
+    const updateTimeLeft = () => setPixTimeLeft(Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)));
+    updateTimeLeft();
+    const timer = window.setInterval(updateTimeLeft, 1_000);
+    return () => window.clearInterval(timer);
+  }, [order.timestamp, showPixPayment]);
 
   const finishReview = (mode: "done" | "later") => {
     const savedReview: KioskReview = {
@@ -337,6 +352,25 @@ export function TrackingScreen({
   const retryPayment = () => {
     setRetryPaymentError("");
     setRetryChoiceOpen(true);
+  };
+
+  const sendPaymentProof = async () => {
+    if (submittingProof) return;
+    setSubmittingProof(true);
+    try {
+      const response = API_URL
+        ? await fetch(`${API_URL}/orders/${encodeURIComponent(order.id)}/payment-proof`, { method: "POST" })
+        : await fetch(`/api/orders/${encodeURIComponent(order.id)}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "PAYMENT_PROOF_PENDING" }),
+          });
+      if (!response.ok) throw new Error("payment_proof_request_failed");
+      window.location.assign(`${WHATSAPP_URL}?text=${paymentProofWhatsappText}`);
+    } catch {
+      setRetryPaymentError("Não foi possível registrar o comprovante. Tente novamente.");
+      setSubmittingProof(false);
+    }
   };
 
   if (showDeliveryReview) {
@@ -599,8 +633,12 @@ export function TrackingScreen({
           statusEta={statusCopy.eta}
           stepTimes={stepTimes}
           showPixPayment={showPixPayment}
+          pixExpired={pixExpired}
+          pixTimeLeft={pixTimeLeft}
           pixCopied={pixCopied}
           onCopyPixCode={copyPixCode}
+          onSendPaymentProof={sendPaymentProof}
+          submittingProof={submittingProof}
           retryingPayment={retryingPayment}
           retryPaymentError={retryPaymentError}
           onRetryPayment={retryPayment}

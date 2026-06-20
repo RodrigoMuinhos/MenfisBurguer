@@ -14,8 +14,12 @@ export function TrackingTimelineSection({
   statusEta,
   stepTimes,
   showPixPayment,
+  pixExpired,
+  pixTimeLeft,
   pixCopied,
   onCopyPixCode,
+  onSendPaymentProof,
+  submittingProof,
   retryingPayment,
   retryPaymentError,
   onRetryPayment,
@@ -27,8 +31,12 @@ export function TrackingTimelineSection({
   statusEta: string;
   stepTimes: string[];
   showPixPayment: boolean;
+  pixExpired: boolean;
+  pixTimeLeft: number;
   pixCopied: boolean;
   onCopyPixCode: () => void;
+  onSendPaymentProof: () => void;
+  submittingProof: boolean;
   retryingPayment: boolean;
   retryPaymentError: string;
   onRetryPayment: () => void;
@@ -170,7 +178,7 @@ export function TrackingTimelineSection({
         </div>
       )}
 
-      {showPixPayment && (
+      {showPixPayment && !pixExpired && (
         <div
           className="rounded-[24px] p-4 md:p-5"
           style={{
@@ -182,7 +190,7 @@ export function TrackingTimelineSection({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-lg font-black leading-tight" style={{ color: VERDE }}>
-                Aguardando pagamento Pix
+                Aguardando pagamento Pix · {String(Math.floor(pixTimeLeft / 60)).padStart(2, "0")}:{String(pixTimeLeft % 60).padStart(2, "0")}
               </p>
               <p className="mt-1 text-xs leading-relaxed" style={{ color: VERDE, opacity: 0.62 }}>
                 {directPixPayment
@@ -257,6 +265,24 @@ export function TrackingTimelineSection({
                 </a>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {showPixPayment && pixExpired && (
+        <div className="rounded-[24px] p-4 md:p-5" style={{ background: "#FFF1F2", border: `1.5px solid ${ROSA}` }}>
+          <p className="text-lg font-black" style={{ color: VERDE }}>Tempo do QR Code encerrado</p>
+          <p className="mt-1 text-xs font-bold leading-relaxed" style={{ color: VERDE, opacity: 0.7 }}>
+            Escolha outra forma de pagamento ou envie o comprovante Pix para aprovação manual. O pedido só seguirá para produção depois da validação.
+          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button onClick={onRetryPayment} className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider" style={{ background: VERDE, color: ROSA }}>
+              Escolher outra forma de pagamento
+            </button>
+            <button onClick={onSendPaymentProof} disabled={submittingProof} className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55" style={{ background: "#25D366", color: "#fff" }}>
+              <MessageCircle size={16} strokeWidth={2.4} />
+              {submittingProof ? "Registrando..." : "Enviar comprovante pelo WhatsApp"}
+            </button>
           </div>
         </div>
       )}

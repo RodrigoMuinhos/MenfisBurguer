@@ -59,6 +59,7 @@ export type SupportTicket = {
 
 export const STAGE_ORDER: OrderStatus[] = [
   "PAYMENT_PENDING",
+  "PAYMENT_PROOF_PENDING",
   "PAID",
   "ACCEPTED",
   "IN_PREPARATION",
@@ -70,6 +71,7 @@ export const STAGE_ORDER: OrderStatus[] = [
 export const STAGE_LABEL: Record<OrderStatus, string> = {
   CREATED: "Criado",
   PAYMENT_PENDING: "Aguardando Pagamento",
+  PAYMENT_PROOF_PENDING: "Aguardando aprovação do comprovante",
   PAID: "Pedido Recebido",
   ACCEPTED: "Pedido Aceito",
   IN_PREPARATION: "Em Preparo",
@@ -100,6 +102,12 @@ export const STAGE_COLOR: Record<
     text: "#92400E",
     border: "#FDE68A",
     accent: "#F59E0B",
+  },
+  PAYMENT_PROOF_PENDING: {
+    bg: "#FFF1F2",
+    text: "#9F1239",
+    border: "#FDA4AF",
+    accent: "#E11D48",
   },
   ACCEPTED: {
     bg: "#FFF1F2",
@@ -142,6 +150,7 @@ export const STAGE_COLOR: Record<
 export const STAGE_ICON: Record<OrderStatus, ElementType> = {
   CREATED: Clock,
   PAYMENT_PENDING: Clock,
+  PAYMENT_PROOF_PENDING: Clock,
   PAID: Clock,
   ACCEPTED: CheckCircle2,
   IN_PREPARATION: ChefHat,

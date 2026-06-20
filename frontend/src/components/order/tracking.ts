@@ -16,6 +16,7 @@ export const STEPS = [
 export const STATUS_INDEX: Record<OrderStatus, number> = {
   CREATED: 0,
   PAYMENT_PENDING: 0,
+  PAYMENT_PROOF_PENDING: 0,
   PAID: 0,
   ACCEPTED: 1,
   IN_PREPARATION: 2,
@@ -38,6 +39,11 @@ export const STATUS_COPY: Record<
     label: "Aguardando pagamento",
     copy: "Seu pedido foi criado, mas o Mercado Pago ainda não confirmou o pagamento.",
     eta: "Pague para enviar",
+  },
+  PAYMENT_PROOF_PENDING: {
+    label: "Aguardando aprovação do comprovante",
+    copy: "Recebemos a solicitação de validação. Seu pedido seguirá para produção após a aprovação manual.",
+    eta: "Em validação",
   },
   PAID: {
     label: "Pedido recebido",

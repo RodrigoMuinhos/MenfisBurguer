@@ -3,6 +3,7 @@ export type OrderChannel = "DELIVERY" | "KIOSK";
 export type OrderStatus =
   | "CREATED"
   | "PAYMENT_PENDING"
+  | "PAYMENT_PROOF_PENDING"
   | "PAID"
   | "ACCEPTED"
   | "IN_PREPARATION"

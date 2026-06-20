@@ -21,8 +21,8 @@ import {
   STAGE_COLOR,
 } from "../shared";
 
-const CANCELLABLE_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAID", "ACCEPTED", "IN_PREPARATION"];
-const EDITABLE_ITEM_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAID", "ACCEPTED"];
+const CANCELLABLE_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAYMENT_PROOF_PENDING", "PAID", "ACCEPTED", "IN_PREPARATION"];
+const EDITABLE_ITEM_STATUSES: OrderStatus[] = ["PAYMENT_PENDING", "PAYMENT_PROOF_PENDING", "PAID", "ACCEPTED"];
 const PREPARATION_STARTED_STATUSES: OrderStatus[] = [
   "IN_PREPARATION",
   "READY",
@@ -111,6 +111,7 @@ export function OrdersView({
   const canReleasePayment =
     selected &&
     (selected.status === "PAYMENT_PENDING" ||
+      selected.status === "PAYMENT_PROOF_PENDING" ||
       (selected.status === "CANCELLED" && selected.paymentProvider === "mercado_pago" && paymentRejected));
   const selectedIsKioskMob = isKioskMobOrder(selected);
   const selectedAddress = formatAddressForReceipt(selected?.customerAddress || "Não informado");

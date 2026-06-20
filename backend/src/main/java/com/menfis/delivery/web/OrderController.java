@@ -87,6 +87,16 @@ public class OrderController {
     return orders.changeStatus(id, OrderStatus.valueOf(request.status()), request.actor(), request.reason());
   }
 
+  @PostMapping("/{id}/payment-proof")
+  public OrderResponse requestPaymentProof(@PathVariable String id) {
+    return orders.changeStatus(
+      id,
+      OrderStatus.PAYMENT_PROOF_PENDING,
+      "customer",
+      "payment_proof_requested"
+    );
+  }
+
   @PatchMapping("/{id}/items")
   public OrderResponse patchItems(
       @PathVariable String id,

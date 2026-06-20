@@ -235,7 +235,7 @@ public class OrderService {
       id
     );
     OrderStatus status = OrderStatus.valueOf(String.valueOf(current.get("status")));
-    if (!(status == OrderStatus.PAYMENT_PENDING || status == OrderStatus.PAID || status == OrderStatus.ACCEPTED)) {
+    if (!(status == OrderStatus.PAYMENT_PENDING || status == OrderStatus.PAYMENT_PROOF_PENDING || status == OrderStatus.PAID || status == OrderStatus.ACCEPTED)) {
       throw new IllegalArgumentException("order_items_not_editable_in_status:" + status.name());
     }
 
@@ -572,7 +572,8 @@ public class OrderService {
   private boolean canTransition(OrderStatus from, OrderStatus to) {
     return switch (from) {
       case CREATED -> to == OrderStatus.PAYMENT_PENDING || to == OrderStatus.CANCELLED;
-      case PAYMENT_PENDING -> to == OrderStatus.PAID || to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
+      case PAYMENT_PENDING -> to == OrderStatus.PAYMENT_PROOF_PENDING || to == OrderStatus.PAID || to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
+      case PAYMENT_PROOF_PENDING -> to == OrderStatus.PAID || to == OrderStatus.CANCELLED;
       case PAID -> to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case ACCEPTED -> to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case IN_PREPARATION -> to == OrderStatus.READY || to == OrderStatus.CANCELLED;

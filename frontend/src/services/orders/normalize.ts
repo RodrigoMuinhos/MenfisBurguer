@@ -5,6 +5,8 @@ export function normalizeOrderStatus(status: string): OrderStatus {
   if (value === "DRAFT" || value === "CREATED") return "CREATED";
   if (value === "PENDING_PAYMENT" || value === "AGUARDANDO_PAGAMENTO")
     return "PAYMENT_PENDING";
+  if (value === "PAYMENT_PROOF_PENDING" || value === "AGUARDANDO_APROVACAO_COMPROVANTE")
+    return "PAYMENT_PROOF_PENDING";
   if (value === "RECEIVED" || value === "RECEBIDO" || value === "PAID")
     return "PAID";
   if (value === "ACCEPTED" || value === "ACEITO" || value === "PEDIDO_ACEITO")
