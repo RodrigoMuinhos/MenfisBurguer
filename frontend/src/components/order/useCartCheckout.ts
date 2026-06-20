@@ -61,6 +61,7 @@ export function useCartCheckout({
   onPlaceOrder,
   goToMenu,
   kioskMode,
+  initialCheckoutStep,
 }: {
   cart: CartItem[];
   updateQty: (id: string, delta: number) => void;
@@ -73,6 +74,7 @@ export function useCartCheckout({
   ) => void | Promise<void>;
   goToMenu: () => void;
   kioskMode: boolean;
+  initialCheckoutStep?: CheckoutStep;
 }) {
   const memberProfile = kioskMode ? null : readMemberProfile();
   const counterServiceMode =
@@ -83,7 +85,9 @@ export function useCartCheckout({
   const [obsOpen, setObsOpen] = useState<string | null>(null);
   const [removed, setRemoved] = useState<Record<string, Set<string>>>({});
   const [savedBadge, setSavedBadge] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("bag");
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
+    initialCheckoutStep ?? "bag",
+  );
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [payment, setPayment] = useState<PaymentMethod>(
     kioskMode || counterServiceMode ? "pix" : "whatsapp",
@@ -626,8 +630,10 @@ export function useCartCheckout({
       ? payment === "whatsapp"
         ? "Enviar para WhatsApp"
         : payment === "mercadopago"
-        ? "Abrir Mercado Pago"
-        : payment === "pix_qrcode" || payment === "pix"
+        ? "Finalizar com Mercado Pago"
+        : payment === "pix_qrcode"
+        ? "Finalizar com Mercado Pago"
+        : payment === "pix"
         ? "Gerar QR Code Pix"
         : "Finalizar pagamento"
       : checkoutStep === "review"

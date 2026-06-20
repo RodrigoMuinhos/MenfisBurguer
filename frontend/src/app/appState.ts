@@ -5,6 +5,7 @@ export type AppMode = "kiosk" | "delivery" | "admin" | "kds";
 
 export const MEMBER_KEY = "menfis_member";
 export const PENDING_ORDER_KEY = "menfis_pending_order_id";
+export const CHECKOUT_RETURN_STEP_KEY = "menfis_checkout_return_step";
 export const ADMIN_SESSION_KEY = "menfis_admin_session";
 export const APP_SCREEN_KEY = "menfis_app_screen";
 export const CART_STORAGE_KEY = "menfis_cart";

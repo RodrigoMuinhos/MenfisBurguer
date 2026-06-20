@@ -15,6 +15,7 @@ import {
   API_URL,
   CACHE_VERSION,
   CART_STORAGE_KEY,
+  CHECKOUT_RETURN_STEP_KEY,
   PENDING_ORDER_KEY,
   Screen,
   registerMemberOrder,
@@ -120,6 +121,10 @@ export default function App({ mode }: { mode?: AppMode }) {
     }
   });
   const [lastOrderId, setLastOrderId] = useState<string>("");
+  const [returnToPaymentStep, setReturnToPaymentStep] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(CHECKOUT_RETURN_STEP_KEY) === "payment";
+  });
   const {
     adminUser,
     adminPassword,
@@ -198,9 +203,22 @@ export default function App({ mode }: { mode?: AppMode }) {
 
     if (!orderId) return;
 
+    const paymentReturn = params.get("payment");
     setStarted(true);
     setLastOrderId(orderId);
-    setScreen("tracking");
+    if (paymentReturn === "failure" || paymentReturn === "pending") {
+      localStorage.setItem(CHECKOUT_RETURN_STEP_KEY, "payment");
+      setReturnToPaymentStep(true);
+      setScreen("cart");
+    } else {
+      localStorage.removeItem(CHECKOUT_RETURN_STEP_KEY);
+      setReturnToPaymentStep(false);
+      if (paymentReturn === "success") {
+        setCart([]);
+        localStorage.removeItem(CART_STORAGE_KEY);
+      }
+      setScreen("tracking");
+    }
     void loadOrderById(orderId);
 
     const cleanUrl =
@@ -209,6 +227,12 @@ export default function App({ mode }: { mode?: AppMode }) {
         : `${window.location.pathname}${window.location.hash}`;
     window.history.replaceState({}, "", cleanUrl);
   }, [adminOnlyMode, appMode, loadOrderById]);
+
+  useEffect(() => {
+    if (screen === "cart") return;
+    localStorage.removeItem(CHECKOUT_RETURN_STEP_KEY);
+    setReturnToPaymentStep(false);
+  }, [screen]);
 
   const goHome = () => setScreen("product");
   const leaveTrackingToMenu = () => {
@@ -567,6 +591,7 @@ export default function App({ mode }: { mode?: AppMode }) {
             onPlaceOrder={handlePlaceOrder}
             goToMenu={goHome}
             kioskMode={kioskMode}
+            initialCheckoutStep={returnToPaymentStep ? "payment" : undefined}
           />
         )}
         {screen === "tracking" && (

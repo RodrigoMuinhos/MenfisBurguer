@@ -10,13 +10,10 @@ import {
   PaymentMethod,
   SUPPORT_WHATSAPP_URL,
   fmt,
-  registerMemberOrder,
   resolveRuntimeDeliveryType,
   wait,
 } from "./checkout";
 import { buildOrderWhatsappReceipt } from "./whatsappReceipt";
-
-const CART_STORAGE_KEY = "menfis_cart";
 
 function buildPendingCreatedOrder({
   createdOrder,
@@ -443,10 +440,7 @@ export async function submitCheckoutOrder({
       return;
     }
 
-    registerMemberOrder();
     localStorage.setItem("menfis_pending_order_id", String(createdOrder.id));
-    localStorage.removeItem(CART_STORAGE_KEY);
-    clearCartItems?.();
     window.location.assign(checkoutUrl);
   } catch (error) {
     const reason = error instanceof Error ? error.message : "";

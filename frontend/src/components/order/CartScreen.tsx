@@ -16,6 +16,7 @@ import { CheckoutReviewSection } from "./CheckoutReviewSection";
 import { useCartCheckout } from "./useCartCheckout";
 import { CartBagStepSection } from "./CartBagStepSection";
 import { DeliveryChoiceSection } from "./DeliveryChoiceSection";
+import { CheckoutStep } from "./checkout";
 
 interface Props {
   cart: CartItem[];
@@ -30,6 +31,7 @@ interface Props {
   ) => void | Promise<void>;
   goToMenu: () => void;
   kioskMode?: boolean;
+  initialCheckoutStep?: CheckoutStep;
 }
 
 export function CartScreen({
@@ -39,6 +41,7 @@ export function CartScreen({
   onPlaceOrder,
   goToMenu,
   kioskMode = false,
+  initialCheckoutStep,
 }: Props) {
   const {
     appliedCoupon,
@@ -64,7 +67,6 @@ export function CartScreen({
     deliveryValid,
     discount,
     fee,
-    finalizeWithPayment,
     handleBack,
     handleFinalize,
     inputStyle,
@@ -121,6 +123,7 @@ export function CartScreen({
     onPlaceOrder,
     goToMenu,
     kioskMode,
+    initialCheckoutStep,
   });
 
   if (cart.length === 0) {
@@ -219,8 +222,6 @@ export function CartScreen({
           deliveryValid={deliveryValid}
           inputStyle={inputStyle}
           total={total}
-          paying={paying}
-          onFinalizeWithPayment={finalizeWithPayment}
         />
         <CheckoutReviewSection
           checkoutStep={checkoutStep}

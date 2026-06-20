@@ -1,4 +1,4 @@
-import { RefObject, useState } from "react";
+import { RefObject } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CreditCard,
@@ -6,7 +6,6 @@ import {
   MessageCircle,
   QrCode,
   Store,
-  X,
 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -85,8 +84,6 @@ export function PaymentStepSection({
   deliveryValid,
   inputStyle,
   total,
-  paying,
-  onFinalizeWithPayment,
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
@@ -104,16 +101,7 @@ export function PaymentStepSection({
   deliveryValid: boolean;
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
-  paying: boolean;
-  onFinalizeWithPayment: (payment: PaymentMethod) => void | Promise<void>;
 }) {
-  const [mercadoPagoChoiceOpen, setMercadoPagoChoiceOpen] = useState(false);
-  const chooseMercadoPagoPayment = (nextPayment: PaymentMethod) => {
-    setPayment(nextPayment);
-    setMercadoPagoChoiceOpen(false);
-    void onFinalizeWithPayment(nextPayment);
-  };
-
   return (
     <>
               <AnimatePresence>
@@ -242,9 +230,7 @@ export function PaymentStepSection({
                                 : kioskMode
                                 ? "Escolha a forma de pagamento"
                                   : payment === "mercadopago"
-                                  ? "Cartao no Mercado Pago"
-                                  : payment === "pix_qrcode"
-                                  ? "Pix Mercado Pago"
+                                  ? "Mercado Pago"
                                   : payment === "pix"
                                   ? "QR Code Pix Menfi's"
                                   : payment === "cartao"
@@ -272,9 +258,7 @@ export function PaymentStepSection({
                                       : payment === "whatsapp"
                                         ? "A equipe chama no WhatsApp para combinar o pagamento antes de liberar a cozinha."
                                     : payment === "mercadopago"
-                                      ? "Você será direcionado para pagar no cartão de crédito ou débito pela página segura do Mercado Pago."
-                                      : payment === "pix_qrcode"
-                                        ? "Você será direcionado ao Mercado Pago para pagar com Pix na página segura."
+                                      ? "Você será direcionado para a página segura do Mercado Pago."
                                         : payment === "pix"
                                         ? "Vamos mostrar o QR Code Pix direto da Menfi's para pagamento pelo app do banco."
                                         : "Você finaliza pelo Mercado Pago. Assim que aprovar, o pedido entra na cozinha."}
@@ -344,18 +328,11 @@ export function PaymentStepSection({
                             )
                               .filter((option) => option.show)
                               .map(({ id, label, copy, Icon }) => {
-                              const active =
-                                id === "mercadopago"
-                                  ? payment === "mercadopago" || payment === "pix_qrcode"
-                                  : payment === id;
+                              const active = payment === id;
                               return (
                                 <button
                                   key={id}
-                                  onClick={() =>
-                                    id === "mercadopago"
-                                      ? setMercadoPagoChoiceOpen(true)
-                                      : setPayment(id)
-                                  }
+                                  onClick={() => setPayment(id)}
                                   className="flex min-h-[104px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-4 py-5 text-sm font-black uppercase tracking-wider"
                                   style={{
                                     background: active ? VERDE : "#fff",
@@ -378,10 +355,10 @@ export function PaymentStepSection({
                               );
                             })}
                           </div>
-                          {payment === "pix_qrcode" && (
+                          {payment === "mercadopago" && (
                             <PaymentHint
-                              title="Pix Mercado Pago"
-                              copy="Ao continuar, você será direcionado para pagar com Pix dentro da página segura do Mercado Pago."
+                              title="Mercado Pago"
+                              copy="Ao finalizar, você será direcionado para a página segura do Mercado Pago."
                               total={total}
                             />
                           )}
@@ -553,122 +530,6 @@ export function PaymentStepSection({
                         </div>
                       )}
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <AnimatePresence>
-                {mercadoPagoChoiceOpen && (
-                  <motion.div
-                    className="fixed inset-0 z-[120] flex items-end justify-center bg-[rgba(101,0,31,0.45)] p-3 sm:items-center"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setMercadoPagoChoiceOpen(false)}
-                  >
-                    <motion.section
-                      className="w-full max-w-md rounded-[26px] bg-white p-5 shadow-[0_24px_70px_rgba(101,0,31,0.28)]"
-                      initial={{ y: 24, scale: 0.98 }}
-                      animate={{ y: 0, scale: 1 }}
-                      exit={{ y: 18, scale: 0.98 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                      style={{ color: VERDE }}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest opacity-55">
-                            Mercado Pago
-                          </p>
-                          <h3 className="mt-1 text-xl font-black uppercase leading-tight">
-                            Pagar com Mercado Pago
-                          </h3>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setMercadoPagoChoiceOpen(false)}
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                          style={{ background: `${ROSA}66`, color: VERDE }}
-                          aria-label="Voltar"
-                        >
-                          <X size={19} strokeWidth={2.7} />
-                        </button>
-                      </div>
-
-                      <div
-                        className="mt-4 flex items-center justify-between rounded-2xl p-4"
-                        style={{ background: `${ROSA}45` }}
-                      >
-                        <span className="text-xs font-black uppercase opacity-65">
-                          Total do pedido
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                            fontSize: "2rem",
-                            lineHeight: 1,
-                          }}
-                        >
-                          {fmt(total)}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid gap-3">
-                        <button
-                          type="button"
-                          onClick={() => chooseMercadoPagoPayment("mercadopago")}
-                          disabled={paying}
-                          className="flex min-h-[86px] items-center gap-4 rounded-2xl p-4 text-left"
-                          style={{ border: `2px solid ${ROSA}`, color: VERDE }}
-                        >
-                          <span
-                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                            style={{ background: ROSA }}
-                          >
-                            <CreditCard size={23} strokeWidth={2.5} />
-                          </span>
-                          <span>
-                            <span className="block text-sm font-black uppercase">
-                              Credito ou debito
-                            </span>
-                            <span className="mt-1 block text-xs font-bold opacity-65">
-                              Pague com cartao na pagina segura do Mercado Pago.
-                            </span>
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => chooseMercadoPagoPayment("mercadopago")}
-                          disabled={paying}
-                          className="flex min-h-[86px] items-center gap-4 rounded-2xl p-4 text-left"
-                          style={{ border: `2px solid ${ROSA}`, color: VERDE }}
-                        >
-                          <span
-                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                            style={{ background: ROSA }}
-                          >
-                            <QrCode size={23} strokeWidth={2.5} />
-                          </span>
-                          <span>
-                            <span className="block text-sm font-black uppercase">
-                              Pix Mercado Pago
-                            </span>
-                            <span className="mt-1 block text-xs font-bold opacity-65">
-                              Gere o Pix para copiar ou escanear.
-                            </span>
-                          </span>
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setMercadoPagoChoiceOpen(false)}
-                        className="mt-4 flex h-12 w-full items-center justify-center rounded-2xl text-xs font-black uppercase tracking-wider"
-                        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
-                      >
-                        Voltar
-                      </button>
-                    </motion.section>
                   </motion.div>
                 )}
               </AnimatePresence>
