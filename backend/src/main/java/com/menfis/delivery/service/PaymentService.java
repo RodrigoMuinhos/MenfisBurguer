@@ -60,13 +60,21 @@ public class PaymentService {
   }
 
   public PixResponse createPix(String orderId) {
+    return createPayment(orderId, false);
+  }
+
+  public PixResponse createCheckout(String orderId) {
+    return createPayment(orderId, true);
+  }
+
+  private PixResponse createPayment(String orderId, boolean forceCheckout) {
     if (accessToken == null || accessToken.isBlank()) {
       throw new IllegalStateException("mercado_pago_not_configured");
     }
     validateEnvironment();
     var order = orders.get(orderId);
     String paymentMethod = order.paymentMethod() == null ? "" : order.paymentMethod().toUpperCase();
-    if ("PIX".equals(paymentMethod)) {
+    if ("PIX".equals(paymentMethod) && !forceCheckout) {
       return createPixOrder(order);
     }
 

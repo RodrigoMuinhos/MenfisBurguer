@@ -328,7 +328,7 @@ export function TrackingScreen({
     setRetryingPayment(true);
     setRetryPaymentError("");
     try {
-      const res = await fetch(`${API_URL}/payments/pix`, {
+      const res = await fetch(`${API_URL}/payments/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: order.id }),

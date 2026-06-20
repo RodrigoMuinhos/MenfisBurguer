@@ -32,6 +32,11 @@ public class PaymentController {
     return payments.createPix(request.orderId());
   }
 
+  @PostMapping("/checkout")
+  public PixResponse checkout(@Valid @RequestBody PixRequest request) {
+    return payments.createCheckout(request.orderId());
+  }
+
   @PostMapping("/club/preference")
   public ClubPreferenceResponse clubPreference(
     @RequestHeader(name = "Authorization", required = false) String authorization,
