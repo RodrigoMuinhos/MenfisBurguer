@@ -91,6 +91,27 @@ export const DELIVERY_FEE = 7.1;
 export const SERVICE_FEE = 0.99;
 export const KIOSK_PIX_CODE =
   "00020126330014br.gov.bcb.pix0111044117503175204000053039865802BR5922RODRIGO ARAUJO MUINHOS6009FORTALEZA62070503***63044AEB";
+
+/** Gera um payload Pix copia-e-cola com o valor do pedido embutido (campo 54). */
+export function pixCodeWithAmount(amount: number) {
+  const withoutCrc = KIOSK_PIX_CODE.slice(0, -8);
+  const formattedAmount = Math.max(0, amount).toFixed(2);
+  const amountField = `54${String(formattedAmount.length).padStart(2, "0")}${formattedAmount}`;
+  const amountPosition = withoutCrc.indexOf("5802BR");
+  const payload =
+    amountPosition >= 0
+      ? `${withoutCrc.slice(0, amountPosition)}${amountField}${withoutCrc.slice(amountPosition)}`
+      : `${withoutCrc}${amountField}`;
+  const crcInput = `${payload}6304`;
+  let crc = 0xffff;
+  for (let index = 0; index < crcInput.length; index += 1) {
+    crc ^= crcInput.charCodeAt(index) << 8;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc & 0x8000) !== 0 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+    }
+  }
+  return `${crcInput}${crc.toString(16).toUpperCase().padStart(4, "0")}`;
+}
 export const SUPPORT_WHATSAPP_URL = "https://wa.me/5585997883764";
 export const STORAGE_KEY = "menfis_cliente";
 export const MEMBER_KEY = "menfis_member";

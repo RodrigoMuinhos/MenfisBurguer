@@ -18,7 +18,7 @@ import {
 } from "./tracking";
 import { TrackingSupportSection } from "./tracking/TrackingSupportSection";
 import { TrackingTimelineSection } from "./tracking/TrackingTimelineSection";
-import { getOperatingHoursBlockMessage, KIOSK_PIX_CODE } from "./checkout";
+import { getOperatingHoursBlockMessage, pixCodeWithAmount } from "./checkout";
 
 const KIOSK_REVIEWS_KEY = "menfis_kiosk_mob_reviews";
 
@@ -231,7 +231,7 @@ export function TrackingScreen({
     style: "currency",
     currency: "BRL",
   });
-  const pixCode = order.pixQrCode || KIOSK_PIX_CODE;
+  const pixCode = order.pixQrCodeBase64 ? order.pixQrCode || pixCodeWithAmount(order.total) : pixCodeWithAmount(order.total);
   const reviewKey = `menfis_review_${order.id}`;
   const showDeliveryReview =
     order.status === "DELIVERED" &&
@@ -696,7 +696,7 @@ export function TrackingScreen({
                 <ol className="mt-3 space-y-1 text-xs font-bold leading-relaxed opacity-75">
                   <li>1. Abra o app do seu banco e toque em <strong>Pix</strong>.</li>
                   <li>2. Escolha <strong>Ler QR Code</strong> e escaneie o código abaixo.</li>
-                  <li>3. Informe <strong>{pixAmount}</strong> e confirme o pagamento.</li>
+                  <li>3. Ao escanear, informe <strong>{pixAmount}</strong>; para já preencher o valor, use o botão Copiar código Pix.</li>
                 </ol>
               </div>
               <div className="mx-auto mt-4 flex w-full max-w-[250px] items-center justify-center rounded-2xl bg-white p-3" style={{ border: `2px solid ${ROSA}` }}>
@@ -715,7 +715,7 @@ export function TrackingScreen({
                 >
                   {pixCopied ? "Código Pix copiado" : "Copiar código Pix"}
                 </motion.button>
-                <p className="mt-2 text-center text-[10px] font-bold leading-relaxed opacity-60">Ao colar no app do banco, informe o valor de {pixAmount}.</p>
+                <p className="mt-2 text-center text-[10px] font-bold leading-relaxed opacity-60">Ao colar no app do banco, o valor de {pixAmount} já vem preenchido.</p>
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <button type="button" onClick={sendPaymentProof} disabled={submittingProof} className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55" style={{ background: "#25D366", color: "#fff" }}>
