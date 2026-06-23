@@ -196,22 +196,14 @@ export function MobileMenuExperience({
         <div className="pointer-events-none absolute inset-0 z-0 bg-white" />
         <div className="relative z-10 flex items-center justify-between gap-3">
           <BrandMenuButton onClick={onOpenMember} />
-          <button
-            type="button"
-            onClick={onOpenMember}
-            className="flex min-w-0 flex-1 justify-center"
-            aria-label="Abrir perfil Menfis"
-          >
-            <span
-              className="truncate leading-none"
-              style={{
-                color: PINK,
-                fontFamily: "'Pacifico', cursive",
-                fontSize: "1.85rem",
-              }}
-            >
-              Menfis
-            </span>
+          <button type="button" onClick={onOpenMember} className="flex min-w-0 flex-1 justify-center" aria-label="Abrir perfil Menfis">
+            <Image
+              src="/logonome.jpeg"
+              alt="Menfis"
+              width={170}
+              height={62}
+              className="h-14 w-auto max-w-full object-contain"
+            />
           </button>
           <IconButton
             label="Notificacoes"
