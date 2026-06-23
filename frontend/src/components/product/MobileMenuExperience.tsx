@@ -253,10 +253,10 @@ export function MobileMenuExperience({
         <div className="relative z-10 mt-4 min-h-[312px] overflow-hidden bg-white">
           <div className="relative z-30 max-w-[52%] pt-10">
             <Image
-              src="/logo%20hor.png"
+              src="/logonome.jpeg"
               alt="Menfi's Burger"
               width={300}
-              height={150}
+              height={300}
               className="h-36 w-auto max-w-full object-contain object-left"
               priority
             />
