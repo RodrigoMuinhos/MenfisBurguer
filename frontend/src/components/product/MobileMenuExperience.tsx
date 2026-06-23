@@ -196,22 +196,14 @@ export function MobileMenuExperience({
         <div className="pointer-events-none absolute inset-0 z-0 bg-white" />
         <div className="relative z-10 flex items-center justify-between gap-3">
           <BrandMenuButton onClick={onOpenMember} />
-          <button type="button" onClick={onOpenMember} className="text-center">
-            <p
-              className="uppercase"
-              style={{
-                color: ROSA,
-                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                fontSize: "2.65rem",
-                lineHeight: 0.85,
-                letterSpacing: 0,
-              }}
-            >
-              Menfi's
-            </p>
-            <p className="text-[11px] font-black uppercase tracking-[0.42em]">
-              Burger
-            </p>
+          <button type="button" onClick={onOpenMember} className="flex min-w-0 flex-1 justify-center" aria-label="Abrir perfil Menfi's Burguer">
+            <Image
+              src="/logonome.jpeg"
+              alt="Menfi's Burguer"
+              width={170}
+              height={62}
+              className="h-14 w-auto max-w-full object-contain"
+            />
           </button>
           <IconButton
             label="Notificacoes"

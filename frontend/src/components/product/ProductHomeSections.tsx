@@ -71,19 +71,13 @@ export function ProductHeader({
         </button>
 
         <div className="min-w-0 flex-1">
-          <p
-            className="text-[10px] font-black uppercase tracking-[0.22em]"
-            style={{ color: `${VERDE}80` }}
-          >
-            Menfi's Burger
-          </p>
-          <p
-            className="truncate text-sm font-black uppercase tracking-wide"
-            style={{ color: VERDE }}
-          >
-            {kioskMode
-              ? "Escolha seu pedido para retirada"
-              : "Burger quente e entrega rápida. Feito com amor"}
+          <img
+            src="/logonome.jpeg"
+            alt="Menfi's Burguer"
+            className="h-12 w-auto max-w-[210px] object-contain object-left"
+          />
+          <p className="mt-0.5 truncate text-[10px] font-black uppercase tracking-wide" style={{ color: VERDE }}>
+            {kioskMode ? "Escolha seu pedido para retirada" : "Burger quente e entrega rápida. Feito com amor"}
           </p>
         </div>
 
