@@ -100,13 +100,18 @@ export function CartHeader({
           {totalItems} {totalItems === 1 ? "item" : "itens"}
         </p>
       </div>
-      <Image
-        src="/logo_M.jpeg"
-        alt="Menfi's"
-        width={44}
-        height={44}
-        style={{ mixBlendMode: "screen" }}
-      />
+      <div
+        className="h-11 w-11 shrink-0 overflow-hidden rounded-full"
+        style={{ background: "#fff", border: `2px solid ${ROSA}` }}
+      >
+        <Image
+          src="/logo_M.jpeg"
+          alt="Menfi's"
+          width={44}
+          height={44}
+          className="h-full w-full object-cover"
+        />
+      </div>
     </div>
   );
 }
