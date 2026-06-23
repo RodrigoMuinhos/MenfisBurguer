@@ -72,8 +72,8 @@ export function ProductHeader({
 
         <div className="min-w-0 flex-1">
           <img
-            src="/logonome.jpeg"
-            alt="Menfis"
+            src="/logo%20hor.png"
+            alt="Menfi's Burger"
             className="h-12 w-auto max-w-[210px] object-contain object-left"
           />
           <p className="mt-0.5 truncate text-[10px] font-black uppercase tracking-wide" style={{ color: VERDE }}>

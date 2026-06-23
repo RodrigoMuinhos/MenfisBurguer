@@ -198,8 +198,8 @@ export function MobileMenuExperience({
           <BrandMenuButton onClick={onOpenMember} />
           <button type="button" onClick={onOpenMember} className="flex min-w-0 flex-1 justify-center" aria-label="Abrir perfil Menfis">
             <Image
-              src="/logonome.jpeg"
-              alt="Menfis"
+              src="/logo%20hor.png"
+              alt="Menfi's Burger"
               width={170}
               height={62}
               className="h-14 w-auto max-w-full object-contain"
