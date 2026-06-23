@@ -150,11 +150,17 @@ export function ProductHero({
   featuredItem,
   onIdleShortcutTap,
   onAddFeatured,
+  operatingNow,
+  operatingHoursSummary,
+  operatingHoursMessage,
 }: {
   kioskMode: boolean;
   featuredItem: MenuItem;
   onIdleShortcutTap: () => void;
   onAddFeatured: () => void;
+  operatingNow: boolean;
+  operatingHoursSummary: string;
+  operatingHoursMessage: string;
 }) {
   return (
     <section
@@ -171,24 +177,29 @@ export function ProductHero({
             <div
               className="mb-3 flex items-center gap-2 rounded-2xl px-4 py-3"
               style={{
-                background: "#65001F",
-                color: ROSA,
-                border: `2px solid ${VERDE}`,
-                boxShadow: "0 16px 36px rgba(101,0,31,0.22)",
+                background: operatingNow ? "#65001F" : "#FFF1F2",
+                color: operatingNow ? ROSA : "#991B1B",
+                border: `2px solid ${operatingNow ? VERDE : "#FCA5A5"}`,
+                boxShadow: operatingNow ? "0 16px 36px rgba(101,0,31,0.22)" : "none",
               }}
             >
               <span
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-full"
-                style={{ background: ROSA, color: "#65001F" }}
+                style={{ background: operatingNow ? ROSA : "#FECACA", color: operatingNow ? "#65001F" : "#991B1B" }}
               >
                 <Clock3 size={18} strokeWidth={2.8} />
               </span>
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-75">
-                  Atendimento e delivery
+                  {operatingNow ? "Atendimento e delivery" : "Atendimento indisponível"}
                 </p>
                 <p className="text-sm font-black uppercase md:text-base">
-                  Funcionamento: terça a domingo, das 18:00 às 22:00.
+                  {operatingNow ? "Estamos atendendo agora." : "Estamos fechados no momento."}
+                </p>
+                <p className="mt-1 text-xs font-bold leading-relaxed opacity-80">
+                  {operatingNow
+                    ? operatingHoursSummary
+                    : operatingHoursMessage || operatingHoursSummary}
                 </p>
               </div>
             </div>

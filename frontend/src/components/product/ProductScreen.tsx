@@ -134,6 +134,9 @@ export function ProductScreen({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
+  const [operatingNow, setOperatingNow] = useState(true);
+  const [operatingHoursSummary, setOperatingHoursSummary] = useState("");
+  const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [memberCpf, setMemberCpf] = useState("");
@@ -234,6 +237,9 @@ export function ProductScreen({
         if (settings?.featuredProductId) {
           setFeaturedProductId(String(settings.featuredProductId));
         }
+        setOperatingNow(settings?.operatingNow !== false);
+        setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
+        setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
       })
       .catch(() => undefined);
   }, []);
@@ -668,6 +674,9 @@ export function ProductScreen({
             featuredItem={featuredItem}
             onIdleShortcutTap={handleIdleShortcutTap}
             onAddFeatured={() => addMenuItem(featuredItem)}
+            operatingNow={operatingNow}
+            operatingHoursSummary={operatingHoursSummary}
+            operatingHoursMessage={operatingHoursMessage}
           />
 
           {!kioskMode && (
