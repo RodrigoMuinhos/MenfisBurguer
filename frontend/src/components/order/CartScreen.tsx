@@ -11,6 +11,7 @@ import { OrderSummarySection } from "./OrderSummarySection";
 import { PaymentStepSection } from "./PaymentStepSection";
 import { DeliveryFormSection } from "./DeliveryFormSection";
 import { CartOverlays } from "./CartOverlays";
+import { ClosedHoursAlertModal } from "./ClosedHoursAlertModal";
 import { CartStickyCta } from "./CartStickyCta";
 import { CheckoutReviewSection } from "./CheckoutReviewSection";
 import { useCartCheckout } from "./useCartCheckout";
@@ -52,6 +53,9 @@ export function CartScreen({
     cepLoading,
     cepRef,
     checkoutStep,
+    closedHoursAlertMessage,
+    closedHoursAlertOpen,
+    closeClosedHoursAlert,
     clearCart,
     closeKioskKeyboard,
     clearKioskKey,
@@ -297,6 +301,15 @@ export function CartScreen({
         onConfirmCounterPrint={confirmCounterPrintChoice}
         onSkipCounterPrint={skipCounterPrintChoice}
       />
+      {closedHoursAlertOpen && (
+        <ClosedHoursAlertModal
+          message={closedHoursAlertMessage}
+          onReturnToMenu={() => {
+            closeClosedHoursAlert();
+            goToMenu();
+          }}
+        />
+      )}
 
       <CartStickyCta
         checkoutStep={checkoutStep}

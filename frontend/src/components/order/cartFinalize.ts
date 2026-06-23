@@ -114,6 +114,7 @@ export async function submitCheckoutOrder({
   setKioskSuccessOpen,
   setKioskSuccessOrder,
   setPaymentError,
+  onRestaurantClosed,
   confirmCounterPrint,
   clearCartItems,
 }: {
@@ -141,6 +142,7 @@ export async function submitCheckoutOrder({
   setKioskSuccessOpen: (value: boolean) => void;
   setKioskSuccessOrder?: (order: Order | null) => void;
   setPaymentError: (value: string) => void;
+  onRestaurantClosed?: () => void;
   confirmCounterPrint?: (order: Order) => Promise<boolean>;
   clearCartItems?: () => void;
 }) {
@@ -444,6 +446,10 @@ export async function submitCheckoutOrder({
     window.location.assign(checkoutUrl);
   } catch (error) {
     const reason = error instanceof Error ? error.message : "";
+    if (reason.includes("restaurant_closed")) {
+      onRestaurantClosed?.();
+      return;
+    }
     setPaymentError(
       reason.includes("api_url_missing")
         ? "Backend não configurado no kiosk. Defina NEXT_PUBLIC_API_URL apontando para o backend conectado ao Neon."

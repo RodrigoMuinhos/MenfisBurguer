@@ -98,6 +98,7 @@ export function useCartCheckout({
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(false);
   const [operatingNow, setOperatingNow] = useState(true);
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
+  const [closedHoursAlertOpen, setClosedHoursAlertOpen] = useState(false);
   const [deliverySchedule, setDeliverySchedule] = useState<"opening" | "scheduled">("opening");
   const [scheduledTime, setScheduledTime] = useState("18:30");
   const [kioskSuccessOpen, setKioskSuccessOpen] = useState(false);
@@ -425,10 +426,8 @@ export function useCartCheckout({
   const submitSelectedPayment = async (selectedPayment: PaymentMethod) => {
     if (paying || !deliveryValid) return;
     if (!operatingNow && !kioskMode && !counterServiceMode) {
-      setPaymentError(
-        operatingHoursMessage ||
-          "Estamos fechados no momento. Assim que abrirmos, você será informado e poderá finalizar seu pedido.",
-      );
+      setPaymentError("");
+      setClosedHoursAlertOpen(true);
       return;
     }
     setPayment(selectedPayment);
@@ -459,6 +458,10 @@ export function useCartCheckout({
       setKioskSuccessOpen,
       setKioskSuccessOrder,
       setPaymentError,
+      onRestaurantClosed: () => {
+        setPaymentError("");
+        setClosedHoursAlertOpen(true);
+      },
       confirmCounterPrint,
       clearCartItems: clearCart,
     });
@@ -668,6 +671,11 @@ export function useCartCheckout({
     cepLoading,
     cepRef,
     checkoutStep,
+    closedHoursAlertOpen,
+    closedHoursAlertMessage:
+      operatingHoursMessage ||
+      "Assim que abrirmos, você será informado e poderá finalizar seu pedido.",
+    closeClosedHoursAlert: () => setClosedHoursAlertOpen(false),
     clearCart,
     clearKioskKey,
     complement,
