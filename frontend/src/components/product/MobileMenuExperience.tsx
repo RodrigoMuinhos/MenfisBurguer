@@ -381,9 +381,9 @@ export function MobileMenuExperience({
         className="fixed right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl"
         style={{
           bottom: cartCount > 0 ? 168 : 86,
-          background: VINHO,
+          background: "#1F3D2E",
           color: ROSA,
-          boxShadow: "0 16px 34px rgba(101,0,31,0.32)",
+          boxShadow: "0 16px 34px rgba(31,61,46,0.32)",
         }}
         aria-label="Chamar Menfi's no WhatsApp"
       >
