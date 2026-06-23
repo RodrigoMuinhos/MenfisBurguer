@@ -57,6 +57,9 @@ public class OrderService {
       OrderResponse existing = findByIdempotencyKey(request.idempotencyKey());
       if (existing != null) return existing;
     }
+    if (!settings.testModeEnabled() && !settings.isOperatingNow()) {
+      throw new IllegalStateException("restaurant_closed");
+    }
 
     long number = jdbc.queryForObject("select nextval('order_number_seq')", Long.class);
     String id = "#" + number;

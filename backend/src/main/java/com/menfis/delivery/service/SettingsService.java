@@ -1,6 +1,9 @@
 package com.menfis.delivery.service;
 
 import java.util.Map;
+import java.util.List;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -62,14 +65,75 @@ public class SettingsService {
   }
 
   public Map<String, Object> publicSettings() {
+    OperatingStatus operatingStatus = operatingStatus();
     return Map.of(
       "payOnDeliveryEnabled", payOnDeliveryEnabled(),
       "testModeEnabled", testModeEnabled(),
       "featuredProductId", featuredProductId(),
       "demoTableEnabled", demoTableEnabled(),
-      "operatingHours", operatingHours()
+      "operatingHours", operatingHours(),
+      "operatingNow", operatingStatus.open(),
+      "operatingHoursSummary", operatingStatus.summary(),
+      "operatingHoursMessage", operatingStatus.message()
     );
   }
+
+  /** The restaurant schedule is evaluated in its local operating timezone, never in the server timezone. */
+  public boolean isOperatingNow() {
+    return operatingStatus().open();
+  }
+
+  private OperatingStatus operatingStatus() {
+    Map<String, Object> config = operatingHours();
+    Object rawDays = config.get("days");
+    List<?> days = rawDays instanceof List<?> list ? list : List.of();
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo"));
+    int currentDay = now.getDayOfWeek().getValue() % 7; // Java: Sunday=7; UI: Sunday=0.
+    int currentMinutes = now.getHour() * 60 + now.getMinute();
+    boolean open = false;
+    java.util.ArrayList<String> summaries = new java.util.ArrayList<>();
+
+    for (Object entry : days) {
+      if (!(entry instanceof Map<?, ?> day)) continue;
+      boolean enabled = Boolean.TRUE.equals(day.get("open"));
+      String label = stringValue(day.get("label"), "Dia");
+      String start = stringValue(day.get("start"), "00:00");
+      String end = stringValue(day.get("end"), "00:00");
+      if (enabled) summaries.add(label + ", das " + start + " às " + end);
+      if (enabled && number(day.get("day")) == currentDay) {
+        int startMinutes = minutes(start);
+        int endMinutes = minutes(end);
+        if (startMinutes < endMinutes && currentMinutes >= startMinutes && currentMinutes < endMinutes) open = true;
+      }
+    }
+    String summary = summaries.isEmpty() ? "Nenhum horário configurado." : String.join(" · ", summaries);
+    String message = open
+      ? "Estamos atendendo agora."
+      : "Estamos fechados no momento. Assim que abrirmos, você será informado e poderá finalizar seu pedido. Horários: " + summary;
+    return new OperatingStatus(open, summary, message);
+  }
+
+  private int minutes(String value) {
+    try {
+      String[] parts = value.split(":", 2);
+      int hours = Integer.parseInt(parts[0]);
+      int minutes = Integer.parseInt(parts[1]);
+      return hours * 60 + minutes;
+    } catch (Exception ignored) {
+      return -1;
+    }
+  }
+
+  private int number(Object value) {
+    if (value instanceof Number number) return number.intValue();
+    try { return Integer.parseInt(String.valueOf(value)); } catch (Exception ignored) { return -1; }
+  }
+
+  private String stringValue(Object value, String fallback) {
+    return value == null || String.valueOf(value).isBlank() ? fallback : String.valueOf(value);
+  }
+
+  private record OperatingStatus(boolean open, String summary, String message) {}
 
   public Map<String, Object> setPayOnDeliveryEnabled(boolean enabled) {
     jdbc.update(

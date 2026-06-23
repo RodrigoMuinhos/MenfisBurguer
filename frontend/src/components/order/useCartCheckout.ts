@@ -96,6 +96,8 @@ export function useCartCheckout({
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(false);
+  const [operatingNow, setOperatingNow] = useState(true);
+  const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
   const [deliverySchedule, setDeliverySchedule] = useState<"opening" | "scheduled">("opening");
   const [scheduledTime, setScheduledTime] = useState("18:30");
   const [kioskSuccessOpen, setKioskSuccessOpen] = useState(false);
@@ -227,6 +229,8 @@ export function useCartCheckout({
       .then((settings) => {
         const enabled = settings.payOnDeliveryEnabled === true;
         setPayOnDeliveryEnabled(enabled);
+        setOperatingNow(settings.operatingNow !== false);
+        setOperatingHoursMessage(String(settings.operatingHoursMessage ?? ""));
         if (!enabled) {
           setPayment((current) =>
             current === "pagar_na_entrega" ? "pix" : current,
@@ -420,6 +424,13 @@ export function useCartCheckout({
 
   const submitSelectedPayment = async (selectedPayment: PaymentMethod) => {
     if (paying || !deliveryValid) return;
+    if (!operatingNow && !kioskMode && !counterServiceMode) {
+      setPaymentError(
+        operatingHoursMessage ||
+          "Estamos fechados no momento. Assim que abrirmos, você será informado e poderá finalizar seu pedido.",
+      );
+      return;
+    }
     setPayment(selectedPayment);
     setPaymentError("");
     closeKioskKeyboard();

@@ -108,14 +108,6 @@ function discountPercent(item: MenuItem) {
   return Math.round((1 - item.price / item.originalPrice) * 100);
 }
 
-function isOfficialBusinessHours(date = new Date()) {
-  const day = date.getDay();
-  const openDay = day === 0 || (day >= 3 && day <= 6);
-  if (!openDay) return false;
-  const minutes = date.getHours() * 60 + date.getMinutes();
-  return minutes >= 18 * 60 + 30 && minutes < 21 * 60 + 30;
-}
-
 export function MobileMenuExperience({
   items,
   cartCount,
@@ -145,6 +137,7 @@ export function MobileMenuExperience({
     null,
   );
   const [closedHoursOpen, setClosedHoursOpen] = useState(false);
+  const [closedHoursMessage, setClosedHoursMessage] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const rewardCount = memberProfile?.orders ? memberProfile.orders % 10 : 0;
   const rewardRemaining = Math.max(0, 10 - rewardCount);
@@ -182,16 +175,19 @@ export function MobileMenuExperience({
     setClosedHoursOpen(false);
   };
 
-  const reserveOrder = () => {
-    closeClosedHoursAlert();
-    window.setTimeout(scrollToProducts, 120);
-  };
-
   useEffect(() => {
-    if (isOfficialBusinessHours()) return;
+    if (!API_URL) return;
     if (sessionStorage.getItem(CLOSED_HOURS_ALERT_KEY) === "1") return;
-    const timer = window.setTimeout(() => setClosedHoursOpen(true), 650);
-    return () => window.clearTimeout(timer);
+    const controller = new AbortController();
+    fetch(`${API_URL}/settings/public`, { cache: "no-store", signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((settings) => {
+        if (settings?.operatingNow !== false) return;
+        setClosedHoursMessage(String(settings.operatingHoursMessage ?? "Estamos fechados no momento."));
+        setClosedHoursOpen(true);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
   }, []);
 
   return (
@@ -421,7 +417,7 @@ export function MobileMenuExperience({
       )}
       {closedHoursOpen && (
         <ClosedHoursModal
-          onReserve={reserveOrder}
+          message={closedHoursMessage}
           onClose={closeClosedHoursAlert}
         />
       )}
@@ -430,10 +426,10 @@ export function MobileMenuExperience({
 }
 
 function ClosedHoursModal({
-  onReserve,
+  message,
   onClose,
 }: {
-  onReserve: () => void;
+  message: string;
   onClose: () => void;
 }) {
   return (
@@ -449,10 +445,10 @@ function ClosedHoursModal({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-black uppercase tracking-widest opacity-55">
-              Pedido antecipado
+              Atendimento indisponível
             </p>
             <h2 className="mt-2 text-2xl font-black leading-tight">
-              Ainda nao abrimos, mas voce ja pode reservar seu pedido
+              Estamos fechados no momento
             </h2>
           </div>
           <button
@@ -467,46 +463,28 @@ function ClosedHoursModal({
         </div>
 
         <div className="mt-4 rounded-2xl p-4 text-sm font-bold leading-relaxed" style={{ background: `${ROSA}35` }}>
-          <p>Atendemos de quarta a domingo, das 18:30 as 21:30.</p>
-          <p className="mt-3">
-            No momento estamos fora do horario de funcionamento, mas voce ja
-            pode montar seu pedido normalmente e escolher o horario que deseja
-            receber.
-          </p>
-          <p className="mt-3">
-            Assim que iniciarmos o atendimento, sua solicitacao entra na fila de
-            preparo.
-          </p>
+          <p>{message || "Assim que abrirmos, você será informado e poderá finalizar seu pedido."}</p>
         </div>
 
         <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: `${VINHO}12` }}>
           <div className="flex items-center gap-2 text-sm font-black uppercase">
             <CalendarClock size={18} strokeWidth={2.6} style={{ color: PINK }} />
-            Escolha o melhor horario para entrega
+            Pedido temporariamente indisponível
           </div>
           <div className="mt-3 grid gap-2 text-sm font-bold opacity-75">
-            <p>Receba no horario desejado</p>
-            <p>Evite filas e atrasos</p>
-            <p>Garanta seu pedido com antecedencia</p>
+            <p>Você pode continuar montando o carrinho.</p>
+            <p>O envio será liberado no próximo horário configurado.</p>
           </div>
         </div>
 
         <div className="mt-5 grid gap-3">
           <button
             type="button"
-            onClick={onReserve}
-            className="flex h-14 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide"
-            style={{ background: PINK, color: "#fff" }}
-          >
-            Agendar horario
-          </button>
-          <button
-            type="button"
             onClick={onClose}
             className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-black uppercase tracking-wide"
             style={{ border: `1px solid ${VINHO}14`, color: VINHO }}
           >
-            Continuar comprando
+            Entendi
           </button>
         </div>
       </section>

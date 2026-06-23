@@ -46,9 +46,9 @@ export const STATUS_COPY: Record<
     eta: "Em validação",
   },
   PAID: {
-    label: "Pedido recebido",
-    copy: "Seu pedido foi recebido pela cozinha e aguarda aceite no KDS.",
-    eta: "25-30 min",
+    label: "Aguardando confirmação do restaurante",
+    copy: "Seu pagamento foi confirmado. O pedido só entra em preparo depois que a administração ou a cozinha aceitar.",
+    eta: "Aguardando confirmação",
   },
   ACCEPTED: {
     label: "Pedido aceito",
