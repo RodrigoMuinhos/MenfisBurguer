@@ -1,5 +1,4 @@
 import Image from "next/image";
-import logoSkull from "@/imports/image-1.png";
 import { CartItem } from "@/types/order";
 import { VERDE } from "@/utils/theme";
 import { SuggestedCard } from "./SuggestedCard";
@@ -28,7 +27,7 @@ export function CartBagStepSection({
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Image
-              src={logoSkull}
+              src="/logo_M.jpeg"
               alt="Menfi's"
               width={48}
               height={48}

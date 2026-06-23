@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { motion } from "motion/react";
 import { AlertCircle, Clock, MessageCircle, QrCode } from "lucide-react";
-import logoSkull from "@/imports/image-1.png";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { STEPS, WHATSAPP_URL } from "../tracking";
@@ -298,7 +297,7 @@ export function TrackingTimelineSection({
         <div className="flex items-start gap-3">
           <div className="hidden h-12 w-12 shrink-0 overflow-hidden rounded-full sm:flex" style={{ background: `${ROSA}55` }}>
             <Image
-              src={logoSkull}
+              src="/logo_M.jpeg"
               alt=""
               width={48}
               height={48}
@@ -339,7 +338,7 @@ export function TrackingTimelineSection({
           </div>
           <div className="hidden h-24 w-24 shrink-0 overflow-hidden rounded-full md:flex" style={{ background: `${ROSA}35` }}>
             <Image
-              src={logoSkull}
+              src="/logo_M.jpeg"
               alt="Menfi's"
               width={96}
               height={96}

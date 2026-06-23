@@ -28,7 +28,7 @@ export function AdminHeader({
       style={{ background: VERDE, borderBottom: `2px solid ${ROSA}22` }}
     >
       <img
-        src="/logo_M_square.png"
+        src="/logo_M.jpeg"
         alt="Admin"
         width={36}
         height={36}

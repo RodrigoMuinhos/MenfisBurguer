@@ -31,7 +31,7 @@ type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon";
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
 const PINK = "#EC1767";
-const BRAND_M_LOGO = "/logo_M_square.png";
+const BRAND_M_LOGO = "/logo_M.jpeg";
 const REVIEWS_STORAGE_KEY = "menfis_mobile_reviews";
 const CLOSED_HOURS_ALERT_KEY = "menfis_closed_hours_alert_seen";
 const MOBILE_CATEGORIES: Array<{

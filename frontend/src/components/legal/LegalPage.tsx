@@ -30,7 +30,7 @@ export function LegalPage({
               className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full"
               style={{ border: `2px solid ${ROSA}`, background: "#fff" }}
             >
-              <img src="/logo_M_square.png" alt="" className="h-full w-full object-cover" />
+              <img src="/logo_M.jpeg" alt="" className="h-full w-full object-cover" />
             </span>
             <span className="min-w-0">
               <span className="block text-[10px] font-black uppercase tracking-[0.22em] text-[#1F3D2E99]">

@@ -3,7 +3,6 @@ import { motion } from "motion/react";
 import { ChevronLeft, ReceiptText } from "lucide-react";
 import { CartItem } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
-import logoSkull from "@/imports/image-1.png";
 import { BUSINESS_HOURS_LABEL, CheckoutStep } from "./checkout";
 
 export function EmptyCartState({ onBack }: { onBack: () => void }) {
@@ -13,7 +12,7 @@ export function EmptyCartState({ onBack }: { onBack: () => void }) {
       style={{ minHeight: 460, background: "#fff" }}
     >
       <Image
-        src={logoSkull}
+        src="/logo_M.jpeg"
         alt="Mascote"
         width={80}
         height={80}
@@ -102,7 +101,7 @@ export function CartHeader({
         </p>
       </div>
       <Image
-        src={logoSkull}
+        src="/logo_M.jpeg"
         alt="Menfi's"
         width={44}
         height={44}

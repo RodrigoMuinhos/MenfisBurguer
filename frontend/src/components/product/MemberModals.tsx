@@ -23,7 +23,7 @@ import { STATUS_COPY, fmt } from "@/components/order/tracking";
 import { normalizeBackendOrder } from "@/services/orders/normalize";
 import { MemberNotification } from "./notifications";
 
-const BRAND_M_LOGO = "/logo_M_square.png";
+const BRAND_M_LOGO = "/logo_M.jpeg";
 
 export function MemberModals({
   loginOpen,

@@ -62,7 +62,7 @@ export function ProductHeader({
           }}
         >
           <img
-            src="/logo_M_square.png"
+            src="/logo_M.jpeg"
             alt=""
             width={46}
             height={46}

@@ -2,7 +2,6 @@ import { useEffect, useCallback, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowLeft, Clock, CreditCard, Landmark, MessageCircle, Star, X } from "lucide-react";
-import logoSkull from "@/imports/image-1.png";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -161,7 +160,7 @@ export function TrackingScreen({
         style={{ minHeight: 420, background: "#fff" }}
       >
         <Image
-          src={logoSkull}
+          src="/logo_M.jpeg"
           alt="Mascote"
           width={80}
           height={80}
@@ -573,7 +572,7 @@ export function TrackingScreen({
         <div className="flex items-center gap-4">
           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full">
             <Image
-              src={logoSkull}
+              src="/logo_M.jpeg"
               alt="Menfi's"
               width={56}
               height={56}
