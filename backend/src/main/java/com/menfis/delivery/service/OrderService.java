@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -366,6 +367,7 @@ public class OrderService {
       from orders o
       join customers c on c.id = ?
       where o.test_mode = ?
+        and o.status <> 'CANCELLED'
         and (
           o.customer_id = c.id
         )
@@ -376,6 +378,39 @@ public class OrderService {
       customerId,
       settings.testModeEnabled()
     );
+  }
+
+  /** Cancels unpaid orders after ten minutes so they never reserve production capacity indefinitely. */
+  @Scheduled(fixedDelay = 60_000, initialDelay = 60_000)
+  @Transactional
+  public void cancelExpiredPaymentPendingOrders() {
+    List<String> candidates = jdbc.queryForList(
+      """
+      select id from orders
+      where status = 'PAYMENT_PENDING'
+        and created_at < now() - interval '10 minutes'
+      """,
+      String.class
+    );
+    for (String id : candidates) {
+      int updated = jdbc.update(
+        """
+        update orders
+        set status = 'CANCELLED', payment_status = 'expired', updated_at = now()
+        where id = ?
+          and status = 'PAYMENT_PENDING'
+          and created_at < now() - interval '10 minutes'
+        """,
+        id
+      );
+      if (updated == 0) continue;
+      jdbc.update(
+        "insert into order_status_history(order_id, from_status, to_status, changed_by, reason) values (?, 'PAYMENT_PENDING', 'CANCELLED', 'system', 'payment_timeout_10_minutes')",
+        id
+      );
+      audit.log("system", "ORDER_PAYMENT_TIMEOUT", "ORDER", id, Map.of("timeoutMinutes", 10));
+      events.publish(id, get(id));
+    }
   }
 
 

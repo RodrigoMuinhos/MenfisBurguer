@@ -144,7 +144,9 @@ export default function App({ mode }: { mode?: AppMode }) {
     started,
   });
   const [memberNotifications, setMemberNotifications] = useState<MemberNotification[]>([]);
+  const [paymentTimeoutOrder, setPaymentTimeoutOrder] = useState<Order | null>(null);
   const orderStatusSnapshotRef = useRef(new Map<string, string>());
+  const paymentTimeoutHandledRef = useRef(new Set<string>());
   const {
     showIdlePrompt,
     showIdleScreen,
@@ -262,6 +264,22 @@ export default function App({ mode }: { mode?: AppMode }) {
     activeOrder && !isKioskMobOrder(activeOrder) && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
       ? activeOrder
       : latestCustomerActiveOrder;
+
+  useEffect(() => {
+    if (adminOnlyMode || kioskMode) return;
+    const expired = orders.find(
+      (order) => order.status === "CANCELLED" && String(order.paymentStatus).toLowerCase() === "expired",
+    );
+    if (!expired || paymentTimeoutHandledRef.current.has(expired.id)) return;
+    paymentTimeoutHandledRef.current.add(expired.id);
+    setPaymentTimeoutOrder(expired);
+    setOrders((current) => current.filter((order) => order.id !== expired.id));
+    if (lastOrderId === expired.id) {
+      localStorage.removeItem(PENDING_ORDER_KEY);
+      setLastOrderId("");
+      setScreen("product");
+    }
+  }, [adminOnlyMode, kioskMode, lastOrderId, orders, setOrders]);
 
   useEffect(() => {
     if (adminOnlyMode) return;
@@ -632,7 +650,32 @@ export default function App({ mode }: { mode?: AppMode }) {
         showIdleScreen={showIdleScreen}
         screen={screen}
         onActivity={resetKioskActivity}
-      />    </div>
+      />
+      {paymentTimeoutOrder && <PaymentTimeoutModal onClose={() => setPaymentTimeoutOrder(null)} />}
+    </div>
+  );
+}
+
+function PaymentTimeoutModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="payment-timeout-title">
+      <section className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <p className="text-xs font-black uppercase tracking-widest text-rose-600">Pagamento não confirmado</p>
+        <h2 id="payment-timeout-title" className="mt-2 text-2xl font-black text-[#65001F]">Pedido cancelado automaticamente</h2>
+        <p className="mt-4 text-sm font-semibold leading-relaxed text-[#65001F]">
+          Pedimos desculpas pela demora, mas seu pagamento não foi confirmado dentro do prazo.
+        </p>
+        <p className="mt-3 text-sm font-semibold leading-relaxed text-[#65001F]">
+          Infelizmente, nesse intervalo, nossa cozinha atingiu o limite de produção do dia e estamos em <strong>SOLD OUT</strong>.
+        </p>
+        <p className="mt-3 text-sm font-semibold leading-relaxed text-[#65001F]">
+          Nossa equipe entrará em contato com você pelo WhatsApp para verificar a melhor forma de atender seu pedido.
+        </p>
+        <button type="button" onClick={onClose} className="mt-6 min-h-12 w-full rounded-2xl bg-[#65001F] px-5 text-sm font-black uppercase text-white">
+          Entendi
+        </button>
+      </section>
+    </div>
   );
 }
 
