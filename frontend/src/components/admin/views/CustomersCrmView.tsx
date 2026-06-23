@@ -44,6 +44,9 @@ const emptyForm: FormState = {
   internalNotes: "",
 };
 
+const DEFAULT_WHATSAPP_MESSAGE =
+  "Olá, lembramos de você. Vim te contar uma novidade que você não pode perder.";
+
 export function CustomersCrmView({
   customers,
   adminToken,
@@ -59,7 +62,8 @@ export function CustomersCrmView({
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [temporaryPassword, setTemporaryPassword] = useState("");
-  const [whatsappUrl, setWhatsappUrl] = useState("");
+  const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState(DEFAULT_WHATSAPP_MESSAGE);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -76,7 +80,7 @@ export function CustomersCrmView({
   const editCustomer = (customer: CrmCustomer) => {
     setSelected(customer);
     setTemporaryPassword("");
-    setWhatsappUrl("");
+    setWhatsappModalOpen(false);
     setFeedback("");
     setForm({
       id: customer.id,
@@ -91,7 +95,7 @@ export function CustomersCrmView({
   const newCustomer = () => {
     setSelected(null);
     setTemporaryPassword("");
-    setWhatsappUrl("");
+    setWhatsappModalOpen(false);
     setFeedback("");
     setForm(emptyForm);
   };
@@ -117,7 +121,6 @@ export function CustomersCrmView({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "customer_save_failed");
       setTemporaryPassword(String(data.temporaryPassword ?? ""));
-      setWhatsappUrl(String(data.whatsappUrl ?? ""));
       setFeedback(form.id ? "Cliente atualizado." : "Cliente cadastrado.");
       await onChanged();
       if (data.id) setSelected(data as CrmCustomer);
@@ -164,7 +167,6 @@ export function CustomersCrmView({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error("password_failed");
       setTemporaryPassword(String(data.temporaryPassword ?? ""));
-      setWhatsappUrl(String(data.whatsappUrl ?? ""));
       setFeedback("Senha temporária criada com sucesso.");
       await onChanged();
     } catch {
@@ -172,6 +174,27 @@ export function CustomersCrmView({
     } finally {
       setSaving(false);
     }
+  };
+
+  const openWhatsappModal = () => {
+    if (!form.phone.replace(/\D/g, "")) {
+      setFeedback("Informe o telefone do cliente antes de abrir o WhatsApp.");
+      return;
+    }
+    setWhatsappMessage(DEFAULT_WHATSAPP_MESSAGE);
+    setWhatsappModalOpen(true);
+  };
+
+  const sendWhatsapp = () => {
+    const phone = form.phone.replace(/\D/g, "");
+    if (!phone) return;
+    const normalized = phone.startsWith("55") ? phone : `55${phone}`;
+    window.open(
+      `https://wa.me/${normalized}?text=${encodeURIComponent(whatsappMessage.trim())}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    setWhatsappModalOpen(false);
   };
 
   return (
@@ -281,9 +304,9 @@ export function CustomersCrmView({
             <button type="button" onClick={generatePassword} disabled={!form.id || saving} className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase disabled:opacity-40" style={{ background: `${VERDE}10`, color: VERDE }}>
               <KeyRound size={16} /> Gerar senha
             </button>
-            <a href={whatsappUrl || undefined} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase" style={{ background: whatsappUrl ? ROSA : `${ROSA}40`, color: VERDE, pointerEvents: whatsappUrl ? "auto" : "none" }}>
+            <button type="button" onClick={openWhatsappModal} disabled={!form.phone.replace(/\D/g, "")} className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase disabled:opacity-40" style={{ background: ROSA, color: VERDE }}>
               <MessageCircle size={16} /> Enviar WhatsApp
-            </a>
+            </button>
             <button type="button" onClick={deleteCustomer} disabled={!form.id || saving} className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase disabled:opacity-40" style={{ background: "#FEF2F2", color: "#991B1B" }}>
               <Trash2 size={16} /> Excluir
             </button>
@@ -309,6 +332,47 @@ export function CustomersCrmView({
           )}
         </div>
       </section>
+
+      {whatsappModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="whatsapp-modal-title"
+        >
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl" style={{ color: VERDE, border: `1px solid ${ROSA}` }}>
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ background: `${ROSA}55`, color: VERDE }}>
+                <MessageCircle size={22} />
+              </span>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-55">Mensagem para cliente</p>
+                <h3 id="whatsapp-modal-title" className="mt-1 text-xl font-black">Revisar mensagem do WhatsApp</h3>
+                <p className="mt-1 text-sm font-semibold opacity-65">A mensagem será apenas preparada no WhatsApp para sua confirmação manual.</p>
+              </div>
+            </div>
+            <label className="mt-5 grid gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wider opacity-55">Mensagem editável</span>
+              <textarea
+                value={whatsappMessage}
+                onChange={(event) => setWhatsappMessage(event.target.value)}
+                className="h-36 resize-y rounded-2xl px-4 py-3 text-sm font-semibold outline-none"
+                style={{ border: `1.5px solid ${VERDE}20`, color: VERDE }}
+                autoFocus
+              />
+            </label>
+            <p className="mt-3 text-xs font-bold opacity-55">Cliente: {form.name || "Não informado"} · {form.phone}</p>
+            <div className="mt-6 grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={() => setWhatsappModalOpen(false)} className="rounded-2xl px-4 py-3 text-xs font-black uppercase" style={{ background: `${VERDE}10`, color: VERDE }}>
+                Cancelar
+              </button>
+              <button type="button" onClick={sendWhatsapp} disabled={!whatsappMessage.trim()} className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase disabled:opacity-40" style={{ background: ROSA, color: VERDE }}>
+                <MessageCircle size={16} /> Enviar WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
