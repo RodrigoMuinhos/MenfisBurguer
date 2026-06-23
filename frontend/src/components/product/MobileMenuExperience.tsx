@@ -200,9 +200,9 @@ export function MobileMenuExperience({
             <Image
               src="/logo%20hor.png"
               alt="Menfi's Burger"
-              width={170}
-              height={62}
-              className="h-14 w-auto max-w-full object-contain"
+              width={230}
+              height={115}
+              className="h-20 w-auto max-w-full object-contain"
             />
           </button>
           <IconButton
@@ -252,18 +252,14 @@ export function MobileMenuExperience({
 
         <div className="relative z-10 mt-4 min-h-[312px] overflow-hidden bg-white">
           <div className="relative z-30 max-w-[52%] pt-10">
-            <p
-              className="uppercase"
-              style={{
-                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                fontSize: "4.35rem",
-                lineHeight: 0.82,
-                letterSpacing: 0,
-                color: VINHO,
-              }}
-            >
-              Menfi's Burger
-            </p>
+            <Image
+              src="/logo%20hor.png"
+              alt="Menfi's Burger"
+              width={300}
+              height={150}
+              className="h-36 w-auto max-w-full object-contain object-left"
+              priority
+            />
             <p className="mt-3 text-lg font-black uppercase leading-tight">
               Hamburguer artesanal feito na hora.
             </p>

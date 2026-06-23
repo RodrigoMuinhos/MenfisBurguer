@@ -74,7 +74,7 @@ export function ProductHeader({
           <img
             src="/logo%20hor.png"
             alt="Menfi's Burger"
-            className="h-12 w-auto max-w-[210px] object-contain object-left"
+            className="h-20 w-auto max-w-[260px] object-contain object-left"
           />
           <p className="mt-0.5 truncate text-[10px] font-black uppercase tracking-wide" style={{ color: VERDE }}>
             {kioskMode ? "Escolha seu pedido para retirada" : "Burger quente e entrega rápida. Feito com amor"}
