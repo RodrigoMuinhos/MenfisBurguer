@@ -1,4 +1,4 @@
-import { CalendarClock, FlaskConical, RotateCcw, Table2 } from "lucide-react";
+import { CalendarClock, FlaskConical, RotateCcw, Save, Table2 } from "lucide-react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
 import { OperatingHoursConfig, normalizeOperatingHours } from "@/components/order/checkout";
@@ -10,6 +10,7 @@ export function ConfigView({
   demoTableEnabled,
   featuredProductId,
   operatingHours,
+  hasUnsavedOperatingHours,
   saving,
   disabled,
   onTogglePayOnDelivery,
@@ -17,6 +18,7 @@ export function ConfigView({
   onToggleDemoTable,
   onFeaturedProductChange,
   onOperatingHoursChange,
+  onSaveOperatingHours,
   onResetRealOperation,
 }: {
   payOnDeliveryEnabled: boolean;
@@ -24,6 +26,7 @@ export function ConfigView({
   demoTableEnabled: boolean;
   featuredProductId: string;
   operatingHours: OperatingHoursConfig;
+  hasUnsavedOperatingHours: boolean;
   saving: boolean;
   disabled: boolean;
   onTogglePayOnDelivery: () => void;
@@ -31,6 +34,7 @@ export function ConfigView({
   onToggleDemoTable: () => void;
   onFeaturedProductChange: (productId: string) => void;
   onOperatingHoursChange: (config: OperatingHoursConfig) => void;
+  onSaveOperatingHours: () => void;
   onResetRealOperation: () => void;
 }) {
   const normalizedOperatingHours = normalizeOperatingHours(operatingHours);
@@ -137,6 +141,27 @@ export function ConfigView({
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: `${VERDE}12` }}>
+          <p className="text-xs font-bold" style={{ color: hasUnsavedOperatingHours ? "#B45309" : `${VERDE}99` }}>
+            {hasUnsavedOperatingHours
+              ? "Há alterações de horário que ainda não foram salvas."
+              : "Horários salvos e ativos no sistema."}
+          </p>
+          <button
+            type="button"
+            onClick={onSaveOperatingHours}
+            disabled={saving || disabled || !hasUnsavedOperatingHours}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase"
+            style={{
+              background: hasUnsavedOperatingHours ? VERDE : "#E5E7EB",
+              color: hasUnsavedOperatingHours ? ROSA : "#6B7280",
+              opacity: saving || disabled ? 0.6 : 1,
+            }}
+          >
+            <Save size={15} />
+            {saving ? "Salvando..." : "Salvar horários"}
+          </button>
         </div>
       </section>
 

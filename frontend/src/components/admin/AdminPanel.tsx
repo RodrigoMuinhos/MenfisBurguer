@@ -100,6 +100,7 @@ export function AdminPanel({
   const [demoTableEnabled, setDemoTableEnabled] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
+  const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
   const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
 
@@ -296,7 +297,9 @@ export function AdminPanel({
     setTestModeEnabled(settings.testModeEnabled === true);
     setDemoTableEnabled(settings.demoTableEnabled === true);
     setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
-    setOperatingHours(normalizeOperatingHours(settings.operatingHours));
+    const normalizedHours = normalizeOperatingHours(settings.operatingHours);
+    setOperatingHours(normalizedHours);
+    setSavedOperatingHours(normalizedHours);
   };
 
   useEffect(() => {
@@ -358,9 +361,12 @@ export function AdminPanel({
     }
   };
 
-  const updateOperatingHours = async (next: OperatingHoursConfig) => {
+  const updateOperatingHours = (next: OperatingHoursConfig) => {
     const normalized = normalizeOperatingHours(next);
     setOperatingHours(normalized);
+  };
+
+  const saveOperatingHours = async () => {
     if (!API_URL || savingPayOnDelivery) return;
     setSavingPayOnDelivery(true);
     try {
@@ -370,11 +376,17 @@ export function AdminPanel({
           Authorization: `Bearer ${adminToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ operatingHours: normalized }),
+        body: JSON.stringify({ operatingHours: normalizeOperatingHours(operatingHours) }),
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        setAdminDataError("Não foi possível salvar os horários de atendimento.");
+        return;
+      }
       const settings = await response.json();
       applyPublicSettings(settings);
+      setAdminDataError("");
+    } catch {
+      setAdminDataError("Não foi possível salvar os horários de atendimento.");
     } finally {
       setSavingPayOnDelivery(false);
     }
@@ -733,6 +745,10 @@ export function AdminPanel({
             demoTableEnabled={demoTableEnabled}
             featuredProductId={featuredProductId}
             operatingHours={operatingHours}
+            hasUnsavedOperatingHours={
+              JSON.stringify(normalizeOperatingHours(operatingHours)) !==
+              JSON.stringify(normalizeOperatingHours(savedOperatingHours))
+            }
             saving={savingPayOnDelivery}
             disabled={!API_URL}
             onTogglePayOnDelivery={togglePayOnDelivery}
@@ -740,6 +756,7 @@ export function AdminPanel({
             onToggleDemoTable={toggleDemoTable}
             onFeaturedProductChange={updateFeaturedProduct}
             onOperatingHoursChange={updateOperatingHours}
+            onSaveOperatingHours={saveOperatingHours}
             onResetRealOperation={resetRealOperation}
           />
         )}
