@@ -251,16 +251,16 @@ export function MobileMenuExperience({
         </div>
 
         <div className="relative z-10 mt-4 min-h-[312px] overflow-hidden bg-white">
-          <div className="relative z-30 max-w-[52%] pt-10">
+          <div className="relative z-30 max-w-[47%] pt-10">
             <Image
               src="/logonome.jpeg"
               alt="Menfi's Burger"
               width={300}
               height={300}
-              className="h-36 w-auto max-w-full object-contain object-left"
+              className="h-[166px] w-auto max-w-full object-contain object-left"
               priority
             />
-            <p className="mt-3 text-lg font-black uppercase leading-tight">
+            <p className="mt-2 text-[15px] font-black uppercase leading-tight">
               Hamburguer artesanal feito na hora.
             </p>
           </div>
