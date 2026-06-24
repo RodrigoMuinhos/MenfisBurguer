@@ -758,14 +758,30 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         <b>ABRIR ROTA</b>
       </div>
     </main>
-    <script>window.onload=()=>{setTimeout(()=>window.print(),900);}<\/script></body></html>
+    <script>setTimeout(()=>{window.focus();window.print();},350);<\/script></body></html>
   `;
+  const printWindow = window.open("", "_blank", "width=420,height=720,noopener,noreferrer");
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    window.setTimeout(() => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+      } catch {
+        // Browser can still block programmatic print; the print page remains open.
+      }
+    }, 700);
+    return;
+  }
+
   const iframe = document.createElement("iframe");
   iframe.style.position = "fixed";
   iframe.style.right = "0";
   iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
+  iframe.style.width = "1px";
+  iframe.style.height = "1px";
   iframe.style.border = "0";
   iframe.setAttribute("aria-hidden", "true");
   document.body.appendChild(iframe);
@@ -777,6 +793,10 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
   doc.open();
   doc.write(html);
   doc.close();
+  window.setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+  }, 700);
   window.setTimeout(() => iframe.remove(), 5000);
 }
 
