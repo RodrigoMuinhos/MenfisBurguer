@@ -47,7 +47,13 @@ export function SplashScreen({ onStart }: { onStart: () => void }) {
         initial={{ opacity: 0, scale: 0.985 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.28, ease: "easeOut" }}
-        className="h-[90dvh] w-[90vw] object-contain"
+        className="object-cover"
+        style={{
+          width: "min(90vw, 90dvh)",
+          height: "min(90vw, 90dvh)",
+          borderRadius: "50%",
+          boxShadow: "0 24px 64px rgba(101, 0, 31, 0.2)",
+        }}
         aria-label="Abertura Menfi's Burger"
       />
     </main>
