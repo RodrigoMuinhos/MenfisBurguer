@@ -1,7 +1,7 @@
 import { Order, OrderStatus } from "@/types/order";
 
 export type Screen = "product" | "cart" | "tracking" | "queue" | "admin" | "admin-login";
-export type AppMode = "kiosk" | "delivery" | "admin" | "kds";
+export type AppMode = "kiosk" | "delivery" | "admin" | "kds" | "notes";
 
 export const MEMBER_KEY = "menfis_member";
 export const PENDING_ORDER_KEY = "menfis_pending_order_id";
@@ -80,6 +80,7 @@ export function resolveAppMode(explicitMode?: AppMode): AppMode {
   if (explicitMode) return explicitMode;
   if (typeof window === "undefined") return "delivery";
   const pathname = window.location.pathname.replace(/\/+$/, "");
+  if (pathname.endsWith("/notas")) return "notes";
   if (pathname.endsWith("/kds")) return "kds";
   if (pathname.endsWith("/adm")) return "admin";
   const params = new URLSearchParams(window.location.search);

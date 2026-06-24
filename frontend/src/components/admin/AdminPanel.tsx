@@ -3,6 +3,7 @@ import {
   ChefHat,
   ClipboardList,
   Bike,
+  ClipboardCheck,
   MessageCircle,
   Package,
   TicketPercent,
@@ -41,6 +42,7 @@ import { ConfigView } from "./views/ConfigView";
 import { CustomersCrmView, CrmCustomer } from "./views/CustomersCrmView";
 import { DashboardView } from "./views/DashboardView";
 import { KitchenView } from "./views/KitchenView";
+import { KitchenNotesView } from "./views/KitchenNotesView";
 import { OrdersView } from "./views/OrdersView";
 import { SupportView } from "./views/SupportView";
 import {
@@ -51,7 +53,7 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "pedidos" | "cozinha" | "entrega" | "dashboard" | "estoque" | "clientes" | "suporte" | "cupons" | "resultados" | "config";
+export type AdminTab = "pedidos" | "cozinha" | "notas" | "entrega" | "dashboard" | "estoque" | "clientes" | "suporte" | "cupons" | "resultados" | "config";
 
 interface Props {
   orders: Order[];
@@ -152,6 +154,7 @@ export function AdminPanel({
   const tabs: { id: AdminTab; label: string; Icon: ElementType }[] = [
     { id: "pedidos", label: "Pedidos", Icon: ClipboardList },
     { id: "cozinha", label: "Cozinha", Icon: ChefHat },
+    { id: "notas", label: "Notas", Icon: ClipboardCheck },
     { id: "entrega", label: "Entrega", Icon: Bike },
     { id: "dashboard", label: "Dashboard", Icon: TrendingUp },
     { id: "estoque", label: "Estoque", Icon: Package },
@@ -242,6 +245,9 @@ export function AdminPanel({
   const tabCount: Partial<Record<AdminTab, number>> = {
     pedidos: activeOrders,
     cozinha: visibleOrders.filter((order) =>
+      ["PAID", "ACCEPTED", "IN_PREPARATION", "READY"].includes(order.status),
+    ).length,
+    notas: visibleOrders.filter((order) =>
       ["PAID", "ACCEPTED", "IN_PREPARATION", "READY"].includes(order.status),
     ).length,
     entrega: visibleOrders.filter(
@@ -647,7 +653,7 @@ export function AdminPanel({
           {/* CONTENT */}
           <div
             style={
-              tab === "cozinha"
+              tab === "cozinha" || tab === "notas"
                 ? { padding: 0, paddingBottom: 0 }
                 : { padding: "16px", paddingBottom: "40px" }
             }
@@ -680,6 +686,12 @@ export function AdminPanel({
             updateOrderStatus={handleUpdateOrderStatus}
             deductStock={deductStockForOrder}
             stockItems={stockItems}
+            demoTableEnabled={demoTableEnabled}
+          />
+        )}
+        {tab === "notas" && (
+          <KitchenNotesView
+            orders={visibleOrders}
             demoTableEnabled={demoTableEnabled}
           />
         )}

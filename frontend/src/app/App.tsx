@@ -89,13 +89,13 @@ function hasRequiredStoredCustomerProfile() {
 
 export default function App({ mode }: { mode?: AppMode }) {
   const appMode = resolveAppMode(mode);
-  const adminOnlyMode = appMode === "admin" || appMode === "kds";
+  const adminOnlyMode = appMode === "admin" || appMode === "kds" || appMode === "notes";
   const kioskMode = appMode === "kiosk";
   const [started, setStarted] = useState(() => {
-    return appMode === "admin" || appMode === "kds";
+    return appMode === "admin" || appMode === "kds" || appMode === "notes";
   });
   const [screen, setScreen] = useState<Screen>(() => {
-    if (appMode === "kds") return "admin";
+    if (appMode === "kds" || appMode === "notes") return "admin";
     if (appMode === "admin") return "admin-login";
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
@@ -191,7 +191,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     const params = new URLSearchParams(window.location.search);
     if (adminOnlyMode) {
       setStarted(true);
-      setScreen(appMode === "kds" ? "admin" : "admin-login");
+      setScreen(appMode === "kds" || appMode === "notes" ? "admin" : "admin-login");
       return;
     }
     const orderId = resolvePaymentReturnOrderId(params);
@@ -511,9 +511,9 @@ export default function App({ mode }: { mode?: AppMode }) {
               deleteOrder={deleteOrder}
               updateOrderItems={updateOrderItems}
               onClose={closeAdmin}
-              initialTab={appMode === "kds" ? "cozinha" : "pedidos"}
+              initialTab={appMode === "notes" ? "notas" : appMode === "kds" ? "cozinha" : "pedidos"}
               adminToken={adminToken}
-              kitchenOnly={appMode === "kds"}
+              kitchenOnly={appMode === "kds" || appMode === "notes"}
             />
           ) : (
             <AdminLoginScreen

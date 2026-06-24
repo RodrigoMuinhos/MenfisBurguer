@@ -652,8 +652,8 @@ export function generateCustomerReceipt(order: Order) {
   return receipt;
 }
 
-export function printOrderReceipts(order: Order) {
-  if (!window.confirm("Imprimir via do cliente agora?")) return;
+export function printOrderReceipts(order: Order, options?: { confirm?: boolean }) {
+  if (options?.confirm !== false && !window.confirm("Imprimir via do cliente agora?")) return;
 
   const receipt = escapeReceipt(generateCustomerReceipt(order));
   const routeUrl = googleMapsDirectionsUrl(order.customerAddress || "");
