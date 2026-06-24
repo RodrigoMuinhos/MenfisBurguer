@@ -204,12 +204,6 @@ export function ProductScreen({
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "-")
       .replace(/-+/g, "-") === "KIOSK-MOB";
-  const customerTokenAvailable =
-    kioskMode ||
-    (typeof window !== "undefined" && Boolean(localStorage.getItem(MEMBER_TOKEN_KEY)));
-  const customerProfileReady =
-    kioskMode || (customerTokenAvailable && hasRequiredCustomerProfile(memberProfile));
-
   useEffect(() => {
     if (kioskMode) return;
     void loadCustomerSession().then((profile) => {
@@ -222,7 +216,6 @@ export function ProductScreen({
       }
       setMemberProfile(profile ?? null);
       setMemberAuthMode("register");
-      setLoginOpen(true);
     });
   }, [kioskMode]);
 
@@ -315,22 +308,7 @@ export function ProductScreen({
     }, 850);
   };
 
-  const requireCustomerProfile = () => {
-    if (customerProfileReady) return true;
-    if (memberProfile) {
-      setMemberName(memberProfile.name ?? "");
-      setMemberEmail(memberProfile.email ?? "");
-      setMemberPhone(memberProfile.phone ?? "");
-      setMemberBirthday(memberProfile.birthday ?? "");
-    }
-    setMemberAuthMode("register");
-    setMemberError("Para pedir, cadastre nome, WhatsApp e senha.");
-    setLoginOpen(true);
-    return false;
-  };
-
   const openCustomizer = (item: MenuItem) => {
-    if (!requireCustomerProfile()) return;
     setCustomizer({
       item,
       meatPoints: [],
@@ -347,7 +325,6 @@ export function ProductScreen({
   };
 
   const quickAddMenuItem = (item: MenuItem) => {
-    if (!requireCustomerProfile()) return;
     const components =
       item.category === "combo" || item.category === "burger"
         ? [
@@ -372,7 +349,6 @@ export function ProductScreen({
   };
 
   const handleGoToCart = () => {
-    if (!requireCustomerProfile()) return;
     goToCart();
   };
 
@@ -817,9 +793,8 @@ export function ProductScreen({
           return profile;
         }}
         logoutMember={logoutMember}
-        loginRequired={!customerProfileReady}
+        loginRequired={false}
         closeLogin={() => {
-          if (!customerProfileReady) return;
           setLoginOpen(false);
         }}
         closeProfile={() => setProfileOpen(false)}

@@ -77,16 +77,6 @@ function notificationForOrder(order: Order): Omit<MemberNotification, "id" | "cr
   return { orderId: order.id, title, message, status: order.status };
 }
 
-function hasRequiredStoredCustomerProfile() {
-  const profile = readMemberProfile();
-  return Boolean(
-    localStorage.getItem(MEMBER_TOKEN_KEY) &&
-      profile?.name?.trim() &&
-      profile.phone?.replace(/\D/g, "").length >= 10 &&
-      profile.hasPassword !== false,
-  );
-}
-
 export default function App({ mode }: { mode?: AppMode }) {
   const appMode = resolveAppMode(mode);
   const adminOnlyMode = appMode === "admin" || appMode === "kds" || appMode === "notes";
@@ -175,12 +165,6 @@ export default function App({ mode }: { mode?: AppMode }) {
     if (adminOnlyMode) return;
     localStorage.setItem(APP_SCREEN_KEY, screen);
   }, [adminOnlyMode, screen]);
-
-  useEffect(() => {
-    if (adminOnlyMode || kioskMode || screen !== "cart") return;
-    if (hasRequiredStoredCustomerProfile()) return;
-    setScreen("product");
-  }, [adminOnlyMode, kioskMode, screen]);
 
   useEffect(() => {
     if (kioskMode) return;

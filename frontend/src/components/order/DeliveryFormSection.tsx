@@ -18,9 +18,12 @@ export function DeliveryFormSection({
   savedBadge,
   delivery,
   cepRef,
+  customerNameRef,
   streetRef,
   numberRef,
   phoneRef,
+  customerName,
+  setCustomerName,
   cep,
   setCep,
   cepError,
@@ -47,15 +50,18 @@ export function DeliveryFormSection({
   savedBadge: boolean;
   delivery: "retirada" | "delivery";
   cepRef: RefObject<HTMLInputElement>;
+  customerNameRef: RefObject<HTMLInputElement>;
   streetRef: RefObject<HTMLInputElement>;
   numberRef: RefObject<HTMLInputElement>;
   phoneRef: RefObject<HTMLInputElement>;
+  customerName: string;
+  setCustomerName: (value: string) => void;
   cep: string;
   setCep: (value: string) => void;
   cepError: boolean;
   cepLoading: boolean;
   submitAttempted: boolean;
-  invalidDeliveryFields: { cep: boolean; street: boolean; number: boolean; phone: boolean };
+  invalidDeliveryFields: { name: boolean; cep: boolean; street: boolean; number: boolean; phone: boolean };
   street: string;
   setStreet: (value: string) => void;
   number: string;
@@ -114,6 +120,29 @@ export function DeliveryFormSection({
                           </motion.span>
                         )}
                       </AnimatePresence>
+                    </div>
+
+                    <div>
+                      <SectionLabel>Nome</SectionLabel>
+                      <input
+                        ref={customerNameRef}
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Seu nome"
+                        autoComplete="name"
+                        style={inputStyle(
+                          submitAttempted && invalidDeliveryFields.name,
+                        )}
+                        aria-invalid={submitAttempted && invalidDeliveryFields.name}
+                      />
+                      {submitAttempted && invalidDeliveryFields.name && (
+                        <p
+                          className="mt-1 text-[10px] font-bold"
+                          style={{ color: "#DC2626" }}
+                        >
+                          Informe seu nome para identificar o pedido.
+                        </p>
+                      )}
                     </div>
       
                     {delivery === "delivery" && (

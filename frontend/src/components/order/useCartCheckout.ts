@@ -300,6 +300,7 @@ export function useCartCheckout({
   const total = pricing.total;
 
   const deliveryValid =
+    (kioskMode || counterServiceMode || customerName.trim().length >= 2) &&
     phone.replace(/\D/g, "").length >= 10 &&
     (!kioskMode || customerName.trim().length >= 2) &&
     (kioskMode ||
@@ -310,6 +311,9 @@ export function useCartCheckout({
           number.trim().length > 0)));
 
   const missingDelivery = [
+    !kioskMode && !counterServiceMode && customerName.trim().length < 2
+      ? "nome"
+      : "",
     effectiveDelivery === "delivery" &&
     (cep.replace(/\D/g, "").length !== 8 || cepError)
       ? "CEP válido"
@@ -320,6 +324,7 @@ export function useCartCheckout({
   ].filter(Boolean);
 
   const invalidDeliveryFields = {
+    name: !kioskMode && !counterServiceMode && customerName.trim().length < 2,
     cep:
       effectiveDelivery === "delivery" &&
       (cep.replace(/\D/g, "").length !== 8 || cepError),
@@ -331,6 +336,7 @@ export function useCartCheckout({
   const focusFirstMissingDeliveryField = () => {
     const firstInvalid = (
       [
+        ["name", customerNameRef],
         ["cep", cepRef],
         ["street", streetRef],
         ["number", numberRef],

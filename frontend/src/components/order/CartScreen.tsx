@@ -258,9 +258,12 @@ export function CartScreen({
           savedBadge={savedBadge}
           delivery={delivery}
           cepRef={cepRef}
+          customerNameRef={customerNameRef}
           streetRef={streetRef}
           numberRef={numberRef}
           phoneRef={phoneRef}
+          customerName={customerName}
+          setCustomerName={setCustomerName}
           cep={cep}
           setCep={setCep}
           cepError={cepError}
