@@ -483,7 +483,7 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-const LINE_WIDTH = 22;
+const LINE_WIDTH = 28;
 
 function receiptText(value: string) {
   return String(value ?? "")
@@ -595,7 +595,6 @@ export function generateCustomerReceipt(order: Order) {
   lines.push(center("MENFI'S BURGER"));
   lines.push(center("NOTA DO PEDIDO"));
   lines.push(line());
-  lines.push(center(`PEDIDO ${order.id}`));
   lines.push(leftRight(receiptType(order), deliveryConfirmationCode(order)));
   lines.push(new Date(order.timestamp).toLocaleString("pt-BR"));
   lines.push(line("="));
@@ -656,8 +655,9 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
   if (options?.confirm !== false && !window.confirm("Imprimir via do cliente agora?")) return;
 
   const receipt = escapeReceipt(generateCustomerReceipt(order));
+  const orderId = escapeReceipt(String(order.id || order.number || ""));
   const routeUrl = googleMapsDirectionsUrl(order.customerAddress || "");
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=${encodeURIComponent(routeUrl)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(routeUrl)}`;
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
     <style>
@@ -670,15 +670,46 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: flex-start;
+      }
+      .paper {
+        width: 58mm;
+        margin: 0 auto;
+        padding: 0 3mm 4mm;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .order-box {
+        width: 100%;
+        margin: 2mm auto 2mm;
+        padding: 2.5mm 1.5mm 2mm;
+        border: 2px solid #000;
+        text-align: center;
+        font-family: "Arial Black", Arial, sans-serif;
+        color: #000;
+      }
+      .order-box span {
+        display: block;
+        font-size: 14px;
+        line-height: 1;
+        letter-spacing: 0.08em;
+      }
+      .order-box strong {
+        display: block;
+        margin-top: 1mm;
+        font-size: 28px;
+        line-height: 0.95;
+        letter-spacing: 0.02em;
       }
       .receipt {
-        width: 42mm;
-        max-width: 42mm;
-        margin: 0;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
         padding: 0;
         font-family: "Courier New", monospace;
-        font-size: 10px;
-        line-height: 1.14;
+        font-size: 11px;
+        line-height: 1.18;
         color: #000;
         font-weight: 800;
         white-space: pre-wrap;
@@ -686,40 +717,47 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         word-break: normal;
       }
       .route {
-        width: 42mm;
-        max-width: 42mm;
-        margin: 4px 0 0;
+        width: 100%;
+        max-width: 100%;
+        margin: 3mm auto 0;
         text-align: center;
         font-family: Arial, sans-serif;
         color: #000;
       }
       .route img {
-        width: 28mm;
-        height: 28mm;
+        width: 34mm;
+        height: 34mm;
         display: block;
-        margin: 0 auto 3px;
+        margin: 0 auto 1.5mm;
+        object-fit: contain;
+        image-rendering: pixelated;
       }
       .route b {
         display: block;
-        font-size: 8px;
+        font-size: 10px;
         line-height: 1.1;
         white-space: normal;
+        font-family: "Arial Black", Arial, sans-serif;
       }
       @media print {
         @page { size: 58mm auto; margin: 0; }
         html, body { width: 58mm; margin: 0; padding: 0; }
-        .receipt, .route {
-          width: 42mm;
-          max-width: 42mm;
+        .paper {
+          width: 58mm;
           margin-left: 0;
           margin-right: 0;
+          padding-left: 3mm;
+          padding-right: 3mm;
         }
       }
-    </style></head><body><pre class="receipt">${receipt}</pre>
-    <div class="route">
-      <img src="${escapeReceipt(qrUrl)}" alt="QR Code da rota" />
-      <b>ABRIR ROTA</b>
-    </div>
+    </style></head><body><main class="paper">
+      <div class="order-box"><span>PEDIDO</span><strong>${orderId}</strong></div>
+      <pre class="receipt">${receipt}</pre>
+      <div class="route">
+        <img src="${escapeReceipt(qrUrl)}" alt="QR Code da rota" />
+        <b>ABRIR ROTA</b>
+      </div>
+    </main>
     <script>window.onload=()=>{setTimeout(()=>window.print(),900);}<\/script></body></html>
   `;
   const iframe = document.createElement("iframe");
