@@ -42,18 +42,6 @@ export function useAdminSession({
       };
     }
 
-    // A rota /adm sempre exige uma nova autenticação. Isso evita usar um JWT
-    // antigo e abrir o painel com consultas vazias ou não autorizadas.
-    if (appMode === "admin") {
-      localStorage.removeItem(ADMIN_SESSION_KEY);
-      setAdminUnlocked(false);
-      setAdminToken("");
-      setAdminPassword("");
-      setAdminError("");
-      setScreen("admin-login");
-      return;
-    }
-
     try {
       const session = JSON.parse(localStorage.getItem(ADMIN_SESSION_KEY) ?? "{}");
       if (!session?.token) return;

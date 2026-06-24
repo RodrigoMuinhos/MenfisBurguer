@@ -55,7 +55,7 @@ export function useOrderSync({
     }
   }, []);
 
-  const syncOrders = useCallback(async () => {
+  const syncOrders = useCallback(async (options?: { force?: boolean }) => {
     try {
       if (API_URL && (screen === "tracking" || screen === "product") && lastOrderId) {
         await loadOrderById(lastOrderId);
@@ -63,7 +63,7 @@ export function useOrderSync({
       }
 
       if (API_URL && screen === "admin") {
-        if (adminEventsConnectedRef.current) return;
+        if (adminEventsConnectedRef.current && !options?.force) return;
         const res = await fetch(`${API_URL}/orders`, {
           cache: "no-store",
           headers: { Authorization: `Bearer ${adminToken}` },
@@ -255,7 +255,8 @@ export function useOrderSync({
               body: JSON.stringify({ status }),
             });
         if (!res.ok) {
-          await syncOrders();
+          pendingStatusUpdatesRef.current.delete(id);
+          await syncOrders({ force: true });
           return;
         }
         if (API_URL) {
@@ -269,7 +270,8 @@ export function useOrderSync({
           ]);
         }
       } catch {
-        await syncOrders();
+        pendingStatusUpdatesRef.current.delete(id);
+        await syncOrders({ force: true });
       } finally {
         pendingStatusUpdatesRef.current.delete(id);
       }

@@ -191,7 +191,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     const params = new URLSearchParams(window.location.search);
     if (adminOnlyMode) {
       setStarted(true);
-      setScreen(appMode === "kds" || appMode === "notes" ? "admin" : "admin-login");
+      if (appMode === "kds" || appMode === "notes") setScreen("admin");
       return;
     }
     const orderId = resolvePaymentReturnOrderId(params);
