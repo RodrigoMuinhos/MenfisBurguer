@@ -20,6 +20,7 @@ export function CartStickyCta({
   total,
   paying,
   nextActionLabel,
+  hideTotalInButton = false,
   onFinalize,
 }: {
   checkoutStep: CheckoutStep;
@@ -34,6 +35,7 @@ export function CartStickyCta({
   total: number;
   paying: boolean;
   nextActionLabel: string;
+  hideTotalInButton?: boolean;
   onFinalize: () => void | Promise<void>;
 }) {
   return (
@@ -171,7 +173,7 @@ export function CartStickyCta({
                               ? "GERANDO PIX MENFI'S"
                         : "INICIANDO PAGAMENTO"
                     : nextActionLabel}{" "}
-                  - {fmt(total)}
+                  {!hideTotalInButton && <>- {fmt(total)}</>}
                 </span>
               </motion.button>
             </div>

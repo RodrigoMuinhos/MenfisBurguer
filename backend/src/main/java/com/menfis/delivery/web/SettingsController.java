@@ -50,6 +50,14 @@ public class SettingsController {
     return settings.setDemoTableEnabled(request.enabled());
   }
 
+  @PatchMapping("/sold-out")
+  public Map<String, Object> setSoldOut(
+      @RequestBody SoldOutRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return settings.setSoldOutEnabled(request.enabled());
+  }
+
   @PatchMapping("/featured-product")
   public Map<String, Object> setFeaturedProduct(
       @RequestBody FeaturedProductRequest request,
@@ -76,6 +84,7 @@ public class SettingsController {
   public record PayOnDeliveryRequest(boolean enabled) {}
   public record TestModeRequest(boolean enabled) {}
   public record DemoTableRequest(boolean enabled) {}
+  public record SoldOutRequest(boolean enabled) {}
   public record FeaturedProductRequest(String productId) {}
   public record OperatingHoursRequest(Map<String, Object> operatingHours) {}
 }

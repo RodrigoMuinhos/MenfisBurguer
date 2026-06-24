@@ -16,6 +16,16 @@ public class SettingsService {
   public static final String FEATURED_PRODUCT = "featured_product_id";
   public static final String DEMO_TABLE = "demo_table_enabled";
   public static final String OPERATING_HOURS = "operating_hours";
+  public static final String SOLD_OUT = "sold_out_enabled";
+  public static final String SOLD_OUT_MESSAGE = """
+    FELIZMENTE, HOJE ESGOTAMOS TUDO!
+
+    Agradecemos demais a todos vocês que compraram e colaboraram com a gente hoje.
+
+    Nosso estoque foi totalmente vendido, mas não se preocupe: amanhã tem mais Menfi’s Burger esperando por você.
+
+    Ative o alerta abaixo para ser avisado assim que voltarmos a receber pedidos.
+    """;
   private static final String DEFAULT_OPERATING_HOURS = """
     {"days":[
       {"day":0,"label":"Domingo","open":true,"start":"18:00","end":"22:00"},
@@ -52,6 +62,10 @@ public class SettingsService {
     return Boolean.parseBoolean(value(DEMO_TABLE, "false"));
   }
 
+  public boolean soldOutEnabled() {
+    return Boolean.parseBoolean(value(SOLD_OUT, "false"));
+  }
+
   public Map<String, Object> operatingHours() {
     try {
       return objectMapper.readValue(value(OPERATING_HOURS, DEFAULT_OPERATING_HOURS), new TypeReference<>() {});
@@ -66,21 +80,24 @@ public class SettingsService {
 
   public Map<String, Object> publicSettings() {
     OperatingStatus operatingStatus = operatingStatus();
+    boolean soldOut = soldOutEnabled();
     return Map.of(
       "payOnDeliveryEnabled", payOnDeliveryEnabled(),
       "testModeEnabled", testModeEnabled(),
       "featuredProductId", featuredProductId(),
       "demoTableEnabled", demoTableEnabled(),
       "operatingHours", operatingHours(),
-      "operatingNow", operatingStatus.open(),
+      "soldOutEnabled", soldOut,
+      "soldOutMessage", SOLD_OUT_MESSAGE,
+      "operatingNow", !soldOut && operatingStatus.open(),
       "operatingHoursSummary", operatingStatus.summary(),
-      "operatingHoursMessage", operatingStatus.message()
+      "operatingHoursMessage", soldOut ? SOLD_OUT_MESSAGE : operatingStatus.message()
     );
   }
 
   /** The restaurant schedule is evaluated in its local operating timezone, never in the server timezone. */
   public boolean isOperatingNow() {
-    return operatingStatus().open();
+    return !soldOutEnabled() && operatingStatus().open();
   }
 
   private OperatingStatus operatingStatus() {
@@ -183,6 +200,19 @@ public class SettingsService {
       on conflict (key) do update set value = excluded.value, updated_at = now()
       """,
       DEMO_TABLE,
+      Boolean.toString(enabled)
+    );
+    return publicSettings();
+  }
+
+  public Map<String, Object> setSoldOutEnabled(boolean enabled) {
+    jdbc.update(
+      """
+      insert into app_settings(key, value, updated_at)
+      values (?, ?, now())
+      on conflict (key) do update set value = excluded.value, updated_at = now()
+      """,
+      SOLD_OUT,
       Boolean.toString(enabled)
     );
     return publicSettings();

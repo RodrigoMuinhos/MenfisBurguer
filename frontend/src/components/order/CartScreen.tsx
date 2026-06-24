@@ -21,6 +21,7 @@ import { DeliveryChoiceSection } from "./DeliveryChoiceSection";
 import { CheckoutStep, maskPhone } from "./checkout";
 import { MEMBER_TOKEN_KEY, MemberProfile, readMemberProfile } from "@/components/product/shared";
 import { loginCustomerSession, saveCustomerSession } from "@/services/customerSession";
+import { SoldOutAlertModal } from "@/components/product/SoldOutNotice";
 
 interface Props {
   cart: CartItem[];
@@ -73,6 +74,7 @@ export function CartScreen({
     closedHoursAlertMessage,
     closedHoursAlertOpen,
     closeClosedHoursAlert,
+    closeSoldOutAlert,
     clearCart,
     closeKioskKeyboard,
     clearKioskKey,
@@ -134,6 +136,9 @@ export function CartScreen({
     street,
     streetRef,
     submitAttempted,
+    soldOutAlertOpen,
+    soldOutEnabled,
+    soldOutMessage,
     subtotal,
     toggleRemove,
     total,
@@ -396,6 +401,12 @@ export function CartScreen({
           }}
         />
       )}
+      {soldOutAlertOpen && (
+        <SoldOutAlertModal
+          message={soldOutMessage}
+          onClose={closeSoldOutAlert}
+        />
+      )}
       {checkoutStep === "delivery" && !profileReady && (
         <CheckoutProfileGate
           mode={memberAuthMode}
@@ -435,6 +446,7 @@ export function CartScreen({
         total={total}
         paying={paying}
         nextActionLabel={nextActionLabel}
+        hideTotalInButton={soldOutEnabled && !kioskMode && !counterServiceMode}
         onFinalize={handleFinalize}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

@@ -21,6 +21,7 @@ import {
 import { submitCheckoutOrder } from "./cartFinalize";
 import { inputStyle } from "./cartInputStyle";
 import { readMemberProfile } from "@/components/product/shared";
+import { SOLD_OUT_MESSAGE } from "@/components/product/SoldOutNotice";
 import { formatDeliveryAddress } from "@/utils/address";
 
 const COUPON_USAGE_STORAGE_KEY = "menfis_coupon_usage";
@@ -99,6 +100,9 @@ export function useCartCheckout({
   const [operatingNow, setOperatingNow] = useState(true);
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
   const [closedHoursAlertOpen, setClosedHoursAlertOpen] = useState(false);
+  const [soldOutEnabled, setSoldOutEnabled] = useState(false);
+  const [soldOutMessage, setSoldOutMessage] = useState(SOLD_OUT_MESSAGE);
+  const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
   const [deliverySchedule, setDeliverySchedule] = useState<"opening" | "scheduled">("opening");
   const [scheduledTime, setScheduledTime] = useState("18:30");
   const [kioskSuccessOpen, setKioskSuccessOpen] = useState(false);
@@ -231,6 +235,8 @@ export function useCartCheckout({
         setPayOnDeliveryEnabled(enabled);
         setOperatingNow(settings.operatingNow !== false);
         setOperatingHoursMessage(String(settings.operatingHoursMessage ?? ""));
+        setSoldOutEnabled(settings.soldOutEnabled === true);
+        setSoldOutMessage(String(settings.soldOutMessage ?? SOLD_OUT_MESSAGE));
         if (!enabled) {
           setPayment((current) =>
             current === "pagar_na_entrega" ? "pix" : current,
@@ -435,6 +441,11 @@ export function useCartCheckout({
 
   const submitSelectedPayment = async (selectedPayment: PaymentMethod) => {
     if (paying || !deliveryValid) return;
+    if (soldOutEnabled && !kioskMode && !counterServiceMode) {
+      setPaymentError("");
+      setSoldOutAlertOpen(true);
+      return;
+    }
     if (!operatingNow && !kioskMode && !counterServiceMode) {
       setPaymentError("");
       setClosedHoursAlertOpen(true);
@@ -499,6 +510,11 @@ export function useCartCheckout({
 
     setSubmitAttempted(true);
     setPaymentError("");
+
+    if (soldOutEnabled && !kioskMode && !counterServiceMode) {
+      setSoldOutAlertOpen(true);
+      return;
+    }
 
     if (checkoutStep === "bag") {
       if (kioskMode) playAttendantBeep();
@@ -646,6 +662,9 @@ export function useCartCheckout({
           : "Revisão";
 
   const nextActionLabel =
+    soldOutEnabled && !kioskMode && !counterServiceMode
+      ? "Avise-me quando voltar"
+      :
     checkoutStep === "payment" && (kioskMode || counterServiceMode)
       ? counterServiceMode
         ? "Pagar no balcão"
@@ -686,6 +705,7 @@ export function useCartCheckout({
       operatingHoursMessage ||
       "Assim que abrirmos, você será informado e poderá finalizar seu pedido.",
     closeClosedHoursAlert: () => setClosedHoursAlertOpen(false),
+    closeSoldOutAlert: () => setSoldOutAlertOpen(false),
     clearCart,
     clearKioskKey,
     complement,
@@ -743,6 +763,9 @@ export function useCartCheckout({
     setPhone,
     setScheduledTime,
     setStreet,
+    soldOutAlertOpen,
+    soldOutEnabled,
+    soldOutMessage,
     confirmCounterPrintChoice: () => resolveCounterPrintPrompt(true),
     skipCounterPrintChoice: () => resolveCounterPrintPrompt(false),
     stepLabel,

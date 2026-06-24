@@ -67,6 +67,7 @@ import {
 } from "./ProductHomeSections";
 import { MobileMenuExperience } from "./MobileMenuExperience";
 import { MemberNotification } from "./notifications";
+import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
@@ -137,6 +138,9 @@ export function ProductScreen({
   const [operatingNow, setOperatingNow] = useState(true);
   const [operatingHoursSummary, setOperatingHoursSummary] = useState("");
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
+  const [soldOutEnabled, setSoldOutEnabled] = useState(false);
+  const [soldOutMessage, setSoldOutMessage] = useState(SOLD_OUT_MESSAGE);
+  const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [memberCpf, setMemberCpf] = useState("");
@@ -233,6 +237,8 @@ export function ProductScreen({
         setOperatingNow(settings?.operatingNow !== false);
         setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
         setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
+        setSoldOutEnabled(settings?.soldOutEnabled === true);
+        setSoldOutMessage(String(settings?.soldOutMessage ?? SOLD_OUT_MESSAGE));
       })
       .catch(() => undefined);
   }, []);
@@ -628,6 +634,8 @@ export function ProductScreen({
           onQuickAdd={quickAddMenuItem}
           onOpenDetails={setDetailItem}
           goToCart={handleGoToCart}
+          soldOutEnabled={soldOutEnabled}
+          soldOutMessage={soldOutMessage}
         />
       )}
 
@@ -654,6 +662,13 @@ export function ProductScreen({
             operatingHoursSummary={operatingHoursSummary}
             operatingHoursMessage={operatingHoursMessage}
           />
+
+          {!kioskMode && soldOutEnabled && (
+            <SoldOutBanner
+              message={soldOutMessage}
+              onNotify={() => setSoldOutAlertOpen(true)}
+            />
+          )}
 
           {!kioskMode && (
             <MemberAccessBanner
@@ -806,6 +821,13 @@ export function ProductScreen({
         onOpenActiveOrder={onOpenActiveOrder}
         onRepeatOrder={onRepeatOrder}
       />
+
+      {soldOutAlertOpen && (
+        <SoldOutAlertModal
+          message={soldOutMessage}
+          onClose={() => setSoldOutAlertOpen(false)}
+        />
+      )}
 
       <AnimatePresence>
         {customizer && (

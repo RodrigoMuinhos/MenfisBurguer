@@ -5,6 +5,7 @@ import com.menfis.delivery.dto.ApiDtos.CustomerProfileResponse;
 import com.menfis.delivery.dto.ApiDtos.CustomerLoginRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerSessionResponse;
 import com.menfis.delivery.dto.ApiDtos.OrderResponse;
+import com.menfis.delivery.dto.ApiDtos.SoldOutAlertRequest;
 import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.CustomerService;
 import com.menfis.delivery.service.OrderService;
@@ -42,6 +43,11 @@ public class CustomerController {
   @PostMapping("/login")
   public CustomerSessionResponse login(@Valid @RequestBody CustomerLoginRequest request) {
     return customers.login(request);
+  }
+
+  @PostMapping("/sold-out-alert")
+  public Map<String, Object> soldOutAlert(@Valid @RequestBody SoldOutAlertRequest request) {
+    return customers.registerSoldOutAlert(request);
   }
 
   @GetMapping("/me")

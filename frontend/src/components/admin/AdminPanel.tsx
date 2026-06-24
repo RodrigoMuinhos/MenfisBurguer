@@ -102,6 +102,7 @@ export function AdminPanel({
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(true);
   const [testModeEnabled, setTestModeEnabled] = useState(false);
   const [demoTableEnabled, setDemoTableEnabled] = useState(false);
+  const [soldOutEnabled, setSoldOutEnabled] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
@@ -305,6 +306,7 @@ export function AdminPanel({
     setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled !== false);
     setTestModeEnabled(settings.testModeEnabled === true);
     setDemoTableEnabled(settings.demoTableEnabled === true);
+    setSoldOutEnabled(settings.soldOutEnabled === true);
     setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
     const normalizedHours = normalizeOperatingHours(settings.operatingHours);
     setOperatingHours(normalizedHours);
@@ -348,6 +350,9 @@ export function AdminPanel({
 
   const toggleDemoTable = () =>
     updateSetting("/settings/demo-table", !demoTableEnabled);
+
+  const toggleSoldOut = () =>
+    updateSetting("/settings/sold-out", !soldOutEnabled);
 
   const updateFeaturedProduct = async (productId: string) => {
     setFeaturedProductId(productId);
@@ -777,6 +782,7 @@ export function AdminPanel({
             payOnDeliveryEnabled={payOnDeliveryEnabled}
             testModeEnabled={testModeEnabled}
             demoTableEnabled={demoTableEnabled}
+            soldOutEnabled={soldOutEnabled}
             featuredProductId={featuredProductId}
             operatingHours={operatingHours}
             hasUnsavedOperatingHours={
@@ -788,6 +794,7 @@ export function AdminPanel({
             onTogglePayOnDelivery={togglePayOnDelivery}
             onToggleTestMode={toggleTestMode}
             onToggleDemoTable={toggleDemoTable}
+            onToggleSoldOut={toggleSoldOut}
             onFeaturedProductChange={updateFeaturedProduct}
             onOperatingHoursChange={updateOperatingHours}
             onSaveOperatingHours={saveOperatingHours}

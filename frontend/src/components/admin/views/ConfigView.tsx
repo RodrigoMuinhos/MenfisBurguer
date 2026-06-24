@@ -1,4 +1,4 @@
-import { CalendarClock, FlaskConical, RotateCcw, Save, Table2 } from "lucide-react";
+import { CalendarClock, FlaskConical, PackageX, RotateCcw, Save, Table2 } from "lucide-react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
 import { OperatingHoursConfig, normalizeOperatingHours } from "@/components/order/checkout";
@@ -8,6 +8,7 @@ export function ConfigView({
   payOnDeliveryEnabled,
   testModeEnabled,
   demoTableEnabled,
+  soldOutEnabled,
   featuredProductId,
   operatingHours,
   hasUnsavedOperatingHours,
@@ -16,6 +17,7 @@ export function ConfigView({
   onTogglePayOnDelivery,
   onToggleTestMode,
   onToggleDemoTable,
+  onToggleSoldOut,
   onFeaturedProductChange,
   onOperatingHoursChange,
   onSaveOperatingHours,
@@ -24,6 +26,7 @@ export function ConfigView({
   payOnDeliveryEnabled: boolean;
   testModeEnabled: boolean;
   demoTableEnabled: boolean;
+  soldOutEnabled: boolean;
   featuredProductId: string;
   operatingHours: OperatingHoursConfig;
   hasUnsavedOperatingHours: boolean;
@@ -32,6 +35,7 @@ export function ConfigView({
   onTogglePayOnDelivery: () => void;
   onToggleTestMode: () => void;
   onToggleDemoTable: () => void;
+  onToggleSoldOut: () => void;
   onFeaturedProductChange: (productId: string) => void;
   onOperatingHoursChange: (config: OperatingHoursConfig) => void;
   onSaveOperatingHours: () => void;
@@ -57,6 +61,46 @@ export function ConfigView({
         disabled={disabled}
         onToggle={onTogglePayOnDelivery}
       />
+
+      <section
+        className="rounded-2xl p-4"
+        style={{
+          background: soldOutEnabled ? "#FEF2F2" : "#fff",
+          border: `1.5px solid ${soldOutEnabled ? "#EF4444" : `${VERDE}18`}`,
+        }}
+      >
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: soldOutEnabled ? "#EF4444" : ROSA, color: soldOutEnabled ? "#fff" : VERDE }}
+            >
+              <PackageX size={19} strokeWidth={2.4} />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase" style={{ color: soldOutEnabled ? "#991B1B" : VERDE }}>
+                SOLD OUT
+              </p>
+              <p className="mt-1 text-xs font-bold leading-relaxed opacity-70" style={{ color: soldOutEnabled ? "#991B1B" : VERDE }}>
+                Quando ligado, o cardápio continua visível, novos pedidos são bloqueados e o cliente vê o aviso de estoque esgotado com cadastro para ser avisado.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onToggleSoldOut}
+            disabled={saving || disabled}
+            className="min-h-12 min-w-36 rounded-full px-5 text-xs font-black uppercase tracking-wide"
+            style={{
+              background: soldOutEnabled ? "#EF4444" : "#E5E7EB",
+              color: soldOutEnabled ? "#fff" : "#4B5563",
+              opacity: saving || disabled ? 0.6 : 1,
+            }}
+          >
+            {soldOutEnabled ? "SOLD OUT ligado" : "SOLD OUT desligado"}
+          </button>
+        </div>
+      </section>
 
       <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
         <div className="grid gap-3 md:grid-cols-[1fr_320px] md:items-center">

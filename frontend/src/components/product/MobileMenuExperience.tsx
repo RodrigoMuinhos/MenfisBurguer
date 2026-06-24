@@ -25,6 +25,7 @@ import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
 import { API_URL, SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { fmt, imageSrc, MEMBER_TOKEN_KEY, MemberProfile } from "./shared";
+import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
 type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon";
 
@@ -119,6 +120,8 @@ export function MobileMenuExperience({
   onQuickAdd,
   onOpenDetails,
   goToCart,
+  soldOutEnabled = false,
+  soldOutMessage = SOLD_OUT_MESSAGE,
 }: {
   items: MenuItem[];
   cartCount: number;
@@ -130,6 +133,8 @@ export function MobileMenuExperience({
   onQuickAdd: (item: MenuItem) => void;
   onOpenDetails: (item: MenuItem) => void;
   goToCart: () => void;
+  soldOutEnabled?: boolean;
+  soldOutMessage?: string;
 }) {
   const [category, setCategory] = useState<MobileCategory>("combo");
   const [query, setQuery] = useState("");
@@ -138,6 +143,7 @@ export function MobileMenuExperience({
   );
   const [closedHoursOpen, setClosedHoursOpen] = useState(false);
   const [closedHoursMessage, setClosedHoursMessage] = useState("");
+  const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const rewardCount = memberProfile?.orders ? memberProfile.orders % 10 : 0;
   const rewardRemaining = Math.max(0, 10 - rewardCount);
@@ -177,6 +183,7 @@ export function MobileMenuExperience({
 
   useEffect(() => {
     if (!API_URL) return;
+    if (soldOutEnabled) return;
     if (sessionStorage.getItem(CLOSED_HOURS_ALERT_KEY) === "1") return;
     const controller = new AbortController();
     fetch(`${API_URL}/settings/public`, { cache: "no-store", signal: controller.signal })
@@ -188,7 +195,7 @@ export function MobileMenuExperience({
       })
       .catch(() => undefined);
     return () => controller.abort();
-  }, []);
+  }, [soldOutEnabled]);
 
   return (
     <div className="md:hidden bg-white" style={{ color: VINHO }}>
@@ -292,13 +299,22 @@ export function MobileMenuExperience({
           onSubscribe={() => setPanel("subscribe")}
         />
 
+        {soldOutEnabled && (
+          <div className="-mx-4">
+            <SoldOutBanner
+              message={soldOutMessage}
+              onNotify={() => setSoldOutAlertOpen(true)}
+            />
+          </div>
+        )}
+
         <button
           type="button"
-          onClick={scrollToProducts}
+          onClick={soldOutEnabled ? () => setSoldOutAlertOpen(true) : scrollToProducts}
           className="relative z-10 mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase tracking-wide"
           style={{ background: PINK, color: "#fff" }}
         >
-          Fazer pedido agora <ChevronRight size={20} strokeWidth={2.8} />
+          {soldOutEnabled ? "Quero ser avisado" : "Fazer pedido agora"} <ChevronRight size={20} strokeWidth={2.8} />
         </button>
 
         <label
@@ -407,6 +423,12 @@ export function MobileMenuExperience({
         <ClosedHoursModal
           message={closedHoursMessage}
           onClose={closeClosedHoursAlert}
+        />
+      )}
+      {soldOutAlertOpen && (
+        <SoldOutAlertModal
+          message={soldOutMessage}
+          onClose={() => setSoldOutAlertOpen(false)}
         />
       )}
     </div>

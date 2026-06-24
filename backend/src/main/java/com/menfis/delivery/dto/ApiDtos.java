@@ -191,4 +191,6 @@ public class ApiDtos {
   public record CustomerSessionResponse(String token, String role, CustomerProfileResponse customer) {}
 
   public record CustomerLoginRequest(@NotBlank String login, @NotBlank String password) {}
+
+  public record SoldOutAlertRequest(@NotBlank String name, @NotBlank String phone, @Email String email) {}
 }

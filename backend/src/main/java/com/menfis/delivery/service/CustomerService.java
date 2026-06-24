@@ -4,6 +4,7 @@ import com.menfis.delivery.dto.ApiDtos.CustomerLoginRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerProfileRequest;
 import com.menfis.delivery.dto.ApiDtos.CustomerProfileResponse;
 import com.menfis.delivery.dto.ApiDtos.CustomerSessionResponse;
+import com.menfis.delivery.dto.ApiDtos.SoldOutAlertRequest;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,6 +31,52 @@ public class CustomerService {
     this.jdbc = jdbc;
     this.auth = auth;
     this.encoder = encoder;
+  }
+
+  @Transactional
+  public Map<String, Object> registerSoldOutAlert(SoldOutAlertRequest request) {
+    String name = clean(request.name());
+    String phone = clean(request.phone());
+    String phoneDigits = digits(phone);
+    String email = clean(request.email());
+    if (isBlank(name)) throw new IllegalArgumentException("customer_name_required");
+    if (phoneDigits.length() < 10) throw new IllegalArgumentException("customer_phone_required");
+
+    Long existing = findCustomerId("", email, phoneDigits);
+    String note = "Alerta SOLD OUT: avisar quando a loja voltar a receber pedidos. Autorizou contatos futuros por WhatsApp/e-mail.";
+    if (existing != null) {
+      jdbc.update(
+        """
+        update customers
+        set name = ?, phone = ?, phone_digits = ?, email = coalesce(?, email),
+            internal_notes = trim(both from concat(coalesce(nullif(internal_notes, ''), ''), case when coalesce(internal_notes, '') = '' then '' else E'\n' end, ?)),
+            updated_at = now()
+        where id = ?
+        """,
+        name,
+        phone,
+        phoneDigits,
+        email,
+        note,
+        existing
+      );
+      return adminCustomerResponse(existing, null);
+    }
+
+    Long id = jdbc.queryForObject(
+      """
+      insert into customers (name, phone, phone_digits, email, internal_notes, updated_at)
+      values (?, ?, ?, ?, ?, now())
+      returning id
+      """,
+      Long.class,
+      name,
+      phone,
+      phoneDigits,
+      email,
+      note
+    );
+    return adminCustomerResponse(id, null);
   }
 
   @Transactional
