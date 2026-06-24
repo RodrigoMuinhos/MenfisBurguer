@@ -483,7 +483,7 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-const LINE_WIDTH = 22;
+const LINE_WIDTH = 18;
 
 function receiptText(value: string) {
   return String(value ?? "")
@@ -645,7 +645,7 @@ export function generateCustomerReceipt(order: Order) {
   const receipt = lines.map((value) => value.slice(0, LINE_WIDTH)).join("\n").replace(/\n{3,}/g, "\n\n");
   for (const receiptLine of receipt.split("\n")) {
     if (receiptLine.length > LINE_WIDTH) {
-      console.warn("Linha excedeu 28 caracteres:", receiptLine);
+      console.warn(`Linha excedeu ${LINE_WIDTH} caracteres:`, receiptLine);
     }
   }
   return receipt;
@@ -673,7 +673,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         justify-content: flex-start;
       }
       .paper {
-        width: 32mm;
+        width: 26mm;
         margin: 0 auto;
         padding: 0 0 4mm;
         display: flex;
@@ -681,9 +681,9 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         align-items: center;
       }
       .order-box {
-        width: 30mm;
-        margin: 1mm auto 1.5mm;
-        padding: 1mm 0.75mm;
+        width: 24mm;
+        margin: 0.8mm auto 1.2mm;
+        padding: 0.8mm 0.5mm;
         border: 1px solid #000;
         text-align: center;
         font-family: "Arial Black", Arial, sans-serif;
@@ -691,14 +691,14 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
       }
       .order-box span {
         display: block;
-        font-size: 8px;
+        font-size: 6.5px;
         line-height: 1;
         letter-spacing: 0.08em;
       }
       .order-box strong {
         display: block;
-        margin-top: 0.4mm;
-        font-size: 17px;
+        margin-top: 0.3mm;
+        font-size: 13.5px;
         line-height: 0.95;
         letter-spacing: 0.02em;
       }
@@ -708,8 +708,8 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         margin: 0 auto;
         padding: 0;
         font-family: "Courier New", monospace;
-        font-size: 6.4px;
-        line-height: 1.12;
+        font-size: 5.2px;
+        line-height: 1.1;
         color: #000;
         font-weight: 800;
         white-space: pre-wrap;
@@ -719,14 +719,14 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
       .route {
         width: 100%;
         max-width: 100%;
-        margin: 2mm auto 0;
+        margin: 1.5mm auto 0;
         text-align: center;
         font-family: Arial, sans-serif;
         color: #000;
       }
       .route img {
-        width: 22mm;
-        height: 22mm;
+        width: 18mm;
+        height: 18mm;
         display: block;
         margin: 0 auto 1mm;
         object-fit: contain;
@@ -734,7 +734,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
       }
       .route b {
         display: block;
-        font-size: 7px;
+        font-size: 5.8px;
         line-height: 1.1;
         white-space: normal;
         font-family: "Arial Black", Arial, sans-serif;
@@ -743,7 +743,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         @page { size: 48mm auto; margin: 0; }
         html, body { width: 48mm; margin: 0; padding: 0; }
         .paper {
-          width: 32mm;
+          width: 26mm;
           margin-left: auto;
           margin-right: auto;
           padding-left: 0;
