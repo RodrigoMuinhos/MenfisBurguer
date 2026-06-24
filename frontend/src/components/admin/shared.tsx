@@ -483,7 +483,7 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-const LINE_WIDTH = 25;
+const LINE_WIDTH = 23;
 
 function receiptText(value: string) {
   return String(value ?? "")
@@ -691,14 +691,14 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
       }
       .order-box span {
         display: block;
-        font-size: 8.5px;
+        font-size: 9.5px;
         line-height: 1;
         letter-spacing: 0.08em;
       }
       .order-box strong {
         display: block;
         margin-top: 0.4mm;
-        font-size: 19px;
+        font-size: 22px;
         line-height: 0.95;
         letter-spacing: 0.02em;
       }
@@ -708,8 +708,8 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         margin: 0 auto;
         padding: 0;
         font-family: "Courier New", monospace;
-        font-size: 7.8px;
-        line-height: 1.12;
+        font-size: 8.8px;
+        line-height: 1.14;
         color: #000;
         font-weight: 800;
         white-space: pre-wrap;
@@ -734,7 +734,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
       }
       .route b {
         display: block;
-        font-size: 7.5px;
+        font-size: 8.5px;
         line-height: 1.1;
         white-space: normal;
         font-family: "Arial Black", Arial, sans-serif;
