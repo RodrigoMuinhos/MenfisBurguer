@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Menfi's Burger",
-    short_name: "Menfi's",
+    name: "Menfi´sBurguer",
+    short_name: "Menfi´sBurguer",
     description: "Cardápio digital Menfi's Burger",
     start_url: "/",
     display: "standalone",

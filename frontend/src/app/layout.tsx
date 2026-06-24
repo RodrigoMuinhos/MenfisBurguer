@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Menfi's Burger",
+    title: "Menfi´sBurguer",
     statusBarStyle: "default",
   },
 };
