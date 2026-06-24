@@ -150,6 +150,10 @@ export function OrdersView({
   const selectedRemoved = Object.entries(selected?.removedByItemId ?? {})
     .flatMap(([, values]) => values)
     .filter((value, index, values) => values.indexOf(value) === index);
+  const selectedIsScheduledPaid =
+    Boolean(selected) &&
+    selected.status === "PAID" &&
+    orderStageLabel(selected) === "Pedido Agendado";
   const updateDraftDetail = (key: keyof typeof draftDetails, value: string) => {
     setDraftDetails((current) => ({ ...current, [key]: value }));
   };
@@ -669,11 +673,17 @@ export function OrdersView({
             )}
             {selected.status === "PAID" && (
               <button
-                onClick={() => updateOrderStatus(selected.id, "ACCEPTED")}
+                onClick={() =>
+                  updateOrderStatus(
+                    selected.id,
+                    selectedIsScheduledPaid ? "IN_PREPARATION" : "ACCEPTED",
+                  )
+                }
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{ background: "#16A34A", color: "#fff" }}
               >
-                <Check size={15} /> Aceitar pedido
+                <Check size={15} />
+                {selectedIsScheduledPaid ? "Iniciar preparo" : "Aceitar pedido"}
               </button>
             )}
             {selected.status === "ACCEPTED" && (

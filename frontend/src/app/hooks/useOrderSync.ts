@@ -257,6 +257,7 @@ export function useOrderSync({
         if (!res.ok) {
           pendingStatusUpdatesRef.current.delete(id);
           await syncOrders({ force: true });
+          window.alert("Não foi possível salvar o novo status do pedido. Atualizei a tela com o status real do servidor.");
           return;
         }
         if (API_URL) {
@@ -272,6 +273,7 @@ export function useOrderSync({
       } catch {
         pendingStatusUpdatesRef.current.delete(id);
         await syncOrders({ force: true });
+        window.alert("Não foi possível conectar ao servidor para salvar o status do pedido.");
       } finally {
         pendingStatusUpdatesRef.current.delete(id);
       }
