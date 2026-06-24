@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CartItem, Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -17,7 +18,9 @@ import { CheckoutReviewSection } from "./CheckoutReviewSection";
 import { useCartCheckout } from "./useCartCheckout";
 import { CartBagStepSection } from "./CartBagStepSection";
 import { DeliveryChoiceSection } from "./DeliveryChoiceSection";
-import { CheckoutStep } from "./checkout";
+import { CheckoutStep, maskPhone } from "./checkout";
+import { MEMBER_TOKEN_KEY, MemberProfile, readMemberProfile } from "@/components/product/shared";
+import { loginCustomerSession, saveCustomerSession } from "@/services/customerSession";
 
 interface Props {
   cart: CartItem[];
@@ -44,6 +47,20 @@ export function CartScreen({
   kioskMode = false,
   initialCheckoutStep,
 }: Props) {
+  const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(() => {
+    if (kioskMode || typeof window === "undefined") return null;
+    return localStorage.getItem(MEMBER_TOKEN_KEY) ? readMemberProfile() : null;
+  });
+  const [memberAuthMode, setMemberAuthMode] = useState<"register" | "login">("register");
+  const [memberName, setMemberName] = useState("");
+  const [memberEmail, setMemberEmail] = useState("");
+  const [memberPhone, setMemberPhone] = useState("");
+  const [memberPassword, setMemberPassword] = useState("");
+  const [memberPasswordConfirm, setMemberPasswordConfirm] = useState("");
+  const [memberLogin, setMemberLogin] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [memberError, setMemberError] = useState("");
+  const [memberSaving, setMemberSaving] = useState(false);
   const {
     appliedCoupon,
     applyCoupon,
@@ -129,6 +146,72 @@ export function CartScreen({
     kioskMode,
     initialCheckoutStep,
   });
+  const profileReady =
+    kioskMode ||
+    counterServiceMode ||
+    Boolean(
+      memberProfile?.name?.trim() &&
+        memberProfile.phone?.replace(/\D/g, "").length >= 10 &&
+        memberProfile.hasPassword !== false,
+    );
+
+  const applyProfileToCheckout = (profile: MemberProfile) => {
+    setMemberProfile(profile);
+    setCustomerName(profile.name ?? "");
+    setPhone(maskPhone(profile.phone ?? ""));
+  };
+
+  const saveMember = async () => {
+    const name = memberName.trim();
+    const email = memberEmail.trim().toLowerCase();
+    const phoneValue = memberPhone.trim();
+    const password = memberPassword.trim();
+    const confirmPassword = memberPasswordConfirm.trim();
+    setMemberError("");
+    if (!name) return setMemberError("Falta preencher: nome.");
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return setMemberError("Informe um email válido.");
+    }
+    if (phoneValue.replace(/\D/g, "").length < 10) {
+      return setMemberError("Falta preencher: WhatsApp com DDD.");
+    }
+    if (password.length !== 6) return setMemberError("Falta preencher: senha de 6 dígitos.");
+    if (password !== confirmPassword) return setMemberError("A confirmação da senha não confere.");
+    setMemberSaving(true);
+    try {
+      const profile = await saveCustomerSession({
+        name,
+        email: email || undefined,
+        phone: phoneValue,
+        password,
+        confirmPassword,
+      });
+      applyProfileToCheckout(profile);
+    } catch {
+      setMemberError("Não foi possível cadastrar. Confira os dados e tente novamente.");
+    } finally {
+      setMemberSaving(false);
+    }
+  };
+
+  const loginMember = async () => {
+    const login = memberLogin.trim();
+    const password = loginPassword.trim();
+    setMemberError("");
+    if (!login) return setMemberError("Falta preencher: telefone, email ou CPF.");
+    if (password.length !== 6) return setMemberError("Falta preencher: senha de 6 dígitos.");
+    setMemberSaving(true);
+    try {
+      const profile = await loginCustomerSession({ login, password });
+      applyProfileToCheckout(profile);
+      setMemberLogin("");
+      setLoginPassword("");
+    } catch {
+      setMemberError("Telefone, email, CPF ou senha inválidos.");
+    } finally {
+      setMemberSaving(false);
+    }
+  };
 
   if (cart.length === 0) {
     return <EmptyCartState onBack={handleBack} />;
@@ -313,6 +396,31 @@ export function CartScreen({
           }}
         />
       )}
+      {checkoutStep === "delivery" && !profileReady && (
+        <CheckoutProfileGate
+          mode={memberAuthMode}
+          setMode={setMemberAuthMode}
+          name={memberName}
+          setName={setMemberName}
+          email={memberEmail}
+          setEmail={setMemberEmail}
+          phone={memberPhone}
+          setPhone={setMemberPhone}
+          password={memberPassword}
+          setPassword={setMemberPassword}
+          confirmPassword={memberPasswordConfirm}
+          setConfirmPassword={setMemberPasswordConfirm}
+          login={memberLogin}
+          setLogin={setMemberLogin}
+          loginPassword={loginPassword}
+          setLoginPassword={setLoginPassword}
+          error={memberError}
+          saving={memberSaving}
+          onRegister={saveMember}
+          onLogin={loginMember}
+          onBack={() => setCheckoutStep("bag")}
+        />
+      )}
 
       <CartStickyCta
         checkoutStep={checkoutStep}
@@ -331,6 +439,173 @@ export function CartScreen({
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+function CheckoutProfileGate({
+  mode,
+  setMode,
+  name,
+  setName,
+  email,
+  setEmail,
+  phone,
+  setPhone,
+  password,
+  setPassword,
+  confirmPassword,
+  setConfirmPassword,
+  login,
+  setLogin,
+  loginPassword,
+  setLoginPassword,
+  error,
+  saving,
+  onRegister,
+  onLogin,
+  onBack,
+}: {
+  mode: "register" | "login";
+  setMode: (value: "register" | "login") => void;
+  name: string;
+  setName: (value: string) => void;
+  email: string;
+  setEmail: (value: string) => void;
+  phone: string;
+  setPhone: (value: string) => void;
+  password: string;
+  setPassword: (value: string) => void;
+  confirmPassword: string;
+  setConfirmPassword: (value: string) => void;
+  login: string;
+  setLogin: (value: string) => void;
+  loginPassword: string;
+  setLoginPassword: (value: string) => void;
+  error: string;
+  saving: boolean;
+  onRegister: () => void | Promise<void>;
+  onLogin: () => void | Promise<void>;
+  onBack: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 px-3 py-3 sm:items-center sm:p-4">
+      <section
+        className="max-h-[calc(100dvh-24px)] w-full max-w-md overflow-y-auto rounded-[22px] bg-white p-4 sm:rounded-[28px] sm:p-5"
+        style={{ color: VERDE }}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/40">
+              Clube Menfi's
+            </p>
+            <h2
+              className="mt-2 uppercase"
+              style={{
+                fontFamily: "'Bebas Neue','Arial Black',sans-serif",
+                fontSize: "clamp(2rem, 8vw, 2.4rem)",
+                lineHeight: 0.95,
+              }}
+            >
+              {mode === "login" ? "Entre no perfil Menfi's" : "Crie seu perfil Menfi's"}
+            </h2>
+            <p className="mt-2 text-xs font-bold leading-relaxed text-black/55">
+              Para avançar para o pagamento, cadastre ou entre com seu perfil.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl font-black"
+            style={{ background: `${VERDE}08`, color: VERDE }}
+            aria-label="Voltar para sacola"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl p-1">
+          <button
+            type="button"
+            onClick={() => setMode("register")}
+            className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wider"
+            style={{ background: mode === "register" ? VERDE : "transparent", color: mode === "register" ? ROSA : VERDE }}
+          >
+            Cadastrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("login")}
+            className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wider"
+            style={{ background: mode === "login" ? VERDE : "transparent", color: mode === "login" ? ROSA : VERDE }}
+          >
+            Já tenho conta
+          </button>
+        </div>
+
+        {mode === "register" ? (
+          <div className="mt-4 grid gap-3">
+            <div className="rounded-3xl p-4" style={{ background: "#FFF8E7", border: "1.5px solid #FACC15" }}>
+              <p className="text-sm font-black uppercase tracking-wider">Cadastre-se e ganhe 10%</p>
+              <p className="mt-1 text-xs font-bold leading-snug text-black/60">
+                Use seu perfil Menfi's no primeiro pedido e receba 10% de desconto.
+              </p>
+            </div>
+            <ProfileField label="Nome" value={name} onChange={setName} />
+            <ProfileField label="Email (opcional)" value={email} onChange={setEmail} />
+            <ProfileField label="Telefone / WhatsApp" value={phone} onChange={(value) => setPhone(maskPhone(value))} />
+            <ProfileField label="Senha" value={password} onChange={(value) => setPassword(value.replace(/\D/g, "").slice(0, 6))} type="password" />
+            <ProfileField label="Confirmar senha" value={confirmPassword} onChange={(value) => setConfirmPassword(value.replace(/\D/g, "").slice(0, 6))} type="password" />
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-3">
+            <ProfileField label="Telefone, e-mail ou CPF" value={login} onChange={setLogin} />
+            <ProfileField label="Senha" value={loginPassword} onChange={(value) => setLoginPassword(value.replace(/\D/g, "").slice(0, 6))} type="password" />
+          </div>
+        )}
+
+        {error && (
+          <p className="mt-4 rounded-2xl px-4 py-3 text-xs font-black leading-relaxed" style={{ background: `${ROSA}80`, color: VERDE }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => void (mode === "register" ? onRegister() : onLogin())}
+          disabled={saving}
+          className="mt-4 min-h-14 w-full rounded-2xl px-5 text-sm font-black uppercase tracking-wider disabled:opacity-55"
+          style={{ background: VERDE, color: ROSA }}
+        >
+          {saving ? "Salvando..." : "Continuar"}
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function ProfileField({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="grid gap-1">
+      <span className="text-[10px] font-black uppercase tracking-wider text-black/40">{label}</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        type={type}
+        className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
+        style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
+      />
+    </label>
   );
 }
 

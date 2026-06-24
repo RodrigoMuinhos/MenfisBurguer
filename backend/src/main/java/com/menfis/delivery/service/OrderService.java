@@ -99,6 +99,9 @@ public class OrderService {
         && (isBlank(customerName) || normalizedPhone(request.customerPhone()).length() < 10)) {
       throw new IllegalArgumentException("kiosk_customer_required");
     }
+    if (channel == OrderChannel.DELIVERY && authenticatedCustomerId == null) {
+      throw new IllegalArgumentException("customer_session_required");
+    }
     OffsetDateTime confirmedAt = paidKiosk ? OffsetDateTime.now() : null;
     String itemsJson = toJson(price.items());
     Long customerId = authenticatedCustomerId;
