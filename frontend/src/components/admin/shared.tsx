@@ -363,6 +363,67 @@ const DEFAULT_COMPOSITION: Record<string, string[]> = {
   "chicken-super-combo": ["2x Menfi's Chicken", "2 bebidas", "Batata Frita 200g"],
 };
 
+const SUPER_COMBO_SANDWICH: Record<string, string> = {
+  combo2: "Menfi's Burger",
+  "bacon-super-combo": "Menfi's Bacon",
+  "chicken-super-combo": "Menfi's Chicken",
+};
+
+function isSuperComboItem(item: Order["items"][number]) {
+  const id = item.productId ?? item.id;
+  return Boolean(SUPER_COMBO_SANDWICH[id]) || item.name.toLowerCase().includes("super combo");
+}
+
+function superComboSandwich(item: Order["items"][number]) {
+  const id = item.productId ?? item.id;
+  if (SUPER_COMBO_SANDWICH[id]) return SUPER_COMBO_SANDWICH[id];
+  const normalized = item.name.toLowerCase();
+  if (normalized.includes("bacon")) return "Menfi's Bacon";
+  if (normalized.includes("chicken")) return "Menfi's Chicken";
+  return "Menfi's Burger";
+}
+
+function isDrinkComponent(component: string) {
+  const normalized = component.toLowerCase();
+  return (
+    normalized.includes("coca") ||
+    normalized.includes("guarana") ||
+    normalized.includes("guaraná") ||
+    normalized.includes("refrigerante") ||
+    normalized.includes("bebida")
+  );
+}
+
+function isSauceComponent(component: string) {
+  return component.toLowerCase().includes("maionese");
+}
+
+function isPotatoComponent(component: string) {
+  const normalized = component.toLowerCase();
+  return normalized.includes("batata") || normalized.includes("frita");
+}
+
+function quantityComponent(label: string, quantity: number) {
+  const clean = label.replace(/^\d+x\s+/i, "").trim();
+  return `${quantity}x ${clean}`;
+}
+
+function expandSuperComboComponents(item: Order["items"][number]) {
+  const source = item.components?.length ? item.components : DEFAULT_COMPOSITION[item.productId ?? item.id] ?? [];
+  const drinks = source.filter(isDrinkComponent);
+  const sauces = source.filter(isSauceComponent);
+  const potato = source.find(isPotatoComponent) ?? "Batata Frita 200g";
+  const primaryDrink = drinks[0] ?? "refrigerante";
+  const primarySauce = sauces[0] ?? "maionese";
+
+  return [
+    `${quantityComponent(superComboSandwich(item), 2)} (sanduiches)`,
+    quantityComponent(primaryDrink, 2),
+    potato,
+    quantityComponent(primarySauce, 2),
+  ];
+}
+
 export function orderStageLabel(order: Order) {
   if (scheduledOrderInfo(order) && ["PAYMENT_PENDING", "PAID"].includes(order.status)) {
     return "Pedido Agendado";
@@ -371,6 +432,7 @@ export function orderStageLabel(order: Order) {
 }
 
 export function orderItemComponents(item: Order["items"][number]) {
+  if (isSuperComboItem(item)) return expandSuperComboComponents(item);
   if (item.components?.length) return item.components;
   return DEFAULT_COMPOSITION[item.productId ?? item.id] ?? [];
 }
