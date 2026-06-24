@@ -49,8 +49,8 @@ export function SplashScreen({ onStart }: { onStart: () => void }) {
         transition={{ duration: 0.28, ease: "easeOut" }}
         className="object-cover"
         style={{
-          width: "min(90vw, 90dvh)",
-          height: "min(90vw, 90dvh)",
+          width: "min(100vw, 100dvh)",
+          height: "min(100vw, 100dvh)",
           borderRadius: "50%",
           boxShadow: "0 24px 64px rgba(101, 0, 31, 0.2)",
         }}
