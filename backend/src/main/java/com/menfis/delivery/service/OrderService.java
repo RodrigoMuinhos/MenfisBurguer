@@ -58,7 +58,7 @@ public class OrderService {
       OrderResponse existing = findByIdempotencyKey(request.idempotencyKey());
       if (existing != null) return existing;
     }
-    if (!settings.testModeEnabled() && settings.soldOutEnabled()) {
+    if (!settings.testModeEnabled() && settings.isSoldOutNow()) {
       throw new IllegalStateException("store_sold_out");
     }
     if (!settings.testModeEnabled() && !settings.isOperatingNow()) {

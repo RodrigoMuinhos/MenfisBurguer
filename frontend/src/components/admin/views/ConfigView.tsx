@@ -142,7 +142,7 @@ export function ConfigView({
           {normalizedOperatingHours.days.map((day) => (
             <div
               key={day.day}
-              className="grid gap-3 rounded-xl p-3 md:grid-cols-[120px_130px_1fr] md:items-center"
+              className="grid gap-3 rounded-xl p-3 md:grid-cols-[120px_130px_130px_1fr] md:items-center"
               style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}
             >
               <p className="text-sm font-black" style={{ color: VERDE }}>{day.label}</p>
@@ -158,6 +158,19 @@ export function ConfigView({
                 }}
               >
                 {day.open ? "Aberto" : "Fechado"}
+              </button>
+              <button
+                type="button"
+                onClick={() => changeOperatingDay(day.day, { soldOut: !day.soldOut })}
+                disabled={saving || disabled}
+                className="rounded-full px-4 py-2 text-xs font-black uppercase"
+                style={{
+                  background: day.soldOut ? "#EF4444" : "#E5E7EB",
+                  color: day.soldOut ? "#fff" : "#4B5563",
+                  opacity: saving || disabled ? 0.6 : 1,
+                }}
+              >
+                {day.soldOut ? "Sold out" : "Normal"}
               </button>
               <div className="grid grid-cols-2 gap-2">
                 <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>

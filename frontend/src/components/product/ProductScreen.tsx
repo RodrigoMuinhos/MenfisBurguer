@@ -237,7 +237,7 @@ export function ProductScreen({
         setOperatingNow(settings?.operatingNow !== false);
         setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
         setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
-        setSoldOutEnabled(settings?.soldOutEnabled === true);
+        setSoldOutEnabled(settings?.soldOutActive === true);
         setSoldOutMessage(String(settings?.soldOutMessage ?? SOLD_OUT_MESSAGE));
       })
       .catch(() => undefined);

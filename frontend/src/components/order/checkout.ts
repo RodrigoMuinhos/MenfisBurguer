@@ -17,6 +17,7 @@ export type OperatingDay = {
   day: number;
   label: string;
   open: boolean;
+  soldOut?: boolean;
   start: string;
   end: string;
 };
@@ -146,13 +147,13 @@ export const AFTER_CLOSE_MESSAGE =
 
 export const DEFAULT_OPERATING_HOURS: OperatingHoursConfig = {
   days: [
-    { day: 0, label: "Domingo", open: true, start: "18:00", end: "22:00" },
-    { day: 1, label: "Segunda", open: false, start: "18:00", end: "22:00" },
-    { day: 2, label: "Terça", open: true, start: "18:00", end: "22:00" },
-    { day: 3, label: "Quarta", open: true, start: "18:00", end: "22:00" },
-    { day: 4, label: "Quinta", open: true, start: "18:00", end: "22:00" },
-    { day: 5, label: "Sexta", open: true, start: "18:00", end: "22:00" },
-    { day: 6, label: "Sábado", open: true, start: "18:00", end: "22:00" },
+    { day: 0, label: "Domingo", open: true, soldOut: true, start: "18:00", end: "22:00" },
+    { day: 1, label: "Segunda", open: false, soldOut: true, start: "18:00", end: "22:00" },
+    { day: 2, label: "Terça", open: true, soldOut: true, start: "18:00", end: "22:00" },
+    { day: 3, label: "Quarta", open: true, soldOut: true, start: "18:00", end: "22:00" },
+    { day: 4, label: "Quinta", open: true, soldOut: true, start: "18:00", end: "22:00" },
+    { day: 5, label: "Sexta", open: true, soldOut: true, start: "18:00", end: "22:00" },
+    { day: 6, label: "Sábado", open: true, soldOut: true, start: "18:00", end: "22:00" },
   ],
 };
 
@@ -213,6 +214,7 @@ export function normalizeOperatingHours(value: unknown): OperatingHoursConfig {
         day: fallback.day,
         label: fallback.label,
         open: typeof day?.open === "boolean" ? day.open : fallback.open,
+        soldOut: typeof day?.soldOut === "boolean" ? day.soldOut : fallback.soldOut,
         start: typeof day?.start === "string" && day.start ? day.start : fallback.start,
         end: typeof day?.end === "string" && day.end ? day.end : fallback.end,
       };

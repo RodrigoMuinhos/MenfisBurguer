@@ -235,7 +235,7 @@ export function useCartCheckout({
         setPayOnDeliveryEnabled(enabled);
         setOperatingNow(settings.operatingNow !== false);
         setOperatingHoursMessage(String(settings.operatingHoursMessage ?? ""));
-        setSoldOutEnabled(settings.soldOutEnabled === true);
+        setSoldOutEnabled(settings.soldOutActive === true);
         setSoldOutMessage(String(settings.soldOutMessage ?? SOLD_OUT_MESSAGE));
         if (!enabled) {
           setPayment((current) =>

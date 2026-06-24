@@ -2,6 +2,7 @@ package com.menfis.delivery.service;
 
 import java.util.Map;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -28,13 +29,13 @@ public class SettingsService {
     """;
   private static final String DEFAULT_OPERATING_HOURS = """
     {"days":[
-      {"day":0,"label":"Domingo","open":true,"start":"18:00","end":"22:00"},
-      {"day":1,"label":"Segunda","open":false,"start":"18:00","end":"22:00"},
-      {"day":2,"label":"Terça","open":true,"start":"18:00","end":"22:00"},
-      {"day":3,"label":"Quarta","open":true,"start":"18:00","end":"22:00"},
-      {"day":4,"label":"Quinta","open":true,"start":"18:00","end":"22:00"},
-      {"day":5,"label":"Sexta","open":true,"start":"18:00","end":"22:00"},
-      {"day":6,"label":"Sábado","open":true,"start":"18:00","end":"22:00"}
+      {"day":0,"label":"Domingo","open":true,"soldOut":true,"start":"18:00","end":"22:00"},
+      {"day":1,"label":"Segunda","open":false,"soldOut":true,"start":"18:00","end":"22:00"},
+      {"day":2,"label":"Terça","open":true,"soldOut":true,"start":"18:00","end":"22:00"},
+      {"day":3,"label":"Quarta","open":true,"soldOut":true,"start":"18:00","end":"22:00"},
+      {"day":4,"label":"Quinta","open":true,"soldOut":true,"start":"18:00","end":"22:00"},
+      {"day":5,"label":"Sexta","open":true,"soldOut":true,"start":"18:00","end":"22:00"},
+      {"day":6,"label":"Sábado","open":true,"soldOut":true,"start":"18:00","end":"22:00"}
     ]}
     """;
 
@@ -81,23 +82,40 @@ public class SettingsService {
   public Map<String, Object> publicSettings() {
     OperatingStatus operatingStatus = operatingStatus();
     boolean soldOut = soldOutEnabled();
-    return Map.of(
-      "payOnDeliveryEnabled", payOnDeliveryEnabled(),
-      "testModeEnabled", testModeEnabled(),
-      "featuredProductId", featuredProductId(),
-      "demoTableEnabled", demoTableEnabled(),
-      "operatingHours", operatingHours(),
-      "soldOutEnabled", soldOut,
-      "soldOutMessage", SOLD_OUT_MESSAGE,
-      "operatingNow", !soldOut && operatingStatus.open(),
-      "operatingHoursSummary", operatingStatus.summary(),
-      "operatingHoursMessage", soldOut ? SOLD_OUT_MESSAGE : operatingStatus.message()
-    );
+    boolean soldOutActive = isSoldOutNow();
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("payOnDeliveryEnabled", payOnDeliveryEnabled());
+    response.put("testModeEnabled", testModeEnabled());
+    response.put("featuredProductId", featuredProductId());
+    response.put("demoTableEnabled", demoTableEnabled());
+    response.put("operatingHours", operatingHours());
+    response.put("soldOutEnabled", soldOut);
+    response.put("soldOutActive", soldOutActive);
+    response.put("soldOutMessage", SOLD_OUT_MESSAGE);
+    response.put("operatingNow", !soldOutActive && operatingStatus.open());
+    response.put("operatingHoursSummary", operatingStatus.summary());
+    response.put("operatingHoursMessage", soldOutActive ? SOLD_OUT_MESSAGE : operatingStatus.message());
+    return response;
   }
 
   /** The restaurant schedule is evaluated in its local operating timezone, never in the server timezone. */
   public boolean isOperatingNow() {
-    return !soldOutEnabled() && operatingStatus().open();
+    return !isSoldOutNow() && operatingStatus().open();
+  }
+
+  public boolean isSoldOutNow() {
+    if (!soldOutEnabled()) return false;
+    Map<String, Object> config = operatingHours();
+    Object rawDays = config.get("days");
+    List<?> days = rawDays instanceof List<?> list ? list : List.of();
+    int currentDay = currentOperatingDay();
+    for (Object entry : days) {
+      if (!(entry instanceof Map<?, ?> day)) continue;
+      if (number(day.get("day")) != currentDay) continue;
+      Object rawSoldOut = day.get("soldOut");
+      return rawSoldOut == null || Boolean.TRUE.equals(rawSoldOut);
+    }
+    return true;
   }
 
   private OperatingStatus operatingStatus() {
@@ -105,7 +123,7 @@ public class SettingsService {
     Object rawDays = config.get("days");
     List<?> days = rawDays instanceof List<?> list ? list : List.of();
     ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo"));
-    int currentDay = now.getDayOfWeek().getValue() % 7; // Java: Sunday=7; UI: Sunday=0.
+    int currentDay = currentOperatingDay();
     int currentMinutes = now.getHour() * 60 + now.getMinute();
     boolean open = false;
     java.util.ArrayList<String> summaries = new java.util.ArrayList<>();
@@ -203,6 +221,11 @@ public class SettingsService {
       Boolean.toString(enabled)
     );
     return publicSettings();
+  }
+
+  private int currentOperatingDay() {
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo"));
+    return now.getDayOfWeek().getValue() % 7; // Java: Sunday=7; UI: Sunday=0.
   }
 
   public Map<String, Object> setSoldOutEnabled(boolean enabled) {
