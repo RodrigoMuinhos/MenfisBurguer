@@ -483,7 +483,7 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-const LINE_WIDTH = 24;
+const LINE_WIDTH = 25;
 
 function receiptText(value: string) {
   return String(value ?? "")
@@ -673,7 +673,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         justify-content: flex-start;
       }
       .paper {
-        width: 34mm;
+        width: 39.5mm;
         margin: 0 auto;
         padding: 0 0 4mm;
         display: flex;
@@ -681,7 +681,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         align-items: center;
       }
       .order-box {
-        width: 32mm;
+        width: 37.5mm;
         margin: 1mm auto 1.5mm;
         padding: 1mm 0.75mm;
         border: 1px solid #000;
@@ -691,14 +691,14 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
       }
       .order-box span {
         display: block;
-        font-size: 8px;
+        font-size: 8.5px;
         line-height: 1;
         letter-spacing: 0.08em;
       }
       .order-box strong {
         display: block;
         margin-top: 0.4mm;
-        font-size: 18px;
+        font-size: 19px;
         line-height: 0.95;
         letter-spacing: 0.02em;
       }
@@ -708,7 +708,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         margin: 0 auto;
         padding: 0;
         font-family: "Courier New", monospace;
-        font-size: 7.2px;
+        font-size: 7.8px;
         line-height: 1.12;
         color: #000;
         font-weight: 800;
@@ -725,8 +725,8 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         color: #000;
       }
       .route img {
-        width: 23mm;
-        height: 23mm;
+        width: 24mm;
+        height: 24mm;
         display: block;
         margin: 0 auto 1mm;
         object-fit: contain;
@@ -734,7 +734,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
       }
       .route b {
         display: block;
-        font-size: 7px;
+        font-size: 7.5px;
         line-height: 1.1;
         white-space: normal;
         font-family: "Arial Black", Arial, sans-serif;
@@ -743,7 +743,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         @page { size: 48mm auto; margin: 0; }
         html, body { width: 48mm; margin: 0; padding: 0; }
         .paper {
-          width: 34mm;
+          width: 39.5mm;
           margin-left: auto;
           margin-right: auto;
           padding-left: 0;
