@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 import { VERDE } from "@/utils/theme";
-import { formatAddressForReceipt, googleMapsDirectionsUrl } from "@/utils/address";
+import { formatAddressForReceipt } from "@/utils/address";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
 
@@ -656,8 +656,6 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
 
   const receipt = escapeReceipt(generateCustomerReceipt(order));
   const orderId = escapeReceipt(String(order.id || order.number || ""));
-  const routeUrl = googleMapsDirectionsUrl(order.customerAddress || "");
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(routeUrl)}`;
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
     <style>
@@ -716,29 +714,6 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
         overflow-wrap: normal;
         word-break: normal;
       }
-      .route {
-        width: 100%;
-        max-width: 100%;
-        margin: 2mm auto 0;
-        text-align: center;
-        font-family: Arial, sans-serif;
-        color: #000;
-      }
-      .route img {
-        width: 24mm;
-        height: 24mm;
-        display: block;
-        margin: 0 auto 1mm;
-        object-fit: contain;
-        image-rendering: pixelated;
-      }
-      .route b {
-        display: block;
-        font-size: 8.5px;
-        line-height: 1.1;
-        white-space: normal;
-        font-family: "Arial Black", Arial, sans-serif;
-      }
       @media print {
         @page { size: 48mm auto; margin: 0; }
         html, body { width: 48mm; margin: 0; padding: 0; }
@@ -753,10 +728,6 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
     </style></head><body><main class="paper">
       <div class="order-box"><span>PEDIDO</span><strong>${orderId}</strong></div>
       <pre class="receipt">${receipt}</pre>
-      <div class="route">
-        <img src="${escapeReceipt(qrUrl)}" alt="QR Code da rota" />
-        <b>ABRIR ROTA</b>
-      </div>
     </main></body></html>
   `;
 
@@ -794,18 +765,7 @@ export function printOrderReceipts(order: Order, options?: { confirm?: boolean }
     window.setTimeout(() => iframe.remove(), 5000);
   };
 
-  const qr = doc.querySelector(".route img") as HTMLImageElement | null;
-  if (!qr) {
-    window.setTimeout(printFrame, 250);
-    return;
-  }
-  if (qr.complete && qr.naturalWidth > 0) {
-    window.setTimeout(printFrame, 250);
-    return;
-  }
-  qr.addEventListener("load", () => window.setTimeout(printFrame, 150), { once: true });
-  qr.addEventListener("error", () => window.setTimeout(printFrame, 150), { once: true });
-  window.setTimeout(printFrame, 1800);
+  window.setTimeout(printFrame, 250);
 }
 
 export function loadStoredCoupons(): Coupon[] {
