@@ -115,18 +115,19 @@ export function AdminTabs({
   tabCount: Partial<Record<AdminTab, number>>;
   onChange: (tab: AdminTab) => void;
 }) {
+  const mobileTabs = new Set<AdminTab>(["pedidos", "cozinha", "entrega", "dashboard"]);
   return (
     <div
-      className="flex"
+      className="flex overflow-x-auto lg:flex-col lg:gap-1 lg:px-3 lg:pb-3"
       style={{ background: VERDE, borderBottom: `2px solid ${ROSA}22` }}
     >
       {tabs.map(({ id, label, Icon }) => (
         <button
           key={id}
           onClick={() => onChange(id)}
-          className="flex-1 flex items-center justify-center gap-2 py-3 text-[11px] font-black uppercase tracking-wider"
+          className={`${mobileTabs.has(id) ? "flex" : "hidden lg:flex"} min-w-[94px] flex-1 items-center justify-center gap-2 px-3 py-3 text-[11px] font-black uppercase tracking-wider lg:min-w-0 lg:flex-none lg:justify-start lg:rounded-2xl lg:px-4 lg:py-3.5`}
           style={{
-            background: tab === id ? ROSA : "none",
+            background: tab === id ? ROSA : "transparent",
             color: tab === id ? VERDE : `${ROSA}60`,
             border: "none",
             cursor: "pointer",

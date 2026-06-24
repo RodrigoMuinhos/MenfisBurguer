@@ -8,6 +8,7 @@ import {
   TicketPercent,
   TrendingUp,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import {
@@ -17,7 +18,7 @@ import {
   SERVICE_FEE,
   normalizeOperatingHours,
 } from "@/components/order/checkout";
-import { VERDE } from "@/utils/theme";
+import { ROSA, VERDE } from "@/utils/theme";
 import { EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
 import { AdminHeader, AdminTabs, PaymentRequestsAlert } from "./AdminChrome";
 import {
@@ -35,6 +36,7 @@ import {
   uid,
 } from "./shared";
 import { CouponsView } from "./views/CouponsView";
+import { CouponResultsView } from "./views/CouponResultsView";
 import { ConfigView } from "./views/ConfigView";
 import { CustomersCrmView, CrmCustomer } from "./views/CustomersCrmView";
 import { DashboardView } from "./views/DashboardView";
@@ -49,7 +51,7 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "pedidos" | "cozinha" | "entrega" | "dashboard" | "estoque" | "clientes" | "suporte" | "cupons" | "config";
+export type AdminTab = "pedidos" | "cozinha" | "entrega" | "dashboard" | "estoque" | "clientes" | "suporte" | "cupons" | "resultados" | "config";
 
 interface Props {
   orders: Order[];
@@ -156,6 +158,7 @@ export function AdminPanel({
     { id: "clientes", label: "Clientes", Icon: Users },
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
     { id: "cupons", label: "Cupons", Icon: TicketPercent },
+    { id: "resultados", label: "Resultados", Icon: BarChart3 },
   ];
 
   const visibleOrders = useMemo(
@@ -613,29 +616,42 @@ export function AdminPanel({
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      {!kitchenOnly && (
-        <AdminHeader
-          activeOrders={activeOrders}
-          onClose={onClose}
-          onOpenConfig={() => setTab("config")}
-        />
-      )}
-      {!kitchenOnly && (
-        <AdminTabs
-          tabs={tabs}
-          tab={tab}
-          tabCount={tabCount}
-          onChange={setTab}
-        />
-      )}
-      {/* CONTENT */}
-      <div
-        style={
-          tab === "cozinha"
-            ? { padding: 0, paddingBottom: 0 }
-            : { padding: "16px", paddingBottom: "40px" }
-        }
-      >
+      <div className={kitchenOnly ? "" : "lg:flex lg:min-h-dvh"}>
+        {!kitchenOnly && (
+          <aside className="hidden w-72 shrink-0 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col" style={{ background: VERDE }}>
+            <AdminHeader
+              activeOrders={activeOrders}
+              onClose={onClose}
+              onOpenConfig={() => setTab("config")}
+            />
+            <p className="px-5 pb-2 pt-4 text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: `${ROSA}75` }}>
+              Gestão da operação
+            </p>
+            <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={setTab} />
+            <p className="mt-auto p-5 text-xs font-semibold leading-relaxed" style={{ color: `${ROSA}80` }}>
+              Da entrada do pedido ao pós-venda, em uma única operação.
+            </p>
+          </aside>
+        )}
+        <main className={kitchenOnly ? "" : "min-w-0 flex-1"}>
+          {!kitchenOnly && (
+            <div className="lg:hidden">
+              <AdminHeader
+                activeOrders={activeOrders}
+                onClose={onClose}
+                onOpenConfig={() => setTab("config")}
+              />
+              <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={setTab} />
+            </div>
+          )}
+          {/* CONTENT */}
+          <div
+            style={
+              tab === "cozinha"
+                ? { padding: 0, paddingBottom: 0 }
+                : { padding: "16px", paddingBottom: "40px" }
+            }
+          >
         {!kitchenOnly && (
           <PaymentRequestsAlert
             orders={openPaymentRequests}
@@ -738,6 +754,12 @@ export function AdminPanel({
             onDelete={deleteCoupon}
           />
         )}
+        {tab === "resultados" && (
+          <CouponResultsView
+            orders={visibleOrders}
+            coupons={mergeCoupons(customCoupons)}
+          />
+        )}
         {tab === "config" && (
           <ConfigView
             payOnDeliveryEnabled={payOnDeliveryEnabled}
@@ -760,6 +782,8 @@ export function AdminPanel({
             onResetRealOperation={resetRealOperation}
           />
         )}
+          </div>
+        </main>
       </div>
     </div>
   );
