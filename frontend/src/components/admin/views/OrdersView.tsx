@@ -737,6 +737,15 @@ export function OrdersView({
                 <XCircle size={15} /> Cancelamento bloqueado
               </span>
             )}
+            {selected.status === "IN_PREPARATION" && (
+              <button
+                onClick={() => updateOrderStatus(selected.id, "READY")}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
+                style={{ background: "#16A34A", color: "#fff" }}
+              >
+                <Check size={15} /> Marcar pronto
+              </button>
+            )}
             {selected.customerPhone && !selectedIsKioskMob && (
               <a
                 href={`tel:${selected.customerPhone.replace(/\D/g, "")}`}
