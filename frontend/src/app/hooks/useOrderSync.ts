@@ -229,39 +229,46 @@ export function useOrderSync({
       if (pendingStatusUpdatesRef.current.has(id)) return;
       pendingStatusUpdatesRef.current.set(id, status);
       const currentStatus = orders.find((order) => order.id === id)?.status;
+      const statusPath: OrderStatus[] =
+        currentStatus === "PAID" && status === "IN_PREPARATION"
+          ? ["ACCEPTED", "IN_PREPARATION"]
+          : [status];
       setOrders((prev) =>
         prev.map((order) => (order.id === id ? { ...order, status } : order)),
       );
       try {
-        const res = API_URL
-          ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/status`, {
-              method: "PATCH",
-              headers: {
-                Authorization: `Bearer ${adminToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                status,
-                actor: currentStatus === "PAYMENT_PENDING" ? "atendente" : "kds",
-                reason:
-                  currentStatus === "PAYMENT_PENDING" && status === "PAID"
-                    ? "pagamento_presencial_confirmado"
-                    : "kds_status_change",
-              }),
-            })
-          : await fetch(`/api/orders/${encodeURIComponent(id)}/status`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status }),
-            });
-        if (!res.ok) {
-          pendingStatusUpdatesRef.current.delete(id);
-          await syncOrders({ force: true });
-          window.alert("Não foi possível salvar o novo status do pedido. Atualizei a tela com o status real do servidor.");
-          return;
+        let updated: Order | null = null;
+        for (const nextStatus of statusPath) {
+          const res = API_URL
+            ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/status`, {
+                method: "PATCH",
+                headers: {
+                  Authorization: `Bearer ${adminToken}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  status: nextStatus,
+                  actor: currentStatus === "PAYMENT_PENDING" ? "atendente" : "kds",
+                  reason:
+                    currentStatus === "PAYMENT_PENDING" && nextStatus === "PAID"
+                      ? "pagamento_presencial_confirmado"
+                      : "kds_status_change",
+                }),
+              })
+            : await fetch(`/api/orders/${encodeURIComponent(id)}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: nextStatus }),
+              });
+          if (!res.ok) {
+            pendingStatusUpdatesRef.current.delete(id);
+            await syncOrders({ force: true });
+            window.alert("Não foi possível salvar o novo status do pedido. Atualizei a tela com o status real do servidor.");
+            return;
+          }
+          if (API_URL) updated = normalizeBackendOrder(await res.json());
         }
-        if (API_URL) {
-          const updated = normalizeBackendOrder(await res.json());
+        if (updated) {
           setOrders((prev) => [
             keepHighestVisibleStatus(
               updated,
