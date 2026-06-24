@@ -10,6 +10,27 @@ import {
   keepPendingStatus,
 } from "../appState";
 
+const STATUS_RANK: Partial<Record<OrderStatus, number>> = {
+  CREATED: 0,
+  PAYMENT_PENDING: 1,
+  PAYMENT_PROOF_PENDING: 2,
+  PAID: 3,
+  ACCEPTED: 4,
+  IN_PREPARATION: 5,
+  READY: 6,
+  OUT_FOR_DELIVERY: 7,
+  DELIVERED: 8,
+  CANCELLED: 99,
+};
+
+function hasReachedStatus(order: Order | null, target: OrderStatus) {
+  if (!order) return false;
+  if (order.status === target) return true;
+  if (target === "CANCELLED") return order.status === "CANCELLED";
+  if (order.status === "CANCELLED") return false;
+  return (STATUS_RANK[order.status] ?? 0) >= (STATUS_RANK[target] ?? 0);
+}
+
 export function useOrderSync({
   adminToken,
   lastOrderId,
@@ -229,6 +250,10 @@ export function useOrderSync({
       if (pendingStatusUpdatesRef.current.has(id)) return;
       pendingStatusUpdatesRef.current.set(id, status);
       const currentStatus = orders.find((order) => order.id === id)?.status;
+      if (currentStatus === status) {
+        pendingStatusUpdatesRef.current.delete(id);
+        return;
+      }
       const statusPath: OrderStatus[] =
         currentStatus === "PAID" && status === "IN_PREPARATION"
           ? ["ACCEPTED", "IN_PREPARATION"]
@@ -238,6 +263,22 @@ export function useOrderSync({
       );
       try {
         let updated: Order | null = null;
+        const refreshTarget = async () => {
+          if (!API_URL) return null;
+          const latestRes = await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
+            cache: "no-store",
+          });
+          if (!latestRes.ok) return null;
+          const latest = normalizeBackendOrder(await latestRes.json());
+          setOrders((prev) => [
+            keepHighestVisibleStatus(
+              latest,
+              prev.find((order) => order.id === latest.id),
+            ),
+            ...prev.filter((order) => order.id !== latest.id),
+          ]);
+          return latest;
+        };
         for (const nextStatus of statusPath) {
           const res = API_URL
             ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/status`, {
@@ -262,11 +303,13 @@ export function useOrderSync({
               });
           if (!res.ok) {
             pendingStatusUpdatesRef.current.delete(id);
+            const latest = await refreshTarget();
+            if (hasReachedStatus(latest, status)) return;
             await syncOrders({ force: true });
-            window.alert("Não foi possível salvar o novo status do pedido. Atualizei a tela com o status real do servidor.");
             return;
           }
-          if (API_URL) updated = normalizeBackendOrder(await res.json());
+          const payload = await res.json();
+          updated = normalizeBackendOrder(payload.order ?? payload);
         }
         if (updated) {
           setOrders((prev) => [
@@ -279,8 +322,27 @@ export function useOrderSync({
         }
       } catch {
         pendingStatusUpdatesRef.current.delete(id);
+        try {
+          const latestRes = API_URL
+            ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, { cache: "no-store" })
+            : null;
+          if (latestRes?.ok) {
+            const latest = normalizeBackendOrder(await latestRes.json());
+            if (hasReachedStatus(latest, status)) {
+              setOrders((prev) => [
+                keepHighestVisibleStatus(
+                  latest,
+                  prev.find((order) => order.id === latest.id),
+                ),
+                ...prev.filter((order) => order.id !== latest.id),
+              ]);
+              return;
+            }
+          }
+        } catch {
+          // A forced sync below is the fallback when a direct refresh also fails.
+        }
         await syncOrders({ force: true });
-        window.alert("Não foi possível conectar ao servidor para salvar o status do pedido.");
       } finally {
         pendingStatusUpdatesRef.current.delete(id);
       }
