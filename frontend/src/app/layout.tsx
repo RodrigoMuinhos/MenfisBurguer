@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/logo_M.jpeg",
+        url: "/logo_M.jpeg?v=20260623",
         sizes: "180x180",
         type: "image/jpeg",
       },
     ],
     apple: [
       {
-        url: "/logo_M.jpeg",
+        url: "/logo_M.jpeg?v=20260623",
         sizes: "180x180",
         type: "image/jpeg",
       },
