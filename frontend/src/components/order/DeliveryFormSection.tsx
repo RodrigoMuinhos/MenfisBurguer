@@ -71,6 +71,21 @@ export function DeliveryFormSection({
   scheduleTimes: string[];
   inputStyle: (err?: boolean) => React.CSSProperties;
 }) {
+  const scheduleCopy =
+    delivery === "retirada"
+      ? {
+          label: "Horario de retirada",
+          opening: "Retirar assim que abrir (18:30)",
+          scheduled: "Agendar retirada",
+          help: "Pedido agendado: sua solicitacao fica reservada e a retirada sera preparada no horario escolhido.",
+        }
+      : {
+          label: "Horario de entrega",
+          opening: "Entregar assim que abrir (18:30)",
+          scheduled: "Agendar horario",
+          help: "Pedido agendado: sua solicitacao fica reservada e entra na fila de preparo no horario escolhido.",
+        };
+
   return (
     <>
               {/* ── Formulário delivery ── */}
@@ -84,7 +99,7 @@ export function DeliveryFormSection({
                   >
                     {/* Header do form */}
                     <div className="flex items-center justify-between">
-                      <SectionLabel>Dados de entrega</SectionLabel>
+                      <SectionLabel>{delivery === "retirada" ? "Dados da retirada" : "Dados de entrega"}</SectionLabel>
                       <AnimatePresence>
                         {savedBadge && (
                           <motion.span
@@ -232,72 +247,38 @@ export function DeliveryFormSection({
                             />
                           </div>
                         </div>
-                        <div
-                          className="rounded-2xl p-4"
-                          style={{
-                            background: "#fff",
-                            border: `1.5px solid ${ROSA}`,
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <CalendarClock size={17} strokeWidth={2.4} style={{ color: VERDE }} />
-                            <SectionLabel>Horario de entrega</SectionLabel>
-                          </div>
-                          <div className="grid gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setDeliverySchedule("opening")}
-                              className="rounded-2xl px-4 py-3 text-left text-sm font-black"
-                              style={{
-                                background: deliverySchedule === "opening" ? VERDE : "#fff",
-                                color: deliverySchedule === "opening" ? ROSA : VERDE,
-                                border: `2px solid ${deliverySchedule === "opening" ? VERDE : ROSA}`,
-                              }}
-                            >
-                              Entregar assim que abrir (18:30)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeliverySchedule("scheduled")}
-                              className="rounded-2xl px-4 py-3 text-left text-sm font-black"
-                              style={{
-                                background: deliverySchedule === "scheduled" ? VERDE : "#fff",
-                                color: deliverySchedule === "scheduled" ? ROSA : VERDE,
-                                border: `2px solid ${deliverySchedule === "scheduled" ? VERDE : ROSA}`,
-                              }}
-                            >
-                              Agendar horario
-                            </button>
-                          </div>
-                          {deliverySchedule === "scheduled" && (
-                            <div className="mt-3 grid grid-cols-3 gap-2">
-                              {scheduleTimes.map((time) => {
-                                const active = scheduledTime === time;
-                                return (
-                                  <button
-                                    key={time}
-                                    type="button"
-                                    onClick={() => setScheduledTime(time)}
-                                    className="h-11 rounded-xl text-sm font-black"
-                                    style={{
-                                      background: active ? VERDE : `${ROSA}45`,
-                                      color: active ? ROSA : VERDE,
-                                      border: `1.5px solid ${active ? VERDE : `${VERDE}12`}`,
-                                    }}
-                                  >
-                                    {time}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                          <p className="mt-3 text-[11px] font-bold leading-relaxed opacity-65">
-                            Pedido agendado: sua solicitacao fica reservada e entra
-                            na fila de preparo no horario escolhido.
-                          </p>
-                        </div>
                       </>
                     )}
+
+                    {delivery === "retirada" && (
+                      <div
+                        className="rounded-2xl p-4"
+                        style={{
+                          background: "#fff",
+                          border: `1px solid ${VERDE}14`,
+                          color: VERDE,
+                        }}
+                      >
+                        <p className="text-xs font-black uppercase tracking-wide">
+                          Endereco para retirada
+                        </p>
+                        <p className="mt-1 text-sm font-bold">
+                          Rua Tiburcio Cavalcanti, 1952 - Meireles
+                        </p>
+                        <p className="mt-1 text-[11px] opacity-60">
+                          Nao ha taxa de entrega para retirada.
+                        </p>
+                      </div>
+                    )}
+
+                    <ScheduleSelector
+                      deliverySchedule={deliverySchedule}
+                      setDeliverySchedule={setDeliverySchedule}
+                      scheduledTime={scheduledTime}
+                      setScheduledTime={setScheduledTime}
+                      scheduleTimes={scheduleTimes}
+                      copy={scheduleCopy}
+                    />
       
                     {/* WhatsApp */}
                     <div>
@@ -326,5 +307,87 @@ export function DeliveryFormSection({
               </AnimatePresence>
       
     </>
+  );
+}
+
+function ScheduleSelector({
+  deliverySchedule,
+  setDeliverySchedule,
+  scheduledTime,
+  setScheduledTime,
+  scheduleTimes,
+  copy,
+}: {
+  deliverySchedule: "opening" | "scheduled";
+  setDeliverySchedule: (value: "opening" | "scheduled") => void;
+  scheduledTime: string;
+  setScheduledTime: (value: string) => void;
+  scheduleTimes: string[];
+  copy: { label: string; opening: string; scheduled: string; help: string };
+}) {
+  return (
+    <div
+      className="rounded-2xl p-4"
+      style={{
+        background: "#fff",
+        border: `1.5px solid ${ROSA}`,
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <CalendarClock size={17} strokeWidth={2.4} style={{ color: VERDE }} />
+        <SectionLabel>{copy.label}</SectionLabel>
+      </div>
+      <div className="grid gap-2">
+        <button
+          type="button"
+          onClick={() => setDeliverySchedule("opening")}
+          className="rounded-2xl px-4 py-3 text-left text-sm font-black"
+          style={{
+            background: deliverySchedule === "opening" ? VERDE : "#fff",
+            color: deliverySchedule === "opening" ? ROSA : VERDE,
+            border: `2px solid ${deliverySchedule === "opening" ? VERDE : ROSA}`,
+          }}
+        >
+          {copy.opening}
+        </button>
+        <button
+          type="button"
+          onClick={() => setDeliverySchedule("scheduled")}
+          className="rounded-2xl px-4 py-3 text-left text-sm font-black"
+          style={{
+            background: deliverySchedule === "scheduled" ? VERDE : "#fff",
+            color: deliverySchedule === "scheduled" ? ROSA : VERDE,
+            border: `2px solid ${deliverySchedule === "scheduled" ? VERDE : ROSA}`,
+          }}
+        >
+          {copy.scheduled}
+        </button>
+      </div>
+      {deliverySchedule === "scheduled" && (
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {scheduleTimes.map((time) => {
+            const active = scheduledTime === time;
+            return (
+              <button
+                key={time}
+                type="button"
+                onClick={() => setScheduledTime(time)}
+                className="h-11 rounded-xl text-sm font-black"
+                style={{
+                  background: active ? VERDE : `${ROSA}45`,
+                  color: active ? ROSA : VERDE,
+                  border: `1.5px solid ${active ? VERDE : `${VERDE}12`}`,
+                }}
+              >
+                {time}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <p className="mt-3 text-[11px] font-bold leading-relaxed opacity-65">
+        {copy.help}
+      </p>
+    </div>
   );
 }

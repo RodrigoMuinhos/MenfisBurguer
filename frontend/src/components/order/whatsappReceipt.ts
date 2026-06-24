@@ -22,6 +22,7 @@ type ReceiptInput = {
   subtotal?: number;
   deliveryFee?: number;
   serviceFee?: number;
+  couponCode?: string;
   discount?: number;
   total: number;
   paymentMethod?: PaymentMethod;
@@ -55,6 +56,7 @@ export function buildWhatsappReceipt(input: ReceiptInput) {
   const deliveryFee = input.deliveryFee ?? 0;
   const serviceFee = input.serviceFee ?? 0;
   const discount = input.discount ?? 0;
+  const couponCode = input.couponCode?.trim();
 
   return [
     LINE,
@@ -71,6 +73,7 @@ export function buildWhatsappReceipt(input: ReceiptInput) {
     `ITENS                 ${fmt(subtotal)}`,
     ...(deliveryFee > 0 ? [`ENTREGA               ${fmt(deliveryFee)}`] : []),
     ...(serviceFee > 0 ? [`SERVICO               ${fmt(serviceFee)}`] : []),
+    ...(discount > 0 && couponCode ? [`CUPOM USADO: ${couponCode}`] : []),
     ...(discount > 0 ? [`DESCONTO             - ${fmt(discount)}`] : []),
     `TOTAL FINAL           ${fmt(input.total)}`,
     "",
@@ -115,6 +118,7 @@ export function buildOrderWhatsappReceipt(order: Order) {
     subtotal,
     deliveryFee,
     serviceFee,
+    couponCode: order.couponCode,
     discount,
     total: order.total,
     paymentMethod: order.paymentMethod,

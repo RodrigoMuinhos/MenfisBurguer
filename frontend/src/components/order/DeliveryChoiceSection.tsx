@@ -38,7 +38,7 @@ export function DeliveryChoiceSection({
       copy: string;
       Icon: ElementType;
     }[]
-  ).filter(({ id }) => id === "delivery" && ALLOWED_DELIVERY_TYPES.includes(id));
+  ).filter(({ id }) => ALLOWED_DELIVERY_TYPES.includes(id));
 
   return (
     <div>

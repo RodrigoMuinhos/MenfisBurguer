@@ -1,4 +1,4 @@
-import { Loader2, MessageCircle, QrCode } from "lucide-react";
+import { Loader2, QrCode } from "lucide-react";
 import { motion } from "motion/react";
 import { CartItem } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -7,10 +7,8 @@ import {
   Coupon,
   KioskKeyboardTarget,
   PaymentMethod,
-  SUPPORT_WHATSAPP_URL,
   fmt,
 } from "./checkout";
-import { buildWhatsappReceipt } from "./whatsappReceipt";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -71,18 +69,6 @@ export function CheckoutReviewSection({
   total: number;
 }) {
   const counterFlow = kioskMode || counterServiceMode;
-  const supportText = encodeURIComponent(
-    buildWhatsappReceipt({
-      items: cart,
-      subtotal,
-      deliveryFee: fee,
-      serviceFee,
-      discount,
-      total,
-      paymentMethod: payment,
-    }),
-  );
-
   return (
     <>
       {paymentError && (
@@ -220,7 +206,7 @@ export function CheckoutReviewSection({
               </div>
             </div>
           )}
-          <div className={`mt-4 grid gap-2 ${counterFlow ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+          <div className={`mt-4 grid gap-2 ${counterFlow ? "md:grid-cols-2" : "md:grid-cols-2"}`}>
             <button
               onClick={() => setCheckoutStep("bag")}
               className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
@@ -256,22 +242,6 @@ export function CheckoutReviewSection({
               >
                 Alterar entrega
               </button>
-            )}
-            {!counterFlow && (
-              <a
-                href={`${SUPPORT_WHATSAPP_URL}?text=${supportText}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wide"
-                style={{
-                  background: "#fff",
-                  color: VERDE,
-                  border: `1px solid ${VERDE}24`,
-                }}
-              >
-                <MessageCircle size={15} strokeWidth={2.4} />
-                WhatsApp
-              </a>
             )}
           </div>
         </div>

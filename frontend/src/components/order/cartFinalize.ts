@@ -27,6 +27,7 @@ function buildPendingCreatedOrder({
   payment,
   paymentProvider,
   paymentStatus,
+  couponOrderFields = {},
 }: {
   createdOrder: Record<string, unknown>;
   cart: CartItem[];
@@ -39,6 +40,7 @@ function buildPendingCreatedOrder({
   payment: PaymentMethod;
   paymentProvider?: string;
   paymentStatus?: string;
+  couponOrderFields?: Partial<Order>;
 }): Order {
   return buildLocalCreatedOrder({
     createdOrder,
@@ -50,6 +52,7 @@ function buildPendingCreatedOrder({
     address,
     total,
     overrides: {
+      ...couponOrderFields,
       paymentProvider,
       paymentMethod: payment,
       paymentStatus: String(paymentStatus ?? createdOrder.paymentStatus ?? "pending"),
@@ -157,6 +160,12 @@ export async function submitCheckoutOrder({
       : payment === "pix_qrcode"
         ? "PIX"
         : payment.toUpperCase();
+  const couponOrderFields: Partial<Order> =
+    appliedCoupon && discount > 0
+      ? { couponCode: appliedCoupon.code, discountTotal: discount }
+      : discount > 0
+        ? { discountTotal: discount }
+        : {};
   const orderFingerprint = [
     phone.replace(/\D/g, ""),
     address.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim(),
@@ -217,6 +226,7 @@ export async function submitCheckoutOrder({
         address,
         total,
         overrides: {
+          ...couponOrderFields,
           channel: "KIOSK",
           deliveryType: "retirada",
           paymentMethod: counterServiceMode
@@ -281,6 +291,7 @@ export async function submitCheckoutOrder({
         address,
         total,
         overrides: {
+          ...couponOrderFields,
           channel: effectiveDelivery === "retirada" ? "KIOSK" : "DELIVERY",
           paymentMethod: "presencial",
           paymentStatus: "awaiting_counter",
@@ -301,6 +312,7 @@ export async function submitCheckoutOrder({
         address,
         total,
         overrides: {
+          ...couponOrderFields,
           channel: "DELIVERY",
           paymentMethod: "pagar_na_entrega",
           paymentStatus: "awaiting_delivery",
@@ -321,6 +333,7 @@ export async function submitCheckoutOrder({
         address,
         total,
         overrides: {
+          ...couponOrderFields,
           channel: "DELIVERY",
           paymentMethod: "whatsapp",
           paymentStatus: "awaiting_whatsapp",
@@ -348,6 +361,7 @@ export async function submitCheckoutOrder({
           address,
           total,
           overrides: {
+            ...couponOrderFields,
             channel: "DELIVERY",
             paymentProvider: "menfis_pix",
             paymentMethod: "pix",
@@ -386,6 +400,7 @@ export async function submitCheckoutOrder({
           address,
           total,
           overrides: {
+            ...couponOrderFields,
             channel: "DELIVERY",
             paymentProvider: "mercado_pago",
             paymentMethod: payment === "pix_qrcode" ? "pix_qrcode" : "pix",
@@ -437,6 +452,7 @@ export async function submitCheckoutOrder({
           payment,
           paymentProvider: "mercado_pago",
           paymentStatus: String(data?.status ?? createdOrder.paymentStatus ?? "pending"),
+          couponOrderFields,
         }),
       );
       return;

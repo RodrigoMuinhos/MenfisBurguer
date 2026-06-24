@@ -195,7 +195,6 @@ export function useCartCheckout({
 
   useEffect(() => {
     if (kioskMode || counterServiceMode) return;
-    setDelivery("delivery");
     setPayment((current) =>
       current === "pix" ||
       current === "cartao" ||
@@ -287,7 +286,7 @@ export function useCartCheckout({
     });
 
   const effectiveDelivery = resolveRuntimeDeliveryType(
-    kioskMode || counterServiceMode ? "retirada" : "delivery",
+    kioskMode || counterServiceMode ? "retirada" : delivery,
   );
   const pricing = buildCheckoutPricing({
     items: cart,
@@ -415,7 +414,12 @@ export function useCartCheckout({
 
   const getCustomerAddress = () =>
     effectiveDelivery === "retirada"
-      ? `Retirada na loja - ${PICKUP_ADDRESS}`
+      ? [
+          deliverySchedule === "scheduled"
+            ? `RETIRADA AGENDADA: cliente passa as ${scheduledTime}.`
+            : "RETIRADA AGENDADA: cliente passa assim que abrir as 18:30.",
+          `Retirada na loja - ${PICKUP_ADDRESS}`,
+        ].join("\n")
       : [
           deliverySchedule === "scheduled"
             ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
