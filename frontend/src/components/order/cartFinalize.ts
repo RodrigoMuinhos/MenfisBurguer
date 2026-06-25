@@ -176,6 +176,8 @@ export async function submitCheckoutOrder({
     if (!API_URL) {
       throw new Error("api_url_missing");
     }
+    const whatsappReceiptWindow =
+      !kioskMode && !counterServiceMode ? reserveWhatsappReceiptWindow() : null;
     setPaying(true);
     setPaymentSlow(false);
     slowTimer = window.setTimeout(() => setPaymentSlow(true), 3500);
@@ -281,7 +283,7 @@ export async function submitCheckoutOrder({
     }
 
     if (payment === "presencial") {
-      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, buildLocalCreatedOrder({
+      const presencialOrder = buildLocalCreatedOrder({
         createdOrder,
         cart,
         removedByItemId,
@@ -297,12 +299,14 @@ export async function submitCheckoutOrder({
           paymentStatus: "awaiting_counter",
           status: "PAID",
         },
-      }));
+      });
+      sendWhatsappReceipt(presencialOrder, whatsappReceiptWindow);
+      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, presencialOrder);
       return;
     }
 
     if (payment === "pagar_na_entrega") {
-      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, buildLocalCreatedOrder({
+      const payOnDeliveryOrder = buildLocalCreatedOrder({
         createdOrder,
         cart,
         removedByItemId,
@@ -318,7 +322,9 @@ export async function submitCheckoutOrder({
           paymentStatus: "awaiting_delivery",
           status: "PAID",
         },
-      }));
+      });
+      sendWhatsappReceipt(payOnDeliveryOrder, whatsappReceiptWindow);
+      await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, payOnDeliveryOrder);
       return;
     }
 
@@ -340,36 +346,38 @@ export async function submitCheckoutOrder({
           status: "PAYMENT_PENDING",
         },
       });
-      openWhatsappReceipt(whatsappOrder);
+      sendWhatsappReceipt(whatsappOrder, whatsappReceiptWindow);
       await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
       return;
     }
 
     if (payment === "pix") {
+      const pixOrder = buildLocalCreatedOrder({
+        createdOrder,
+        cart,
+        removedByItemId,
+        effectiveDelivery,
+        customerName,
+        phone,
+        address,
+        total,
+        overrides: {
+          ...couponOrderFields,
+          channel: "DELIVERY",
+          paymentProvider: "menfis_pix",
+          paymentMethod: "pix",
+          paymentStatus: "awaiting_direct_pix",
+          pixQrCode: KIOSK_PIX_CODE,
+          status: "PAYMENT_PENDING",
+        },
+      });
+      sendWhatsappReceipt(pixOrder, whatsappReceiptWindow);
       await onPlaceOrder(
         effectiveDelivery,
         phone || undefined,
         address,
         removedByItemId,
-        buildLocalCreatedOrder({
-          createdOrder,
-          cart,
-          removedByItemId,
-          effectiveDelivery,
-          customerName,
-          phone,
-          address,
-          total,
-          overrides: {
-            ...couponOrderFields,
-            channel: "DELIVERY",
-            paymentProvider: "menfis_pix",
-            paymentMethod: "pix",
-            paymentStatus: "awaiting_direct_pix",
-            pixQrCode: KIOSK_PIX_CODE,
-            status: "PAYMENT_PENDING",
-          },
-        }),
+        pixOrder,
       );
       return;
     }
@@ -385,44 +393,46 @@ export async function submitCheckoutOrder({
       payment === "pix_qrcode" &&
       (data?.qrCode || data?.qrCodeBase64 || data?.ticketUrl)
     ) {
+      const pixQrCodeOrder = buildLocalCreatedOrder({
+        createdOrder,
+        cart,
+        removedByItemId,
+        effectiveDelivery,
+        customerName,
+        phone,
+        address,
+        total,
+        overrides: {
+          ...couponOrderFields,
+          channel: "DELIVERY",
+          paymentProvider: "mercado_pago",
+          paymentMethod: payment === "pix_qrcode" ? "pix_qrcode" : "pix",
+          paymentStatus: String(
+            data.status ?? createdOrder.paymentStatus ?? "action_required",
+          ),
+          paymentId: String(
+            data.paymentId ??
+              data.mercadoPagoOrderId ??
+              createdOrder.paymentId ??
+              "",
+          ),
+          pixQrCode: typeof data.qrCode === "string" ? data.qrCode : undefined,
+          pixQrCodeBase64:
+            typeof data.qrCodeBase64 === "string"
+              ? data.qrCodeBase64
+              : undefined,
+          pixTicketUrl:
+            typeof data.ticketUrl === "string" ? data.ticketUrl : undefined,
+          status: "PAYMENT_PENDING",
+        },
+      });
+      sendWhatsappReceipt(pixQrCodeOrder, whatsappReceiptWindow);
       await onPlaceOrder(
         effectiveDelivery,
         phone || undefined,
         address,
         removedByItemId,
-        buildLocalCreatedOrder({
-          createdOrder,
-          cart,
-          removedByItemId,
-          effectiveDelivery,
-          customerName,
-          phone,
-          address,
-          total,
-          overrides: {
-            ...couponOrderFields,
-            channel: "DELIVERY",
-            paymentProvider: "mercado_pago",
-            paymentMethod: payment === "pix_qrcode" ? "pix_qrcode" : "pix",
-            paymentStatus: String(
-              data.status ?? createdOrder.paymentStatus ?? "action_required",
-            ),
-            paymentId: String(
-              data.paymentId ??
-                data.mercadoPagoOrderId ??
-                createdOrder.paymentId ??
-                "",
-            ),
-            pixQrCode: typeof data.qrCode === "string" ? data.qrCode : undefined,
-            pixQrCodeBase64:
-              typeof data.qrCodeBase64 === "string"
-                ? data.qrCodeBase64
-                : undefined,
-            pixTicketUrl:
-              typeof data.ticketUrl === "string" ? data.ticketUrl : undefined,
-            status: "PAYMENT_PENDING",
-          },
-        }),
+        pixQrCodeOrder,
       );
       return;
     }
@@ -435,29 +445,48 @@ export async function submitCheckoutOrder({
           : "";
 
     if (!paymentRes.ok || !checkoutUrl) {
+      const pendingOrder = buildPendingCreatedOrder({
+        createdOrder,
+        cart,
+        removedByItemId,
+        effectiveDelivery,
+        customerName,
+        phone,
+        address,
+        total,
+        payment,
+        paymentProvider: "mercado_pago",
+        paymentStatus: String(data?.status ?? createdOrder.paymentStatus ?? "pending"),
+        couponOrderFields,
+      });
+      sendWhatsappReceipt(pendingOrder, whatsappReceiptWindow);
       await onPlaceOrder(
         effectiveDelivery,
         phone || undefined,
         address,
         removedByItemId,
-        buildPendingCreatedOrder({
-          createdOrder,
-          cart,
-          removedByItemId,
-          effectiveDelivery,
-          customerName,
-          phone,
-          address,
-          total,
-          payment,
-          paymentProvider: "mercado_pago",
-          paymentStatus: String(data?.status ?? createdOrder.paymentStatus ?? "pending"),
-          couponOrderFields,
-        }),
+        pendingOrder,
       );
       return;
     }
 
+    sendWhatsappReceipt(
+      buildPendingCreatedOrder({
+        createdOrder,
+        cart,
+        removedByItemId,
+        effectiveDelivery,
+        customerName,
+        phone,
+        address,
+        total,
+        payment,
+        paymentProvider: "mercado_pago",
+        paymentStatus: String(data?.status ?? createdOrder.paymentStatus ?? "pending"),
+        couponOrderFields,
+      }),
+      whatsappReceiptWindow,
+    );
     localStorage.setItem("menfis_pending_order_id", String(createdOrder.id));
     window.location.assign(checkoutUrl);
   } catch (error) {
@@ -488,11 +517,27 @@ export async function submitCheckoutOrder({
   }
 }
 
-function openWhatsappReceipt(order: Order) {
+function reserveWhatsappReceiptWindow() {
+  try {
+    const receiptWindow = window.open("about:blank", "_blank");
+    if (!receiptWindow) return null;
+    receiptWindow.document.write(
+      "<!doctype html><title>Enviando pedido</title><body style=\"font-family:Arial,sans-serif;padding:24px\">Abrindo WhatsApp com a guia do pedido...</body>",
+    );
+    receiptWindow.document.close();
+    receiptWindow.opener = null;
+    return receiptWindow;
+  } catch {
+    return null;
+  }
+}
+
+function sendWhatsappReceipt(order: Order, receiptWindow?: Window | null) {
   const text = buildOrderWhatsappReceipt(order);
-  window.open(
-    `${SUPPORT_WHATSAPP_URL}?text=${encodeURIComponent(text)}`,
-    "_blank",
-    "noopener,noreferrer",
-  );
+  const url = `${SUPPORT_WHATSAPP_URL}?text=${encodeURIComponent(text)}`;
+  if (receiptWindow && !receiptWindow.closed) {
+    receiptWindow.location.href = url;
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
 }
