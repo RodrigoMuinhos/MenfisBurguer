@@ -114,16 +114,13 @@ export function useCartCheckout({
   const [couponError, setCouponError] = useState("");
 
   const saved = kioskMode ? {} : loadSaved();
-  const [cep, setCep] = useState<string>(saved.cep ?? "");
-  const [street, setStreet] = useState<string>(
-    saved.street || "",
-  );
-  const [number, setNumber] = useState<string>(
-    saved.number ?? "",
-  );
-  const [complement, setComplement] = useState<string>(
-    saved.complement ?? "",
-  );
+  const [cep, setCep] = useState<string>("");
+  const [street, setStreet] = useState<string>("");
+  const [number, setNumber] = useState<string>("");
+  const [complement, setComplement] = useState<string>("");
+  const [addressConfirmOpen, setAddressConfirmOpen] = useState(false);
+  const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const [confirmedDeliveryAddress, setConfirmedDeliveryAddress] = useState("");
   const [customerName, setCustomerName] = useState<string>(
     counterServiceMode ? "KIOSK-MOB" : memberProfile?.name ?? "",
   );
@@ -252,15 +249,20 @@ export function useCartCheckout({
       setSavedBadge(false);
       return;
     }
-    if (!cep && !phone) return;
+    if (!phone && !customerName) return;
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ cep, street, number, complement, phone, customerName }),
+      JSON.stringify({ phone, customerName }),
     );
     setSavedBadge(true);
     const timer = setTimeout(() => setSavedBadge(false), 2000);
     return () => clearTimeout(timer);
-  }, [cep, street, number, complement, phone, customerName, kioskMode]);
+  }, [phone, customerName, kioskMode]);
+
+  useEffect(() => {
+    setAddressConfirmed(false);
+    setConfirmedDeliveryAddress("");
+  }, [cep, street, number, complement, delivery, deliverySchedule, scheduledTime]);
 
   useEffect(() => {
     const nums = cep.replace(/\D/g, "");
@@ -432,15 +434,45 @@ export function useCartCheckout({
             : "RETIRADA AGENDADA: cliente passa assim que abrir as 18:30.",
           `Retirada na loja - ${PICKUP_ADDRESS}`,
         ].join("\n")
-      : [
+      : confirmedDeliveryAddress || [
           deliverySchedule === "scheduled"
             ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
             : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30.",
           formatDeliveryAddress({ street, number, complement }),
         ].join("\n");
 
+  const deliveryAddressRequiresConfirmation = effectiveDelivery === "delivery";
+
+  const currentDeliveryAddress = [
+    deliverySchedule === "scheduled"
+      ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
+      : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30.",
+    formatDeliveryAddress({ street, number, complement }),
+  ].join("\n");
+
+  const confirmDeliveryAddress = () => {
+    if (!deliveryValid || !deliveryAddressRequiresConfirmation) return;
+    setConfirmedDeliveryAddress(currentDeliveryAddress);
+    setAddressConfirmed(true);
+    setAddressConfirmOpen(false);
+    closeKioskKeyboard();
+    setCheckoutStep("review");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const editDeliveryAddress = () => {
+    setAddressConfirmOpen(false);
+    setCheckoutStep("delivery");
+    window.setTimeout(() => streetRef.current?.focus(), 150);
+  };
+
   const submitSelectedPayment = async (selectedPayment: PaymentMethod) => {
     if (paying || !deliveryValid) return;
+    if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
+      setAddressConfirmOpen(true);
+      setCheckoutStep("delivery");
+      return;
+    }
     if (soldOutEnabled && !kioskMode && !counterServiceMode) {
       setPaymentError("");
       setSoldOutAlertOpen(true);
@@ -529,6 +561,10 @@ export function useCartCheckout({
         focusFirstMissingDeliveryField();
         return;
       }
+      if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
+        setAddressConfirmOpen(true);
+        return;
+      }
       closeKioskKeyboard();
       setCheckoutStep("review");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -575,6 +611,11 @@ export function useCartCheckout({
     }
 
     if (checkoutStep === "review" && !kioskMode && !counterServiceMode) {
+      if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
+        setAddressConfirmOpen(true);
+        setCheckoutStep("delivery");
+        return;
+      }
       closeKioskKeyboard();
       setCheckoutStep("payment");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -693,6 +734,9 @@ export function useCartCheckout({
 
   return {
     appliedCoupon,
+    addressConfirmOpen,
+    addressConfirmed,
+    currentDeliveryAddress,
     applyCoupon,
     backspaceKioskKey,
     cep,
@@ -706,6 +750,7 @@ export function useCartCheckout({
       "Assim que abrirmos, você será informado e poderá finalizar seu pedido.",
     closeClosedHoursAlert: () => setClosedHoursAlertOpen(false),
     closeSoldOutAlert: () => setSoldOutAlertOpen(false),
+    confirmDeliveryAddress,
     clearCart,
     clearKioskKey,
     complement,
@@ -718,6 +763,7 @@ export function useCartCheckout({
     delivery,
     deliverySchedule,
     deliveryValid,
+    editDeliveryAddress,
     discount,
     fee,
     handleBack,

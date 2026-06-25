@@ -18,7 +18,7 @@ import { CheckoutReviewSection } from "./CheckoutReviewSection";
 import { useCartCheckout } from "./useCartCheckout";
 import { CartBagStepSection } from "./CartBagStepSection";
 import { DeliveryChoiceSection } from "./DeliveryChoiceSection";
-import { CheckoutStep, maskPhone } from "./checkout";
+import { CheckoutStep, fmt, maskPhone } from "./checkout";
 import { MEMBER_TOKEN_KEY, MemberProfile, readMemberProfile } from "@/components/product/shared";
 import { loginCustomerSession, saveCustomerSession } from "@/services/customerSession";
 import { SoldOutAlertModal } from "@/components/product/SoldOutNotice";
@@ -64,6 +64,8 @@ export function CartScreen({
   const [memberSaving, setMemberSaving] = useState(false);
   const {
     appliedCoupon,
+    addressConfirmOpen,
+    currentDeliveryAddress,
     applyCoupon,
     backspaceKioskKey,
     cep,
@@ -75,6 +77,7 @@ export function CartScreen({
     closedHoursAlertOpen,
     closeClosedHoursAlert,
     closeSoldOutAlert,
+    confirmDeliveryAddress,
     clearCart,
     closeKioskKeyboard,
     clearKioskKey,
@@ -88,6 +91,7 @@ export function CartScreen({
     delivery,
     deliverySchedule,
     deliveryValid,
+    editDeliveryAddress,
     discount,
     fee,
     handleBack,
@@ -407,6 +411,14 @@ export function CartScreen({
           onClose={closeSoldOutAlert}
         />
       )}
+      {addressConfirmOpen && (
+        <DeliveryAddressConfirmModal
+          address={currentDeliveryAddress}
+          fee={fee}
+          onConfirm={confirmDeliveryAddress}
+          onEdit={editDeliveryAddress}
+        />
+      )}
       {checkoutStep === "delivery" && !profileReady && (
         <CheckoutProfileGate
           mode={memberAuthMode}
@@ -450,6 +462,71 @@ export function CartScreen({
         onFinalize={handleFinalize}
       />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+function DeliveryAddressConfirmModal({
+  address,
+  fee,
+  onConfirm,
+  onEdit,
+}: {
+  address: string;
+  fee: number;
+  onConfirm: () => void;
+  onEdit: () => void;
+}) {
+  const addressLines = address.split("\n").map((line) => line.trim()).filter(Boolean);
+  return (
+    <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/60 px-3 py-3 sm:items-center sm:p-4">
+      <section
+        className="w-full max-w-md rounded-[24px] bg-white p-5 shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="address-confirm-title"
+        style={{ color: VERDE }}
+      >
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/40">
+          Endereço crítico
+        </p>
+        <h2 id="address-confirm-title" className="mt-2 text-2xl font-black">
+          Confirme seu endereço de entrega
+        </h2>
+        <p className="mt-2 text-sm font-bold leading-relaxed text-black/60">
+          Antes de seguir para o pagamento, confira se o endereço abaixo está correto.
+          Seu pedido será entregue exatamente neste local.
+        </p>
+        <div
+          className="mt-4 rounded-2xl p-4 text-sm font-black leading-relaxed"
+          style={{ background: `${ROSA}30`, border: `1.5px solid ${ROSA}` }}
+        >
+          {addressLines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+          <p className="mt-3 border-t pt-3" style={{ borderColor: ROSA }}>
+            Taxa de entrega: {fee > 0 ? fmt(fee) : "Sem taxa"}
+          </p>
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="min-h-12 rounded-2xl px-4 text-sm font-black uppercase tracking-wide"
+            style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}` }}
+          >
+            Editar endereço
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="min-h-12 rounded-2xl px-4 text-sm font-black uppercase tracking-wide"
+            style={{ background: VERDE, color: ROSA }}
+          >
+            Confirmar e continuar
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

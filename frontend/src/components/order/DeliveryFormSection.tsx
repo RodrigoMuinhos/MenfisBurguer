@@ -156,6 +156,7 @@ export function DeliveryFormSection({
                               value={cep}
                               onChange={(e) => setCep(maskCEP(e.target.value))}
                               placeholder="00000-000"
+                              autoComplete="postal-code"
                               style={inputStyle(
                                 cepError ||
                                   (submitAttempted && invalidDeliveryFields.cep),
@@ -224,6 +225,7 @@ export function DeliveryFormSection({
                             value={street}
                             onChange={(e) => setStreet(e.target.value)}
                             placeholder="Rua, bairro e cidade"
+                            autoComplete="street-address"
                             style={inputStyle(
                               submitAttempted && invalidDeliveryFields.street,
                             )}
@@ -250,6 +252,7 @@ export function DeliveryFormSection({
                               value={number}
                               onChange={(e) => setNumber(e.target.value)}
                               placeholder="Ex: 42"
+                              autoComplete="address-line2"
                               style={inputStyle(
                                 submitAttempted && invalidDeliveryFields.number,
                               )}
@@ -272,6 +275,7 @@ export function DeliveryFormSection({
                               value={complement}
                               onChange={(e) => setComplement(e.target.value)}
                               placeholder="Apto, bloco..."
+                              autoComplete="address-line3"
                               style={inputStyle()}
                             />
                           </div>
@@ -317,6 +321,7 @@ export function DeliveryFormSection({
                         value={phone}
                         onChange={(e) => setPhone(maskPhone(e.target.value))}
                         placeholder="(00) 00000-0000"
+                        autoComplete="tel"
                         style={inputStyle(
                           submitAttempted && invalidDeliveryFields.phone,
                         )}
