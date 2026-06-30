@@ -37,7 +37,7 @@ export function SplashScreen({ onStart }: { onStart: () => void }) {
     >
       <motion.video
         ref={videoRef}
-        src="/abertura.mp4?v=20260623"
+        src="/abertura.mp4?v=20260630"
         autoPlay
         muted
         playsInline
