@@ -86,7 +86,7 @@ export const ITEM_DESC: Record<string, string> = {
   "agua-com-gas": "Água com gás gelada",
 };
 
-export const deliveryEta = "25-45 min";
+export const deliveryEta = "35-50 min";
 export const PICKUP_ADDRESS = "Rua Doutor Gilberto Studart, 728";
 export const DELIVERY_FEE = 7.1;
 export const SERVICE_FEE = 0.99;

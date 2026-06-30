@@ -105,7 +105,7 @@ public class SupportService {
       """
       insert into support_tickets(order_id, type, reason, message, customer_phone)
       select o.id, 'ORDER_DELAYED', 'Pedido passou do prazo estimado',
-        'Ticket automático: pedido ainda não entregue após 50 minutos.', o.customer_phone
+        'Ticket automático: pedido ainda não entregue dentro do prazo de 35-50 minutos.', o.customer_phone
       from orders o
       where o.created_at < now() - interval '50 minutes'
         and o.status in ('PAID', 'ACCEPTED', 'IN_PREPARATION', 'READY', 'OUT_FOR_DELIVERY')

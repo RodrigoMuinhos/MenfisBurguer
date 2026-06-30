@@ -163,7 +163,7 @@ export function SupportView({
                       className="rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-wider"
                       style={{ background: VERDE, color: ROSA, border: "none" }}
                     >
-                      Resolver
+                      Resolvido
                     </motion.button>
                   )}
                 </div>

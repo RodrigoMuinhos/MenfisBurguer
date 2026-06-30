@@ -249,7 +249,7 @@ export function MobileMenuExperience({
           />
           <TopTrustItem
             icon={Timer}
-            title="30-35 min"
+            title="35-50 min"
             subtitle="entrega media"
           />
         </div>
