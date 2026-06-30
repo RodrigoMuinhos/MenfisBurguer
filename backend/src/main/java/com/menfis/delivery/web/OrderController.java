@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping({"/orders", "/api/orders"})
 public class OrderController {
   private final OrderService orders;
   private final OrderEventService events;
@@ -65,6 +65,14 @@ public class OrderController {
   @GetMapping("/{id}/status")
   public StatusResponse status(@PathVariable String id) {
     return orders.status(id);
+  }
+
+  @PostMapping("/{id}/approve-payment")
+  public OrderResponse approvePayment(
+      @PathVariable String id,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return orders.approvePayment(id, "admin");
   }
 
   @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

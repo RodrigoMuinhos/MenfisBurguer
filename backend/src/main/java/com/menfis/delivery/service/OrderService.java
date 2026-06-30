@@ -11,6 +11,7 @@ import com.menfis.delivery.dto.ApiDtos.CreateOrderRequest;
 import com.menfis.delivery.dto.ApiDtos.OrderItemRequest;
 import com.menfis.delivery.dto.ApiDtos.OrderResponse;
 import com.menfis.delivery.dto.ApiDtos.StatusResponse;
+import com.menfis.delivery.messaging.OrderEventPublisher;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
@@ -25,6 +26,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class OrderService {
@@ -37,14 +40,23 @@ public class OrderService {
   private final OrderEventService events;
   private final SettingsService settings;
   private final CustomerService customers;
+  private final OrderEventPublisher orderPublisher;
 
-  public OrderService(JdbcTemplate jdbc, ObjectMapper mapper, AuditService audit, OrderEventService events, SettingsService settings, CustomerService customers) {
+  public OrderService(
+      JdbcTemplate jdbc,
+      ObjectMapper mapper,
+      AuditService audit,
+      OrderEventService events,
+      SettingsService settings,
+      CustomerService customers,
+      OrderEventPublisher orderPublisher) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.audit = audit;
     this.events = events;
     this.settings = settings;
     this.customers = customers;
+    this.orderPublisher = orderPublisher;
   }
 
   @Transactional
@@ -242,7 +254,7 @@ public class OrderService {
       id
     );
     OrderStatus status = OrderStatus.valueOf(String.valueOf(current.get("status")));
-    if (!(status == OrderStatus.PAYMENT_PENDING || status == OrderStatus.PAYMENT_PROOF_PENDING || status == OrderStatus.PAID || status == OrderStatus.ACCEPTED)) {
+    if (!(status == OrderStatus.PAYMENT_PENDING || status == OrderStatus.PAYMENT_PROOF_PENDING || status == OrderStatus.PAYMENT_APPROVED || status == OrderStatus.PAID || status == OrderStatus.ACCEPTED)) {
       throw new IllegalArgumentException("order_items_not_editable_in_status:" + status.name());
     }
 
@@ -435,9 +447,9 @@ public class OrderService {
     jdbc.update(
       """
       update orders set status = ?, updated_at = now(),
-        payment_status = case when ? in ('PAID', 'ACCEPTED', 'IN_PREPARATION') then 'approved' else payment_status end,
-        paid_at = case when ? in ('PAID', 'ACCEPTED', 'IN_PREPARATION') and paid_at is null then now() else paid_at end,
-        confirmed_at = case when ? in ('PAID', 'ACCEPTED', 'IN_PREPARATION') and confirmed_at is null then now() else confirmed_at end
+        payment_status = case when ? in ('PAYMENT_APPROVED', 'PAID', 'ACCEPTED', 'IN_PREPARATION') then 'approved' else payment_status end,
+        paid_at = case when ? in ('PAYMENT_APPROVED', 'PAID', 'ACCEPTED', 'IN_PREPARATION') and paid_at is null then now() else paid_at end,
+        confirmed_at = case when ? in ('PAYMENT_APPROVED', 'PAID', 'ACCEPTED', 'IN_PREPARATION') and confirmed_at is null then now() else confirmed_at end
       where id = ?
       """,
       toStatus.name(),
@@ -457,6 +469,9 @@ public class OrderService {
     audit.log(actor == null ? "system" : actor, "ORDER_STATUS_CHANGED", "ORDER", id, Map.of("from", from, "to", toStatus.name()));
     OrderResponse updated = get(id);
     events.publish(id, updated);
+    if (toStatus == OrderStatus.PAYMENT_APPROVED) {
+      publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
+    }
     return updated;
   }
 
@@ -480,6 +495,54 @@ public class OrderService {
   }
 
   @Transactional
+  public OrderResponse approvePayment(String orderId, String actor) {
+    Map<String, Object> row = jdbc.queryForMap(
+      "select status, channel from orders where id = ?",
+      orderId
+    );
+    OrderStatus current = OrderStatus.valueOf(String.valueOf(row.get("status")));
+    if (isKitchenOrTerminal(current)) {
+      return get(orderId);
+    }
+    if (!(current == OrderStatus.CREATED
+        || current == OrderStatus.PAYMENT_PENDING
+        || current == OrderStatus.PAYMENT_PROOF_PENDING
+        || current == OrderStatus.PAID
+        || current == OrderStatus.ACCEPTED
+        || current == OrderStatus.PAYMENT_APPROVED)) {
+      throw new IllegalArgumentException("payment_not_approvable:" + current.name());
+    }
+
+    String from = current.name();
+    jdbc.update(
+      """
+      update orders
+      set status = 'PAYMENT_APPROVED',
+          payment_status = 'approved',
+          paid_at = coalesce(paid_at, now()),
+          confirmed_at = coalesce(confirmed_at, now()),
+          updated_at = now()
+      where id = ?
+        and status not in ('IN_PREPARATION', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED')
+      """,
+      orderId
+    );
+    if (!OrderStatus.PAYMENT_APPROVED.name().equals(from)) {
+      jdbc.update(
+        "insert into order_status_history(order_id, from_status, to_status, changed_by, reason) values (?, ?, 'PAYMENT_APPROVED', ?, 'PAYMENT_APPROVED_SIMULATION')",
+        orderId,
+        from,
+        actor == null ? "admin" : actor
+      );
+    }
+    audit.log(actor == null ? "admin" : actor, "PAYMENT_APPROVED", "ORDER", orderId, Map.of("from", from));
+    OrderResponse updated = get(orderId);
+    events.publish(orderId, updated);
+    publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
+    return updated;
+  }
+
+  @Transactional
   public void markPaid(String orderId, String providerPaymentId, String providerStatus) {
     String normalized = providerStatus == null ? "unknown" : providerStatus;
     boolean approved =
@@ -495,8 +558,12 @@ public class OrderService {
       "expired".equalsIgnoreCase(normalized) ||
       "refunded".equalsIgnoreCase(normalized) ||
       "charged_back".equalsIgnoreCase(normalized);
-    OrderStatus target = approved ? OrderStatus.PAID : failed ? OrderStatus.CANCELLED : OrderStatus.PAYMENT_PENDING;
     String previous = jdbc.queryForObject("select status from orders where id = ?", String.class, orderId);
+    OrderStatus previousStatus = OrderStatus.valueOf(previous);
+    boolean alreadyInKitchenFlow = isKitchenOrTerminal(previousStatus);
+    OrderStatus target = approved
+      ? (alreadyInKitchenFlow ? previousStatus : OrderStatus.PAYMENT_APPROVED)
+      : failed && !alreadyInKitchenFlow ? OrderStatus.CANCELLED : previousStatus;
 
     jdbc.update(
       """
@@ -525,7 +592,11 @@ public class OrderService {
       orderId,
       Map.of("paymentId", providerPaymentId, "status", normalized)
     );
-    events.publish(orderId, get(orderId));
+    OrderResponse updated = get(orderId);
+    events.publish(orderId, updated);
+    if (approved && !alreadyInKitchenFlow) {
+      publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
+    }
   }
 
   private PriceResult calculate(List<OrderItemRequest> requestedItems) {
@@ -613,16 +684,40 @@ public class OrderService {
   private boolean canTransition(OrderStatus from, OrderStatus to) {
     return switch (from) {
       case CREATED -> to == OrderStatus.PAYMENT_PENDING || to == OrderStatus.CANCELLED;
-      case PAYMENT_PENDING -> to == OrderStatus.PAYMENT_PROOF_PENDING || to == OrderStatus.PAID || to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
-      case PAYMENT_PROOF_PENDING -> to == OrderStatus.PAID || to == OrderStatus.CANCELLED;
+      case PAYMENT_PENDING -> to == OrderStatus.PAYMENT_PROOF_PENDING || to == OrderStatus.PAYMENT_APPROVED || to == OrderStatus.PAID || to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
+      case PAYMENT_PROOF_PENDING -> to == OrderStatus.PAYMENT_APPROVED || to == OrderStatus.PAID || to == OrderStatus.CANCELLED;
+      case PAYMENT_APPROVED -> to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case PAID -> to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case ACCEPTED -> to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case IN_PREPARATION -> to == OrderStatus.READY || to == OrderStatus.CANCELLED;
       case READY -> to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> to == OrderStatus.DELIVERED;
-      case CANCELLED -> to == OrderStatus.PAID || to == OrderStatus.ACCEPTED;
+      case CANCELLED -> to == OrderStatus.PAYMENT_APPROVED || to == OrderStatus.PAID || to == OrderStatus.ACCEPTED;
       default -> false;
     };
+  }
+
+  private boolean isKitchenOrTerminal(OrderStatus status) {
+    return status == OrderStatus.IN_PREPARATION
+      || status == OrderStatus.READY
+      || status == OrderStatus.OUT_FOR_DELIVERY
+      || status == OrderStatus.DELIVERED
+      || status == OrderStatus.CANCELLED;
+  }
+
+  private void publishOrderPaidAfterCommit(String orderId, String origin, OffsetDateTime paidAt) {
+    OffsetDateTime effectivePaidAt = paidAt == null ? OffsetDateTime.now() : paidAt;
+    Runnable publish = () -> orderPublisher.publishOrderPaid(orderId, origin, effectivePaidAt);
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      publish.run();
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+      @Override
+      public void afterCommit() {
+        publish.run();
+      }
+    });
   }
 
   private String deliveryConfirmationCode(long number) {

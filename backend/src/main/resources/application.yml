@@ -15,6 +15,15 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:menfis}
+    password: ${RABBITMQ_PASSWORD:menfis}
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
 
 menfis:
   environment: ${MENFIS_ENVIRONMENT:${RAILWAY_ENVIRONMENT_NAME:local}}
@@ -31,6 +40,12 @@ menfis:
   whatsapp-phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:1217044968149576}
   whatsapp-business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:864066526222050}
   whatsapp-graph-api-version: ${WHATSAPP_GRAPH_API_VERSION:v20.0}
+  rabbitmq:
+    orders-exchange: ${MENFIS_ORDERS_EXCHANGE:menfis.orders.exchange}
+    kitchen-queue: ${MENFIS_KITCHEN_QUEUE:menfis.kitchen.queue}
+    kitchen-dlq: ${MENFIS_KITCHEN_DLQ:menfis.kitchen.dlq}
+    kitchen-dlx: ${MENFIS_KITCHEN_DLX:menfis.kitchen.dlx}
+    order-paid-routing-key: ${MENFIS_ORDER_PAID_ROUTING_KEY:order.paid}
 
 whatsapp:
   verify-token: ${WHATSAPP_VERIFY_TOKEN:menfis-whatsapp-token}

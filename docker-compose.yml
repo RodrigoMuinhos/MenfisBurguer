@@ -1,4 +1,40 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: menfis-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-menfis}
+      POSTGRES_USER: ${POSTGRES_USER:-menfis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-menfis}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - menfis-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-menfis} -d ${POSTGRES_DB:-menfis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: menfis-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-menfis}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-menfis}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - menfis-rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -11,12 +47,22 @@ services:
       PORT: 8080
       FRONTEND_URL: ${FRONTEND_URL:?configure FRONTEND_URL}
       BACKEND_URL: ${BACKEND_URL:?configure BACKEND_URL}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://menfis:menfis@postgres:5432/menfis}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-menfis}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-menfis}
       JAVA_OPTS: -Djava.net.preferIPv4Stack=true -Dnetworkaddress.cache.ttl=0
     dns:
       - 1.1.1.1
       - 8.8.8.8
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
@@ -41,3 +87,7 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  menfis-postgres-data:
+  menfis-rabbitmq-data:

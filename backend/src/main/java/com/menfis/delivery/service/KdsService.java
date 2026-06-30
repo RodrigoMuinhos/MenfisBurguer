@@ -23,22 +23,26 @@ public class KdsService {
   }
 
   public Map<String, List<OrderResponse>> board() {
-    List<OrderResponse> rows = jdbc.queryForList(
-      """
-      select id from orders
-      where status in ('PAID', 'ACCEPTED', 'IN_PREPARATION', 'READY')
-        and test_mode = ?
-      order by confirmed_at asc nulls last, number asc
-      """,
-      settings.testModeEnabled()
-    ).stream().map(row -> orders.get((String) row.get("id"))).toList();
+    List<OrderResponse> rows = listKitchenOrders();
 
     return Map.of(
-      "paid", rows.stream().filter(o -> o.status().equals("PAID")).toList(),
+      "paid", rows.stream().filter(o -> o.status().equals("PAYMENT_APPROVED") || o.status().equals("PAID")).toList(),
       "accepted", rows.stream().filter(o -> o.status().equals("ACCEPTED")).toList(),
       "inPreparation", rows.stream().filter(o -> o.status().equals("IN_PREPARATION")).toList(),
       "ready", rows.stream().filter(o -> o.status().equals("READY")).toList()
     );
+  }
+
+  public List<OrderResponse> listKitchenOrders() {
+    return jdbc.queryForList(
+      """
+      select id from orders
+      where status in ('PAYMENT_APPROVED', 'PAID', 'ACCEPTED', 'IN_PREPARATION', 'READY')
+        and test_mode = ?
+      order by paid_at asc nulls last, number asc
+      """,
+      settings.testModeEnabled()
+    ).stream().map(row -> orders.get((String) row.get("id"))).toList();
   }
 
   @Transactional
@@ -46,6 +50,7 @@ public class KdsService {
     OrderResponse order = orders.get(id);
     OrderStatus current = OrderStatus.valueOf(order.status());
     OrderStatus next = switch (current) {
+      case PAYMENT_APPROVED -> OrderStatus.ACCEPTED;
       case PAID -> OrderStatus.ACCEPTED;
       case ACCEPTED -> OrderStatus.IN_PREPARATION;
       case IN_PREPARATION -> OrderStatus.READY;

@@ -3,7 +3,7 @@ import { ensureOrdersSchema, getPool } from "../../../_lib/db";
 
 export const runtime = "nodejs";
 
-const VALID_STATUS = new Set(["PAYMENT_PROOF_PENDING", "PAID", "ACCEPTED", "IN_PREPARATION", "READY", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"]);
+const VALID_STATUS = new Set(["PAYMENT_PROOF_PENDING", "PAYMENT_APPROVED", "PAID", "ACCEPTED", "IN_PREPARATION", "READY", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"]);
 
 type DbOrderRow = {
   id: string;
@@ -20,7 +20,7 @@ type DbOrderRow = {
   payment_status: string;
   payment_id: string | null;
   timestamp: string | number;
-  status: "PAYMENT_PROOF_PENDING" | "PAID" | "ACCEPTED" | "IN_PREPARATION" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED";
+  status: "PAYMENT_PROOF_PENDING" | "PAYMENT_APPROVED" | "PAID" | "ACCEPTED" | "IN_PREPARATION" | "READY" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED";
 };
 
 function mapOrder(row: DbOrderRow) {
@@ -73,7 +73,7 @@ export async function PATCH(
       update orders
       set
         status = $2,
-        payment_status = case when $2 in ('PAID', 'ACCEPTED', 'IN_PREPARATION') then 'approved' else payment_status end,
+        payment_status = case when $2 in ('PAYMENT_APPROVED', 'PAID', 'ACCEPTED', 'IN_PREPARATION') then 'approved' else payment_status end,
         updated_at = now()
       where id = $1
       returning
