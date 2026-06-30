@@ -175,7 +175,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Batata Frita",
     eyebrow: "Acompanhamento",
     desc: "Porção 250g crocante, finalizada quente para acompanhar o burger.",
-    price: 15.9,
+    price: 19.9,
     image: friesPhoto,
     tags: ["250g", "Crocante"],
     category: "extra",

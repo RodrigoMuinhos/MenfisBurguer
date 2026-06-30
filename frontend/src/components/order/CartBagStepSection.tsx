@@ -96,7 +96,7 @@ export function CartBagStepSection({
           <SuggestedCard
             id="batata"
             name="Batata frita"
-            price={15.9}
+            price={19.9}
             description="Porção crocante"
             image="/EXTRAS/batata.jpg"
             qty={cart.find((item) => item.id === "batata")?.qty ?? 0}
