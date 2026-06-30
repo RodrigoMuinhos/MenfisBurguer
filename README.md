@@ -54,7 +54,7 @@ Para rodar frontend e backend em containers locais:
 ```powershell
 Copy-Item .env.docker.example .env.local
 # Edite .env.local e preencha DATABASE_URL/JWT_SECRET e tokens opcionais.
-docker compose up --build
+docker compose --env-file .env.local up --build
 ```
 
 URLs locais devem ficar apenas no arquivo `.env.local` da maquina de desenvolvimento. O frontend do container e compilado apontando para `NEXT_PUBLIC_API_URL`.

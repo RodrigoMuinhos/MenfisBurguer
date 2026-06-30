@@ -5,6 +5,7 @@
 *.env.*
 **/.env
 **/.env.*
+!.env.docker.example
 
 # Local overrides
 .env*.local

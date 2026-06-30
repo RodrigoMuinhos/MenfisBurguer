@@ -26,6 +26,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?configure NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY:-}
+        NEXT_PUBLIC_ORDER_RUNTIME_MODE: ${NEXT_PUBLIC_ORDER_RUNTIME_MODE:-delivery}
     container_name: menfis-frontend
     env_file:
       - ./frontend/.env.local
@@ -34,6 +35,7 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?configure NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_ORDER_RUNTIME_MODE: ${NEXT_PUBLIC_ORDER_RUNTIME_MODE:-delivery}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
