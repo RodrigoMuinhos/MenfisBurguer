@@ -235,7 +235,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Guaraná Zero",
     eyebrow: "Bebida",
     desc: "Guaraná zero gelado para acompanhar o pedido.",
-    price: 8.9,
+    price: 6.9,
     image: "/EXTRAS/Gurarana.jpg",
     tags: ["Zero", "Gelada"],
     category: "bebida",

@@ -27,7 +27,7 @@ import { API_URL, SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { fmt, imageSrc, MemberProfile } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
-type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon";
+type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "extras";
 
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
@@ -45,6 +45,7 @@ const MOBILE_CATEGORIES: Array<{
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "chicken", label: "Chicken", icon: Drumstick },
   { id: "bacon", label: "Bacon", icon: Utensils },
+  { id: "extras", label: "Extras", icon: Plus },
 ];
 
 const SALES_ORDER = [
@@ -101,6 +102,7 @@ function categoryMatches(item: MenuItem, category: MobileCategory) {
     );
   }
   if (category === "combo") return item.category === "combo" && !item.highlight;
+  if (category === "extras") return item.category === "extra" || item.category === "bebida";
   return false;
 }
 
@@ -172,6 +174,11 @@ export function MobileMenuExperience({
     document
       .getElementById("menfis-products")
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const openExtras = () => {
+    setCategory("extras");
+    scrollToProducts();
   };
 
   const closeClosedHoursAlert = () => {
@@ -380,6 +387,7 @@ export function MobileMenuExperience({
         onHome={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         onSearch={() => searchRef.current?.focus()}
         onOrders={goToCart}
+        onExtras={openExtras}
         onProfile={onOpenMember}
       />
       {panel === "reviews" && <ReviewsPanel onClose={() => setPanel(null)} />}
@@ -703,6 +711,7 @@ function MobileBottomNav({
   onHome,
   onSearch,
   onOrders,
+  onExtras,
   onProfile,
 }: {
   cartCount: number;
@@ -710,6 +719,7 @@ function MobileBottomNav({
   onHome: () => void;
   onSearch: () => void;
   onOrders: () => void;
+  onExtras: () => void;
   onProfile: () => void;
 }) {
   const items = [
@@ -721,6 +731,7 @@ function MobileBottomNav({
       onClick: onOrders,
       badge: cartCount,
     },
+    { label: "Extras", icon: Plus, onClick: onExtras },
     { label: "Perfil", icon: UserRound, onClick: onProfile },
   ];
   return (
