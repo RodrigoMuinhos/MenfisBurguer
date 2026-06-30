@@ -1,5 +1,28 @@
 import { Order, OrderStatus, PaymentMethod } from "@/types/order";
 
+const GUARANA_ZERO_PRICE = 6.9;
+
+function roundCurrency(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function normalizeText(value: unknown): string {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function isGuaranaZeroItem(item: any): boolean {
+  const productId = normalizeText(item.productId ?? item.id);
+  const name = normalizeText(item.name);
+  return (
+    productId === "guarana-zero" ||
+    name.includes("guarana zero") ||
+    name.includes("guarana-zero")
+  );
+}
+
 export function normalizeOrderStatus(status: string): OrderStatus {
   const value = status.toUpperCase();
   if (value === "DRAFT" || value === "CREATED") return "CREATED";
@@ -51,19 +74,37 @@ function normalizePaymentMethod(value?: string | null): PaymentMethod | undefine
 }
 
 export function normalizeBackendOrder(raw: any): Order {
+  let guaranaZeroCorrection = 0;
   const items = Array.isArray(raw.items)
-    ? raw.items.map((item: any) => ({
-        id: String(item.productId ?? item.id ?? item.name ?? "item"),
-        productId: item.productId ? String(item.productId) : undefined,
-        name: String(item.name ?? item.productId ?? "Item"),
-        qty: Number(item.quantity ?? item.qty ?? 1),
-        price: Number(item.unitPrice ?? item.price ?? 0),
-        components: Array.isArray(item.components)
-          ? item.components.map((component: unknown) => String(component))
-          : undefined,
-        note: item.note ? String(item.note) : undefined,
-      }))
+    ? raw.items.map((item: any) => {
+        const qty = Number(item.quantity ?? item.qty ?? 1);
+        const rawPrice = Number(item.unitPrice ?? item.price ?? 0);
+        const price = isGuaranaZeroItem(item) ? GUARANA_ZERO_PRICE : rawPrice;
+
+        if (isGuaranaZeroItem(item) && rawPrice > GUARANA_ZERO_PRICE) {
+          guaranaZeroCorrection += (rawPrice - GUARANA_ZERO_PRICE) * qty;
+        }
+
+        return {
+          id: String(item.productId ?? item.id ?? item.name ?? "item"),
+          productId: item.productId ? String(item.productId) : undefined,
+          name: isGuaranaZeroItem(item)
+            ? "Guaraná Zero"
+            : String(item.name ?? item.productId ?? "Item"),
+          qty,
+          price,
+          components: Array.isArray(item.components)
+            ? item.components.map((component: unknown) => String(component))
+            : undefined,
+          note: item.note ? String(item.note) : undefined,
+        };
+      })
     : [];
+  const subtotal =
+    raw.subtotal == null
+      ? undefined
+      : roundCurrency(Number(raw.subtotal) - guaranaZeroCorrection);
+  const total = roundCurrency(Number(raw.total ?? 0) - guaranaZeroCorrection);
   const deliveryType =
     String(raw.deliveryType ?? raw.delivery_type).toUpperCase() === "RETIRADA"
       ? "retirada"
@@ -100,7 +141,7 @@ export function normalizeBackendOrder(raw: any): Order {
     customerName: kioskMobCustomer ? "KIOSK-MOB" : customerName,
     customerPhone: raw.customerPhone ?? raw.customer_phone ?? undefined,
     customerAddress: raw.customerAddress ?? raw.customer_address ?? undefined,
-    subtotal: raw.subtotal == null ? undefined : Number(raw.subtotal),
+    subtotal,
     deliveryFee:
       raw.deliveryFee == null && raw.delivery_fee == null
         ? undefined
@@ -110,7 +151,7 @@ export function normalizeBackendOrder(raw: any): Order {
       raw.discountTotal == null && raw.discount_total == null
         ? undefined
         : Number(raw.discountTotal ?? raw.discount_total),
-    total: Number(raw.total ?? 0),
+    total,
     paymentProvider: raw.paymentProvider ?? raw.payment_provider ?? undefined,
     paymentMethod: normalizePaymentMethod(
       raw.paymentMethod ?? raw.payment_method,
