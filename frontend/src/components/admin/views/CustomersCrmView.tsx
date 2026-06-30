@@ -240,7 +240,7 @@ export function CustomersCrmView({
                     color: VERDE,
                   }}
                 >
-                  <p className="text-base font-black leading-tight">{formatClubName(customer.name || "Cliente sem nome", customer.club_level)}</p>
+                  <p className="text-base font-black leading-tight">{customer.name || "Cliente sem nome"}</p>
                   <p className="mt-1 text-sm font-black opacity-70">{customer.phone || "Sem telefone"}</p>
                   <p className="mt-1 text-xs font-bold opacity-50">{customer.email || "Sem e-mail"}</p>
                   <p className="mt-2 flex items-start gap-1.5 text-xs font-black leading-snug" style={{ color: VERDE }}>
@@ -327,7 +327,7 @@ export function CustomersCrmView({
               <Info label="Último pedido" value={active.last_order_at ? formatDate(active.last_order_at) : "-"} />
               <Info label="Data de cadastro" value={active.created_at ? formatDate(active.created_at) : "-"} />
               <Info label="Entregas realizadas" value={String(Number(active.delivered_count ?? 0))} />
-              <Info label="Menfi's Club" value={active.club_level ? `⭐ ${active.club_level}` : "Cliente comum"} />
+              <Info label="Perfil" value="Cliente cadastrado" />
             </div>
           )}
         </div>
@@ -437,8 +437,4 @@ function formatCustomerAddress(customer: CrmCustomer) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("pt-BR");
-}
-
-function formatClubName(name: string, clubLevel?: string) {
-  return clubLevel ? `${name} ⭐ ${clubLevel}` : name;
 }

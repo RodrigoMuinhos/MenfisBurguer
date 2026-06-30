@@ -587,7 +587,7 @@ function CheckoutProfileGate({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/40">
-              Clube Menfi's
+              Perfil Menfi's
             </p>
             <h2
               className="mt-2 uppercase"
@@ -636,7 +636,7 @@ function CheckoutProfileGate({
         {mode === "register" ? (
           <div className="mt-4 grid gap-3">
             <div className="rounded-3xl p-4" style={{ background: "#FFF8E7", border: "1.5px solid #FACC15" }}>
-              <p className="text-sm font-black uppercase tracking-wider">Cadastre-se e ganhe 10%</p>
+              <p className="text-sm font-black uppercase tracking-wider">Crie seu perfil Menfi's</p>
               <p className="mt-1 text-xs font-bold leading-snug text-black/60">
                 Use seu perfil Menfi's no primeiro pedido e receba 10% de desconto.
               </p>

@@ -389,7 +389,7 @@ export function MemberAccessBanner({
                 ? "Crie sua senha de acesso"
                 : memberProfile
                 ? `${memberProfile.name}, seu perfil Menfi's`
-                : "Cadastre-se e ganhe 10%"}
+                : "Crie seu perfil Menfi's"}
             </p>
             <p
               className="mt-1 text-xs leading-relaxed"
@@ -398,7 +398,7 @@ export function MemberAccessBanner({
               {needsPassword
                 ? "Sua conta foi encontrada, mas ainda falta senha de 6 dígitos para manter seus dados protegidos."
                 : memberProfile
-                ? `${memberProfile.orders % 10}/10 pedidos para ganhar um burger. Dados de entrega ficam salvos.`
+                ? "Dados de entrega ficam salvos para agilizar seus próximos pedidos."
                 : "Cadastro obrigatório para pedir: informe nome, WhatsApp e uma senha de 6 dígitos."}
             </p>
           </div>

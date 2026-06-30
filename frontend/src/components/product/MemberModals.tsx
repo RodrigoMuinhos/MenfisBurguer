@@ -320,7 +320,7 @@ export function MemberModals({
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/40">
-                          Clube Menfi's
+                          Perfil Menfi's
                         </p>
                         <h2
                           className="mt-2 uppercase"
@@ -382,10 +382,10 @@ export function MemberModals({
                         }}
                       >
                         <p className="text-sm font-black uppercase tracking-wider">
-                          Cadastre-se e ganhe 10%
+                          Crie seu perfil Menfi's
                         </p>
                         <p className="mt-1 text-xs font-bold leading-snug text-black/60">
-                          Use seu perfil Menfi's no primeiro pedido e receba 10% de desconto.
+                          Salve seus dados para pedir mais rápido e acompanhar seus pedidos.
                         </p>
                       </div>
                     )}
@@ -723,7 +723,7 @@ export function MemberModals({
                             Perfil Menfi's
                           </p>
                           <h2 className="truncate text-lg font-black leading-tight">
-                            {formatClubName(memberProfile.name, memberProfile.clubLevel)}
+                            {memberProfile.name}
                           </h2>
                           <p className="truncate text-xs font-bold opacity-65">
                             {memberProfile.phone}
@@ -1249,10 +1249,6 @@ function InfoLine({ label, value }: { label: string; value: string }) {
       <p className="mt-0.5 text-sm font-bold">{value}</p>
     </div>
   );
-}
-
-function formatClubName(name: string, clubLevel?: string) {
-  return clubLevel ? `${name} ⭐ ${clubLevel}` : name;
 }
 
 function ProfileMenuButton({
