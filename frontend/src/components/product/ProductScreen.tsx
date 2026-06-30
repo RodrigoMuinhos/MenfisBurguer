@@ -167,6 +167,8 @@ export function ProductScreen({
   const [memberError, setMemberError] = useState("");
   const [memberSaving, setMemberSaving] = useState(false);
   const [configurationUnavailable, setConfigurationUnavailable] = useState(false);
+  const [quickQrOpen, setQuickQrOpen] = useState(false);
+  const [quickQrSeconds, setQuickQrSeconds] = useState(45);
   const adminTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const configurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const adminTapCountRef = useRef(0);
@@ -247,6 +249,23 @@ export function ProductScreen({
   }, []);
 
   useEffect(() => {
+    if (!quickQrOpen) return;
+    setQuickQrSeconds(45);
+    const countdown = window.setInterval(() => {
+      setQuickQrSeconds((current) => {
+        if (current <= 1) {
+          window.clearInterval(countdown);
+          setQuickQrOpen(false);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(countdown);
+  }, [quickQrOpen]);
+
+  useEffect(() => {
     if (kioskMode) return;
     const cepDigits = memberCep.replace(/\D/g, "");
     if (cepDigits.length !== 8) return;
@@ -277,6 +296,10 @@ export function ProductScreen({
   const handleAdminTap = async () => {
     adminTapCountRef.current += 1;
     if (adminTapTimerRef.current) clearTimeout(adminTapTimerRef.current);
+
+    if (!kioskMode && adminTapCountRef.current === 3) {
+      setQuickQrOpen(true);
+    }
 
     if (adminTapCountRef.current >= 5) {
       adminTapCountRef.current = 0;
@@ -867,6 +890,79 @@ export function ProductScreen({
             >
               Configuração não habilitada
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!kioskMode && quickQrOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[95] hidden items-center justify-center bg-black/55 px-6 backdrop-blur-sm md:flex"
+            role="dialog"
+            aria-modal="true"
+            aria-label="QR Code Menfi's"
+          >
+            <motion.div
+              initial={{ y: 12, scale: 0.96 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 8, scale: 0.98 }}
+              className="w-full max-w-sm rounded-[24px] p-5 text-center shadow-2xl"
+              style={{ background: "#fff", border: `2px solid ${ROSA}`, color: VERDE }}
+            >
+              <div className="mb-4 flex items-center justify-between gap-3 text-left">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">
+                    Atendimento rápido
+                  </p>
+                  <h2
+                    className="text-2xl uppercase"
+                    style={{ fontFamily: "var(--menfis-font-display)", letterSpacing: 0 }}
+                  >
+                    QR Code Menfi's
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuickQrOpen(false)}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full"
+                  style={{ background: `${ROSA}28`, color: VERDE }}
+                  aria-label="Sair"
+                >
+                  <X size={20} strokeWidth={3} />
+                </button>
+              </div>
+
+              <div
+                className="mx-auto grid aspect-square w-full max-w-[280px] place-items-center rounded-[18px] p-3"
+                style={{ background: "#fff", border: `1px solid ${VERDE}18` }}
+              >
+                <img
+                  src="/pix-menfis.png"
+                  alt="QR Code Menfi's"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span
+                  className="rounded-full px-3 py-2 text-xs font-black uppercase"
+                  style={{ background: `${VERDE}10` }}
+                >
+                  Fecha em {quickQrSeconds}s
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuickQrOpen(false)}
+                  className="rounded-full px-5 py-3 text-xs font-black uppercase"
+                  style={{ background: VERDE, color: ROSA }}
+                >
+                  Sair
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
