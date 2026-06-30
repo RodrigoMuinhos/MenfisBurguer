@@ -34,15 +34,16 @@ function comboPotatoLabel(item: MenuItem) {
 
 function productStory(item: MenuItem) {
   const name = item.name.toLowerCase();
+  const isBig = item.id.includes("double");
   if (name.includes("chicken")) {
     return `${item.desc} Frango crocante, queijo derretido, alface fresca e molho especial no pão macio, com molho extra para acompanhar cada mordida.`;
   }
   if (name.includes("bacon")) {
-    const quantity = name.includes("double") || name.includes("super") ? "cada burger" : "o burger";
+    const quantity = isBig || item.id.includes("super") ? "cada carne" : "o burger";
     return `${item.desc} Aqui ${quantity} vem com 100g de carne suculenta, 40g de bacon crocante, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
   }
   if (item.category === "burger" || item.category === "combo") {
-    const quantity = name.includes("double") || name.includes("super") ? "cada burger" : "o burger";
+    const quantity = isBig || item.id.includes("super") ? "cada carne" : "o burger";
     return `${item.desc} Aqui ${quantity} vem com 100g de carne suculenta, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
   }
   return item.desc;
@@ -50,14 +51,20 @@ function productStory(item: MenuItem) {
 
 function productIngredients(item: MenuItem) {
   const name = item.name.toLowerCase();
+  const isBig = item.id.includes("double");
   if (name.includes("chicken")) {
-    return "Pão brioche, chicken 120g, queijo cheddar, alface, tomate e molho especial.";
+    return isBig
+      ? "Pão brioche, 2 filés de frango de 120g, queijo cheddar, alface, tomate e molho especial."
+      : "Pão brioche, chicken 120g, queijo cheddar, alface, tomate e molho especial.";
   }
   if (name.includes("bacon")) {
-    return "Pão brioche, carne 100g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's.";
+    return isBig
+      ? "Pão brioche, 2 carnes bovinas de 100g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's."
+      : "Pão brioche, carne 100g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's.";
   }
   if (item.category === "combo") {
-    return `Burger Menfi's, ${comboPotatoLabel(item)}, bebida gelada e molho extra para acompanhar.`;
+    const burger = isBig ? "BIG Menfi's com 2 carnes bovinas de 100g" : "Burger Menfi's";
+    return `${burger}, ${comboPotatoLabel(item)}, bebida gelada e molho extra para acompanhar.`;
   }
   if (item.category === "bebida") {
     return "Bebida gelada selecionada.";
@@ -70,23 +77,23 @@ function productIngredients(item: MenuItem) {
 
 function productWeight(item: MenuItem) {
   const name = item.name.toLowerCase();
-  const isDouble = name.includes("double");
+  const isBig = item.id.includes("double");
   const isSuper = name.includes("super");
   if (name.includes("chicken")) {
-    const chicken = isDouble || isSuper ? "2 filés de 120g" : "1 filé de 120g";
+    const chicken = isBig || isSuper ? "2 filés de 120g (240g no total)" : "1 filé de 120g";
     return item.category === "combo"
       ? `${chicken}, ${comboPotatoLabel(item)}.`
       : chicken;
   }
   if (name.includes("bacon")) {
-    const burger = isDouble || isSuper ? "2 carnes de 100g" : "1 carne de 100g";
+    const burger = isBig || isSuper ? "2 carnes de 100g (200g no total)" : "1 carne de 100g";
     return `${burger}, 40g de bacon${item.category === "combo" ? ` e ${comboPotatoLabel(item)}` : ""}.`;
   }
   if (item.category === "combo") {
-    return `${isDouble || isSuper ? "2 carnes de 100g" : "1 carne de 100g"} e ${comboPotatoLabel(item)}.`;
+    return `${isBig || isSuper ? "2 carnes de 100g (200g no total)" : "1 carne de 100g"} e ${comboPotatoLabel(item)}.`;
   }
   if (item.category === "burger") {
-    return isDouble ? "2 carnes de 100g." : "1 carne de 100g.";
+    return isBig ? "2 carnes de 100g (200g no total)." : "1 carne de 100g.";
   }
   return "Porção conforme seleção.";
 }

@@ -45,9 +45,9 @@ const PRODUCTS = [
   },
   {
     id: "combo-double-bacon",
-    name: "COMBO DOUBLE MENFI'S BACON",
+    name: "COMBO BIG MENFI'S BACON",
     price: 48.9,
-    components: ["Combo Double Menfi's Bacon", "Coca-Cola Zero", "Batata Frita 100g", "Maionese Barbecue"],
+    components: ["Combo BIG Menfi's Bacon", "Coca-Cola Zero", "Batata Frita 100g", "Maionese Barbecue"],
   },
 ];
 
