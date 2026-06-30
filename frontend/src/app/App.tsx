@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SplashScreen } from "@/components/product/SplashScreen";
 import { ProductScreen } from "@/components/product/ProductScreen";
 import { CartScreen } from "@/components/order/CartScreen";
 import { TrackingScreen } from "@/components/order/TrackingScreen";
@@ -81,9 +80,7 @@ export default function App({ mode }: { mode?: AppMode }) {
   const appMode = resolveAppMode(mode);
   const adminOnlyMode = appMode === "admin" || appMode === "kds" || appMode === "notes";
   const kioskMode = appMode === "kiosk";
-  const [started, setStarted] = useState(() => {
-    return appMode === "admin" || appMode === "kds" || appMode === "notes";
-  });
+  const [started, setStarted] = useState(true);
   const [screen, setScreen] = useState<Screen>(() => {
     if (appMode === "kds" || appMode === "notes") return "admin";
     if (appMode === "admin") return "admin-login";
@@ -466,17 +463,6 @@ export default function App({ mode }: { mode?: AppMode }) {
     resetKioskActivity();
     registerMemberOrder();
   };
-
-  if (!started) {
-    return (
-      <div
-        className="size-full overflow-auto"
-        style={{ fontFamily: "'Inter', system-ui, sans-serif" }}
-      >
-        <SplashScreen onStart={() => setStarted(true)} />
-      </div>
-    );
-  }
 
   if (adminOnlyMode) {
     return (
