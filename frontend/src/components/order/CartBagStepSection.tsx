@@ -78,7 +78,7 @@ export function CartBagStepSection({
           <SuggestedCard
             id="guarana-zero"
             name="Guaraná Zero"
-            price={8.9}
+            price={6.9}
             description="Lata 350ml gelada"
             image="/EXTRAS/Gurarana.jpg"
             qty={cart.find((item) => item.id === "guarana-zero")?.qty ?? 0}

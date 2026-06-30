@@ -195,6 +195,9 @@ export function ProductScreen({
           !`${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase().includes("bacon"),
       );
     }
+    if (category === "extras") {
+      return MENU_ITEMS.filter((item) => item.category === "extra" || item.category === "bebida");
+    }
     return MENU_ITEMS.filter((item) => item.category === category);
   }, [category]);
   const featuredItem =

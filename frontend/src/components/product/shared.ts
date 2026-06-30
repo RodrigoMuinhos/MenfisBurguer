@@ -1,5 +1,5 @@
 import type { StaticImageData } from "next/image";
-import { Beef, Drumstick, Package } from "lucide-react";
+import { Beef, Drumstick, Package, Plus } from "lucide-react";
 import { CartItem } from "@/types/order";
 import { MenuItem } from "@/features/catalog/types";
 
@@ -40,6 +40,7 @@ export const CATEGORIES = [
   { id: "burger", label: "Burgers", Icon: Beef },
   { id: "chicken", label: "Chicken", Icon: Drumstick },
   { id: "bacon", label: "Bacon", Icon: Beef },
+  { id: "extras", label: "Extras", Icon: Plus },
 ] as const;
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -79,7 +80,7 @@ export const EXTRA_OPTIONS = [
   { id: "extra-maionese-barbecue", label: "Maionese Barbecue", price: 2, image: "/EXTRAS/MaioneseBarbecue.jpg" },
   { id: "extra-maionese-alho-frito", label: "Maionese Alho Frito", price: 2, image: "/EXTRAS/MaionseAlhoFrito.jpg" },
   { id: "coca-zero", label: "Coca-Cola Zero", price: 8.9, image: "/EXTRAS/cocazero.jpg" },
-  { id: "guarana-zero", label: "Guaraná Zero", price: 8.9, image: "/EXTRAS/Gurarana.jpg" },
+  { id: "guarana-zero", label: "Guaraná Zero", price: 6.9, image: "/EXTRAS/Gurarana.jpg" },
   { id: "agua-com-gas", label: "Água com gás", price: 5.9, image: "/EXTRAS/aguaComGas.png" },
 ];
 
