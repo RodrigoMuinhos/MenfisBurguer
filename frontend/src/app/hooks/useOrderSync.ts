@@ -141,9 +141,10 @@ export function useOrderSync({
 
     let source: EventSource;
     try {
-      source = new EventSource(
-        `${API_URL}/orders/events?token=${encodeURIComponent(adminToken)}`,
-      );
+      const streamUrl = adminToken
+        ? `${API_URL}/orders/events?token=${encodeURIComponent(adminToken)}`
+        : `${API_URL}/orders/events`;
+      source = new EventSource(streamUrl);
     } catch {
       adminEventsConnectedRef.current = false;
       return;
