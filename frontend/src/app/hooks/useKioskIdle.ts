@@ -68,7 +68,7 @@ export function useKioskIdle({
 
   useEffect(() => {
     if (!started || !kioskMode) return;
-    if (screen === "admin" || screen === "admin-login") return;
+    if (screen === "admin") return;
 
     const timer = window.setInterval(() => {
       const idleFor = Date.now() - lastInteractionRef.current;

@@ -70,6 +70,10 @@ public class AuthService {
     return new LoginResponse(issueToken("kds-local", "ADMIN"), "ADMIN");
   }
 
+  public LoginResponse adminSession() {
+    return new LoginResponse(issueToken("admin-direct", "ADMIN"), "ADMIN");
+  }
+
   public LoginResponse deliverySession() {
     if (!"local".equalsIgnoreCase(environment)) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "delivery_session_local_only");

@@ -23,7 +23,6 @@ import {
 import { useAdminSession } from "./hooks/useAdminSession";
 import { useKioskIdle } from "./hooks/useKioskIdle";
 import { useOrderSync } from "./hooks/useOrderSync";
-import { AdminLoginScreen } from "./AdminLoginScreen";
 import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
 import {
@@ -88,13 +87,12 @@ export default function App({ mode }: { mode?: AppMode }) {
   const kioskMode = appMode === "kiosk";
   const [started, setStarted] = useState(true);
   const [screen, setScreen] = useState<Screen>(() => {
-    if (appMode === "kds" || appMode === "notes") return "admin";
-    if (appMode === "admin") return "admin-login";
+    if (appMode === "admin" || appMode === "kds" || appMode === "notes") return "admin";
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
       if (
         stored &&
-        ["product", "cart", "tracking", "queue", "admin", "admin-login"].includes(stored)
+        ["product", "cart", "tracking", "queue", "admin"].includes(stored)
       ) {
         return stored;
       }
@@ -116,14 +114,9 @@ export default function App({ mode }: { mode?: AppMode }) {
     return localStorage.getItem(CHECKOUT_RETURN_STEP_KEY) === "payment";
   });
   const {
-    adminUser,
-    adminError,
     adminToken,
-    setAdminUser,
-    setAdminError,
     openAdmin,
     closeAdmin,
-    handleAdminLogin,
   } = useAdminSession({ adminOnlyMode, appMode, setScreen });
   const { orders, setOrders, loadOrderById, updateOrderStatus, deleteOrder, updateOrderItems } = useOrderSync({
     adminToken,
@@ -491,26 +484,16 @@ export default function App({ mode }: { mode?: AppMode }) {
         }}
       >
         <div className="flex-1 overflow-auto">
-          {screen === "admin" || appMode === "kds" ? (
-            <AdminPanel
-              orders={orders}
-              updateOrderStatus={updateOrderStatus}
-              deleteOrder={deleteOrder}
-              updateOrderItems={updateOrderItems}
-              onClose={closeAdmin}
-              initialTab={appMode === "notes" ? "notas" : appMode === "kds" ? "cozinha" : "pedidos"}
-              adminToken={adminToken}
-              kitchenOnly={appMode === "kds" || appMode === "notes"}
-            />
-          ) : (
-            <AdminLoginScreen
-              username={adminUser}
-              error={adminError}
-              onChangeUsername={setAdminUser}
-              onSubmit={handleAdminLogin}
-              onBack={() => setScreen("admin-login")}
-            />
-          )}
+          <AdminPanel
+            orders={orders}
+            updateOrderStatus={updateOrderStatus}
+            deleteOrder={deleteOrder}
+            updateOrderItems={updateOrderItems}
+            onClose={closeAdmin}
+            initialTab={appMode === "notes" ? "notas" : appMode === "kds" ? "cozinha" : "pedidos"}
+            adminToken={adminToken}
+            kitchenOnly={appMode === "kds" || appMode === "notes"}
+          />
         </div>
       </div>
     );
@@ -564,16 +547,16 @@ export default function App({ mode }: { mode?: AppMode }) {
           />
           </>
         )}
-        {screen === "admin-login" && (
-          <AdminLoginScreen
-            username={adminUser}
-            error={adminError}
-            onChangeUsername={setAdminUser}
-            onSubmit={handleAdminLogin}
-            onBack={() => {
-              setAdminError("");
-              goHome();
-            }}
+        {screen === "admin" && (
+          <AdminPanel
+            orders={orders}
+            updateOrderStatus={updateOrderStatus}
+            deleteOrder={deleteOrder}
+            updateOrderItems={updateOrderItems}
+            onClose={closeAdmin}
+            initialTab="pedidos"
+            adminToken={adminToken}
+            kitchenOnly={false}
           />
         )}
         {screen === "cart" && (

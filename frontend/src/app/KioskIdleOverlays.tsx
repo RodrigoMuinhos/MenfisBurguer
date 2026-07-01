@@ -19,7 +19,7 @@ export function KioskIdleOverlays({
   onActivity: () => void;
   presentation?: PresentationSettings;
 }) {
-  const hidden = screen === "admin" || screen === "admin-login";
+  const hidden = screen === "admin";
   const settings = normalizePresentationSettings(presentation);
   const images = useMemo(
     () => settings.images.slice(0, Math.max(1, settings.imageCount)),

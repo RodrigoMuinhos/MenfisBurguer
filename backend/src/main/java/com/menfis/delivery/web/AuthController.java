@@ -28,6 +28,11 @@ public class AuthController {
     return auth.kdsSession();
   }
 
+  @PostMapping("/admin")
+  public LoginResponse admin() {
+    return auth.adminSession();
+  }
+
   @PostMapping("/delivery")
   public LoginResponse delivery() {
     return auth.deliverySession();
