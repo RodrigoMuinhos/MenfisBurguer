@@ -15,6 +15,8 @@ public class WebConfig implements WebMvcConfigurer {
     registry.addMapping("/**")
       .allowedOriginPatterns(
         frontendUrl,
+        "https://menfisburguer.vercel.app",
+        "https://*.vercel.app",
         "https://menfisburguer.com.br",
         "https://www.menfisburguer.com.br",
         "http://localhost:3000",
