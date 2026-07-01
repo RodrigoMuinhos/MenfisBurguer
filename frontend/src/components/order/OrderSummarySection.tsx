@@ -144,6 +144,15 @@ export function OrderSummarySection({
                       <span>- {fmt(discount)}</span>
                     </div>
                   )}
+                  {appliedCoupon?.type === "free_shipping" && (
+                    <div
+                      className="flex justify-between text-xs py-2 font-bold"
+                      style={{ color: VERDE }}
+                    >
+                      <span>Cupom {appliedCoupon.code}</span>
+                      <span>Frete grátis</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center pt-2 mt-1">
                     <span
                       className="font-black uppercase tracking-wider text-sm"

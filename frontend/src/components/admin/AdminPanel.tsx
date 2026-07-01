@@ -88,7 +88,7 @@ export function AdminPanel({
   );
   const [couponCode, setCouponCode] = useState("");
   const [couponValue, setCouponValue] = useState("10");
-  const [couponType, setCouponType] = useState<"percent" | "fixed_total">(
+  const [couponType, setCouponType] = useState<Coupon["type"]>(
     "percent",
   );
   const [couponMaxUsesPerDay, setCouponMaxUsesPerDay] = useState("");
@@ -495,7 +495,7 @@ export function AdminPanel({
 
   const resetCouponForm = () => {
     setCouponCode("");
-    setCouponValue(couponType === "percent" ? "10" : "1");
+    setCouponValue(couponType === "free_shipping" ? "0" : couponType === "percent" ? "10" : "1");
     setCouponMaxUsesPerDay("");
     setCouponMaxUsesTotal("");
     setCouponStartsAt("");
@@ -509,12 +509,12 @@ export function AdminPanel({
   const saveCoupon = async () => {
     const code = couponCode.trim();
     const value = Number(couponValue.replace(",", "."));
-    if (!code || !Number.isFinite(value) || value <= 0) return;
+    if (!code || !Number.isFinite(value) || (couponType !== "free_shipping" && value <= 0)) return;
     const coupon: Coupon = {
       code,
       label: couponLabel(couponType, value),
       type: couponType,
-      value,
+      value: couponType === "free_shipping" ? 0 : value,
       active: true,
       maxUsesPerDay: Number(couponMaxUsesPerDay) > 0 ? Number(couponMaxUsesPerDay) : undefined,
       maxUsesTotal: Number(couponMaxUsesTotal) > 0 ? Number(couponMaxUsesTotal) : undefined,
@@ -550,7 +550,7 @@ export function AdminPanel({
   const editCoupon = (coupon: Coupon) => {
     setEditingCouponCode(coupon.code);
     setCouponCode(coupon.code);
-    setCouponValue(String(coupon.value).replace(".", ","));
+    setCouponValue(coupon.type === "free_shipping" ? "0" : String(coupon.value).replace(".", ","));
     setCouponType(coupon.type);
     setCouponMaxUsesPerDay(coupon.maxUsesPerDay ? String(coupon.maxUsesPerDay) : "");
     setCouponMaxUsesTotal(coupon.maxUsesTotal ? String(coupon.maxUsesTotal) : "");

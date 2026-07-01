@@ -33,7 +33,7 @@ export function CouponsView({
   coupons: Coupon[];
   couponCode: string;
   couponValue: string;
-  couponType: "percent" | "fixed_total";
+  couponType: Coupon["type"];
   couponMaxUsesPerDay: string;
   couponMaxUsesTotal: string;
   couponStartsAt: string;
@@ -44,7 +44,7 @@ export function CouponsView({
   editingCouponCode: string;
   setCouponCode: (value: string) => void;
   setCouponValue: (value: string) => void;
-  setCouponType: (value: "percent" | "fixed_total") => void;
+  setCouponType: (value: Coupon["type"]) => void;
   setCouponMaxUsesPerDay: (value: string) => void;
   setCouponMaxUsesTotal: (value: string) => void;
   setCouponStartsAt: (value: string) => void;
@@ -89,13 +89,14 @@ export function CouponsView({
             value={couponValue}
             onChange={(event) => setCouponValue(event.target.value)}
             placeholder="Valor"
+            disabled={couponType === "free_shipping"}
             className="rounded-xl px-3 py-3 text-sm outline-none"
-            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
+            style={{ border: `1.5px solid ${VERDE}14`, color: VERDE, opacity: couponType === "free_shipping" ? 0.45 : 1 }}
           />
           <select
             value={couponType}
             onChange={(event) =>
-              setCouponType(event.target.value as "percent" | "fixed_total")
+              setCouponType(event.target.value as Coupon["type"])
             }
             className="rounded-xl px-3 py-3 text-sm outline-none"
             style={{
@@ -106,6 +107,7 @@ export function CouponsView({
           >
             <option value="percent">% desconto</option>
             <option value="fixed_total">total fixo</option>
+            <option value="free_shipping">frete grátis</option>
           </select>
           <button
             onClick={onSave}
@@ -153,6 +155,21 @@ export function CouponsView({
           style={{ border: `1.5px solid ${VERDE}14`, color: VERDE }}
         />
         <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setCouponType(couponType === "free_shipping" ? "percent" : "free_shipping");
+              setCouponValue(couponType === "free_shipping" ? "10" : "0");
+            }}
+            className="rounded-xl px-3 py-2 text-xs font-black uppercase"
+            style={{
+              background: couponType === "free_shipping" ? VERDE : "#fff",
+              color: couponType === "free_shipping" ? ROSA : VERDE,
+              border: `1px solid ${couponType === "free_shipping" ? VERDE : `${VERDE}14`}`,
+            }}
+          >
+            Frete grátis
+          </button>
           <label
             className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black uppercase"
             style={{ border: `1px solid ${VERDE}14`, color: VERDE }}

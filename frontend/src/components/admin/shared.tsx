@@ -17,7 +17,7 @@ export const COUPON_STORAGE_KEY = "menfis_coupons";
 export type Coupon = {
   code: string;
   label: string;
-  type: "percent" | "fixed_total";
+  type: "percent" | "fixed_total" | "free_shipping";
   value: number;
   active: boolean;
   maxUsesPerDay?: number;
@@ -851,7 +851,9 @@ export function mergeCoupons(customCoupons: Coupon[]) {
 }
 
 export function couponLabel(type: Coupon["type"], value: number) {
-  return type === "percent"
+  return type === "free_shipping"
+    ? "Frete grátis"
+    : type === "percent"
     ? `${value}% de desconto`
     : `Pedido por ${fmt(value)}`;
 }

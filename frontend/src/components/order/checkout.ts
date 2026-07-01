@@ -29,7 +29,7 @@ export type OperatingHoursConfig = {
 export type Coupon = {
   code: string;
   label: string;
-  type: "percent" | "fixed_total";
+  type: "percent" | "fixed_total" | "free_shipping";
   value: number;
   active: boolean;
   maxUsesPerDay?: number;
@@ -185,7 +185,7 @@ export function buildCheckoutPricing({
     items.reduce((sum, item) => sum + item.price * item.qty, 0),
   );
   const deliveryFee =
-    delivery === "delivery" && subtotal > 0
+    delivery === "delivery" && subtotal > 0 && coupon?.type !== "free_shipping"
       ? DELIVERY_FEE
       : 0;
   const serviceFee = delivery === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
@@ -363,14 +363,16 @@ function normalizeCoupon(row: unknown): Coupon | null {
   const type = String(data.type ?? "");
   const value = Number(data.value ?? 0);
   if (!code || !Number.isFinite(value)) return null;
-  if (type !== "percent" && type !== "fixed_total") return null;
+  if (type !== "percent" && type !== "fixed_total" && type !== "free_shipping") return null;
   return {
     code,
     label: String(
       data.label ??
         (type === "percent"
           ? `${value}% de desconto`
-          : `Pedido por ${fmt(value)}`),
+          : type === "free_shipping"
+            ? "Frete grátis"
+            : `Pedido por ${fmt(value)}`),
     ),
     type,
     value,
@@ -417,6 +419,7 @@ export function couponDiscount(
   items: CartItem[],
 ) {
   if (!coupon) return 0;
+  if (coupon.type === "free_shipping") return 0;
   if (coupon.code.toLowerCase() === "chicken1790") {
     return items.reduce((sum, item) => {
       if (item.id !== "menfis-chicken") return sum;

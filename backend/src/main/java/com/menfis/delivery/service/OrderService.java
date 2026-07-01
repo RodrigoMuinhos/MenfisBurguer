@@ -96,10 +96,15 @@ public class OrderService {
         && channel != OrderChannel.KIOSK
         && !kioskLocalCustomer
         && price.subtotal().compareTo(BigDecimal.ZERO) > 0;
-    BigDecimal deliveryFee = chargeDeliveryFees ? DELIVERY_FEE : BigDecimal.ZERO;
     BigDecimal serviceFee = chargeDeliveryFees ? SERVICE_FEE : BigDecimal.ZERO;
+    BigDecimal initialDeliveryFee = chargeDeliveryFees ? DELIVERY_FEE : BigDecimal.ZERO;
+    CouponResult coupon = applyCoupon(
+      request.couponCode(),
+      request.couponDiscount(),
+      price.subtotal().add(initialDeliveryFee).add(serviceFee)
+    );
+    BigDecimal deliveryFee = coupon.freeShipping() ? BigDecimal.ZERO : initialDeliveryFee;
     BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(serviceFee);
-    CouponResult coupon = applyCoupon(request.couponCode(), request.couponDiscount(), grossTotal);
     BigDecimal total = grossTotal.subtract(coupon.discount()).max(new BigDecimal("1.00"));
     if (request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA
         && (channel != OrderChannel.DELIVERY || !settings.payOnDeliveryEnabled())) {
@@ -638,7 +643,7 @@ public class OrderService {
 
   private CouponResult applyCoupon(String rawCode, BigDecimal requestedDiscount, BigDecimal grossTotal) {
     if (rawCode == null || rawCode.isBlank()) {
-      return new CouponResult(null, BigDecimal.ZERO);
+      return new CouponResult(null, BigDecimal.ZERO, false);
     }
 
     String code = rawCode.trim();
@@ -650,21 +655,24 @@ public class OrderService {
       );
       BigDecimal value = (BigDecimal) coupon.get("value");
       String type = String.valueOf(coupon.get("type"));
+      if ("free_shipping".equalsIgnoreCase(type)) {
+        return new CouponResult(String.valueOf(coupon.get("code")), BigDecimal.ZERO, true);
+      }
       BigDecimal discount = "percent".equalsIgnoreCase(type)
         ? grossTotal.multiply(value).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP)
         : grossTotal.subtract(value).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
       discount = discount.min(grossTotal.subtract(new BigDecimal("1.00")).max(BigDecimal.ZERO)).setScale(2, RoundingMode.HALF_UP);
-      return new CouponResult(String.valueOf(coupon.get("code")), discount);
+      return new CouponResult(String.valueOf(coupon.get("code")), discount, false);
     } catch (EmptyResultDataAccessException ignored) {
       if (requestedDiscount != null && requestedDiscount.compareTo(BigDecimal.ZERO) > 0) {
         BigDecimal discount = requestedDiscount
           .min(grossTotal.subtract(new BigDecimal("1.00")).max(BigDecimal.ZERO))
           .setScale(2, RoundingMode.HALF_UP);
-        return new CouponResult(code, discount);
+        return new CouponResult(code, discount, false);
       }
     }
 
-    return new CouponResult(null, BigDecimal.ZERO);
+    return new CouponResult(null, BigDecimal.ZERO, false);
   }
 
   private OrderResponse findByIdempotencyKey(String key) {
@@ -851,5 +859,5 @@ public class OrderService {
   }
 
   private record PriceResult(BigDecimal subtotal, List<Map<String, Object>> items) {}
-  private record CouponResult(String code, BigDecimal discount) {}
+  private record CouponResult(String code, BigDecimal discount, boolean freeShipping) {}
 }

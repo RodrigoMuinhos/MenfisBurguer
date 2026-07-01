@@ -197,6 +197,12 @@ export function CheckoutReviewSection({
                   <span>- {fmt(discount)}</span>
                 </div>
               )}
+              {appliedCoupon?.type === "free_shipping" && (
+                <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
+                  <span>Cupom {appliedCoupon.code}</span>
+                  <span>Frete grátis</span>
+                </div>
+              )}
               <div
                 className="mt-2 flex justify-between gap-3 border-t pt-2 text-sm font-black uppercase"
                 style={{ borderColor: ROSA }}

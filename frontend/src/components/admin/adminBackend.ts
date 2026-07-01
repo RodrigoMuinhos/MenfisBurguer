@@ -46,10 +46,11 @@ export function mapMovement(row: ApiRow): Movement {
 }
 
 export function mapCoupon(row: ApiRow): Coupon {
+  const type = String(row.type);
   return {
     code: String(row.code ?? ""),
     label: String(row.label ?? ""),
-    type: String(row.type) === "fixed_total" ? "fixed_total" : "percent",
+    type: type === "free_shipping" ? "free_shipping" : type === "fixed_total" ? "fixed_total" : "percent",
     value: asNumber(row.value),
     active: row.active !== false,
     maxUsesPerDay: asNumber(row.maxUsesPerDay ?? row.max_uses_per_day) || undefined,
