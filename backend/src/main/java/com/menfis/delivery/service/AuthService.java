@@ -39,17 +39,24 @@ public class AuthService {
 
   public LoginResponse login(String login, String password) {
     String normalizedLogin = login == null ? "" : login.trim().toLowerCase(Locale.ROOT);
-    if (normalizedLogin.isBlank() || password == null || password.isBlank()) {
+    String rawPassword = password == null ? "" : password;
+    if (normalizedLogin.isBlank()) {
       throw new IllegalArgumentException("invalid_credentials");
     }
 
     AdminCredential admin = findAdminByLogin(normalizedLogin);
     if (admin == null) {
-      bootstrapAdminFromEnvironment(normalizedLogin, password);
-      bootstrapDeliveryFromEnvironment(normalizedLogin, password);
+      bootstrapAdminFromEnvironment(normalizedLogin);
+      bootstrapDeliveryFromEnvironment(normalizedLogin, rawPassword);
       admin = findAdminByLogin(normalizedLogin);
     }
-    if (admin == null || !encoder.matches(password, admin.passwordHash())) {
+    if (admin == null) {
+      throw new IllegalArgumentException("invalid_credentials");
+    }
+    if ("ADMIN".equalsIgnoreCase(admin.role())) {
+      return new LoginResponse(issueToken(admin.login(), admin.role()), admin.role());
+    }
+    if (rawPassword.isBlank() || !encoder.matches(rawPassword, admin.passwordHash())) {
       throw new IllegalArgumentException("invalid_credentials");
     }
 
@@ -110,10 +117,10 @@ public class AuthService {
     }
   }
 
-  private void bootstrapAdminFromEnvironment(String normalizedLogin, String rawPassword) {
+  private void bootstrapAdminFromEnvironment(String normalizedLogin) {
     bootstrapAccountFromEnvironment(
       normalizedLogin,
-      rawPassword,
+      null,
       System.getenv("ADMIN_LOGIN"),
       System.getenv("ADMIN_PASSWORD"),
       System.getenv("ADMIN_NAME"),
@@ -146,7 +153,7 @@ public class AuthService {
 
     String expectedLogin = seedLogin.trim().toLowerCase(Locale.ROOT);
     if (expectedLogin.isBlank() || !expectedLogin.equals(normalizedLogin)) return;
-    if (!seedPassword.equals(rawPassword)) return;
+    if (rawPassword != null && !seedPassword.equals(rawPassword)) return;
 
     Integer existing = jdbc.queryForObject(
       "select count(*) from admins where lower(login) = ?",

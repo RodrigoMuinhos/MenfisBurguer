@@ -151,7 +151,7 @@ public class ApiDtos {
     Boolean active
   ) {}
 
-  public record LoginRequest(@NotBlank String login, @NotBlank String password) {}
+  public record LoginRequest(@NotBlank String login, String password) {}
 
   public record LoginResponse(String token, String role) {}
 

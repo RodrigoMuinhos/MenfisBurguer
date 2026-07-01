@@ -117,11 +117,9 @@ export default function App({ mode }: { mode?: AppMode }) {
   });
   const {
     adminUser,
-    adminPassword,
     adminError,
     adminToken,
     setAdminUser,
-    setAdminPassword,
     setAdminError,
     openAdmin,
     closeAdmin,
@@ -507,10 +505,8 @@ export default function App({ mode }: { mode?: AppMode }) {
           ) : (
             <AdminLoginScreen
               username={adminUser}
-              password={adminPassword}
               error={adminError}
               onChangeUsername={setAdminUser}
-              onChangePassword={setAdminPassword}
               onSubmit={handleAdminLogin}
               onBack={() => setScreen("admin-login")}
             />
@@ -571,14 +567,11 @@ export default function App({ mode }: { mode?: AppMode }) {
         {screen === "admin-login" && (
           <AdminLoginScreen
             username={adminUser}
-            password={adminPassword}
             error={adminError}
             onChangeUsername={setAdminUser}
-            onChangePassword={setAdminPassword}
             onSubmit={handleAdminLogin}
             onBack={() => {
               setAdminError("");
-              setAdminPassword("");
               goHome();
             }}
           />

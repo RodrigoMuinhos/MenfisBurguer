@@ -11,7 +11,6 @@ export function useAdminSession({
   setScreen: (screen: Screen) => void;
 }) {
   const [adminUser, setAdminUser] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminToken, setAdminToken] = useState("");
@@ -70,7 +69,6 @@ export function useAdminSession({
     }
     localStorage.removeItem(ADMIN_SESSION_KEY);
     setAdminUnlocked(false);
-    setAdminPassword("");
     setAdminToken("");
     setAdminError("");
     setScreen(adminOnlyMode ? "admin-login" : "product");
@@ -78,18 +76,17 @@ export function useAdminSession({
 
   const handleAdminLogin = async () => {
     const user = adminUser.trim();
-    const pass = adminPassword.trim();
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login: user, password: pass }),
+        body: JSON.stringify({ login: user }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.token) {
         setAdminError(
           data.error === "invalid_credentials"
-            ? "Login ou senha inválidos."
+            ? "Login inválido."
             : "Não foi possível validar o acesso no servidor.",
         );
         return;
@@ -101,7 +98,6 @@ export function useAdminSession({
       );
       setAdminUnlocked(true);
       setAdminError("");
-      setAdminPassword("");
       setScreen("admin");
     } catch {
       setAdminError("Não foi possível conectar ao servidor.");
@@ -110,11 +106,9 @@ export function useAdminSession({
 
   return {
     adminUser,
-    adminPassword,
     adminError,
     adminToken,
     setAdminUser,
-    setAdminPassword,
     setAdminError,
     openAdmin,
     closeAdmin,

@@ -1,21 +1,15 @@
-import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
 import { ROSA, VERDE } from "@/utils/theme";
 
 export function AdminLoginScreen({
   username,
-  password,
   error,
   onChangeUsername,
-  onChangePassword,
   onSubmit,
   onBack,
 }: {
   username: string;
-  password: string;
   error: string;
   onChangeUsername: (value: string) => void;
-  onChangePassword: (value: string) => void;
   onSubmit: () => void;
   onBack: () => void;
 }) {
@@ -76,7 +70,7 @@ export function AdminLoginScreen({
           Acesso Admin
         </p>
         <p className="text-center mt-2 text-xs" style={{ color: VERDE, opacity: 0.55 }}>
-          Digite seu login e senha para abrir o painel.
+          Digite seu login para abrir o painel.
         </p>
 
         <div className="mt-6 flex flex-col gap-3">
@@ -86,14 +80,6 @@ export function AdminLoginScreen({
             onChange={onChangeUsername}
             autoComplete="username"
             inputMode="numeric"
-          />
-          <AdminInput
-            label="Senha"
-            value={password}
-            onChange={onChangePassword}
-            autoComplete="current-password"
-            type="password"
-            revealable
             onEnter={onSubmit}
           />
 
@@ -137,8 +123,6 @@ function AdminInput({
   onChange,
   autoComplete,
   inputMode,
-  type = "text",
-  revealable = false,
   onEnter,
 }: {
   label: string;
@@ -146,13 +130,8 @@ function AdminInput({
   onChange: (value: string) => void;
   autoComplete: string;
   inputMode?: "numeric";
-  type?: string;
-  revealable?: boolean;
   onEnter?: () => void;
 }) {
-  const [visible, setVisible] = useState(false);
-  const inputType = revealable && visible ? "text" : type;
-
   return (
     <label className="flex flex-col gap-1">
       <span
@@ -163,7 +142,7 @@ function AdminInput({
       </span>
       <span className="relative block">
         <input
-          type={inputType}
+          type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
@@ -171,24 +150,12 @@ function AdminInput({
           style={{
             border: `1.5px solid ${VERDE}18`,
             color: VERDE,
-            paddingRight: revealable ? "3.25rem" : undefined,
           }}
           inputMode={inputMode}
           onKeyDown={(event) => {
             if (event.key === "Enter") onEnter?.();
           }}
         />
-        {revealable && (
-          <button
-            type="button"
-            onClick={() => setVisible((current) => !current)}
-            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full"
-            style={{ background: `${VERDE}08`, color: VERDE }}
-            aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
-          >
-            {visible ? <EyeOff size={18} strokeWidth={2.4} /> : <Eye size={18} strokeWidth={2.4} />}
-          </button>
-        )}
       </span>
     </label>
   );
