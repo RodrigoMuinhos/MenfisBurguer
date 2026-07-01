@@ -206,13 +206,13 @@ export function ProductHero({
             ).map((tag, index) => (
               <span
                 key={tag}
-                onClick={kioskMode && index === 0 ? onIdleShortcutTap : undefined}
+                onClick={(kioskMode && index === 0) || (!kioskMode && index === 1) ? onIdleShortcutTap : undefined}
                 className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider"
                 style={{
                   background: `${VERDE}10`,
                   color: VERDE,
                   border: `1px solid ${VERDE}18`,
-                  cursor: kioskMode && index === 0 ? "pointer" : "default",
+                  cursor: (kioskMode && index === 0) || (!kioskMode && index === 1) ? "pointer" : "default",
                   userSelect: "none",
                 }}
               >

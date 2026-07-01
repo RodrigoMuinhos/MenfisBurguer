@@ -74,6 +74,14 @@ public class SettingsController {
     return settings.setOperatingHours(request.operatingHours());
   }
 
+  @PatchMapping("/presentation")
+  public Map<String, Object> setPresentation(
+      @RequestBody PresentationRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return settings.setPresentationSettings(request.presentation());
+  }
+
   @PatchMapping("/reset-real-operation")
   public Map<String, Object> resetRealOperation(
       @RequestHeader(name = "Authorization", required = false) String authorization) {
@@ -87,4 +95,5 @@ public class SettingsController {
   public record SoldOutRequest(boolean enabled) {}
   public record FeaturedProductRequest(String productId) {}
   public record OperatingHoursRequest(Map<String, Object> operatingHours) {}
+  public record PresentationRequest(Map<String, Object> presentation) {}
 }

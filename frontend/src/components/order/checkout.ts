@@ -26,6 +26,13 @@ export type OperatingHoursConfig = {
   days: OperatingDay[];
 };
 
+export type PresentationSettings = {
+  enabled: boolean;
+  intervalSeconds: number;
+  imageCount: number;
+  images: string[];
+};
+
 export type Coupon = {
   code: string;
   label: string;
@@ -156,6 +163,40 @@ export const DEFAULT_OPERATING_HOURS: OperatingHoursConfig = {
     { day: 6, label: "Sábado", open: true, soldOut: true, start: "18:00", end: "22:00" },
   ],
 };
+
+export const DEFAULT_PRESENTATION_SETTINGS: PresentationSettings = {
+  enabled: true,
+  intervalSeconds: 6,
+  imageCount: 1,
+  images: ["/descanso.png"],
+};
+
+export function normalizePresentationSettings(value: unknown): PresentationSettings {
+  const data =
+    value && typeof value === "object"
+      ? (value as Partial<PresentationSettings>)
+      : {};
+  const images = Array.isArray(data.images)
+    ? data.images.map((image) => String(image)).filter(Boolean)
+    : DEFAULT_PRESENTATION_SETTINGS.images;
+  const intervalSeconds = Number(data.intervalSeconds);
+  const imageCount = Number(data.imageCount);
+  return {
+    enabled:
+      typeof data.enabled === "boolean"
+        ? data.enabled
+        : DEFAULT_PRESENTATION_SETTINGS.enabled,
+    intervalSeconds:
+      Number.isFinite(intervalSeconds) && intervalSeconds >= 2
+        ? Math.min(60, Math.round(intervalSeconds))
+        : DEFAULT_PRESENTATION_SETTINGS.intervalSeconds,
+    imageCount:
+      Number.isFinite(imageCount) && imageCount >= 1
+        ? Math.min(20, Math.round(imageCount))
+        : Math.max(1, images.length),
+    images: images.length ? images : DEFAULT_PRESENTATION_SETTINGS.images,
+  };
+}
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 

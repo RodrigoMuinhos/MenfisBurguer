@@ -1,7 +1,12 @@
-import { CalendarClock, FlaskConical, PackageX, RotateCcw, Save, Table2 } from "lucide-react";
+import { CalendarClock, FlaskConical, ImagePlus, PackageX, RotateCcw, Save, Table2, Trash2 } from "lucide-react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
-import { OperatingHoursConfig, normalizeOperatingHours } from "@/components/order/checkout";
+import {
+  PresentationSettings,
+  OperatingHoursConfig,
+  normalizeOperatingHours,
+  normalizePresentationSettings,
+} from "@/components/order/checkout";
 import { PayOnDeliverySettings } from "../AdminChrome";
 
 export function ConfigView({
@@ -11,7 +16,9 @@ export function ConfigView({
   soldOutEnabled,
   featuredProductId,
   operatingHours,
+  presentation,
   hasUnsavedOperatingHours,
+  hasUnsavedPresentation,
   saving,
   disabled,
   onTogglePayOnDelivery,
@@ -20,7 +27,9 @@ export function ConfigView({
   onToggleSoldOut,
   onFeaturedProductChange,
   onOperatingHoursChange,
+  onPresentationChange,
   onSaveOperatingHours,
+  onSavePresentation,
   onResetRealOperation,
 }: {
   payOnDeliveryEnabled: boolean;
@@ -29,7 +38,9 @@ export function ConfigView({
   soldOutEnabled: boolean;
   featuredProductId: string;
   operatingHours: OperatingHoursConfig;
+  presentation: PresentationSettings;
   hasUnsavedOperatingHours: boolean;
+  hasUnsavedPresentation: boolean;
   saving: boolean;
   disabled: boolean;
   onTogglePayOnDelivery: () => void;
@@ -38,10 +49,13 @@ export function ConfigView({
   onToggleSoldOut: () => void;
   onFeaturedProductChange: (productId: string) => void;
   onOperatingHoursChange: (config: OperatingHoursConfig) => void;
+  onPresentationChange: (config: PresentationSettings) => void;
   onSaveOperatingHours: () => void;
+  onSavePresentation: () => void;
   onResetRealOperation: () => void;
 }) {
   const normalizedOperatingHours = normalizeOperatingHours(operatingHours);
+  const normalizedPresentation = normalizePresentationSettings(presentation);
   const changeOperatingDay = (
     dayNumber: number,
     patch: Partial<OperatingHoursConfig["days"][number]>,
@@ -50,6 +64,24 @@ export function ConfigView({
       days: normalizedOperatingHours.days.map((day) =>
         day.day === dayNumber ? { ...day, ...patch } : day,
       ),
+    });
+  };
+  const updatePresentation = (patch: Partial<PresentationSettings>) => {
+    onPresentationChange(normalizePresentationSettings({ ...normalizedPresentation, ...patch }));
+  };
+  const addPresentationImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const encoded = await Promise.all([...files].map((file) => encodePresentationImage(file)));
+    updatePresentation({
+      images: [...normalizedPresentation.images, ...encoded].slice(0, 20),
+      imageCount: Math.min(20, Math.max(normalizedPresentation.imageCount, normalizedPresentation.images.length + encoded.length)),
+    });
+  };
+  const removePresentationImage = (index: number) => {
+    const images = normalizedPresentation.images.filter((_, imageIndex) => imageIndex !== index);
+    updatePresentation({
+      images,
+      imageCount: Math.min(Math.max(1, images.length), normalizedPresentation.imageCount),
     });
   };
 
@@ -123,6 +155,122 @@ export function ConfigView({
               </option>
             ))}
           </select>
+        </div>
+      </section>
+
+      <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
+        <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
+              <ImagePlus size={19} strokeWidth={2.4} />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Apresentação da tela de descanso</p>
+              <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
+                No desktop, três cliques em Cheddar duplo abrem essa apresentação. No kiosk, ela também é usada na tela de descanso.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => updatePresentation({ enabled: !normalizedPresentation.enabled })}
+            disabled={saving || disabled}
+            className="min-h-12 min-w-36 rounded-full px-5 text-xs font-black uppercase tracking-wide"
+            style={{
+              background: normalizedPresentation.enabled ? VERDE : "#E5E7EB",
+              color: normalizedPresentation.enabled ? ROSA : "#4B5563",
+              opacity: saving || disabled ? 0.6 : 1,
+            }}
+          >
+            {normalizedPresentation.enabled ? "Ligada" : "Desligada"}
+          </button>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
+          <label className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 text-xs font-black uppercase" style={{ background: `${ROSA}35`, color: VERDE, border: `1.5px solid ${ROSA}` }}>
+            <ImagePlus size={16} />
+            Upload imagens
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={saving || disabled}
+              onChange={(event) => {
+                void addPresentationImages(event.target.files);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+          <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+            Quantas passam
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={normalizedPresentation.imageCount}
+              onChange={(event) => updatePresentation({ imageCount: Number(event.target.value) })}
+              disabled={saving || disabled}
+              className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+            />
+          </label>
+          <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+            Tempo por imagem
+            <input
+              type="number"
+              min={2}
+              max={60}
+              value={normalizedPresentation.intervalSeconds}
+              onChange={(event) => updatePresentation({ intervalSeconds: Number(event.target.value) })}
+              disabled={saving || disabled}
+              className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {normalizedPresentation.images.map((image, index) => (
+            <div key={`${image}-${index}`} className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2" }}>
+              <div className="relative aspect-video bg-black">
+                <img src={image} alt={`Apresentação ${index + 1}`} className="h-full w-full object-cover" />
+                <span className="absolute left-2 top-2 rounded-full px-2 py-1 text-[10px] font-black" style={{ background: "#fff", color: VERDE }}>
+                  {index + 1}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => removePresentationImage(index)}
+                disabled={saving || disabled || normalizedPresentation.images.length <= 1}
+                className="flex w-full items-center justify-center gap-2 px-3 py-3 text-[10px] font-black uppercase"
+                style={{ color: "#991B1B", opacity: normalizedPresentation.images.length <= 1 ? 0.45 : 1 }}
+              >
+                <Trash2 size={13} />
+                Remover
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: `${VERDE}12` }}>
+          <p className="text-xs font-bold" style={{ color: hasUnsavedPresentation ? "#B45309" : `${VERDE}99` }}>
+            {hasUnsavedPresentation ? "Há alterações de apresentação que ainda não foram salvas." : "Apresentação salva e ativa no sistema."}
+          </p>
+          <button
+            type="button"
+            onClick={onSavePresentation}
+            disabled={saving || disabled || !hasUnsavedPresentation}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase"
+            style={{
+              background: hasUnsavedPresentation ? VERDE : "#E5E7EB",
+              color: hasUnsavedPresentation ? ROSA : "#6B7280",
+              opacity: saving || disabled ? 0.6 : 1,
+            }}
+          >
+            <Save size={15} />
+            {saving ? "Salvando..." : "Salvar apresentação"}
+          </button>
         </div>
       </section>
 
@@ -299,4 +447,33 @@ export function ConfigView({
       </section>
     </div>
   );
+}
+
+function encodePresentationImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("image_read_failed"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("image_load_failed"));
+      image.onload = () => {
+        const maxWidth = 1600;
+        const scale = Math.min(1, maxWidth / image.width);
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("canvas_unavailable"));
+          return;
+        }
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.84));
+      };
+      image.src = String(reader.result ?? "");
+    };
+    reader.readAsDataURL(file);
+  });
 }

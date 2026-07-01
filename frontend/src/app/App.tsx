@@ -26,7 +26,13 @@ import { useOrderSync } from "./hooks/useOrderSync";
 import { AdminLoginScreen } from "./AdminLoginScreen";
 import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
-import { DELIVERY_FEE, SERVICE_FEE } from "@/components/order/checkout";
+import {
+  DEFAULT_PRESENTATION_SETTINGS,
+  DELIVERY_FEE,
+  PresentationSettings,
+  SERVICE_FEE,
+  normalizePresentationSettings,
+} from "@/components/order/checkout";
 import { deliveryConfirmationCode, normalizeBackendOrder } from "@/services/orders/normalize";
 import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY, readMemberProfile } from "@/components/product/shared";
 import { MemberNotification } from "@/components/product/notifications";
@@ -129,6 +135,9 @@ export default function App({ mode }: { mode?: AppMode }) {
   });
   const [memberNotifications, setMemberNotifications] = useState<MemberNotification[]>([]);
   const [paymentTimeoutOrder, setPaymentTimeoutOrder] = useState<Order | null>(null);
+  const [presentation, setPresentation] = useState<PresentationSettings>(
+    DEFAULT_PRESENTATION_SETTINGS,
+  );
   const orderStatusSnapshotRef = useRef(new Map<string, string>());
   const paymentTimeoutHandledRef = useRef(new Set<string>());
   const {
@@ -162,6 +171,16 @@ export default function App({ mode }: { mode?: AppMode }) {
     if (adminOnlyMode) return;
     localStorage.setItem(APP_SCREEN_KEY, screen);
   }, [adminOnlyMode, screen]);
+
+  useEffect(() => {
+    if (!API_URL) return;
+    fetch(`${API_URL}/settings/public`, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((settings) => {
+        setPresentation(normalizePresentationSettings(settings?.presentation));
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (kioskMode) return;
@@ -613,6 +632,7 @@ export default function App({ mode }: { mode?: AppMode }) {
         showIdleScreen={showIdleScreen}
         screen={screen}
         onActivity={resetKioskActivity}
+        presentation={presentation}
       />
       {paymentTimeoutOrder && <PaymentTimeoutModal onClose={() => setPaymentTimeoutOrder(null)} />}
     </div>

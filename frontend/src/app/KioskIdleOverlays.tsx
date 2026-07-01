@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ROSA, VERDE } from "@/utils/theme";
 import { Screen } from "./appState";
+import { PresentationSettings, normalizePresentationSettings } from "@/components/order/checkout";
+import { useEffect, useMemo, useState } from "react";
 
 export function KioskIdleOverlays({
   kioskMode,
@@ -8,14 +10,33 @@ export function KioskIdleOverlays({
   showIdleScreen,
   screen,
   onActivity,
+  presentation,
 }: {
   kioskMode: boolean;
   showIdlePrompt: boolean;
   showIdleScreen: boolean;
   screen: Screen;
   onActivity: () => void;
+  presentation?: PresentationSettings;
 }) {
   const hidden = screen === "admin" || screen === "admin-login";
+  const settings = normalizePresentationSettings(presentation);
+  const images = useMemo(
+    () => settings.images.slice(0, Math.max(1, settings.imageCount)),
+    [settings.imageCount, settings.images],
+  );
+  const [activeImage, setActiveImage] = useState(0);
+
+  useEffect(() => {
+    if (!showIdleScreen || !settings.enabled || images.length <= 1) {
+      setActiveImage(0);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setActiveImage((current) => (current + 1) % images.length);
+    }, settings.intervalSeconds * 1000);
+    return () => window.clearInterval(timer);
+  }, [images.length, settings.enabled, settings.intervalSeconds, showIdleScreen]);
 
   return (
     <>
@@ -71,7 +92,7 @@ export function KioskIdleOverlays({
       </AnimatePresence>
 
       <AnimatePresence>
-        {showIdleScreen && !hidden && (
+        {showIdleScreen && !hidden && settings.enabled && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -85,11 +106,15 @@ export function KioskIdleOverlays({
               exit={{ opacity: 0, scale: 0.98 }}
               className="relative h-full w-full overflow-hidden"
             >
-              <img
-                src="/descanso.png"
-                alt="Toque para iniciar pedido"
-                className="h-full w-full object-cover"
-              />
+              {images.map((image, index) => (
+                <img
+                  key={`${image}-${index}`}
+                  src={image}
+                  alt="Toque para iniciar pedido"
+                  className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700"
+                  style={{ opacity: index === activeImage ? 1 : 0 }}
+                />
+              ))}
             </motion.div>
           </motion.div>
         )}

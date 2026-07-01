@@ -18,6 +18,7 @@ public class SettingsService {
   public static final String DEMO_TABLE = "demo_table_enabled";
   public static final String OPERATING_HOURS = "operating_hours";
   public static final String SOLD_OUT = "sold_out_enabled";
+  public static final String PRESENTATION = "presentation_settings";
   public static final String SOLD_OUT_MESSAGE = """
     FELIZMENTE, HOJE ESGOTAMOS TUDO!
 
@@ -37,6 +38,9 @@ public class SettingsService {
       {"day":5,"label":"Sexta","open":true,"soldOut":true,"start":"18:00","end":"22:00"},
       {"day":6,"label":"Sábado","open":true,"soldOut":true,"start":"18:00","end":"22:00"}
     ]}
+    """;
+  private static final String DEFAULT_PRESENTATION = """
+    {"enabled":true,"intervalSeconds":6,"imageCount":1,"images":["/descanso.png"]}
     """;
 
   private final JdbcTemplate jdbc;
@@ -79,6 +83,18 @@ public class SettingsService {
     }
   }
 
+  public Map<String, Object> presentationSettings() {
+    try {
+      return objectMapper.readValue(value(PRESENTATION, DEFAULT_PRESENTATION), new TypeReference<>() {});
+    } catch (Exception ignored) {
+      try {
+        return objectMapper.readValue(DEFAULT_PRESENTATION, new TypeReference<>() {});
+      } catch (Exception fallbackError) {
+        return Map.of("enabled", true, "intervalSeconds", 6, "imageCount", 1, "images", List.of("/descanso.png"));
+      }
+    }
+  }
+
   public Map<String, Object> publicSettings() {
     OperatingStatus operatingStatus = operatingStatus();
     boolean soldOut = soldOutEnabled();
@@ -89,6 +105,7 @@ public class SettingsService {
     response.put("featuredProductId", featuredProductId());
     response.put("demoTableEnabled", demoTableEnabled());
     response.put("operatingHours", operatingHours());
+    response.put("presentation", presentationSettings());
     response.put("soldOutEnabled", soldOut);
     response.put("soldOutActive", soldOutActive);
     response.put("soldOutMessage", SOLD_OUT_MESSAGE);
@@ -254,6 +271,23 @@ public class SettingsService {
       );
     } catch (Exception e) {
       throw new IllegalArgumentException("Horário de funcionamento inválido.");
+    }
+    return publicSettings();
+  }
+
+  public Map<String, Object> setPresentationSettings(Map<String, Object> presentation) {
+    try {
+      jdbc.update(
+        """
+        insert into app_settings(key, value, updated_at)
+        values (?, ?, now())
+        on conflict (key) do update set value = excluded.value, updated_at = now()
+        """,
+        PRESENTATION,
+        objectMapper.writeValueAsString(presentation == null ? Map.of() : presentation)
+      );
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Apresentação inválida.");
     }
     return publicSettings();
   }

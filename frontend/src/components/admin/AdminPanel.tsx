@@ -14,10 +14,13 @@ import {
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import {
   DEFAULT_OPERATING_HOURS,
+  DEFAULT_PRESENTATION_SETTINGS,
   DELIVERY_FEE,
   OperatingHoursConfig,
+  PresentationSettings,
   SERVICE_FEE,
   normalizeOperatingHours,
+  normalizePresentationSettings,
 } from "@/components/order/checkout";
 import { ROSA, VERDE } from "@/utils/theme";
 import { EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
@@ -106,6 +109,8 @@ export function AdminPanel({
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
+  const [presentation, setPresentation] = useState<PresentationSettings>(DEFAULT_PRESENTATION_SETTINGS);
+  const [savedPresentation, setSavedPresentation] = useState<PresentationSettings>(DEFAULT_PRESENTATION_SETTINGS);
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
   const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
 
@@ -311,6 +316,9 @@ export function AdminPanel({
     const normalizedHours = normalizeOperatingHours(settings.operatingHours);
     setOperatingHours(normalizedHours);
     setSavedOperatingHours(normalizedHours);
+    const normalizedPresentation = normalizePresentationSettings(settings.presentation);
+    setPresentation(normalizedPresentation);
+    setSavedPresentation(normalizedPresentation);
   };
 
   useEffect(() => {
@@ -401,6 +409,32 @@ export function AdminPanel({
       setAdminDataError("");
     } catch {
       setAdminDataError("Não foi possível salvar os horários de atendimento.");
+    } finally {
+      setSavingPayOnDelivery(false);
+    }
+  };
+
+  const savePresentation = async () => {
+    if (!API_URL || savingPayOnDelivery) return;
+    setSavingPayOnDelivery(true);
+    try {
+      const response = await fetch(`${API_URL}/settings/presentation`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ presentation: normalizePresentationSettings(presentation) }),
+      });
+      if (!response.ok) {
+        setAdminDataError("Não foi possível salvar a apresentação.");
+        return;
+      }
+      const settings = await response.json();
+      applyPublicSettings(settings);
+      setAdminDataError("");
+    } catch {
+      setAdminDataError("Não foi possível salvar a apresentação.");
     } finally {
       setSavingPayOnDelivery(false);
     }
@@ -785,9 +819,14 @@ export function AdminPanel({
             soldOutEnabled={soldOutEnabled}
             featuredProductId={featuredProductId}
             operatingHours={operatingHours}
+            presentation={presentation}
             hasUnsavedOperatingHours={
               JSON.stringify(normalizeOperatingHours(operatingHours)) !==
               JSON.stringify(normalizeOperatingHours(savedOperatingHours))
+            }
+            hasUnsavedPresentation={
+              JSON.stringify(normalizePresentationSettings(presentation)) !==
+              JSON.stringify(normalizePresentationSettings(savedPresentation))
             }
             saving={savingPayOnDelivery}
             disabled={!API_URL}
@@ -797,7 +836,9 @@ export function AdminPanel({
             onToggleSoldOut={toggleSoldOut}
             onFeaturedProductChange={updateFeaturedProduct}
             onOperatingHoursChange={updateOperatingHours}
+            onPresentationChange={setPresentation}
             onSaveOperatingHours={saveOperatingHours}
+            onSavePresentation={savePresentation}
             onResetRealOperation={resetRealOperation}
           />
         )}
