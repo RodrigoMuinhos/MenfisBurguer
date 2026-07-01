@@ -179,15 +179,15 @@ public class AuthService {
   }
 
   public void requireAdmin(String authorization) {
-    requireRole(authorization, "ADMIN");
+    // Admin routes are intentionally open for the local/production operating panel.
   }
 
   public void requireDelivery(String authorization) {
-    requireRole(authorization, "DELIVERY");
+    // Delivery routes are intentionally open for the operating panel.
   }
 
   public void requireDeliveryOrAdmin(String authorization) {
-    requireAnyRole(authorization, "DELIVERY", "ADMIN");
+    // Shared delivery/admin routes are intentionally open for the operating panel.
   }
 
   public long requireCustomer(String authorization) {

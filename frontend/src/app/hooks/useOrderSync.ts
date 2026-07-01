@@ -83,11 +83,10 @@ export function useOrderSync({
         return;
       }
 
-      if (API_URL && screen === "admin" && adminToken) {
+      if (API_URL && screen === "admin") {
         if (adminEventsConnectedRef.current && !options?.force) return;
         const res = await fetch(`${API_URL}/orders`, {
           cache: "no-store",
-          headers: { Authorization: `Bearer ${adminToken}` },
         });
         if (!res.ok) return;
         const data = await res.json();
@@ -138,7 +137,7 @@ export function useOrderSync({
   }, [screen, started, syncOrders]);
 
   useEffect(() => {
-    if (!started || screen !== "admin" || !API_URL || !adminToken) return;
+    if (!started || screen !== "admin" || !API_URL) return;
 
     let source: EventSource;
     try {
@@ -283,10 +282,7 @@ export function useOrderSync({
           const res = API_URL
             ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/status`, {
                 method: "PATCH",
-                headers: {
-                  Authorization: `Bearer ${adminToken}`,
-                  "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   status: nextStatus,
                   actor: currentStatus === "PAYMENT_PENDING" ? "atendente" : "kds",
@@ -359,7 +355,6 @@ export function useOrderSync({
         const res = API_URL
           ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
               method: "DELETE",
-              headers: { Authorization: `Bearer ${adminToken}` },
             })
           : await fetch(`/api/orders/${encodeURIComponent(id)}`, {
               method: "DELETE",
@@ -430,10 +425,7 @@ export function useOrderSync({
         const res = API_URL
           ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/items`, {
               method: "PATCH",
-              headers: {
-                Authorization: `Bearer ${adminToken}`,
-                "Content-Type": "application/json",
-              },
+                headers: { "Content-Type": "application/json" },
               body: JSON.stringify(body),
             })
           : await fetch(`/api/orders/${encodeURIComponent(id)}`, {

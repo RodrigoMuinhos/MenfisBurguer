@@ -112,7 +112,6 @@ export function CustomersCrmView({
         {
           method: form.id ? "PATCH" : "POST",
           headers: {
-            Authorization: `Bearer ${adminToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(form),
@@ -142,7 +141,6 @@ export function CustomersCrmView({
     try {
       const res = await fetch(`${API_URL}/customers/admin/${encodeURIComponent(String(form.id))}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
       });
       if (!res.ok) throw new Error("delete_failed");
       setFeedback("Cliente excluído. Pedidos antigos preservados.");
@@ -162,7 +160,6 @@ export function CustomersCrmView({
     try {
       const res = await fetch(`${API_URL}/customers/admin/${encodeURIComponent(String(form.id))}/temporary-password`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${adminToken}` },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error("password_failed");

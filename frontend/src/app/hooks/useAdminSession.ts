@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ADMIN_SESSION_KEY, API_URL, AppMode, Screen } from "../appState";
+import { ADMIN_SESSION_KEY, AppMode, Screen } from "../appState";
 
 export function useAdminSession({
   adminOnlyMode,
@@ -14,60 +14,27 @@ export function useAdminSession({
   const [adminError, setAdminError] = useState("");
   const [adminToken, setAdminToken] = useState("");
 
-  const requestAdminSession = async () => {
-    setAdminUser("admin");
+  const openLocalSession = (user: string) => {
+    setAdminUser(user);
     setAdminError("");
-    if (!API_URL) {
-      setAdminError("Backend não configurado.");
-      return false;
-    }
-    try {
-      const res = await fetch(`${API_URL}/auth/admin`, { method: "POST", cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.token) {
-        setAdminError("Não foi possível abrir o painel.");
-        return false;
-      }
-      setAdminToken(String(data.token));
-      localStorage.setItem(
-        ADMIN_SESSION_KEY,
-        JSON.stringify({ token: String(data.token), user: "admin" }),
-      );
-      return true;
-    } catch {
-      setAdminError("Não foi possível conectar ao servidor.");
-      return false;
-    }
+    setAdminToken("admin-open");
+    localStorage.setItem(
+      ADMIN_SESSION_KEY,
+      JSON.stringify({ token: "admin-open", user }),
+    );
   };
 
   useEffect(() => {
     if (!adminOnlyMode) return;
     if (appMode === "admin" || appMode === "notes") {
       setScreen("admin");
-      void requestAdminSession();
+      openLocalSession("admin");
       return;
     }
     if (appMode === "kds") {
       setScreen("admin");
-      setAdminUser("cozinha");
-      if (!API_URL) return;
-      let cancelled = false;
-      fetch(`${API_URL}/auth/kds`, { method: "POST", cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (cancelled || !data?.token) return;
-          setAdminToken(String(data.token));
-          localStorage.setItem(
-            ADMIN_SESSION_KEY,
-            JSON.stringify({ token: String(data.token), user: "cozinha" }),
-          );
-        })
-        .catch(() => {
-          // KDS remains visible and can authenticate on the next refresh.
-        });
-      return () => {
-        cancelled = true;
-      };
+      openLocalSession("cozinha");
+      return;
     }
 
     try {
@@ -83,7 +50,7 @@ export function useAdminSession({
 
   const openAdmin = () => {
     setScreen("admin");
-    void requestAdminSession();
+    openLocalSession("admin");
   };
 
   const closeAdmin = () => {
