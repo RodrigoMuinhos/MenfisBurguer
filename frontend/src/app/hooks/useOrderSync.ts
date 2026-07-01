@@ -83,7 +83,7 @@ export function useOrderSync({
         return;
       }
 
-      if (API_URL && screen === "admin") {
+      if (API_URL && screen === "admin" && adminToken) {
         if (adminEventsConnectedRef.current && !options?.force) return;
         const res = await fetch(`${API_URL}/orders`, {
           cache: "no-store",

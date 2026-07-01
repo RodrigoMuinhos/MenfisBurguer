@@ -3,6 +3,7 @@ package com.menfis.delivery.service;
 import com.menfis.delivery.dto.ApiDtos.CouponRequest;
 import java.util.List;
 import java.util.Map;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,7 @@ public class CouponService {
       where test_mode = ?
       order by active desc, updated_at desc, code asc
       """,
-      settings.testModeEnabled()
+      testMode()
     );
   }
 
@@ -42,7 +43,7 @@ public class CouponService {
   }
 
   public Map<String, Object> upsert(CouponRequest request) {
-    boolean testMode = settings.testModeEnabled();
+    boolean testMode = testMode();
     Map<String, Object> coupon = jdbc.queryForMap(
       """
       insert into coupons(code, label, type, value, active, test_mode, updated_at)
@@ -67,7 +68,7 @@ public class CouponService {
   }
 
   public Map<String, Object> setActive(String code, boolean active) {
-    boolean testMode = settings.testModeEnabled();
+    boolean testMode = testMode();
     Map<String, Object> coupon = jdbc.queryForMap(
       """
       update coupons
@@ -84,7 +85,15 @@ public class CouponService {
   }
 
   public void delete(String code) {
-    jdbc.update("delete from coupons where lower(code) = lower(?) and test_mode = ?", code, settings.testModeEnabled());
+    jdbc.update("delete from coupons where lower(code) = lower(?) and test_mode = ?", code, testMode());
     audit.log("admin", "COUPON_DELETED", "COUPON", code, Map.of());
+  }
+
+  private boolean testMode() {
+    try {
+      return settings.testModeEnabled();
+    } catch (DataAccessException ex) {
+      return false;
+    }
   }
 }

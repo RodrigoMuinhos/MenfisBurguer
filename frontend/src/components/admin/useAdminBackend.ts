@@ -28,7 +28,7 @@ export function useAdminBackend({
   const [adminDataError, setAdminDataError] = useState("");
 
   const syncInventory = async () => {
-    if (!API_URL) return;
+    if (!API_URL || !adminToken) return;
     try {
       const data = await fetchAdminStock(API_URL, adminToken);
       if (data.items.length > 0) setStockItems(data.items);
@@ -40,7 +40,7 @@ export function useAdminBackend({
   };
 
   const syncCoupons = async () => {
-    if (!API_URL || kitchenOnly) return;
+    if (!API_URL || !adminToken || kitchenOnly) return;
     try {
       const coupons = await fetchAdminCoupons(API_URL, adminToken);
       if (coupons.length > 0) {
@@ -59,7 +59,7 @@ export function useAdminBackend({
   }, [adminToken, kitchenOnly]);
 
   const persistStockItem = async (item: StockItem) => {
-    if (!API_URL) return;
+    if (!API_URL || !adminToken) return;
     try {
       await saveStockItem(API_URL, adminToken, item);
       await syncInventory();
@@ -74,7 +74,7 @@ export function useAdminBackend({
     quantity: number,
     note: string,
   ) => {
-    if (!API_URL) return;
+    if (!API_URL || !adminToken) return;
     try {
       await moveStockItem(API_URL, adminToken, item.id, type, quantity, note);
       await syncInventory();
@@ -84,7 +84,7 @@ export function useAdminBackend({
   };
 
   const persistStockDelete = async (item: StockItem) => {
-    if (!API_URL) return;
+    if (!API_URL || !adminToken) return;
     try {
       await deleteStockItem(API_URL, adminToken, item.id);
       await syncInventory();

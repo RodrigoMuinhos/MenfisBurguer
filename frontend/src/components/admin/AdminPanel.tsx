@@ -330,7 +330,7 @@ export function AdminPanel({
   }, []);
 
   const updateSetting = async (path: string, enabled: boolean) => {
-    if (!API_URL || savingPayOnDelivery) return;
+    if (!API_URL || !adminToken || savingPayOnDelivery) return;
     setSavingPayOnDelivery(true);
     try {
       const response = await fetch(`${API_URL}${path}`, {
@@ -364,7 +364,7 @@ export function AdminPanel({
 
   const updateFeaturedProduct = async (productId: string) => {
     setFeaturedProductId(productId);
-    if (!API_URL || savingPayOnDelivery) return;
+    if (!API_URL || !adminToken || savingPayOnDelivery) return;
     setSavingPayOnDelivery(true);
     try {
       const response = await fetch(`${API_URL}/settings/featured-product`, {
@@ -389,7 +389,7 @@ export function AdminPanel({
   };
 
   const saveOperatingHours = async () => {
-    if (!API_URL || savingPayOnDelivery) return;
+    if (!API_URL || !adminToken || savingPayOnDelivery) return;
     setSavingPayOnDelivery(true);
     try {
       const response = await fetch(`${API_URL}/settings/operating-hours`, {
@@ -415,7 +415,7 @@ export function AdminPanel({
   };
 
   const savePresentation = async () => {
-    if (!API_URL || savingPayOnDelivery) return;
+    if (!API_URL || !adminToken || savingPayOnDelivery) return;
     setSavingPayOnDelivery(true);
     try {
       const response = await fetch(`${API_URL}/settings/presentation`, {
@@ -441,7 +441,7 @@ export function AdminPanel({
   };
 
   const resetRealOperation = async () => {
-    if (!API_URL || savingPayOnDelivery) return;
+    if (!API_URL || !adminToken || savingPayOnDelivery) return;
     const confirmed = window.confirm("Zerar histórico real, cupons reais e estoque real?");
     if (!confirmed) return;
     setSavingPayOnDelivery(true);
@@ -570,7 +570,7 @@ export function AdminPanel({
       ),
     ];
     saveCustomCoupons(nextCoupons);
-    if (API_URL) {
+    if (API_URL && adminToken) {
       try {
         await saveAdminCoupon(API_URL, adminToken, coupon);
         await syncCoupons();
@@ -603,7 +603,7 @@ export function AdminPanel({
         (item) => item.code.toLowerCase() !== coupon.code.toLowerCase(),
       ),
     ]);
-    if (!API_URL) return;
+    if (!API_URL || !adminToken) return;
     try {
       await toggleAdminCoupon(API_URL, adminToken, nextCoupon);
       await syncCoupons();
@@ -626,7 +626,7 @@ export function AdminPanel({
       if (editingCouponCode.toLowerCase() === coupon.code.toLowerCase()) {
         resetCouponForm();
       }
-      if (API_URL) {
+      if (API_URL && adminToken) {
         try {
           await toggleAdminCoupon(API_URL, adminToken, { ...coupon, active: false });
           await syncCoupons();
@@ -644,7 +644,7 @@ export function AdminPanel({
     if (editingCouponCode.toLowerCase() === coupon.code.toLowerCase()) {
       resetCouponForm();
     }
-    if (!API_URL) return;
+    if (!API_URL || !adminToken) return;
     try {
       await deleteAdminCoupon(API_URL, adminToken, coupon.code);
       await syncCoupons();
