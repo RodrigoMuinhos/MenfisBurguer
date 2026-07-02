@@ -20,7 +20,7 @@ import {
 } from "./checkout";
 import { submitCheckoutOrder } from "./cartFinalize";
 import { inputStyle } from "./cartInputStyle";
-import { readMemberProfile } from "@/components/product/shared";
+import { MEMBER_TOKEN_KEY, readMemberProfile } from "@/components/product/shared";
 import { SOLD_OUT_MESSAGE } from "@/components/product/SoldOutNotice";
 import { formatDeliveryAddress } from "@/utils/address";
 
@@ -46,6 +46,11 @@ function readCouponUsage() {
   } catch {
     return {};
   }
+}
+
+function hasCustomerSession() {
+  if (typeof window === "undefined") return false;
+  return Boolean(localStorage.getItem(MEMBER_TOKEN_KEY));
 }
 
 function couponDailyKey(coupon: Coupon) {
@@ -468,6 +473,11 @@ export function useCartCheckout({
 
   const submitSelectedPayment = async (selectedPayment: PaymentMethod) => {
     if (paying || !deliveryValid) return;
+    if (!kioskMode && !counterServiceMode && !hasCustomerSession()) {
+      setPaymentError("Entre ou crie seu perfil Menfi's para finalizar o pedido.");
+      setCheckoutStep("delivery");
+      return;
+    }
     if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
       setAddressConfirmOpen(true);
       setCheckoutStep("delivery");
@@ -611,6 +621,11 @@ export function useCartCheckout({
     }
 
     if (checkoutStep === "review" && !kioskMode && !counterServiceMode) {
+      if (!hasCustomerSession()) {
+        setPaymentError("Entre ou crie seu perfil Menfi's para finalizar o pedido.");
+        setCheckoutStep("delivery");
+        return;
+      }
       if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
         setAddressConfirmOpen(true);
         setCheckoutStep("delivery");

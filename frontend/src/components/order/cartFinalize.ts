@@ -150,6 +150,7 @@ export async function submitCheckoutOrder({
   clearCartItems?: () => void;
 }) {
   let slowTimer: number | null = null;
+  let whatsappReceiptWindow: Window | null = null;
   const effectiveDelivery = resolveRuntimeDeliveryType(
     kioskMode || counterServiceMode ? "retirada" : delivery,
   );
@@ -176,7 +177,7 @@ export async function submitCheckoutOrder({
     if (!API_URL) {
       throw new Error("api_url_missing");
     }
-    const whatsappReceiptWindow =
+    whatsappReceiptWindow =
       !kioskMode && !counterServiceMode ? reserveWhatsappReceiptWindow() : null;
     setPaying(true);
     setPaymentSlow(false);
@@ -490,6 +491,9 @@ export async function submitCheckoutOrder({
     localStorage.setItem("menfis_pending_order_id", String(createdOrder.id));
     window.location.assign(checkoutUrl);
   } catch (error) {
+    if (whatsappReceiptWindow && !whatsappReceiptWindow.closed) {
+      whatsappReceiptWindow.close();
+    }
     const reason = error instanceof Error ? error.message : "";
     if (reason.includes("restaurant_closed")) {
       onRestaurantClosed?.();
@@ -498,6 +502,8 @@ export async function submitCheckoutOrder({
     setPaymentError(
       reason.includes("api_url_missing")
         ? "Backend não configurado no kiosk. Defina NEXT_PUBLIC_API_URL apontando para o backend conectado ao Neon."
+        : reason.includes("customer_session_required")
+          ? "Entre ou crie seu perfil Menfi's para finalizar o pedido."
         : reason.includes("MERCADO_PAGO_ACCESS_TOKEN")
           ? "Pagamento indisponível: falta configurar a credencial do Mercado Pago."
           : reason.includes("order_creation_failed")
@@ -534,10 +540,49 @@ function reserveWhatsappReceiptWindow() {
 
 function sendWhatsappReceipt(order: Order, receiptWindow?: Window | null) {
   const text = buildOrderWhatsappReceipt(order);
-  const url = `${SUPPORT_WHATSAPP_URL}?text=${encodeURIComponent(text)}`;
+  const url = buildWhatsappUrl(text);
   if (receiptWindow && !receiptWindow.closed) {
-    receiptWindow.location.href = url;
+    writeWhatsappRedirect(receiptWindow, url);
     return;
   }
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function buildWhatsappUrl(text: string) {
+  const encoded = encodeURIComponent(text);
+  const phone = SUPPORT_WHATSAPP_URL.replace(/\D/g, "");
+  const isMobile =
+    typeof navigator !== "undefined" &&
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    return `${SUPPORT_WHATSAPP_URL}?text=${encoded}`;
+  }
+  return `https://web.whatsapp.com/send?phone=${phone}&text=${encoded}`;
+}
+
+function writeWhatsappRedirect(receiptWindow: Window, url: string) {
+  const escapedUrl = JSON.stringify(url);
+  receiptWindow.document.open();
+  receiptWindow.document.write(`
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Enviar pedido no WhatsApp</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 24px; color: #1f3d2e; }
+      a { display: inline-block; margin-top: 16px; padding: 14px 18px; border-radius: 12px; background: #25d366; color: #fff; font-weight: 700; text-decoration: none; }
+      p { max-width: 420px; line-height: 1.4; }
+    </style>
+  </head>
+  <body>
+    <p>Abrindo WhatsApp com a guia do pedido...</p>
+    <p>Se o WhatsApp não abrir automaticamente, toque no botão abaixo.</p>
+    <a href=${escapedUrl} rel="noopener">Abrir WhatsApp</a>
+    <script>window.location.replace(${escapedUrl});</script>
+  </body>
+</html>`);
+  receiptWindow.document.close();
 }
