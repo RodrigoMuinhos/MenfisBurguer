@@ -30,6 +30,12 @@ const PREPARATION_STARTED_STATUSES: OrderStatus[] = [
   "DELIVERED",
 ];
 
+function runAfterNextPaint(callback: () => void) {
+  window.requestAnimationFrame(() => {
+    window.setTimeout(callback, 0);
+  });
+}
+
 function dateLabel(value: string) {
   if (!value) return "Sem data";
   const [year, month, day] = value.split("-").map(Number);
@@ -341,7 +347,7 @@ export function OrdersView({
                     {order.status === "CANCELLED" ? (
                       <button
                         type="button"
-                        onClick={() => updateOrderStatus(order.id, "ACCEPTED")}
+                        onClick={() => runAfterNextPaint(() => updateOrderStatus(order.id, "ACCEPTED"))}
                         className="flex items-center justify-center"
                         style={{
                           color: "#166534",
@@ -394,14 +400,14 @@ export function OrdersView({
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => printOrderReceipts(selected)}
+                onClick={() => runAfterNextPaint(() => printOrderReceipts(selected))}
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
                 style={{ background: VERDE, color: ROSA }}
               >
                 <Printer size={15} /> Imprimir via
               </button>
               <button
-                onClick={() => void copyOrderTxt(selected)}
+                onClick={() => runAfterNextPaint(() => void copyOrderTxt(selected))}
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
                 style={{ background: `${VERDE}10`, color: VERDE, border: `1.5px solid ${VERDE}20` }}
               >
@@ -664,7 +670,7 @@ export function OrdersView({
           <div className="admin-order-actions mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {canReleasePayment && (
               <button
-                onClick={() => updateOrderStatus(selected.id, "PAID")}
+                onClick={() => runAfterNextPaint(() => updateOrderStatus(selected.id, "PAID"))}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
                 style={{ background: "#16A34A", color: "#fff" }}
               >
@@ -674,9 +680,11 @@ export function OrdersView({
             {selected.status === "PAID" && (
               <button
                 onClick={() =>
-                  updateOrderStatus(
-                    selected.id,
-                    selectedIsScheduledPaid ? "IN_PREPARATION" : "ACCEPTED",
+                  runAfterNextPaint(() =>
+                    updateOrderStatus(
+                      selected.id,
+                      selectedIsScheduledPaid ? "IN_PREPARATION" : "ACCEPTED",
+                    ),
                   )
                 }
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
@@ -688,7 +696,7 @@ export function OrdersView({
             )}
             {selected.status === "ACCEPTED" && (
               <button
-                onClick={() => updateOrderStatus(selected.id, "IN_PREPARATION")}
+                onClick={() => runAfterNextPaint(() => updateOrderStatus(selected.id, "IN_PREPARATION"))}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{ background: "#16A34A", color: "#fff" }}
               >
@@ -711,7 +719,7 @@ export function OrdersView({
             {canEditFinancials && selected.deliveryType === "delivery" && selectedDeliveryFee <= 0 && (
               <button
                 type="button"
-                onClick={() => void applyDeliveryFee()}
+                onClick={() => runAfterNextPaint(() => void applyDeliveryFee())}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{
                   background: `${VERDE}08`,
@@ -739,7 +747,7 @@ export function OrdersView({
             )}
             {selected.status === "IN_PREPARATION" && (
               <button
-                onClick={() => updateOrderStatus(selected.id, "READY")}
+                onClick={() => runAfterNextPaint(() => updateOrderStatus(selected.id, "READY"))}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{ background: "#16A34A", color: "#fff" }}
               >
@@ -769,11 +777,13 @@ export function OrdersView({
             {selected.status === "READY" && (
               <button
                 onClick={() =>
-                  updateOrderStatus(
-                    selected.id,
-                    selected.deliveryType === "delivery" && !selectedIsKioskMob
-                      ? "OUT_FOR_DELIVERY"
-                      : "DELIVERED",
+                  runAfterNextPaint(() =>
+                    updateOrderStatus(
+                      selected.id,
+                      selected.deliveryType === "delivery" && !selectedIsKioskMob
+                        ? "OUT_FOR_DELIVERY"
+                        : "DELIVERED",
+                    ),
                   )
                 }
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
@@ -789,7 +799,7 @@ export function OrdersView({
             )}
             {selected.status === "OUT_FOR_DELIVERY" && (
               <button
-                onClick={() => updateOrderStatus(selected.id, "DELIVERED")}
+                onClick={() => runAfterNextPaint(() => updateOrderStatus(selected.id, "DELIVERED"))}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase"
                 style={{ background: "#16A34A", color: "#fff" }}
               >
@@ -835,7 +845,7 @@ export function OrdersView({
                     </button>
                     <button
                       type="button"
-                      onClick={() => void saveItemEdit()}
+                      onClick={() => runAfterNextPaint(() => void saveItemEdit())}
                       disabled={draftItems.length === 0}
                       className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase disabled:opacity-40"
                       style={{ background: "#16A34A", color: "#fff" }}
@@ -1007,7 +1017,7 @@ export function OrdersView({
           order={cancelTarget}
           onClose={() => setCancelTarget(null)}
           onConfirm={() => {
-            updateOrderStatus(cancelTarget.id, "CANCELLED");
+            runAfterNextPaint(() => updateOrderStatus(cancelTarget.id, "CANCELLED"));
             setCancelTarget(null);
           }}
         />
