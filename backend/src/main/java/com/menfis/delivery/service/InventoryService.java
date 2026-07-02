@@ -186,12 +186,24 @@ public class InventoryService {
   public void deductForOrder(String orderId) {
     List<Map<String, Object>> deductions = jdbc.queryForList(
       """
-      select pi.inventory_item_id, sum(pi.quantity * oi.quantity) as quantity
-      from order_items oi
-      join product_ingredients pi on pi.product_id = oi.product_id
-      where oi.order_id = ?
-      group by pi.inventory_item_id
+      select inventory_item_id, sum(quantity) as quantity
+      from (
+        select pi.inventory_item_id, pi.quantity * oi.quantity as quantity
+        from order_items oi
+        join product_ingredients pi on pi.product_id = oi.product_id
+        where oi.order_id = ?
+
+        union all
+
+        select pi.inventory_item_id, pi.quantity * oi.quantity as quantity
+        from order_items oi
+        cross join lateral jsonb_array_elements_text(coalesce(oi.metadata->'addonIds', '[]'::jsonb)) addon(addon_id)
+        join product_ingredients pi on pi.product_id = addon.addon_id
+        where oi.order_id = ?
+      ) deductions
+      group by inventory_item_id
       """,
+      orderId,
       orderId
     );
 

@@ -70,6 +70,16 @@ import { MemberNotification } from "./notifications";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+const CUSTOMIZER_ADDON_IDS = new Set([
+  "extra-carne",
+  "extra-frango",
+  "extra-queijo",
+  "extra-ovo",
+  "extra-bacon",
+  "extra-cheddar",
+  "extra-maionese-barbecue",
+  "extra-maionese-alho-frito",
+]);
 
 function hasRequiredCustomerProfile(profile: MemberProfile | null) {
   return Boolean(
@@ -407,6 +417,29 @@ export function ProductScreen({
       const drinkLabels = customizer.drinks
         .map((drinkId) => DRINK_OPTIONS.find((option) => option.id === drinkId)?.label)
         .filter(Boolean) as string[];
+      const selectedExtras = Object.entries(customizer.extras)
+        .map(([extraId, quantity]) => ({
+          quantity,
+          extra: getExtraOptionsForItem(customizer.item).find(
+            (option) => option.id === extraId,
+          ),
+        }))
+        .filter(
+          (entry): entry is {
+            quantity: number;
+            extra: NonNullable<ReturnType<typeof getExtraOptionsForItem>[number]>;
+          } => Boolean(entry.extra) && entry.quantity > 0,
+        );
+      const addonIds = selectedExtras.flatMap(({ extra, quantity }) =>
+        CUSTOMIZER_ADDON_IDS.has(extra.id)
+          ? Array.from({ length: quantity }, () => extra.id)
+          : [],
+      );
+      const addonLabels = selectedExtras
+        .filter(({ extra }) => CUSTOMIZER_ADDON_IDS.has(extra.id))
+        .map(({ extra, quantity }) =>
+          quantity > 1 ? `${quantity}x ${extra.label}` : extra.label,
+        );
       const components = [
         customizer.item.name,
         ...drinkLabels,
@@ -414,13 +447,19 @@ export function ProductScreen({
           ? [comboPotatoComponent(customizer.item)]
           : []),
         ...customizer.sauces,
+        ...addonLabels,
       ];
       addToCart({
         id: `${customizer.item.id}-${Date.now()}-${i}`,
         productId: customizer.item.id,
         name: customizer.item.name.toUpperCase(),
-        price: customizer.item.price,
+        price:
+          customizer.item.price +
+          selectedExtras
+            .filter(({ extra }) => CUSTOMIZER_ADDON_IDS.has(extra.id))
+            .reduce((sum, { extra, quantity }) => sum + extra.price * quantity, 0),
         components,
+        addonIds,
         note: customizer.note.trim() || undefined,
       });
       customizer.drinks.forEach((drinkId) => {
@@ -434,18 +473,15 @@ export function ProductScreen({
           });
         }
       });
-      Object.entries(customizer.extras).forEach(([extraId, quantity]) => {
-        const extra = getExtraOptionsForItem(customizer.item).find(
-          (option) => option.id === extraId,
-        );
-        if (extra) {
-          for (let extraIndex = 0; extraIndex < quantity; extraIndex += 1) {
-            addToCart({
-              id: extra.id,
-              name: extra.label.toUpperCase(),
-              price: extra.price,
-            });
-          }
+      selectedExtras.forEach(({ extra, quantity }) => {
+        if (CUSTOMIZER_ADDON_IDS.has(extra.id)) return;
+        for (let extraIndex = 0; extraIndex < quantity; extraIndex += 1) {
+          addToCart({
+            id: extra.id,
+            productId: extra.id,
+            name: extra.label.toUpperCase(),
+            price: extra.price,
+          });
         }
       });
     }

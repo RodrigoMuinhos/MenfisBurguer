@@ -34,6 +34,7 @@ export interface CartItem {
   price: number;
   qty: number;
   components?: string[];
+  addonIds?: string[];
   note?: string;
 }
 

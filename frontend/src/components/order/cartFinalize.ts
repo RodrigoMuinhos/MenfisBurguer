@@ -196,6 +196,7 @@ export async function submitCheckoutOrder({
         items: cart.map((item) => ({
           productId: item.productId ?? item.id,
           quantity: item.qty,
+          addonIds: item.addonIds ?? [],
           metadata: {
             components: item.components ?? [],
             note: item.note ?? "",
