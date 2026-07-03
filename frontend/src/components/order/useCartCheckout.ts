@@ -434,26 +434,32 @@ export function useCartCheckout({
   const getCustomerAddress = () =>
     effectiveDelivery === "retirada"
       ? [
-          deliverySchedule === "scheduled"
-            ? `RETIRADA AGENDADA: cliente passa as ${scheduledTime}.`
-            : "RETIRADA AGENDADA: cliente passa assim que abrir as 18:30.",
+          !operatingNow
+            ? deliverySchedule === "scheduled"
+              ? `RETIRADA AGENDADA: cliente passa as ${scheduledTime}.`
+              : "RETIRADA AGENDADA: cliente passa assim que abrir as 18:30."
+            : "",
           `Retirada na loja - ${PICKUP_ADDRESS}`,
-        ].join("\n")
+        ].filter(Boolean).join("\n")
       : confirmedDeliveryAddress || [
-          deliverySchedule === "scheduled"
-            ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
-            : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30.",
+          !operatingNow
+            ? deliverySchedule === "scheduled"
+              ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
+              : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30."
+            : "",
           formatDeliveryAddress({ street, number, complement }),
-        ].join("\n");
+        ].filter(Boolean).join("\n");
 
   const deliveryAddressRequiresConfirmation = effectiveDelivery === "delivery";
 
   const currentDeliveryAddress = [
-    deliverySchedule === "scheduled"
-      ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
-      : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30.",
+    !operatingNow
+      ? deliverySchedule === "scheduled"
+        ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
+        : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30."
+      : "",
     formatDeliveryAddress({ street, number, complement }),
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 
   const confirmDeliveryAddress = () => {
     if (!deliveryValid || !deliveryAddressRequiresConfirmation) return;
@@ -761,8 +767,9 @@ export function useCartCheckout({
     checkoutStep,
     closedHoursAlertOpen,
     closedHoursAlertMessage:
-      operatingHoursMessage ||
+    operatingHoursMessage ||
       "Assim que abrirmos, você será informado e poderá finalizar seu pedido.",
+    operatingNow,
     closeClosedHoursAlert: () => setClosedHoursAlertOpen(false),
     closeSoldOutAlert: () => setSoldOutAlertOpen(false),
     confirmDeliveryAddress,

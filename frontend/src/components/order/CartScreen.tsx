@@ -89,6 +89,7 @@ export function CartScreen({
     customerName,
     customerNameRef,
     delivery,
+    operatingNow,
     deliverySchedule,
     deliveryValid,
     editDeliveryAddress,
@@ -349,6 +350,7 @@ export function CartScreen({
           kioskMode={kioskMode}
           savedBadge={savedBadge}
           delivery={delivery}
+          operatingNow={operatingNow}
           cepRef={cepRef}
           customerNameRef={customerNameRef}
           streetRef={streetRef}

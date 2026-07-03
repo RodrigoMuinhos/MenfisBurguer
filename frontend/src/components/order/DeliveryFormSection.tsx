@@ -17,6 +17,7 @@ export function DeliveryFormSection({
   kioskMode,
   savedBadge,
   delivery,
+  operatingNow,
   cepRef,
   customerNameRef,
   streetRef,
@@ -49,6 +50,7 @@ export function DeliveryFormSection({
   kioskMode: boolean;
   savedBadge: boolean;
   delivery: "retirada" | "delivery";
+  operatingNow: boolean;
   cepRef: RefObject<HTMLInputElement>;
   customerNameRef: RefObject<HTMLInputElement>;
   streetRef: RefObject<HTMLInputElement>;
@@ -304,14 +306,16 @@ export function DeliveryFormSection({
                       </div>
                     )}
 
-                    <ScheduleSelector
-                      deliverySchedule={deliverySchedule}
-                      setDeliverySchedule={setDeliverySchedule}
-                      scheduledTime={scheduledTime}
-                      setScheduledTime={setScheduledTime}
-                      scheduleTimes={scheduleTimes}
-                      copy={scheduleCopy}
-                    />
+                    {!operatingNow && (
+                      <ScheduleSelector
+                        deliverySchedule={deliverySchedule}
+                        setDeliverySchedule={setDeliverySchedule}
+                        scheduledTime={scheduledTime}
+                        setScheduledTime={setScheduledTime}
+                        scheduleTimes={scheduleTimes}
+                        copy={scheduleCopy}
+                      />
+                    )}
       
                     {/* WhatsApp */}
                     <div>
