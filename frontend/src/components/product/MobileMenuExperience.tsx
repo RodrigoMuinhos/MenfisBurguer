@@ -265,24 +265,11 @@ export function MobileMenuExperience({
           />
         </div>
 
-        <div className="relative z-10 mt-4 min-h-[312px] overflow-hidden bg-white">
-          <div className="relative z-30 max-w-[47%] pt-10">
-            <Image
-              src="/logonome.jpeg"
-              alt="Menfi's Burger"
-              width={300}
-              height={300}
-              className="h-[166px] w-auto max-w-full object-contain object-left"
-              priority
-            />
-            <p className="mt-2 text-[15px] font-black uppercase leading-tight">
-              Hamburguer artesanal feito na hora.
-            </p>
-          </div>
+        <div className="relative z-10 mt-4 overflow-hidden rounded-[26px] bg-white shadow-[0_18px_42px_rgba(101,0,31,0.08)]">
           <button
             type="button"
             onClick={() => heroItem && onOpenDetails(heroItem)}
-            className="absolute -right-20 top-0 z-10 h-[330px] w-[72%] overflow-visible bg-white"
+            className="relative block aspect-[1.08/1] w-full overflow-hidden bg-white min-[420px]:aspect-[1.18/1]"
             aria-label={`Ver ${heroItem?.name ?? "produto"}`}
           >
             {featuredImage || heroItem?.image ? (
@@ -291,15 +278,27 @@ export function MobileMenuExperience({
                 alt={heroItem.name}
                 fill
                 priority
-                sizes="78vw"
+                sizes="100vw"
                 style={{
-                  objectFit: "contain",
-                  objectPosition: "left center",
-                  transform: "scale(1.24)",
+                  objectFit: "cover",
+                  objectPosition: "center",
                 }}
               />
             ) : null}
           </button>
+          <div className="grid gap-2 px-4 pb-4 pt-3">
+            <Image
+              src="/logonome.jpeg"
+              alt="Menfi's Burger"
+              width={210}
+              height={96}
+              className="h-16 w-auto max-w-full object-contain object-left"
+              priority
+            />
+            <p className="text-[15px] font-black uppercase leading-tight">
+              Hamburguer artesanal feito na hora.
+            </p>
+          </div>
         </div>
 
         <OfferCarousel
