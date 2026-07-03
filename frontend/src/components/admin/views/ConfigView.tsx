@@ -1,4 +1,4 @@
-import { CalendarClock, FlaskConical, ImagePlus, PackageX, RotateCcw, Save, Table2, Trash2 } from "lucide-react";
+import { CalendarClock, FlaskConical, GripVertical, ImagePlus, PackageX, RotateCcw, Save, Table2, Trash2 } from "lucide-react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -84,6 +84,24 @@ export function ConfigView({
       imageCount: Math.min(Math.max(1, images.length), normalizedPresentation.imageCount),
     });
   };
+  const movePresentationImage = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= normalizedPresentation.images.length) return;
+    const images = [...normalizedPresentation.images];
+    const [moved] = images.splice(fromIndex, 1);
+    images.splice(toIndex, 0, moved);
+    updatePresentation({ images });
+  };
+  const setFeaturedImageFromFiles = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    const featuredImage = await encodePresentationImage(file);
+    updatePresentation({ featuredImage });
+  };
+  const selectedProduct = MENU_ITEMS.find((item) => item.id === featuredProductId) ?? MENU_ITEMS[0];
+  const selectedProductImage =
+    typeof selectedProduct.image === "string"
+      ? selectedProduct.image
+      : selectedProduct.image?.src;
 
   return (
     <div className="flex flex-col gap-4">
@@ -135,26 +153,68 @@ export function ConfigView({
       </section>
 
       <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
-        <div className="grid gap-3 md:grid-cols-[1fr_320px] md:items-center">
+        <div className="grid gap-4 lg:grid-cols-[1fr_320px] lg:items-start">
           <div>
             <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Destaque do cardápio</p>
             <p className="mt-1 text-xs font-bold opacity-60">
-              Escolha o produto principal que aparece no banner inicial do cliente.
+              Escolha o produto principal e, se quiser, envie uma imagem exclusiva para o banner inicial do cliente.
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase" style={{ background: `${ROSA}35`, color: VERDE, border: `1.5px solid ${ROSA}` }}>
+                <ImagePlus size={15} />
+                Upload destaque
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={saving || disabled}
+                  onChange={(event) => {
+                    void setFeaturedImageFromFiles(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+              {normalizedPresentation.featuredImage && (
+                <button
+                  type="button"
+                  onClick={() => updatePresentation({ featuredImage: "" })}
+                  disabled={saving || disabled}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
+                  style={{ background: "#FEF2F2", color: "#991B1B", border: "1px solid #FCA5A5" }}
+                >
+                  <Trash2 size={14} />
+                  Usar foto do produto
+                </button>
+              )}
+            </div>
           </div>
-          <select
-            value={featuredProductId}
-            onChange={(event) => onFeaturedProductChange(event.target.value)}
-            disabled={saving || disabled}
-            className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
-            style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-          >
-            {MENU_ITEMS.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+          <div className="grid gap-3">
+            <select
+              value={featuredProductId}
+              onChange={(event) => onFeaturedProductChange(event.target.value)}
+              disabled={saving || disabled}
+              className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+            >
+              {MENU_ITEMS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+            <div className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2" }}>
+              <div className="relative aspect-video bg-black">
+                <img
+                  src={normalizedPresentation.featuredImage || selectedProductImage}
+                  alt="Prévia do destaque"
+                  className="h-full w-full object-cover"
+                />
+                <span className="absolute left-2 top-2 rounded-full px-2 py-1 text-[10px] font-black" style={{ background: "#fff", color: VERDE }}>
+                  {normalizedPresentation.featuredImage ? "Upload" : "Produto"}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -232,23 +292,63 @@ export function ConfigView({
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {normalizedPresentation.images.map((image, index) => (
-            <div key={`${image}-${index}`} className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2" }}>
+            <div
+              key={`${image}-${index}`}
+              draggable={!saving && !disabled}
+              onDragStart={(event) => {
+                event.dataTransfer.setData("text/plain", String(index));
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                movePresentationImage(Number(event.dataTransfer.getData("text/plain")), index);
+              }}
+              className="overflow-hidden rounded-2xl"
+              style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2", cursor: saving || disabled ? "default" : "grab" }}
+            >
               <div className="relative aspect-video bg-black">
                 <img src={image} alt={`Apresentação ${index + 1}`} className="h-full w-full object-cover" />
                 <span className="absolute left-2 top-2 rounded-full px-2 py-1 text-[10px] font-black" style={{ background: "#fff", color: VERDE }}>
                   {index + 1}
                 </span>
+                <span className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full" style={{ background: "#fff", color: VERDE }}>
+                  <GripVertical size={15} />
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => removePresentationImage(index)}
-                disabled={saving || disabled || normalizedPresentation.images.length <= 1}
-                className="flex w-full items-center justify-center gap-2 px-3 py-3 text-[10px] font-black uppercase"
-                style={{ color: "#991B1B", opacity: normalizedPresentation.images.length <= 1 ? 0.45 : 1 }}
-              >
-                <Trash2 size={13} />
-                Remover
-              </button>
+              <div className="grid grid-cols-[1fr_1fr_1.3fr] border-t" style={{ borderColor: `${VERDE}12` }}>
+                <button
+                  type="button"
+                  onClick={() => movePresentationImage(index, index - 1)}
+                  disabled={saving || disabled || index === 0}
+                  className="px-2 py-3 text-[10px] font-black uppercase disabled:opacity-35"
+                  style={{ color: VERDE }}
+                >
+                  Subir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => movePresentationImage(index, index + 1)}
+                  disabled={saving || disabled || index === normalizedPresentation.images.length - 1}
+                  className="px-2 py-3 text-[10px] font-black uppercase disabled:opacity-35"
+                  style={{ color: VERDE }}
+                >
+                  Descer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removePresentationImage(index)}
+                  disabled={saving || disabled || normalizedPresentation.images.length <= 1}
+                  className="flex items-center justify-center gap-2 px-3 py-3 text-[10px] font-black uppercase"
+                  style={{ color: "#991B1B", opacity: normalizedPresentation.images.length <= 1 ? 0.45 : 1 }}
+                >
+                  <Trash2 size={13} />
+                  Remover
+                </button>
+              </div>
             </div>
           ))}
         </div>

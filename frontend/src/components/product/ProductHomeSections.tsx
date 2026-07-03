@@ -142,6 +142,7 @@ export function ProductHeader({
 export function ProductHero({
   kioskMode,
   featuredItem,
+  featuredImage,
   onIdleShortcutTap,
   onAddFeatured,
   operatingNow,
@@ -150,6 +151,7 @@ export function ProductHero({
 }: {
   kioskMode: boolean;
   featuredItem: MenuItem;
+  featuredImage?: string;
   onIdleShortcutTap: () => void;
   onAddFeatured: () => void;
   operatingNow: boolean;
@@ -303,7 +305,7 @@ export function ProductHero({
         style={{ background: "#fff" }}
       >
         <Image
-          src={featuredItem.image ?? burgerPhoto}
+          src={featuredImage || featuredItem.image || burgerPhoto}
           alt={featuredItem.name}
           fill
           priority

@@ -31,6 +31,7 @@ export type PresentationSettings = {
   intervalSeconds: number;
   imageCount: number;
   images: string[];
+  featuredImage?: string;
 };
 
 export type Coupon = {
@@ -169,6 +170,7 @@ export const DEFAULT_PRESENTATION_SETTINGS: PresentationSettings = {
   intervalSeconds: 6,
   imageCount: 1,
   images: ["/descanso.png"],
+  featuredImage: "",
 };
 
 export function normalizePresentationSettings(value: unknown): PresentationSettings {
@@ -181,6 +183,8 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
     : DEFAULT_PRESENTATION_SETTINGS.images;
   const intervalSeconds = Number(data.intervalSeconds);
   const imageCount = Number(data.imageCount);
+  const featuredImage =
+    typeof data.featuredImage === "string" ? data.featuredImage.trim() : "";
   return {
     enabled:
       typeof data.enabled === "boolean"
@@ -195,6 +199,7 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
         ? Math.min(20, Math.round(imageCount))
         : Math.max(1, images.length),
     images: images.length ? images : DEFAULT_PRESENTATION_SETTINGS.images,
+    featuredImage,
   };
 }
 

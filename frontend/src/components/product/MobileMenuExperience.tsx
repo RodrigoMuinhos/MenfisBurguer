@@ -115,6 +115,8 @@ export function MobileMenuExperience({
   items,
   cartCount,
   cartTotal,
+  featuredItem,
+  featuredImage,
   memberProfile,
   notificationCount,
   onOpenMember,
@@ -128,6 +130,8 @@ export function MobileMenuExperience({
   items: MenuItem[];
   cartCount: number;
   cartTotal: number;
+  featuredItem?: MenuItem;
+  featuredImage?: string;
   memberProfile: MemberProfile | null;
   notificationCount: number;
   onOpenMember: () => void;
@@ -163,7 +167,7 @@ export function MobileMenuExperience({
     [category, normalizedQuery, sortedItems],
   );
   const heroItem =
-    items.find((item) => item.id === "double-burger") ?? items[0];
+    featuredItem ?? items.find((item) => item.id === "double-burger") ?? items[0];
   const categoryLabel =
     MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label ?? "Produtos";
   const whatsappText = encodeURIComponent(
@@ -281,9 +285,9 @@ export function MobileMenuExperience({
             className="absolute -right-20 top-0 z-10 h-[330px] w-[72%] overflow-visible bg-white"
             aria-label={`Ver ${heroItem?.name ?? "produto"}`}
           >
-            {heroItem?.image ? (
+            {featuredImage || heroItem?.image ? (
               <Image
-                src={imageSrc(heroItem.image)}
+                src={featuredImage || imageSrc(heroItem.image)}
                 alt={heroItem.name}
                 fill
                 priority

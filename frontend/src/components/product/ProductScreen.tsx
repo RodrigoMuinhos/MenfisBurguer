@@ -65,6 +65,7 @@ import {
   ProductHeader,
   ProductHero,
 } from "./ProductHomeSections";
+import { normalizePresentationSettings } from "@/components/order/checkout";
 import { MobileMenuExperience } from "./MobileMenuExperience";
 import { MemberNotification } from "./notifications";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
@@ -145,6 +146,7 @@ export function ProductScreen({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
+  const [featuredImage, setFeaturedImage] = useState("");
   const [operatingNow, setOperatingNow] = useState(true);
   const [operatingHoursSummary, setOperatingHoursSummary] = useState("");
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
@@ -249,6 +251,7 @@ export function ProductScreen({
         if (settings?.featuredProductId) {
           setFeaturedProductId(String(settings.featuredProductId));
         }
+        setFeaturedImage(normalizePresentationSettings(settings?.presentation).featuredImage ?? "");
         setOperatingNow(settings?.operatingNow !== false);
         setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
         setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
@@ -690,6 +693,8 @@ export function ProductScreen({
           items={MENU_ITEMS}
           cartCount={cartCount}
           cartTotal={cartTotal}
+          featuredItem={featuredItem}
+          featuredImage={featuredImage}
           memberProfile={memberProfile}
           notificationCount={unreadNotificationCount}
           onOpenMember={openMemberAccess}
@@ -719,6 +724,7 @@ export function ProductScreen({
           <ProductHero
             kioskMode={kioskMode}
             featuredItem={featuredItem}
+            featuredImage={featuredImage}
             onIdleShortcutTap={handleIdleShortcutTap}
             onAddFeatured={() => addMenuItem(featuredItem)}
             operatingNow={operatingNow}
