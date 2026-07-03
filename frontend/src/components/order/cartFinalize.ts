@@ -178,7 +178,9 @@ export async function submitCheckoutOrder({
       throw new Error("api_url_missing");
     }
     whatsappReceiptWindow =
-      !kioskMode && !counterServiceMode ? reserveWhatsappReceiptWindow() : null;
+      !kioskMode && !counterServiceMode && !isMobileWhatsappTarget()
+        ? reserveWhatsappReceiptWindow()
+        : null;
     setPaying(true);
     setPaymentSlow(false);
     slowTimer = window.setTimeout(() => setPaymentSlow(true), 3500);
@@ -348,6 +350,11 @@ export async function submitCheckoutOrder({
           status: "PAYMENT_PENDING",
         },
       });
+      if (isMobileWhatsappTarget()) {
+        await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
+        sendWhatsappReceipt(whatsappOrder, null, { sameTabOnMobile: true });
+        return;
+      }
       sendWhatsappReceipt(whatsappOrder, whatsappReceiptWindow);
       await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
       return;
@@ -539,24 +546,36 @@ function reserveWhatsappReceiptWindow() {
   }
 }
 
-function sendWhatsappReceipt(order: Order, receiptWindow?: Window | null) {
+function sendWhatsappReceipt(
+  order: Order,
+  receiptWindow?: Window | null,
+  options?: { sameTabOnMobile?: boolean },
+) {
   const text = buildOrderWhatsappReceipt(order);
   const url = buildWhatsappUrl(text);
   if (receiptWindow && !receiptWindow.closed) {
     writeWhatsappRedirect(receiptWindow, url);
     return;
   }
+  if (options?.sameTabOnMobile && isMobileWhatsappTarget()) {
+    window.location.assign(url);
+    return;
+  }
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function isMobileWhatsappTarget() {
+  return (
+    typeof navigator !== "undefined" &&
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  );
 }
 
 function buildWhatsappUrl(text: string) {
   const encoded = encodeURIComponent(text);
   const phone = SUPPORT_WHATSAPP_URL.replace(/\D/g, "");
-  const isMobile =
-    typeof navigator !== "undefined" &&
-    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-  if (isMobile) {
+  if (isMobileWhatsappTarget()) {
     return `${SUPPORT_WHATSAPP_URL}?text=${encoded}`;
   }
   return `https://web.whatsapp.com/send?phone=${phone}&text=${encoded}`;
