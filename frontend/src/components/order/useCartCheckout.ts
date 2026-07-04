@@ -15,6 +15,7 @@ import {
   loadSaved,
   lookupCEP,
   maskPhone,
+  normalizeOperatingHours,
   playAttendantBeep,
   resolveRuntimeDeliveryType,
 } from "./checkout";
@@ -51,6 +52,46 @@ function readCouponUsage() {
 function hasCustomerSession() {
   if (typeof window === "undefined") return false;
   return Boolean(localStorage.getItem(MEMBER_TOKEN_KEY));
+}
+
+function minutesFromTime(value: string) {
+  const [hours, minutes] = value.split(":").map((part) => Number(part));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return -1;
+  return hours * 60 + minutes;
+}
+
+function saoPauloNowParts() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const value = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  const dayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  return {
+    day: dayMap[value("weekday")] ?? new Date().getDay(),
+    minutes: Number(value("hour")) * 60 + Number(value("minute")),
+  };
+}
+
+function isWithinConfiguredOperatingHours(value: unknown) {
+  const config = normalizeOperatingHours(value);
+  const now = saoPauloNowParts();
+  const today = config.days.find((day) => day.day === now.day);
+  if (!today?.open) return false;
+  const start = minutesFromTime(today.start);
+  const end = minutesFromTime(today.end);
+  return start >= 0 && end > start && now.minutes >= start && now.minutes < end;
 }
 
 function couponDailyKey(coupon: Coupon) {
@@ -103,6 +144,7 @@ export function useCartCheckout({
   const [paymentSlow, setPaymentSlow] = useState(false);
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(false);
   const [operatingNow, setOperatingNow] = useState(true);
+  const [withinOperatingHours, setWithinOperatingHours] = useState(true);
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
   const [closedHoursAlertOpen, setClosedHoursAlertOpen] = useState(false);
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
@@ -235,6 +277,7 @@ export function useCartCheckout({
       .then((settings) => {
         const enabled = settings.payOnDeliveryEnabled === true;
         setPayOnDeliveryEnabled(enabled);
+        setWithinOperatingHours(isWithinConfiguredOperatingHours(settings.operatingHours));
         setOperatingNow(settings.operatingNow !== false);
         setOperatingHoursMessage(String(settings.operatingHoursMessage ?? ""));
         setSoldOutEnabled(settings.soldOutActive === true);
@@ -434,7 +477,7 @@ export function useCartCheckout({
   const getCustomerAddress = () =>
     effectiveDelivery === "retirada"
       ? [
-          !operatingNow
+          !withinOperatingHours
             ? deliverySchedule === "scheduled"
               ? `RETIRADA AGENDADA: cliente passa as ${scheduledTime}.`
               : "RETIRADA AGENDADA: cliente passa assim que abrir as 18:30."
@@ -442,7 +485,7 @@ export function useCartCheckout({
           `Retirada na loja - ${PICKUP_ADDRESS}`,
         ].filter(Boolean).join("\n")
       : confirmedDeliveryAddress || [
-          !operatingNow
+          !withinOperatingHours
             ? deliverySchedule === "scheduled"
               ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
               : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30."
@@ -453,7 +496,7 @@ export function useCartCheckout({
   const deliveryAddressRequiresConfirmation = effectiveDelivery === "delivery";
 
   const currentDeliveryAddress = [
-    !operatingNow
+    !withinOperatingHours
       ? deliverySchedule === "scheduled"
         ? `PEDIDO AGENDADO: preparar para entrega as ${scheduledTime}.`
         : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30."
@@ -770,6 +813,7 @@ export function useCartCheckout({
     operatingHoursMessage ||
       "Assim que abrirmos, você será informado e poderá finalizar seu pedido.",
     operatingNow,
+    withinOperatingHours,
     closeClosedHoursAlert: () => setClosedHoursAlertOpen(false),
     closeSoldOutAlert: () => setSoldOutAlertOpen(false),
     confirmDeliveryAddress,

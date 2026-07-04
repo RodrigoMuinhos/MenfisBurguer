@@ -17,7 +17,7 @@ export function DeliveryFormSection({
   kioskMode,
   savedBadge,
   delivery,
-  operatingNow,
+  showScheduleSelector,
   cepRef,
   customerNameRef,
   streetRef,
@@ -50,7 +50,7 @@ export function DeliveryFormSection({
   kioskMode: boolean;
   savedBadge: boolean;
   delivery: "retirada" | "delivery";
-  operatingNow: boolean;
+  showScheduleSelector: boolean;
   cepRef: RefObject<HTMLInputElement>;
   customerNameRef: RefObject<HTMLInputElement>;
   streetRef: RefObject<HTMLInputElement>;
@@ -306,7 +306,7 @@ export function DeliveryFormSection({
                       </div>
                     )}
 
-                    {!operatingNow && (
+                    {showScheduleSelector && (
                       <ScheduleSelector
                         deliverySchedule={deliverySchedule}
                         setDeliverySchedule={setDeliverySchedule}
