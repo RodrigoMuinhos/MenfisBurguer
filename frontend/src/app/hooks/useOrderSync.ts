@@ -31,6 +31,15 @@ function hasReachedStatus(order: Order | null, target: OrderStatus) {
   return (STATUS_RANK[order.status] ?? 0) >= (STATUS_RANK[target] ?? 0);
 }
 
+function paymentConfirmationReason(paymentMethod?: string | null) {
+  const method = String(paymentMethod ?? "").toLowerCase();
+  if (method.includes("pix")) return "pagamento_pix_confirmado";
+  if (method === "whatsapp") return "pagamento_whatsapp_confirmado";
+  if (method === "mercadopago" || method === "mercado_pago") return "pagamento_mercado_pago_confirmado";
+  if (method === "cartao") return "pagamento_cartao_confirmado";
+  return "pagamento_presencial_confirmado";
+}
+
 export function useOrderSync({
   adminToken,
   lastOrderId,
@@ -249,7 +258,8 @@ export function useOrderSync({
     async (id: string, status: OrderStatus) => {
       if (pendingStatusUpdatesRef.current.has(id)) return;
       pendingStatusUpdatesRef.current.set(id, status);
-      const currentStatus = orders.find((order) => order.id === id)?.status;
+      const currentOrder = orders.find((order) => order.id === id);
+      const currentStatus = currentOrder?.status;
       if (currentStatus === status) {
         pendingStatusUpdatesRef.current.delete(id);
         return;
@@ -289,7 +299,7 @@ export function useOrderSync({
                   actor: currentStatus === "PAYMENT_PENDING" ? "atendente" : "kds",
                   reason:
                     currentStatus === "PAYMENT_PENDING" && nextStatus === "PAID"
-                      ? "pagamento_presencial_confirmado"
+                      ? paymentConfirmationReason(currentOrder?.paymentMethod)
                       : "kds_status_change",
                 }),
               })

@@ -204,6 +204,9 @@ public class OrderService {
       created.paymentStatus(),
       created.total()
     );
+    if (isPaymentConfirmedStatus(OrderStatus.valueOf(created.status()))) {
+      publishOrderPaidAfterCommit(created.id(), orderPaidOrigin(created), created.paidAt());
+    }
     return created;
   }
 
