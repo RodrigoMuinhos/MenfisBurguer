@@ -1,6 +1,5 @@
 import { CartItem, Order } from "@/types/order";
 import { MEMBER_TOKEN_KEY } from "@/components/product/shared";
-import { printOrderReceipts } from "@/components/admin/shared";
 import { normalizeBackendOrder } from "@/services/orders/normalize";
 import {
   API_URL,
@@ -118,7 +117,7 @@ export async function submitCheckoutOrder({
   setKioskSuccessOrder,
   setPaymentError,
   onRestaurantClosed,
-  confirmCounterPrint,
+  confirmCounterPayment,
   clearCartItems,
 }: {
   cart: CartItem[];
@@ -146,7 +145,7 @@ export async function submitCheckoutOrder({
   setKioskSuccessOrder?: (order: Order | null) => void;
   setPaymentError: (value: string) => void;
   onRestaurantClosed?: () => void;
-  confirmCounterPrint?: (order: Order) => Promise<boolean>;
+  confirmCounterPayment?: (amount: number) => Promise<"pix" | "cartao">;
   clearCartItems?: () => void;
 }) {
   let slowTimer: number | null = null;
@@ -155,12 +154,16 @@ export async function submitCheckoutOrder({
     kioskMode || counterServiceMode ? "retirada" : delivery,
   );
   const effectiveChannel = kioskMode || counterServiceMode ? "KIOSK" : "DELIVERY";
+  const selectedCounterPayment =
+    counterServiceMode ? await confirmCounterPayment?.(total) : undefined;
   const backendPaymentMethod =
-    payment === "mercadopago"
-      ? "MERCADO_PAGO"
-      : payment === "pix_qrcode"
-        ? "PIX"
-        : payment.toUpperCase();
+    counterServiceMode
+      ? (selectedCounterPayment ?? "cartao").toUpperCase()
+      : payment === "mercadopago"
+        ? "MERCADO_PAGO"
+        : payment === "pix_qrcode"
+          ? "PIX"
+          : payment.toUpperCase();
   const couponOrderFields: Partial<Order> =
     appliedCoupon && discount > 0
       ? { couponCode: appliedCoupon.code, discountTotal: discount }
@@ -236,13 +239,26 @@ export async function submitCheckoutOrder({
           channel: "KIOSK",
           deliveryType: "retirada",
           paymentMethod: counterServiceMode
-            ? "presencial"
+            ? selectedCounterPayment ?? "cartao"
             : payment === "cartao"
               ? "cartao"
               : "pix",
           paymentStatus: String(
-            createdOrder.paymentStatus ?? (counterServiceMode ? "awaiting_counter" : "approved"),
+            createdOrder.paymentStatus ??
+              (counterServiceMode
+                ? selectedCounterPayment === "pix"
+                  ? "awaiting_direct_pix"
+                  : "awaiting_counter"
+                : "approved"),
           ),
+          paymentProvider:
+            counterServiceMode && selectedCounterPayment === "pix"
+              ? "menfis_pix"
+              : undefined,
+          pixQrCode:
+            counterServiceMode && selectedCounterPayment === "pix"
+              ? KIOSK_PIX_CODE
+              : undefined,
           status: counterServiceMode
             ? "PAYMENT_PENDING"
             : String(createdOrder.status ?? "PAID") === "PAYMENT_PENDING"
@@ -255,10 +271,6 @@ export async function submitCheckoutOrder({
       setPaymentSlow(false);
       setPaying(false);
       if (counterServiceMode) {
-        const shouldPrint = await confirmCounterPrint?.(kioskOrder);
-        if (shouldPrint) {
-          printOrderReceipts(kioskOrder);
-        }
         setKioskSuccessOrder?.(kioskOrder);
         setKioskSuccessOpen(true);
         await wait(6200);

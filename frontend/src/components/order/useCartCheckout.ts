@@ -182,8 +182,7 @@ export function useCartCheckout({
   const numberRef = useRef<HTMLInputElement>(null);
   const customerNameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
-  const counterPrintResolveRef = useRef<((value: boolean) => void) | null>(null);
-  const counterPrintTimerRef = useRef<number | null>(null);
+  const counterPaymentResolveRef = useRef<((value: "pix" | "cartao") => void) | null>(null);
   const kioskKeyboardOpen = kioskMode && kioskKeyboardTarget !== null;
 
   const closeKioskKeyboard = () => {
@@ -194,39 +193,28 @@ export function useCartCheckout({
     }
   };
 
-  const [counterPrintPromptOpen, setCounterPrintPromptOpen] = useState(false);
+  const [counterPaymentPromptOpen, setCounterPaymentPromptOpen] = useState(false);
+  const [counterPaymentTotal, setCounterPaymentTotal] = useState(0);
 
-  const resolveCounterPrintPrompt = (value: boolean) => {
-    if (counterPrintTimerRef.current !== null) {
-      window.clearTimeout(counterPrintTimerRef.current);
-      counterPrintTimerRef.current = null;
-    }
-    const resolve = counterPrintResolveRef.current;
-    counterPrintResolveRef.current = null;
-    setCounterPrintPromptOpen(false);
+  const resolveCounterPaymentPrompt = (value: "pix" | "cartao") => {
+    const resolve = counterPaymentResolveRef.current;
+    counterPaymentResolveRef.current = null;
+    setCounterPaymentPromptOpen(false);
     resolve?.(value);
   };
 
-  const confirmCounterPrint = (_order: Order) =>
-    new Promise<boolean>((resolve) => {
-      if (counterPrintTimerRef.current !== null) {
-        window.clearTimeout(counterPrintTimerRef.current);
-      }
-      counterPrintResolveRef.current?.(false);
-      counterPrintResolveRef.current = resolve;
-      setCounterPrintPromptOpen(true);
-      counterPrintTimerRef.current = window.setTimeout(() => {
-        resolveCounterPrintPrompt(false);
-      }, 10000);
+  const confirmCounterPayment = (amount: number) =>
+    new Promise<"pix" | "cartao">((resolve) => {
+      counterPaymentResolveRef.current?.("cartao");
+      counterPaymentResolveRef.current = resolve;
+      setCounterPaymentTotal(amount);
+      setCounterPaymentPromptOpen(true);
     });
 
   useEffect(
     () => () => {
-      if (counterPrintTimerRef.current !== null) {
-        window.clearTimeout(counterPrintTimerRef.current);
-      }
-      counterPrintResolveRef.current?.(false);
-      counterPrintResolveRef.current = null;
+      counterPaymentResolveRef.current?.("cartao");
+      counterPaymentResolveRef.current = null;
     },
     [],
   );
@@ -574,7 +562,7 @@ export function useCartCheckout({
         setPaymentError("");
         setClosedHoursAlertOpen(true);
       },
-      confirmCounterPrint,
+      confirmCounterPayment,
       clearCartItems: clearCart,
     });
     if (appliedCoupon) {
@@ -823,7 +811,8 @@ export function useCartCheckout({
     couponCode,
     couponError,
     counterServiceMode,
-    counterPrintPromptOpen,
+    counterPaymentPromptOpen,
+    counterPaymentTotal,
     customerName,
     customerNameRef,
     delivery,
@@ -878,8 +867,7 @@ export function useCartCheckout({
     soldOutAlertOpen,
     soldOutEnabled,
     soldOutMessage,
-    confirmCounterPrintChoice: () => resolveCounterPrintPrompt(true),
-    skipCounterPrintChoice: () => resolveCounterPrintPrompt(false),
+    confirmCounterPaymentChoice: resolveCounterPaymentPrompt,
     stepLabel,
     street,
     streetRef,

@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
-import { CheckCircle2, Loader2, Printer, XCircle } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, CreditCard, Loader2, QrCode } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
-import { KioskKeyboardTarget, PaymentMethod } from "./checkout";
+import { KIOSK_PIX_CODE, KioskKeyboardTarget, PaymentMethod, pixCodeWithAmount } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
 
 export function CartOverlays({
@@ -18,10 +19,10 @@ export function CartOverlays({
   backspaceKioskKey,
   clearKioskKey,
   closeKioskKeyboard,
-  counterPrintPromptOpen = false,
+  counterPaymentPromptOpen = false,
+  counterPaymentTotal = 0,
   kioskSuccessOrder = null,
-  onConfirmCounterPrint,
-  onSkipCounterPrint,
+  onConfirmCounterPayment,
 }: {
   kioskSuccessOpen: boolean;
   paying: boolean;
@@ -35,11 +36,12 @@ export function CartOverlays({
   backspaceKioskKey: () => void;
   clearKioskKey: () => void;
   closeKioskKeyboard: () => void;
-  counterPrintPromptOpen?: boolean;
+  counterPaymentPromptOpen?: boolean;
+  counterPaymentTotal?: number;
   kioskSuccessOrder?: Order | null;
-  onConfirmCounterPrint?: () => void;
-  onSkipCounterPrint?: () => void;
+  onConfirmCounterPayment?: (method: "pix" | "cartao") => void;
 }) {
+  const [counterPaymentMethod, setCounterPaymentMethod] = useState<"pix" | "cartao" | null>(null);
   const successTotal = kioskSuccessOrder
     ? kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0)
     : 0;
@@ -219,7 +221,7 @@ export function CartOverlays({
             </AnimatePresence>
 
             <AnimatePresence>
-              {counterPrintPromptOpen && (
+              {counterPaymentPromptOpen && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -241,34 +243,92 @@ export function CartOverlays({
                       className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
                       style={{ background: ROSA }}
                     >
-                      <Printer size={26} />
+                      {counterPaymentMethod === "cartao" ? <CreditCard size={26} /> : <QrCode size={26} />}
                     </div>
                     <h2 className="text-xl font-black uppercase tracking-wide">
-                      Imprimir via do pedido?
+                      {counterPaymentMethod === "pix"
+                        ? "Pagamento Pix"
+                        : counterPaymentMethod === "cartao"
+                          ? "Pagamento no cartão"
+                          : "Como será o pagamento?"}
                     </h2>
-                    <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-relaxed opacity-70">
-                      Se ninguém responder em 10 segundos, o pedido segue sem imprimir.
-                    </p>
-                    <div className="mt-6 grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={onSkipCounterPrint}
-                        className="flex h-14 items-center justify-center gap-2 rounded-2xl border text-sm font-black uppercase"
-                        style={{ borderColor: ROSA, color: VERDE }}
-                      >
-                        <XCircle size={18} />
-                        Não imprimir
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onConfirmCounterPrint}
-                        className="flex h-14 items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase text-white"
-                        style={{ background: VERDE }}
-                      >
-                        <Printer size={18} />
-                        Imprimir
-                      </button>
-                    </div>
+                    {!counterPaymentMethod && (
+                      <>
+                        <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-relaxed opacity-70">
+                          Escolha a forma de pagamento para concluir o pedido do balcão.
+                        </p>
+                        <div className="mt-6 grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setCounterPaymentMethod("pix")}
+                            className="flex h-16 items-center justify-center gap-2 rounded-2xl border text-sm font-black uppercase"
+                            style={{ borderColor: ROSA, color: VERDE }}
+                          >
+                            <QrCode size={20} />
+                            Pix
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCounterPaymentMethod("cartao")}
+                            className="flex h-16 items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase text-white"
+                            style={{ background: VERDE }}
+                          >
+                            <CreditCard size={20} />
+                            Cartão
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {counterPaymentMethod === "pix" && (
+                      <div className="mt-5 grid gap-4">
+                        <div className="rounded-3xl p-4" style={{ background: "#fff", border: `1px solid ${ROSA}` }}>
+                          <img src="/pix-menfis.png" alt="QR Code Pix Menfi's" className="mx-auto h-56 w-56 object-contain" />
+                          <p className="mt-4 text-[10px] font-black uppercase tracking-widest opacity-55">
+                            Valor a pagar
+                          </p>
+                          <p className="text-4xl font-black" style={{ color: "#8A0030" }}>
+                            {formatMoney(counterPaymentTotal)}
+                          </p>
+                          <p className="mt-3 break-all rounded-2xl px-3 py-2 text-[10px] font-bold leading-relaxed" style={{ background: `${ROSA}40` }}>
+                            {pixCodeWithAmount(counterPaymentTotal) || KIOSK_PIX_CODE}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCounterPaymentMethod(null);
+                            onConfirmCounterPayment?.("pix");
+                          }}
+                          className="h-14 rounded-2xl text-sm font-black uppercase text-white"
+                          style={{ background: VERDE }}
+                        >
+                          Continuar pedido
+                        </button>
+                      </div>
+                    )}
+                    {counterPaymentMethod === "cartao" && (
+                      <div className="mt-5 grid gap-4">
+                        <div className="rounded-3xl p-5" style={{ background: `${ROSA}35`, border: `1px solid ${ROSA}` }}>
+                          <p className="text-3xl font-black uppercase" style={{ color: VERDE }}>
+                            Aguarde o atendente
+                          </p>
+                          <p className="mt-2 text-sm font-bold leading-relaxed opacity-70">
+                            O pagamento será realizado na maquininha do balcão.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCounterPaymentMethod(null);
+                            onConfirmCounterPayment?.("cartao");
+                          }}
+                          className="h-14 rounded-2xl text-sm font-black uppercase text-white"
+                          style={{ background: VERDE }}
+                        >
+                          Continuar pedido
+                        </button>
+                      </div>
+                    )}
                   </motion.div>
                 </motion.div>
               )}

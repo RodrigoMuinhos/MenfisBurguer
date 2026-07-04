@@ -85,7 +85,8 @@ export function CartScreen({
     couponCode,
     couponError,
     counterServiceMode,
-    counterPrintPromptOpen,
+    counterPaymentPromptOpen,
+    counterPaymentTotal,
     customerName,
     customerNameRef,
     delivery,
@@ -136,8 +137,7 @@ export function CartScreen({
     setPhone,
     setScheduledTime,
     setStreet,
-    confirmCounterPrintChoice,
-    skipCounterPrintChoice,
+    confirmCounterPaymentChoice,
     stepLabel,
     street,
     streetRef,
@@ -395,9 +395,9 @@ export function CartScreen({
         backspaceKioskKey={backspaceKioskKey}
         clearKioskKey={clearKioskKey}
         closeKioskKeyboard={closeKioskKeyboard}
-        counterPrintPromptOpen={counterPrintPromptOpen}
-        onConfirmCounterPrint={confirmCounterPrintChoice}
-        onSkipCounterPrint={skipCounterPrintChoice}
+        counterPaymentPromptOpen={counterPaymentPromptOpen}
+        counterPaymentTotal={counterPaymentTotal}
+        onConfirmCounterPayment={confirmCounterPaymentChoice}
       />
       {closedHoursAlertOpen && (
         <ClosedHoursAlertModal
