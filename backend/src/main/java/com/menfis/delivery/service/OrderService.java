@@ -455,11 +455,12 @@ public class OrderService {
       id
     );
     String from = String.valueOf(row.get("status"));
+    OrderStatus fromStatus = OrderStatus.valueOf(from);
     boolean kioskMobOrder = isKioskMobName(String.valueOf(row.get("customer_name")));
     if (kioskMobOrder && toStatus == OrderStatus.OUT_FOR_DELIVERY) {
       throw new IllegalArgumentException("kiosk_mob_counter_service_required");
     }
-    if (!canTransition(OrderStatus.valueOf(from), toStatus)) {
+    if (!canTransition(fromStatus, toStatus)) {
       throw new IllegalArgumentException("invalid_status_transition:" + from + "_to_" + toStatus);
     }
 
@@ -498,8 +499,8 @@ public class OrderService {
       updated.paymentStatus(),
       updated.total()
     );
-    if (toStatus == OrderStatus.PAYMENT_APPROVED) {
-      publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
+    if (shouldPublishOrderPaid(fromStatus, toStatus)) {
+      publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
     }
     return updated;
   }
@@ -576,7 +577,7 @@ public class OrderService {
       updated.paidAt(),
       updated.total()
     );
-    publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
+    publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
     return updated;
   }
 
@@ -644,7 +645,7 @@ public class OrderService {
       updated.total()
     );
     if (approved && !alreadyInKitchenFlow) {
-      publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
+      publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
     }
   }
 
@@ -755,6 +756,23 @@ public class OrderService {
       || status == OrderStatus.OUT_FOR_DELIVERY
       || status == OrderStatus.DELIVERED
       || status == OrderStatus.CANCELLED;
+  }
+
+  private boolean shouldPublishOrderPaid(OrderStatus from, OrderStatus to) {
+    return !isPaymentConfirmedStatus(from) && isPaymentConfirmedStatus(to);
+  }
+
+  private boolean isPaymentConfirmedStatus(OrderStatus status) {
+    return status == OrderStatus.PAYMENT_APPROVED
+      || status == OrderStatus.PAID
+      || status == OrderStatus.ACCEPTED;
+  }
+
+  private String orderPaidOrigin(OrderResponse order) {
+    if (order.paymentMethod() != null && !order.paymentMethod().isBlank()) {
+      return order.paymentMethod();
+    }
+    return order.channel().name();
   }
 
   private void publishOrderPaidAfterCommit(String orderId, String origin, OffsetDateTime paidAt) {
