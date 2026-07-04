@@ -47,6 +47,14 @@ JWT_SECRET=<SEGREDO_FORTE>
 
 Depois do deploy, valide a saude do backend usando a URL publica configurada no provedor. Nao publique endpoints internos ou URLs sensiveis no repositorio.
 
+Endpoints operacionais:
+
+```text
+GET /actuator/health
+GET /swagger-ui.html
+GET /v3/api-docs
+```
+
 ## Docker local
 
 Para rodar frontend e backend em containers locais:
