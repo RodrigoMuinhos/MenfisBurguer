@@ -24,18 +24,21 @@ public class KitchenOrderProcessor {
   private final OrderService orders;
   private final OrderEventService events;
   private final AuditService audit;
+  private final OrderLifecycleEventPublisher lifecyclePublisher;
 
   public KitchenOrderProcessor(
       JdbcTemplate jdbc,
       ObjectMapper mapper,
       OrderService orders,
       OrderEventService events,
-      AuditService audit) {
+      AuditService audit,
+      OrderLifecycleEventPublisher lifecyclePublisher) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.orders = orders;
     this.events = events;
     this.audit = audit;
+    this.lifecyclePublisher = lifecyclePublisher;
   }
 
   @Transactional
@@ -104,6 +107,14 @@ public class KitchenOrderProcessor {
     audit.log("rabbitmq", "ORDER_SENT_TO_KITCHEN", "ORDER", event.orderId(), Map.of("from", currentStatus, "event", event.eventType()));
     OrderResponse updatedOrder = orders.get(event.orderId());
     events.publish(event.orderId(), updatedOrder);
+    lifecyclePublisher.publish(
+      "ORDER_IN_PREPARATION",
+      updatedOrder,
+      currentStatus,
+      "IN_PREPARATION",
+      "rabbitmq",
+      "ORDER_PAID"
+    );
     log.info("ORDER_PAID processed orderId={} from={} to=IN_PREPARATION", event.orderId(), currentStatus);
   }
 

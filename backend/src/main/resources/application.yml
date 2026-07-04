@@ -46,6 +46,10 @@ menfis:
     kitchen-dlq: ${MENFIS_KITCHEN_DLQ:menfis.kitchen.dlq}
     kitchen-dlx: ${MENFIS_KITCHEN_DLX:menfis.kitchen.dlx}
     order-paid-routing-key: ${MENFIS_ORDER_PAID_ROUTING_KEY:order.paid}
+    lifecycle-queue: ${MENFIS_LIFECYCLE_QUEUE:menfis.lifecycle.queue}
+    lifecycle-dlq: ${MENFIS_LIFECYCLE_DLQ:menfis.lifecycle.dlq}
+    lifecycle-dlx: ${MENFIS_LIFECYCLE_DLX:menfis.lifecycle.dlx}
+    lifecycle-routing-key: ${MENFIS_LIFECYCLE_ROUTING_KEY:order.lifecycle}
 
 whatsapp:
   verify-token: ${WHATSAPP_VERIFY_TOKEN:menfis-whatsapp-token}

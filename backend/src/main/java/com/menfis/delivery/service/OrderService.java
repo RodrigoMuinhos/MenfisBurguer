@@ -12,6 +12,7 @@ import com.menfis.delivery.dto.ApiDtos.OrderItemRequest;
 import com.menfis.delivery.dto.ApiDtos.OrderResponse;
 import com.menfis.delivery.dto.ApiDtos.StatusResponse;
 import com.menfis.delivery.messaging.OrderEventPublisher;
+import com.menfis.delivery.messaging.OrderLifecycleEventPublisher;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
@@ -44,6 +45,7 @@ public class OrderService {
   private final SettingsService settings;
   private final CustomerService customers;
   private final OrderEventPublisher orderPublisher;
+  private final OrderLifecycleEventPublisher lifecyclePublisher;
 
   public OrderService(
       JdbcTemplate jdbc,
@@ -52,7 +54,8 @@ public class OrderService {
       OrderEventService events,
       SettingsService settings,
       CustomerService customers,
-      OrderEventPublisher orderPublisher) {
+      OrderEventPublisher orderPublisher,
+      OrderLifecycleEventPublisher lifecyclePublisher) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.audit = audit;
@@ -60,6 +63,7 @@ public class OrderService {
     this.settings = settings;
     this.customers = customers;
     this.orderPublisher = orderPublisher;
+    this.lifecyclePublisher = lifecyclePublisher;
   }
 
   @Transactional
@@ -204,7 +208,9 @@ public class OrderService {
       created.paymentStatus(),
       created.total()
     );
+    publishLifecycle(created, "ORDER_CREATED", null, created.status(), "system", "order_created");
     if (isPaymentConfirmedStatus(OrderStatus.valueOf(created.status()))) {
+      publishLifecycle(created, "PAYMENT_CONFIRMED", null, created.status(), "system", "order_created_paid");
       publishOrderPaidAfterCommit(created.id(), orderPaidOrigin(created), created.paidAt());
     }
     return created;
@@ -503,7 +509,12 @@ public class OrderService {
       updated.total()
     );
     if (shouldPublishOrderPaid(fromStatus, toStatus)) {
+      publishLifecycle(updated, "PAYMENT_CONFIRMED", from, toStatus.name(), actor == null ? "system" : actor, reason);
       publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
+    }
+    String lifecycleEventType = lifecycleEventType(toStatus);
+    if (lifecycleEventType != null) {
+      publishLifecycle(updated, lifecycleEventType, from, toStatus.name(), actor == null ? "system" : actor, reason);
     }
     return updated;
   }
@@ -580,6 +591,7 @@ public class OrderService {
       updated.paidAt(),
       updated.total()
     );
+    publishLifecycle(updated, "PAYMENT_CONFIRMED", from, updated.status(), actor == null ? "admin" : actor, "PAYMENT_APPROVED_SIMULATION");
     publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
     return updated;
   }
@@ -648,7 +660,11 @@ public class OrderService {
       updated.total()
     );
     if (approved && !alreadyInKitchenFlow) {
+      publishLifecycle(updated, "PAYMENT_CONFIRMED", previous, target.name(), "mercado_pago", "PAYMENT_APPROVED");
       publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
+    }
+    if (failed && !alreadyInKitchenFlow) {
+      publishLifecycle(updated, "ORDER_CANCELLED", previous, target.name(), "mercado_pago", "PAYMENT_FAILED");
     }
   }
 
@@ -776,6 +792,28 @@ public class OrderService {
       return order.paymentMethod();
     }
     return order.channel().name();
+  }
+
+  private String lifecycleEventType(OrderStatus status) {
+    return switch (status) {
+      case ACCEPTED -> "ORDER_ACCEPTED";
+      case IN_PREPARATION -> "ORDER_IN_PREPARATION";
+      case READY -> "ORDER_READY";
+      case OUT_FOR_DELIVERY -> "ORDER_OUT_FOR_DELIVERY";
+      case DELIVERED -> "ORDER_DELIVERED";
+      case CANCELLED -> "ORDER_CANCELLED";
+      default -> null;
+    };
+  }
+
+  private void publishLifecycle(
+      OrderResponse order,
+      String eventType,
+      String fromStatus,
+      String toStatus,
+      String actor,
+      String reason) {
+    lifecyclePublisher.publish(eventType, order, fromStatus, toStatus, actor, reason);
   }
 
   private void publishOrderPaidAfterCommit(String orderId, String origin, OffsetDateTime paidAt) {

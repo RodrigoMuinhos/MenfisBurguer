@@ -31,6 +31,18 @@ public class RabbitMqConfig {
   @Value("${menfis.rabbitmq.order-paid-routing-key}")
   private String orderPaidRoutingKey;
 
+  @Value("${menfis.rabbitmq.lifecycle-queue}")
+  private String lifecycleQueue;
+
+  @Value("${menfis.rabbitmq.lifecycle-dlq}")
+  private String lifecycleDlq;
+
+  @Value("${menfis.rabbitmq.lifecycle-dlx}")
+  private String lifecycleDlx;
+
+  @Value("${menfis.rabbitmq.lifecycle-routing-key}")
+  private String lifecycleRoutingKey;
+
   @Bean
   DirectExchange ordersExchange() {
     return new DirectExchange(ordersExchange, true, false);
@@ -39,6 +51,11 @@ public class RabbitMqConfig {
   @Bean
   DirectExchange kitchenDeadLetterExchange() {
     return new DirectExchange(kitchenDlx, true, false);
+  }
+
+  @Bean
+  DirectExchange lifecycleDeadLetterExchange() {
+    return new DirectExchange(lifecycleDlx, true, false);
   }
 
   @Bean
@@ -58,13 +75,39 @@ public class RabbitMqConfig {
   }
 
   @Bean
+  Queue lifecycleQueue() {
+    return new Queue(
+      lifecycleQueue,
+      true,
+      false,
+      false,
+      Map.of("x-dead-letter-exchange", lifecycleDlx, "x-dead-letter-routing-key", "order.lifecycle.dlq")
+    );
+  }
+
+  @Bean
+  Queue lifecycleDeadLetterQueue() {
+    return new Queue(lifecycleDlq, true);
+  }
+
+  @Bean
   Binding kitchenBinding(Queue kitchenQueue, DirectExchange ordersExchange) {
     return BindingBuilder.bind(kitchenQueue).to(ordersExchange).with(orderPaidRoutingKey);
   }
 
   @Bean
+  Binding lifecycleBinding(Queue lifecycleQueue, DirectExchange ordersExchange) {
+    return BindingBuilder.bind(lifecycleQueue).to(ordersExchange).with(lifecycleRoutingKey);
+  }
+
+  @Bean
   Binding kitchenDeadLetterBinding(Queue kitchenDeadLetterQueue, DirectExchange kitchenDeadLetterExchange) {
     return BindingBuilder.bind(kitchenDeadLetterQueue).to(kitchenDeadLetterExchange).with("order.paid.dlq");
+  }
+
+  @Bean
+  Binding lifecycleDeadLetterBinding(Queue lifecycleDeadLetterQueue, DirectExchange lifecycleDeadLetterExchange) {
+    return BindingBuilder.bind(lifecycleDeadLetterQueue).to(lifecycleDeadLetterExchange).with("order.lifecycle.dlq");
   }
 
   @Bean

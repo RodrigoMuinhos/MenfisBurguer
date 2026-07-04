@@ -20,6 +20,7 @@ public class MonitoringService {
     return Map.of(
       "summary", summary(testMode),
       "orders", recentOrders(testMode),
+      "lifecycleEvents", lifecycleEvents(),
       "rabbitmqEvents", rabbitmqEvents(),
       "statusHistory", statusHistory(),
       "auditLogs", auditLogs()
@@ -64,6 +65,17 @@ public class MonitoringService {
       from order_event_log
       order by created_at desc
       limit 20
+      """
+    );
+  }
+
+  private List<Map<String, Object>> lifecycleEvents() {
+    return jdbc.queryForList(
+      """
+      select event_type, order_id, from_status, to_status, origin, actor, reason, consumed, published_at, consumed_at
+      from order_lifecycle_event_log
+      order by published_at desc
+      limit 40
       """
     );
   }

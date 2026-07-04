@@ -18,6 +18,7 @@ type ApiRow = Record<string, unknown>;
 type MonitoringData = {
   summary?: ApiRow;
   orders?: ApiRow[];
+  lifecycleEvents?: ApiRow[];
   rabbitmqEvents?: ApiRow[];
   statusHistory?: ApiRow[];
   auditLogs?: ApiRow[];
@@ -113,6 +114,23 @@ export function MonitoringView({ adminToken }: { adminToken: string }) {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <Panel title="Eventos operacionais" icon={Activity}>
+          <div className="grid gap-3">
+            {(data?.lifecycleEvents ?? []).map((event, index) => (
+              <EventRow
+                key={`lifecycle-${event.event_type}-${event.order_id}-${index}`}
+                title={`${text(event.event_type)} ${text(event.order_id)}`}
+                status={event.consumed === true ? "ACK" : "Pendente"}
+                tone={event.consumed === true ? "ok" : "warn"}
+                meta={`${text(event.from_status || "novo")} -> ${text(event.to_status)} · ${text(event.origin)} · ${dateTime(event.published_at)}${event.consumed_at ? ` · consumido ${dateTime(event.consumed_at)}` : ""}`}
+              />
+            ))}
+            {(data?.lifecycleEvents ?? []).length === 0 && (
+              <EmptyState text="Nenhum evento operacional registrado ainda." />
+            )}
+          </div>
+        </Panel>
+
         <Panel title="Eventos RabbitMQ" icon={RadioTower}>
           <div className="grid gap-3">
             {(data?.rabbitmqEvents ?? []).map((event, index) => (
