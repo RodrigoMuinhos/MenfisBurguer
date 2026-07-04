@@ -160,3 +160,12 @@ export async function deleteAdminCoupon(apiUrl: string, adminToken: string, code
   });
   if (!response.ok) throw new Error("coupon_delete_failed");
 }
+
+export async function fetchOperationsMonitoring(apiUrl: string, adminToken: string) {
+  const response = await fetch(`${apiUrl}/monitoring/operations`, {
+    cache: "no-store",
+    headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+  });
+  if (!response.ok) throw new Error("monitoring_load_failed");
+  return response.json();
+}

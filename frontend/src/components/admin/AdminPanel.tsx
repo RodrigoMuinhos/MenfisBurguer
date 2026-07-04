@@ -4,6 +4,7 @@ import {
   ClipboardList,
   Bike,
   ClipboardCheck,
+  Activity,
   MessageCircle,
   Package,
   TicketPercent,
@@ -46,6 +47,7 @@ import { CustomersCrmView, CrmCustomer } from "./views/CustomersCrmView";
 import { DashboardView } from "./views/DashboardView";
 import { KitchenView } from "./views/KitchenView";
 import { KitchenNotesView } from "./views/KitchenNotesView";
+import { MonitoringView } from "./views/MonitoringView";
 import { OrdersView } from "./views/OrdersView";
 import { SupportView } from "./views/SupportView";
 import {
@@ -56,7 +58,7 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "pedidos" | "cozinha" | "notas" | "entrega" | "dashboard" | "estoque" | "clientes" | "suporte" | "cupons" | "resultados" | "config";
+export type AdminTab = "pedidos" | "cozinha" | "notas" | "entrega" | "dashboard" | "monitoramento" | "estoque" | "clientes" | "suporte" | "cupons" | "resultados" | "config";
 
 interface Props {
   orders: Order[];
@@ -163,6 +165,7 @@ export function AdminPanel({
     { id: "notas", label: "Notas", Icon: ClipboardCheck },
     { id: "entrega", label: "Entrega", Icon: Bike },
     { id: "dashboard", label: "Dashboard", Icon: TrendingUp },
+    { id: "monitoramento", label: "Monitoramento", Icon: Activity },
     { id: "estoque", label: "Estoque", Icon: Package },
     { id: "clientes", label: "Clientes", Icon: Users },
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
@@ -722,6 +725,9 @@ export function AdminPanel({
         )}
         {tab === "dashboard" && (
           <DashboardView orders={visibleOrders} />
+        )}
+        {tab === "monitoramento" && (
+          <MonitoringView adminToken={adminToken} />
         )}
         {tab === "estoque" && (
           <EstoqueView

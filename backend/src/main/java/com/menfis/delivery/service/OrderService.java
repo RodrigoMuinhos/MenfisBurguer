@@ -21,6 +21,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Service
 public class OrderService {
+  private static final Logger log = LoggerFactory.getLogger(OrderService.class);
   private static final BigDecimal DELIVERY_FEE = new BigDecimal("7.10");
   private static final BigDecimal SERVICE_FEE = new BigDecimal("0.99");
 
@@ -190,6 +193,17 @@ public class OrderService {
     audit.log("system", "ORDER_CREATED", "ORDER", id, Map.of("total", total, "status", status.name()));
     OrderResponse created = get(id);
     events.publish(id, created);
+    log.info(
+      "ORDER_CREATED orderId={} number={} channel={} deliveryType={} status={} paymentMethod={} paymentStatus={} total={}",
+      created.id(),
+      created.number(),
+      created.channel(),
+      created.deliveryType(),
+      created.status(),
+      created.paymentMethod(),
+      created.paymentStatus(),
+      created.total()
+    );
     return created;
   }
 
@@ -474,6 +488,16 @@ public class OrderService {
     audit.log(actor == null ? "system" : actor, "ORDER_STATUS_CHANGED", "ORDER", id, Map.of("from", from, "to", toStatus.name()));
     OrderResponse updated = get(id);
     events.publish(id, updated);
+    log.info(
+      "ORDER_STATUS_CHANGED orderId={} from={} to={} actor={} reason={} paymentStatus={} total={}",
+      id,
+      from,
+      toStatus.name(),
+      actor == null ? "system" : actor,
+      reason,
+      updated.paymentStatus(),
+      updated.total()
+    );
     if (toStatus == OrderStatus.PAYMENT_APPROVED) {
       publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
     }
@@ -543,6 +567,15 @@ public class OrderService {
     audit.log(actor == null ? "admin" : actor, "PAYMENT_APPROVED", "ORDER", orderId, Map.of("from", from));
     OrderResponse updated = get(orderId);
     events.publish(orderId, updated);
+    log.info(
+      "ORDER_PAYMENT_APPROVED orderId={} from={} actor={} channel={} paidAt={} total={}",
+      orderId,
+      from,
+      actor == null ? "admin" : actor,
+      updated.channel(),
+      updated.paidAt(),
+      updated.total()
+    );
     publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
     return updated;
   }
@@ -599,6 +632,17 @@ public class OrderService {
     );
     OrderResponse updated = get(orderId);
     events.publish(orderId, updated);
+    log.info(
+      "ORDER_PAYMENT_PROVIDER_UPDATED orderId={} approved={} failed={} providerStatus={} providerPaymentId={} from={} to={} total={}",
+      orderId,
+      approved,
+      failed,
+      normalized,
+      providerPaymentId,
+      previous,
+      target.name(),
+      updated.total()
+    );
     if (approved && !alreadyInKitchenFlow) {
       publishOrderPaidAfterCommit(updated.id(), updated.channel().name(), updated.paidAt());
     }
@@ -715,7 +759,10 @@ public class OrderService {
 
   private void publishOrderPaidAfterCommit(String orderId, String origin, OffsetDateTime paidAt) {
     OffsetDateTime effectivePaidAt = paidAt == null ? OffsetDateTime.now() : paidAt;
-    Runnable publish = () -> orderPublisher.publishOrderPaid(orderId, origin, effectivePaidAt);
+    Runnable publish = () -> {
+      log.info("ORDER_PAID_EVENT_READY orderId={} origin={} paidAt={}", orderId, origin, effectivePaidAt);
+      orderPublisher.publishOrderPaid(orderId, origin, effectivePaidAt);
+    };
     if (!TransactionSynchronizationManager.isSynchronizationActive()) {
       publish.run();
       return;
