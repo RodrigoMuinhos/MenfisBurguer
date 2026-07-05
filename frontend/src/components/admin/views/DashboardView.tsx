@@ -101,9 +101,9 @@ const DEFAULT_PRICING_COSTS: Record<string, number> = {
   "double-chicken-combo": 16.39,
   "bacon-combo": 16.39,
   "double-bacon-combo": 21.29,
-  combo2: 28.18,
-  "bacon-super-combo": 32.78,
-  "chicken-super-combo": 25.78,
+  combo2: 24.48,
+  "bacon-super-combo": 29.08,
+  "chicken-super-combo": 22.08,
 };
 
 export function DashboardView({
