@@ -165,6 +165,8 @@ public class PricingService {
       case "combo-menfis-bacon" -> "bacon-combo";
       case "combo-menfis-chicken" -> "chicken-combo";
       case "super-combo-menfis" -> "combo2";
+      case "super-combo-menfis-bacon" -> "bacon-super-combo";
+      case "super-combo-menfis-chicken" -> "chicken-super-combo";
       case "combo-coca-adicional" -> "coca-zero";
       case "coca-zero" -> "coca-zero";
       default -> productId;

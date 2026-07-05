@@ -66,6 +66,9 @@ const DEFAULT_ROWS: PricingRow[] = [
   combo("double-chicken-combo", "COMBO-BIG-CHICKEN", "Combo Big Chicken", 9.8, 46.9),
   combo("bacon-combo", "COMBO-BACON", "Combo Bacon", 9.8, 46.9),
   combo("double-bacon-combo", "COMBO-BIG-BACON", "Combo Big Bacon", 14.7, 59.9),
+  combo("combo2", "SUPER-MENFIS", "Super Combo Menfi's", 15, 59.9, 5.78, 7.78),
+  combo("chicken-super-combo", "SUPER-CHICKEN", "Super Combo Menfi's Chicken", 12.6, 64.9, 5.78, 7.78),
+  combo("bacon-super-combo", "SUPER-BACON", "Super Combo Menfi's Bacon", 19.6, 71.9, 5.78, 7.78),
 ];
 
 export function PricingView({ adminToken = "" }: { adminToken?: string }) {
@@ -553,7 +556,15 @@ function simple(id: string, code: string, name: string, category: string, baseCo
   return baseRow({ id, code, name, category, kind: "sandwich", baseCost, salePrice });
 }
 
-function combo(id: string, code: string, name: string, baseCost: number, salePrice: number): PricingRow {
+function combo(
+  id: string,
+  code: string,
+  name: string,
+  baseCost: number,
+  salePrice: number,
+  defaultDrinkCost = 2.89,
+  alternativeDrinkCost = 3.89,
+): PricingRow {
   return baseRow({
     id,
     code,
@@ -562,8 +573,8 @@ function combo(id: string, code: string, name: string, baseCost: number, salePri
     kind: "combo",
     baseCost,
     friesCost: 3.7,
-    defaultDrinkCost: 2.89,
-    alternativeDrinkCost: 3.89,
+    defaultDrinkCost,
+    alternativeDrinkCost,
     drinkSurcharge: 2,
     salePrice,
   });
