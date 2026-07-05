@@ -1,0 +1,758 @@
+import { useEffect, useMemo, useState, type ElementType, type ReactNode } from "react";
+import {
+  AlertTriangle,
+  Calculator,
+  CheckCircle2,
+  Download,
+  Filter,
+  PackageSearch,
+  Pencil,
+  Plus,
+  ToggleLeft,
+  ToggleRight,
+  TrendingUp,
+} from "lucide-react";
+import { ROSA, VERDE } from "@/utils/theme";
+import { API_URL, fmt } from "../shared";
+import { deletePricingProduct, fetchPricingProducts, savePricingProduct } from "../adminBackend";
+
+type PricingKind = "sandwich" | "combo" | "side" | "drink";
+type PricingStatus = "saudavel" | "atencao" | "ruim";
+type PricingFilter = "todos" | PricingKind | PricingStatus | "ativo" | "inativo";
+
+export type PricingRow = {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  kind: PricingKind;
+  baseCost: number;
+  friesCost: number;
+  defaultDrinkCost: number;
+  alternativeDrinkCost: number;
+  drinkSurcharge: number;
+  salePrice: number;
+  targetCmv: number;
+  active: boolean;
+  notes: string;
+  updatedAt: string;
+};
+
+type CalculatedPricingRow = PricingRow & {
+  totalCost: number;
+  priceWithAlternativeDrink: number;
+  grossProfit: number;
+  cmv: number;
+  grossMargin: number;
+  recommendedPrice: number;
+  status: PricingStatus;
+};
+
+const STORAGE_KEY = "menfis_pricing_table_v1";
+
+const DEFAULT_ROWS: PricingRow[] = [
+  simple("burger", "MENFIS", "Menfi's Burguer", "Sanduiche", 7.5, 21.9),
+  simple("double-burger", "BIG-MENFIS", "Big Menfi's Burguer", "Sanduiche", 12, 34.9),
+  simple("menfis-chicken", "CHICKEN", "Menfi's Chicken", "Sanduiche", 6.3, 19.9),
+  simple("double-menfis-chicken", "BIG-CHICKEN", "Big Chicken", "Sanduiche", 9.8, 29.9),
+  simple("menfis-bacon", "BACON", "Menfi's Bacon", "Sanduiche", 9.8, 29.9),
+  simple("double-menfis-bacon", "BIG-BACON", "Big Menfi's Bacon", "Sanduiche", 14.7, 42.9),
+  side("batata", "BATATA", "Batata", 3.7, 12.9),
+  drink("guarana-zero", "GUARANA", "Guarana Zero", 2.89, 6.9),
+  drink("coca-zero", "COCA", "Coca-Cola Zero", 3.89, 8.9, 2),
+  combo("combo", "COMBO-MENFIS", "Combo Menfi's", 7.5, 39.9),
+  combo("double-combo", "COMBO-BIG", "Combo Big Menfi's", 12, 52.9),
+  combo("chicken-combo", "COMBO-CHICKEN", "Combo Chicken", 6.3, 36.9),
+  combo("double-chicken-combo", "COMBO-BIG-CHICKEN", "Combo Big Chicken", 9.8, 46.9),
+  combo("bacon-combo", "COMBO-BACON", "Combo Bacon", 9.8, 46.9),
+  combo("double-bacon-combo", "COMBO-BIG-BACON", "Combo Big Bacon", 14.7, 59.9),
+];
+
+export function PricingView({ adminToken = "" }: { adminToken?: string }) {
+  const [rows, setRows] = useState<PricingRow[]>(loadRows);
+  const [syncError, setSyncError] = useState("");
+  const [filter, setFilter] = useState<PricingFilter>("todos");
+  const [query, setQuery] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<PricingRow | null>(null);
+
+  const calculated = useMemo(() => rows.map(calculateRow), [rows]);
+  const filtered = calculated.filter((row) => {
+    const matchesFilter =
+      filter === "todos" ||
+      row.kind === filter ||
+      row.status === filter ||
+      (filter === "ativo" && row.active) ||
+      (filter === "inativo" && !row.active);
+    const matchesQuery = `${row.code} ${row.name} ${row.category}`.toLowerCase().includes(query.toLowerCase());
+    return matchesFilter && matchesQuery;
+  });
+  const activeRows = calculated.filter((row) => row.active);
+  const avgCmv = average(activeRows.map((row) => row.cmv));
+  const worst = [...activeRows].sort((a, b) => b.cmv - a.cmv)[0];
+  const best = [...activeRows].sort((a, b) => a.cmv - b.cmv)[0];
+  const mostProfitable = [...activeRows].sort((a, b) => b.grossProfit - a.grossProfit)[0];
+  const badCount = activeRows.filter((row) => row.status === "ruim").length;
+
+  const saveRows = (next: PricingRow[]) => {
+    setRows(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
+  useEffect(() => {
+    if (!API_URL) return;
+    fetchPricingProducts(API_URL, adminToken)
+      .then((next) => {
+        if (next.length > 0) saveRows(next);
+        setSyncError("");
+      })
+      .catch(() => setSyncError("Nao foi possivel carregar a tabela de custos do backend."));
+  }, [adminToken]);
+
+  const persistRow = async (row: PricingRow) => {
+    if (!API_URL) return;
+    try {
+      await savePricingProduct(API_URL, adminToken, row);
+      setSyncError("");
+    } catch {
+      setSyncError("Alteracao salva localmente, mas o backend nao recebeu.");
+    }
+  };
+
+  const startEdit = (row: PricingRow) => {
+    setEditingId(row.id);
+    setDraft({ ...row });
+  };
+
+  const saveDraft = () => {
+    if (!draft) return;
+    const next = rows.map((row) =>
+      row.id === draft.id ? { ...draft, updatedAt: new Date().toISOString() } : row,
+    );
+    saveRows(next);
+    persistRow(next.find((row) => row.id === draft.id)!);
+    setEditingId(null);
+    setDraft(null);
+  };
+
+  const duplicateRow = (row: PricingRow) => {
+    const nextRow = {
+      ...row,
+      id: `${row.id}-${Date.now()}`,
+      code: `${row.code}-COPIA`,
+      name: `${row.name} copia`,
+      updatedAt: new Date().toISOString(),
+    };
+    saveRows([...rows, nextRow]);
+    persistRow(nextRow);
+    startEdit(nextRow);
+  };
+
+  const toggleActive = (row: PricingRow) => {
+    const next = rows.map((item) =>
+        item.id === row.id
+          ? { ...item, active: !item.active, updatedAt: new Date().toISOString() }
+          : item,
+      );
+    saveRows(next);
+    persistRow(next.find((item) => item.id === row.id)!);
+  };
+
+  const exportCsv = () => {
+    const header = [
+      "codigo",
+      "produto",
+      "categoria",
+      "tipo",
+      "custo_total",
+      "preco_venda",
+      "preco_coca",
+      "lucro_bruto",
+      "cmv",
+      "margem",
+      "preco_recomendado",
+      "status",
+    ];
+    const lines = filtered.map((row) =>
+      [
+        row.code,
+        row.name,
+        row.category,
+        labelKind(row.kind),
+        row.totalCost.toFixed(2),
+        row.salePrice.toFixed(2),
+        row.priceWithAlternativeDrink.toFixed(2),
+        row.grossProfit.toFixed(2),
+        `${(row.cmv * 100).toFixed(2)}%`,
+        `${(row.grossMargin * 100).toFixed(2)}%`,
+        row.recommendedPrice.toFixed(2),
+        statusLabel(row.status),
+      ].join(";"),
+    );
+    const blob = new Blob([[header.join(";"), ...lines].join("\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "menfis-custos-precificacao.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="mx-auto grid max-w-[1600px] gap-5" style={{ color: VERDE }}>
+      <section className="rounded-3xl p-5" style={{ background: VERDE, color: "#fff" }}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: ROSA }}>
+              Custos e Precificacao
+            </p>
+            <h1 className="mt-2 text-3xl font-black uppercase tracking-wide">
+              Tabela de Custos
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-relaxed opacity-80">
+              Controle custo, preco, lucro, CMV e preco recomendado. Dados editaveis ficam separados dos calculos automaticos.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-xs font-black uppercase"
+            style={{ background: ROSA, color: VERDE }}
+          >
+            <Download size={15} /> Exportar CSV
+          </button>
+        </div>
+      </section>
+      {syncError && (
+        <div className="rounded-2xl px-4 py-3 text-xs font-black" style={{ background: "#FEF3C7", color: "#92400E" }}>
+          {syncError}
+        </div>
+      )}
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Metric title="CMV medio" value={`${Math.round(avgCmv * 100)}%`} help="Media dos produtos ativos" icon={Calculator} />
+        <Metric title="Melhor margem" value={best?.name ?? "-"} help={best ? `${Math.round(best.cmv * 100)}% CMV` : "-"} icon={CheckCircle2} />
+        <Metric title="Pior margem" value={worst?.name ?? "-"} help={worst ? `${Math.round(worst.cmv * 100)}% CMV` : "-"} icon={AlertTriangle} />
+        <Metric title="Mais lucrativo" value={mostProfitable?.name ?? "-"} help={mostProfitable ? fmt(mostProfitable.grossProfit) : "-"} icon={TrendingUp} />
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-4">
+        <Summary label="Produtos ativos" value={String(activeRows.length)} />
+        <Summary label="Margem ruim" value={String(badCount)} alert={badCount > 0} />
+        <Summary label="Preco medio" value={fmt(average(activeRows.map((row) => row.salePrice)))} />
+        <Summary label="Lucro medio" value={fmt(average(activeRows.map((row) => row.grossProfit)))} />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+        <div className="rounded-3xl bg-white p-4" style={{ border: `1px solid ${ROSA}` }}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-black uppercase">Tabela principal</h2>
+              <p className="mt-1 text-xs font-bold opacity-55">Produtos simples, bebidas, acompanhamentos e combos.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <FilterButton active={filter === "todos"} onClick={() => setFilter("todos")}>Todos</FilterButton>
+              <FilterButton active={filter === "sandwich"} onClick={() => setFilter("sandwich")}>Sanduiches</FilterButton>
+              <FilterButton active={filter === "combo"} onClick={() => setFilter("combo")}>Combos</FilterButton>
+              <FilterButton active={filter === "ruim"} onClick={() => setFilter("ruim")}>Ruim</FilterButton>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar produto, codigo ou categoria"
+              className="min-h-11 flex-1 rounded-2xl px-4 text-sm font-bold outline-none"
+              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const row = blankRow();
+                saveRows([...rows, row]);
+                persistRow(row);
+              }}
+              className="inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 text-xs font-black uppercase"
+              style={{ background: VERDE, color: ROSA }}
+            >
+              <Plus size={15} /> Novo produto
+            </button>
+          </div>
+
+          <div className="mt-4 hidden overflow-x-auto xl:block">
+            <table className="w-full min-w-[1180px] text-left text-sm">
+              <thead className="text-[10px] uppercase tracking-widest opacity-55">
+                <tr>
+                  <th className="px-3 py-3">Produto</th>
+                  <th className="px-3 py-3">Tipo</th>
+                  <th className="px-3 py-3">Custo base</th>
+                  <th className="px-3 py-3">Batata</th>
+                  <th className="px-3 py-3">Bebida</th>
+                  <th className="px-3 py-3">Total</th>
+                  <th className="px-3 py-3">Venda</th>
+                  <th className="px-3 py-3">Lucro</th>
+                  <th className="px-3 py-3">CMV</th>
+                  <th className="px-3 py-3">Recomendado</th>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Acoes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y" style={{ borderColor: `${VERDE}10` }}>
+                {filtered.map((row) => (
+                  <PricingTableRow
+                    key={row.id}
+                    row={row}
+                    editing={editingId === row.id}
+                    draft={draft}
+                    setDraft={setDraft}
+                    onEdit={() => startEdit(row)}
+                    onSave={saveDraft}
+                    onDuplicate={() => duplicateRow(row)}
+                    onToggle={() => toggleActive(row)}
+                    onDelete={() => {
+                      const next = rows.filter((item) => item.id !== row.id);
+                      saveRows(next);
+                      if (API_URL) deletePricingProduct(API_URL, adminToken, row.id).catch(() => setSyncError("Nao foi possivel remover no backend."));
+                    }}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 grid gap-3 xl:hidden">
+            {filtered.map((row) => (
+              <PricingCard
+                key={row.id}
+                row={row}
+                onEdit={() => startEdit(row)}
+                onDuplicate={() => duplicateRow(row)}
+                onToggle={() => toggleActive(row)}
+                onDelete={() => {
+                  const next = rows.filter((item) => item.id !== row.id);
+                  saveRows(next);
+                  if (API_URL) deletePricingProduct(API_URL, adminToken, row.id).catch(() => setSyncError("Nao foi possivel remover no backend."));
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-4">
+          <Panel title="Combos com bebida" icon={PackageSearch}>
+            <div className="grid gap-3">
+              {calculated.filter((row) => row.kind === "combo").map((row) => (
+                <ComboLine key={row.id} row={row} />
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Simulador rapido" icon={Calculator}>
+            <Simulator rows={calculated} />
+          </Panel>
+
+          <Panel title="Alertas automaticos" icon={AlertTriangle}>
+            <div className="grid gap-2">
+              {calculated.filter((row) => row.status === "ruim").map((row) => (
+                <div key={row.id} className="rounded-2xl p-3 text-xs font-black" style={{ background: "#FEF2F2", color: "#991B1B" }}>
+                  {row.name}: Produto com margem baixa. Reavaliar preco de venda ou custo de producao.
+                </div>
+              ))}
+              {calculated.every((row) => row.status !== "ruim") && (
+                <div className="rounded-2xl p-3 text-xs font-black" style={{ background: "#ECFDF5", color: "#065F46" }}>
+                  Nenhum produto em margem ruim.
+                </div>
+              )}
+            </div>
+          </Panel>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PricingTableRow({
+  row,
+  editing,
+  draft,
+  setDraft,
+  onEdit,
+  onSave,
+  onDuplicate,
+  onToggle,
+  onDelete,
+}: {
+  row: CalculatedPricingRow;
+  editing: boolean;
+  draft: PricingRow | null;
+  setDraft: (row: PricingRow) => void;
+  onEdit: () => void;
+  onSave: () => void;
+  onDuplicate: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const current = editing && draft ? draft : row;
+  return (
+    <tr className="align-top">
+      <td className="px-3 py-3">
+        {editing ? (
+          <EditField value={current.name} onChange={(name) => setDraft({ ...current, name })} />
+        ) : (
+          <>
+            <p className="font-black">{row.name}</p>
+            <p className="mt-1 text-[10px] font-black uppercase opacity-50">{row.code}</p>
+          </>
+        )}
+      </td>
+      <td className="px-3 py-3">{labelKind(row.kind)}</td>
+      <td className="px-3 py-3"><MoneyCell row={current} field="baseCost" editing={editing} setDraft={setDraft} /></td>
+      <td className="px-3 py-3"><MoneyCell row={current} field="friesCost" editing={editing} setDraft={setDraft} /></td>
+      <td className="px-3 py-3"><MoneyCell row={current} field="defaultDrinkCost" editing={editing} setDraft={setDraft} /></td>
+      <td className="px-3 py-3 font-black">{fmt(row.totalCost)}</td>
+      <td className="px-3 py-3"><MoneyCell row={current} field="salePrice" editing={editing} setDraft={setDraft} /></td>
+      <td className="px-3 py-3 font-black">{fmt(row.grossProfit)}</td>
+      <td className="px-3 py-3 font-black">{percent(row.cmv)}</td>
+      <td className="px-3 py-3 font-black">{fmt(row.recommendedPrice)}</td>
+      <td className="px-3 py-3"><StatusPill status={row.status} /></td>
+      <td className="px-3 py-3">
+        <div className="flex flex-wrap gap-2">
+          {editing ? (
+            <ActionButton onClick={onSave}>Salvar</ActionButton>
+          ) : (
+            <ActionButton onClick={onEdit}><Pencil size={14} /></ActionButton>
+          )}
+          <ActionButton onClick={onDuplicate}>Duplicar</ActionButton>
+          <ActionButton onClick={onToggle}>{row.active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}</ActionButton>
+          <ActionButton onClick={onDelete}>Remover</ActionButton>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function PricingCard({
+  row,
+  onEdit,
+  onDuplicate,
+  onToggle,
+  onDelete,
+}: {
+  row: CalculatedPricingRow;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="rounded-3xl p-4" style={{ border: `1px solid ${ROSA}`, background: "#FFF8F2" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-base font-black">{row.name}</p>
+          <p className="mt-1 text-[10px] font-black uppercase opacity-50">{row.code} · {labelKind(row.kind)}</p>
+        </div>
+        <StatusPill status={row.status} />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <Info label="Preco" value={fmt(row.salePrice)} />
+        <Info label="Custo" value={fmt(row.totalCost)} />
+        <Info label="Lucro" value={fmt(row.grossProfit)} />
+        <Info label="CMV" value={percent(row.cmv)} />
+      </div>
+      <div className="mt-3 flex gap-2">
+        <ActionButton onClick={onEdit}>Editar</ActionButton>
+        <ActionButton onClick={onDuplicate}>Duplicar</ActionButton>
+        <ActionButton onClick={onToggle}>{row.active ? "Ativo" : "Inativo"}</ActionButton>
+        <ActionButton onClick={onDelete}>Remover</ActionButton>
+      </div>
+    </div>
+  );
+}
+
+function Simulator({ rows }: { rows: CalculatedPricingRow[] }) {
+  const [productId, setProductId] = useState(rows[0]?.id ?? "");
+  const selected = rows.find((row) => row.id === productId) ?? rows[0];
+  const [price, setPrice] = useState("");
+  const [cost, setCost] = useState("");
+  if (!selected) return null;
+  const simulatedPrice = Number(price || selected.salePrice);
+  const simulatedCost = Number(cost || selected.totalCost);
+  const simulatedProfit = simulatedPrice - simulatedCost;
+  const simulatedCmv = simulatedPrice > 0 ? simulatedCost / simulatedPrice : 0;
+
+  return (
+    <div className="grid gap-3">
+      <select
+        value={selected.id}
+        onChange={(event) => setProductId(event.target.value)}
+        className="min-h-11 rounded-2xl px-3 text-sm font-black outline-none"
+        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
+      >
+        {rows.map((row) => (
+          <option key={row.id} value={row.id}>{row.name}</option>
+        ))}
+      </select>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <EditField value={price} onChange={setPrice} placeholder={`Preco atual ${fmt(selected.salePrice)}`} />
+        <EditField value={cost} onChange={setCost} placeholder={`Custo atual ${fmt(selected.totalCost)}`} />
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <Info label="Lucro simulado" value={fmt(simulatedProfit)} />
+        <Info label="CMV simulado" value={percent(simulatedCmv)} />
+        <Info label="Dif. lucro" value={fmt(simulatedProfit - selected.grossProfit)} />
+      </div>
+    </div>
+  );
+}
+
+function ComboLine({ row }: { row: CalculatedPricingRow }) {
+  return (
+    <div className="rounded-2xl p-3" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-black">{row.name}</p>
+          <p className="mt-1 text-xs font-bold opacity-60">
+            Guarana: custo {fmt(row.totalCost)} · venda {fmt(row.salePrice)}
+          </p>
+          <p className="mt-1 text-xs font-bold opacity-60">
+            Coca: custo {fmt(row.baseCost + row.friesCost + row.alternativeDrinkCost)} · venda {fmt(row.priceWithAlternativeDrink)}
+          </p>
+        </div>
+        <StatusPill status={row.status} />
+      </div>
+    </div>
+  );
+}
+
+function calculateRow(row: PricingRow): CalculatedPricingRow {
+  const totalCost =
+    row.kind === "combo"
+      ? row.baseCost + row.friesCost + row.defaultDrinkCost
+      : row.baseCost;
+  const priceWithAlternativeDrink =
+    row.kind === "combo" ? row.salePrice + row.drinkSurcharge : row.salePrice;
+  const grossProfit = row.salePrice - totalCost;
+  const cmv = row.salePrice > 0 ? totalCost / row.salePrice : 0;
+  const grossMargin = row.salePrice > 0 ? grossProfit / row.salePrice : 0;
+  const recommendedPrice = roundCommercial(totalCost / Math.max(row.targetCmv, 0.01));
+  return {
+    ...row,
+    totalCost,
+    priceWithAlternativeDrink,
+    grossProfit,
+    cmv,
+    grossMargin,
+    recommendedPrice,
+    status: cmv <= 0.35 ? "saudavel" : cmv <= 0.4 ? "atencao" : "ruim",
+  };
+}
+
+function simple(id: string, code: string, name: string, category: string, baseCost: number, salePrice: number): PricingRow {
+  return baseRow({ id, code, name, category, kind: "sandwich", baseCost, salePrice });
+}
+
+function combo(id: string, code: string, name: string, baseCost: number, salePrice: number): PricingRow {
+  return baseRow({
+    id,
+    code,
+    name,
+    category: "Combo",
+    kind: "combo",
+    baseCost,
+    friesCost: 3.7,
+    defaultDrinkCost: 2.89,
+    alternativeDrinkCost: 3.89,
+    drinkSurcharge: 2,
+    salePrice,
+  });
+}
+
+function side(id: string, code: string, name: string, baseCost: number, salePrice: number): PricingRow {
+  return baseRow({ id, code, name, category: "Acompanhamento", kind: "side", baseCost, salePrice });
+}
+
+function drink(id: string, code: string, name: string, baseCost: number, salePrice: number, drinkSurcharge = 0): PricingRow {
+  return baseRow({ id, code, name, category: "Bebida", kind: "drink", baseCost, salePrice, drinkSurcharge });
+}
+
+function baseRow(input: Partial<PricingRow> & Pick<PricingRow, "id" | "code" | "name" | "category" | "kind" | "baseCost" | "salePrice">): PricingRow {
+  return {
+    friesCost: 0,
+    defaultDrinkCost: 0,
+    alternativeDrinkCost: 0,
+    drinkSurcharge: 0,
+    targetCmv: 0.35,
+    active: true,
+    notes: "",
+    updatedAt: new Date().toISOString(),
+    ...input,
+  };
+}
+
+function blankRow(): PricingRow {
+  return baseRow({
+    id: `produto-${Date.now()}`,
+    code: "NOVO",
+    name: "Novo produto",
+    category: "Sanduiche",
+    kind: "sandwich",
+    baseCost: 0,
+    salePrice: 0,
+  });
+}
+
+function loadRows() {
+  if (typeof window === "undefined") return DEFAULT_ROWS;
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    return Array.isArray(stored) && stored.length ? stored : DEFAULT_ROWS;
+  } catch {
+    return DEFAULT_ROWS;
+  }
+}
+
+function roundCommercial(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.ceil((value + 0.01) / 1) - 0.1;
+}
+
+function average(values: number[]) {
+  const valid = values.filter((value) => Number.isFinite(value));
+  return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : 0;
+}
+
+function percent(value: number) {
+  return `${(value * 100).toFixed(2).replace(".", ",")}%`;
+}
+
+function labelKind(kind: PricingKind) {
+  if (kind === "combo") return "Combo";
+  if (kind === "side") return "Acompanhamento";
+  if (kind === "drink") return "Bebida";
+  return "Sanduiche";
+}
+
+function statusLabel(status: PricingStatus) {
+  if (status === "saudavel") return "Saudavel";
+  if (status === "atencao") return "Atencao";
+  return "Ruim";
+}
+
+function Metric({ title, value, help, icon: Icon }: { title: string; value: string; help: string; icon: ElementType }) {
+  return (
+    <div className="rounded-3xl bg-white p-4" style={{ border: `1px solid ${ROSA}` }}>
+      <div className="flex items-center gap-3">
+        <span className="grid h-11 w-11 place-items-center rounded-2xl" style={{ background: `${ROSA}55`, color: VERDE }}>
+          <Icon size={18} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-50">{title}</p>
+          <p className="truncate text-xl font-black">{value}</p>
+          <p className="text-xs font-bold opacity-55">{help}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Summary({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
+  return (
+    <div className="rounded-2xl bg-white p-4" style={{ border: `1px solid ${alert ? "#EF4444" : `${VERDE}12`}` }}>
+      <p className="text-[10px] font-black uppercase tracking-widest opacity-45">{label}</p>
+      <p className="mt-1 text-2xl font-black" style={{ color: alert ? "#991B1B" : VERDE }}>{value}</p>
+    </div>
+  );
+}
+
+function Panel({ title, icon: Icon, children }: { title: string; icon: ElementType; children: ReactNode }) {
+  return (
+    <section className="rounded-3xl bg-white p-4" style={{ border: `1px solid ${ROSA}` }}>
+      <div className="mb-3 flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-2xl" style={{ background: `${ROSA}55`, color: VERDE }}>
+          <Icon size={17} />
+        </span>
+        <h3 className="text-sm font-black uppercase">{title}</h3>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex min-h-10 items-center gap-2 rounded-2xl px-4 text-xs font-black uppercase"
+      style={{ background: active ? VERDE : "#FFF8F2", color: active ? ROSA : VERDE, border: `1px solid ${VERDE}14` }}
+    >
+      <Filter size={13} /> {children}
+    </button>
+  );
+}
+
+function StatusPill({ status }: { status: PricingStatus }) {
+  const color = status === "saudavel" ? "#065F46" : status === "atencao" ? "#92400E" : "#991B1B";
+  const bg = status === "saudavel" ? "#ECFDF5" : status === "atencao" ? "#FEF3C7" : "#FEF2F2";
+  return (
+    <span className="inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase" style={{ background: bg, color }}>
+      {statusLabel(status)}
+    </span>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl p-3" style={{ background: "#fff", border: `1px solid ${VERDE}10` }}>
+      <p className="text-[10px] font-black uppercase tracking-widest opacity-45">{label}</p>
+      <p className="mt-1 font-black">{value}</p>
+    </div>
+  );
+}
+
+function EditField({ value, onChange, placeholder }: { value: string | number; onChange: (value: string) => void; placeholder?: string }) {
+  return (
+    <input
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      className="min-h-10 w-full rounded-xl px-3 text-sm font-bold outline-none"
+      style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
+    />
+  );
+}
+
+function MoneyCell({
+  row,
+  field,
+  editing,
+  setDraft,
+}: {
+  row: PricingRow;
+  field: keyof Pick<PricingRow, "baseCost" | "friesCost" | "defaultDrinkCost" | "salePrice">;
+  editing: boolean;
+  setDraft: (row: PricingRow) => void;
+}) {
+  if (!editing) return <span className="font-black">{fmt(Number(row[field]))}</span>;
+  return (
+    <EditField
+      value={String(row[field])}
+      onChange={(value) => setDraft({ ...row, [field]: Number(value.replace(",", ".")) })}
+    />
+  );
+}
+
+function ActionButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl px-3 text-[10px] font-black uppercase"
+      style={{ background: `${ROSA}45`, color: VERDE, border: `1px solid ${VERDE}12` }}
+    >
+      {children}
+    </button>
+  );
+}

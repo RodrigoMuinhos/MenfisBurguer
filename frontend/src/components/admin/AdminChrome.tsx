@@ -115,7 +115,7 @@ export function AdminTabs({
   tabCount: Partial<Record<AdminTab, number>>;
   onChange: (tab: AdminTab) => void;
 }) {
-  const mobileTabs = new Set<AdminTab>(["pedidos", "cozinha", "entrega", "dashboard"]);
+  const mobileTabs = new Set<AdminTab>(["dashboard", "pedidos", "cozinha", "estoque", "custos"]);
   return (
     <div
       className="flex overflow-x-auto lg:flex-col lg:gap-1 lg:px-3 lg:pb-3"

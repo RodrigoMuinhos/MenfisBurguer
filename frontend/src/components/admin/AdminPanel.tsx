@@ -5,8 +5,10 @@ import {
   Bike,
   ClipboardCheck,
   Activity,
+  Calculator,
   MessageCircle,
   Package,
+  Settings,
   TicketPercent,
   TrendingUp,
   Users,
@@ -49,6 +51,7 @@ import { KitchenView } from "./views/KitchenView";
 import { KitchenNotesView } from "./views/KitchenNotesView";
 import { MonitoringView } from "./views/MonitoringView";
 import { OrdersView } from "./views/OrdersView";
+import { PricingView } from "./views/PricingView";
 import { SupportView } from "./views/SupportView";
 import {
   deleteAdminCoupon,
@@ -58,7 +61,7 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "pedidos" | "cozinha" | "notas" | "entrega" | "dashboard" | "monitoramento" | "estoque" | "clientes" | "suporte" | "cupons" | "resultados" | "config";
+export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "suporte" | "cupons" | "resultados" | "monitoramento" | "config";
 
 interface Props {
   orders: Order[];
@@ -160,17 +163,19 @@ export function AdminPanel({
   };
 
   const tabs: { id: AdminTab; label: string; Icon: ElementType }[] = [
+    { id: "dashboard", label: "Dashboard", Icon: TrendingUp },
     { id: "pedidos", label: "Pedidos", Icon: ClipboardList },
     { id: "cozinha", label: "Cozinha", Icon: ChefHat },
     { id: "notas", label: "Notas", Icon: ClipboardCheck },
     { id: "entrega", label: "Entrega", Icon: Bike },
-    { id: "dashboard", label: "Dashboard", Icon: TrendingUp },
-    { id: "monitoramento", label: "Monitoramento", Icon: Activity },
     { id: "estoque", label: "Estoque", Icon: Package },
+    { id: "custos", label: "Custos e Precificação", Icon: Calculator },
     { id: "clientes", label: "Clientes", Icon: Users },
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
     { id: "cupons", label: "Cupons", Icon: TicketPercent },
-    { id: "resultados", label: "Resultados", Icon: BarChart3 },
+    { id: "resultados", label: "Relatórios", Icon: BarChart3 },
+    { id: "monitoramento", label: "Monitoramento", Icon: Activity },
+    { id: "config", label: "Configurações", Icon: Settings },
   ];
 
   const visibleOrders = useMemo(
@@ -745,6 +750,9 @@ export function AdminPanel({
             onMoveItem={persistStockMovement}
             onDeleteItem={persistStockDelete}
           />
+        )}
+        {tab === "custos" && (
+          <PricingView adminToken={adminToken} />
         )}
         {tab === "entrega" && (
           <OrdersView

@@ -46,6 +46,7 @@ public class OrderService {
   private final CustomerService customers;
   private final OrderEventPublisher orderPublisher;
   private final OrderLifecycleEventPublisher lifecyclePublisher;
+  private final PricingService pricing;
 
   public OrderService(
       JdbcTemplate jdbc,
@@ -55,7 +56,8 @@ public class OrderService {
       SettingsService settings,
       CustomerService customers,
       OrderEventPublisher orderPublisher,
-      OrderLifecycleEventPublisher lifecyclePublisher) {
+      OrderLifecycleEventPublisher lifecyclePublisher,
+      PricingService pricing) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.audit = audit;
@@ -64,6 +66,7 @@ public class OrderService {
     this.customers = customers;
     this.orderPublisher = orderPublisher;
     this.lifecyclePublisher = lifecyclePublisher;
+    this.pricing = pricing;
   }
 
   @Transactional
@@ -186,6 +189,7 @@ public class OrderService {
         toJson(item)
       );
     }
+    pricing.snapshotOrderCosts(id);
 
     jdbc.update(
       "insert into order_status_history(order_id, from_status, to_status, changed_by, reason) values (?, null, ?, ?, ?)",

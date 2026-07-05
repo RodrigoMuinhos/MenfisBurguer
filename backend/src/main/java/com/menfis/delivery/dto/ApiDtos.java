@@ -143,6 +143,23 @@ public class ApiDtos {
 
   public record StockMovementRequest(@NotBlank String type, @NotNull BigDecimal quantity, String note) {}
 
+  public record PricingProductRequest(
+    @NotBlank String id,
+    @NotBlank String code,
+    @NotBlank String name,
+    @NotBlank String category,
+    @NotBlank String kind,
+    @NotNull BigDecimal baseCost,
+    @NotNull BigDecimal friesCost,
+    @NotNull BigDecimal defaultDrinkCost,
+    @NotNull BigDecimal alternativeDrinkCost,
+    @NotNull BigDecimal drinkSurcharge,
+    @NotNull BigDecimal salePrice,
+    @NotNull BigDecimal targetCmv,
+    Boolean active,
+    String notes
+  ) {}
+
   public record CouponRequest(
     @NotBlank String code,
     @NotBlank String label,

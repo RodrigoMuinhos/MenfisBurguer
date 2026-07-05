@@ -17,6 +17,7 @@ import { ROSA, VERDE } from "@/utils/theme";
 import { Movement, StockItem, getStatus } from "../EstoqueView";
 import { CrmCustomer } from "./CustomersCrmView";
 import { MENU_STOCK_MAP, SupportTicket, fmt, isBillableOrder } from "../shared";
+import type { PricingRow } from "./PricingView";
 
 type ProductStat = {
   id: string;
@@ -82,6 +83,27 @@ const DASHBOARD_STOCK_MAP: Record<string, Array<{ stockId: string; qty: number }
   "extra-ovo": [{ stockId: "11", qty: 1 }],
   "guarana-zero": [{ stockId: "12", qty: 1 }],
   "agua-com-gas": [{ stockId: "13", qty: 1 }],
+};
+
+const DEFAULT_PRICING_COSTS: Record<string, number> = {
+  burger: 7.5,
+  "double-burger": 12,
+  "menfis-chicken": 6.3,
+  "double-menfis-chicken": 9.8,
+  "menfis-bacon": 9.8,
+  "double-menfis-bacon": 14.7,
+  batata: 3.7,
+  "guarana-zero": 2.89,
+  "coca-zero": 3.89,
+  combo: 14.09,
+  "double-combo": 18.59,
+  "chicken-combo": 12.89,
+  "double-chicken-combo": 16.39,
+  "bacon-combo": 16.39,
+  "double-bacon-combo": 21.29,
+  combo2: 28.18,
+  "bacon-super-combo": 32.78,
+  "chicken-super-combo": 25.78,
 };
 
 export function DashboardView({
@@ -249,6 +271,7 @@ export function DashboardView({
 function buildProductStats(orders: Order[], stockItems: StockItem[]): ProductStat[] {
   const productNames = new Map(MENU_ITEMS.map((item) => [item.id, item.name]));
   const stockIndex = buildStockIndex(stockItems);
+  const pricingCosts = loadPricingCosts();
   const byProduct = new Map<string, ProductStat>();
 
   orders.forEach((order) => {
@@ -256,8 +279,9 @@ function buildProductStats(orders: Order[], stockItems: StockItem[]): ProductSta
       const productId = normalizeProductId(item.productId ?? item.id);
       const qty = Number(item.qty ?? 0);
       const revenue = Number(item.price ?? 0) * qty;
+      const baseCost = pricingCosts.get(productId) ?? estimateProductUnitCost(productId, stockIndex);
       const costUnit =
-        estimateProductUnitCost(productId, stockIndex) +
+        baseCost +
         estimateAddonUnitCost(item.addonIds, stockIndex) +
         (item.addonIds?.length ? 0 : estimateComponentUnitCost(item.components, stockIndex));
       const current = byProduct.get(productId) ?? {
@@ -279,6 +303,25 @@ function buildProductStats(orders: Order[], stockItems: StockItem[]): ProductSta
   });
 
   return [...byProduct.values()].sort((a, b) => b.qty - a.qty);
+}
+
+function loadPricingCosts() {
+  const costs = new Map(Object.entries(DEFAULT_PRICING_COSTS));
+  if (typeof window === "undefined") return costs;
+  try {
+    const rows = JSON.parse(localStorage.getItem("menfis_pricing_table_v1") ?? "[]") as PricingRow[];
+    if (!Array.isArray(rows)) return costs;
+    rows.forEach((row) => {
+      const productId = normalizeProductId(row.id);
+      const cost = row.kind === "combo"
+        ? Number(row.baseCost ?? 0) + Number(row.friesCost ?? 0) + Number(row.defaultDrinkCost ?? 0)
+        : Number(row.baseCost ?? 0);
+      costs.set(productId, cost);
+    });
+  } catch {
+    return costs;
+  }
+  return costs;
 }
 
 function normalizeProductId(value: string) {

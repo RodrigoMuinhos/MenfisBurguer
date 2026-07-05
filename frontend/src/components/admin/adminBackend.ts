@@ -1,5 +1,6 @@
 import type { Coupon } from "./shared";
 import type { Movement, StockItem } from "./EstoqueView";
+import type { PricingRow } from "./views/PricingView";
 
 type ApiRow = Record<string, unknown>;
 
@@ -63,6 +64,26 @@ export function mapCoupon(row: ApiRow): Coupon {
         : undefined,
     oncePerCustomer: row.oncePerCustomer === true || row.once_per_customer === true,
     blockSamePhone: row.blockSamePhone === true || row.block_same_phone === true,
+  };
+}
+
+export function mapPricingRow(row: ApiRow): PricingRow {
+  return {
+    id: String(row.id),
+    code: String(row.code ?? ""),
+    name: String(row.name ?? ""),
+    category: String(row.category ?? ""),
+    kind: String(row.kind ?? "sandwich") as PricingRow["kind"],
+    baseCost: asNumber(row.baseCost ?? row.base_cost),
+    friesCost: asNumber(row.friesCost ?? row.fries_cost),
+    defaultDrinkCost: asNumber(row.defaultDrinkCost ?? row.default_drink_cost),
+    alternativeDrinkCost: asNumber(row.alternativeDrinkCost ?? row.alternative_drink_cost),
+    drinkSurcharge: asNumber(row.drinkSurcharge ?? row.drink_surcharge),
+    salePrice: asNumber(row.salePrice ?? row.sale_price),
+    targetCmv: asNumber(row.targetCmv ?? row.target_cmv) || 0.35,
+    active: row.active !== false,
+    notes: String(row.notes ?? ""),
+    updatedAt: String(row.updatedAt ?? row.updated_at ?? new Date().toISOString()),
   };
 }
 
@@ -159,6 +180,40 @@ export async function deleteAdminCoupon(apiUrl: string, adminToken: string, code
     method: "DELETE",
   });
   if (!response.ok) throw new Error("coupon_delete_failed");
+}
+
+export async function fetchPricingProducts(apiUrl: string, adminToken: string) {
+  const response = await fetch(`${apiUrl}/pricing`, {
+    cache: "no-store",
+    headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+  });
+  if (!response.ok) throw new Error("pricing_load_failed");
+  return ((await response.json()) as ApiRow[]).map(mapPricingRow);
+}
+
+export async function savePricingProduct(apiUrl: string, adminToken: string, row: PricingRow) {
+  const body = JSON.stringify(row);
+  const response = await fetch(`${apiUrl}/pricing/products/${encodeURIComponent(row.id)}`, {
+    method: "PATCH",
+    headers: jsonHeaders(),
+    body,
+  });
+  if (!response.ok) {
+    const createResponse = await fetch(`${apiUrl}/pricing/products`, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body,
+    });
+    if (!createResponse.ok) throw new Error("pricing_save_failed");
+  }
+}
+
+export async function deletePricingProduct(apiUrl: string, adminToken: string, id: string) {
+  const response = await fetch(`${apiUrl}/pricing/products/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+  });
+  if (!response.ok) throw new Error("pricing_delete_failed");
 }
 
 export async function fetchOperationsMonitoring(apiUrl: string, adminToken: string) {
