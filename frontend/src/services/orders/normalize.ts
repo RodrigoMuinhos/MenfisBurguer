@@ -26,7 +26,11 @@ function isGuaranaZeroItem(item: any): boolean {
 export function normalizeOrderStatus(status: string): OrderStatus {
   const value = status.toUpperCase();
   if (value === "DRAFT" || value === "CREATED") return "CREATED";
-  if (value === "PENDING_PAYMENT" || value === "AGUARDANDO_PAGAMENTO")
+  if (
+    value === "PAYMENT_PENDING" ||
+    value === "PENDING_PAYMENT" ||
+    value === "AGUARDANDO_PAGAMENTO"
+  )
     return "PAYMENT_PENDING";
   if (value === "PAYMENT_PROOF_PENDING" || value === "AGUARDANDO_APROVACAO_COMPROVANTE")
     return "PAYMENT_PROOF_PENDING";
@@ -39,7 +43,7 @@ export function normalizeOrderStatus(status: string): OrderStatus {
     return "PAID";
   if (value === "ACCEPTED" || value === "ACEITO" || value === "PEDIDO_ACEITO")
     return "ACCEPTED";
-  if (value === "PREPARING" || value === "PREPARO")
+  if (value === "IN_PREPARATION" || value === "PREPARING" || value === "PREPARO")
     return "IN_PREPARATION";
   if (value === "PRONTO") return "READY";
   if (value === "SAIU_ENTREGA") return "OUT_FOR_DELIVERY";

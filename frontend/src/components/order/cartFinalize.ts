@@ -149,7 +149,6 @@ export async function submitCheckoutOrder({
   clearCartItems?: () => void;
 }) {
   let slowTimer: number | null = null;
-  let whatsappReceiptWindow: Window | null = null;
   const effectiveDelivery = resolveRuntimeDeliveryType(
     kioskMode || counterServiceMode ? "retirada" : delivery,
   );
@@ -180,10 +179,6 @@ export async function submitCheckoutOrder({
     if (!API_URL) {
       throw new Error("api_url_missing");
     }
-    whatsappReceiptWindow =
-      !kioskMode && !counterServiceMode && !isMobileWhatsappTarget()
-        ? reserveWhatsappReceiptWindow()
-        : null;
     setPaying(true);
     setPaymentSlow(false);
     slowTimer = window.setTimeout(() => setPaymentSlow(true), 3500);
@@ -316,7 +311,7 @@ export async function submitCheckoutOrder({
           status: "PAID",
         },
       });
-      sendWhatsappReceipt(presencialOrder, whatsappReceiptWindow);
+      sendWhatsappReceipt(presencialOrder);
       await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, presencialOrder);
       return;
     }
@@ -339,7 +334,7 @@ export async function submitCheckoutOrder({
           status: "PAID",
         },
       });
-      sendWhatsappReceipt(payOnDeliveryOrder, whatsappReceiptWindow);
+      sendWhatsappReceipt(payOnDeliveryOrder);
       await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, payOnDeliveryOrder);
       return;
     }
@@ -364,10 +359,10 @@ export async function submitCheckoutOrder({
       });
       if (isMobileWhatsappTarget()) {
         await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
-        sendWhatsappReceipt(whatsappOrder, null, { sameTabOnMobile: true });
+        sendWhatsappReceipt(whatsappOrder, { sameTabOnMobile: true });
         return;
       }
-      sendWhatsappReceipt(whatsappOrder, whatsappReceiptWindow);
+      sendWhatsappReceipt(whatsappOrder);
       await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
       return;
     }
@@ -392,7 +387,7 @@ export async function submitCheckoutOrder({
           status: "PAYMENT_PENDING",
         },
       });
-      sendWhatsappReceipt(pixOrder, whatsappReceiptWindow);
+      sendWhatsappReceipt(pixOrder);
       await onPlaceOrder(
         effectiveDelivery,
         phone || undefined,
@@ -447,7 +442,7 @@ export async function submitCheckoutOrder({
           status: "PAYMENT_PENDING",
         },
       });
-      sendWhatsappReceipt(pixQrCodeOrder, whatsappReceiptWindow);
+      sendWhatsappReceipt(pixQrCodeOrder);
       await onPlaceOrder(
         effectiveDelivery,
         phone || undefined,
@@ -480,7 +475,7 @@ export async function submitCheckoutOrder({
         paymentStatus: String(data?.status ?? createdOrder.paymentStatus ?? "pending"),
         couponOrderFields,
       });
-      sendWhatsappReceipt(pendingOrder, whatsappReceiptWindow);
+      sendWhatsappReceipt(pendingOrder);
       await onPlaceOrder(
         effectiveDelivery,
         phone || undefined,
@@ -506,14 +501,10 @@ export async function submitCheckoutOrder({
         paymentStatus: String(data?.status ?? createdOrder.paymentStatus ?? "pending"),
         couponOrderFields,
       }),
-      whatsappReceiptWindow,
     );
     localStorage.setItem("menfis_pending_order_id", String(createdOrder.id));
     window.location.assign(checkoutUrl);
   } catch (error) {
-    if (whatsappReceiptWindow && !whatsappReceiptWindow.closed) {
-      whatsappReceiptWindow.close();
-    }
     const reason = error instanceof Error ? error.message : "";
     if (reason.includes("restaurant_closed")) {
       onRestaurantClosed?.();
@@ -543,32 +534,12 @@ export async function submitCheckoutOrder({
   }
 }
 
-function reserveWhatsappReceiptWindow() {
-  try {
-    const receiptWindow = window.open("about:blank", "_blank");
-    if (!receiptWindow) return null;
-    receiptWindow.document.write(
-      "<!doctype html><title>Enviando pedido</title><body style=\"font-family:Arial,sans-serif;padding:24px\">Abrindo WhatsApp com a guia do pedido...</body>",
-    );
-    receiptWindow.document.close();
-    receiptWindow.opener = null;
-    return receiptWindow;
-  } catch {
-    return null;
-  }
-}
-
 function sendWhatsappReceipt(
   order: Order,
-  receiptWindow?: Window | null,
   options?: { sameTabOnMobile?: boolean },
 ) {
   const text = buildOrderWhatsappReceipt(order);
   const url = buildWhatsappUrl(text);
-  if (receiptWindow && !receiptWindow.closed) {
-    writeWhatsappRedirect(receiptWindow, url);
-    return;
-  }
   if (options?.sameTabOnMobile && isMobileWhatsappTarget()) {
     window.location.assign(url);
     return;
@@ -591,30 +562,4 @@ function buildWhatsappUrl(text: string) {
     return `${SUPPORT_WHATSAPP_URL}?text=${encoded}`;
   }
   return `https://web.whatsapp.com/send?phone=${phone}&text=${encoded}`;
-}
-
-function writeWhatsappRedirect(receiptWindow: Window, url: string) {
-  const escapedUrl = JSON.stringify(url);
-  receiptWindow.document.open();
-  receiptWindow.document.write(`
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Enviar pedido no WhatsApp</title>
-    <style>
-      body { font-family: Arial, sans-serif; padding: 24px; color: #1f3d2e; }
-      a { display: inline-block; margin-top: 16px; padding: 14px 18px; border-radius: 12px; background: #25d366; color: #fff; font-weight: 700; text-decoration: none; }
-      p { max-width: 420px; line-height: 1.4; }
-    </style>
-  </head>
-  <body>
-    <p>Abrindo WhatsApp com a guia do pedido...</p>
-    <p>Se o WhatsApp não abrir automaticamente, toque no botão abaixo.</p>
-    <a href=${escapedUrl} rel="noopener">Abrir WhatsApp</a>
-    <script>window.location.replace(${escapedUrl});</script>
-  </body>
-</html>`);
-  receiptWindow.document.close();
 }
