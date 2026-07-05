@@ -53,22 +53,22 @@ export const STATUS_COPY: Record<
   ACCEPTED: {
     label: "Pedido aceito",
     copy: "A cozinha aceitou seu pedido e vai iniciar o preparo.",
-    eta: "20-25 min",
+    eta: "35-45 min",
   },
   IN_PREPARATION: {
     label: "Seu pedido esta sendo preparado",
     copy: "A cozinha recebeu seu pedido pelo KDS e iniciou o preparo.",
-    eta: "20-25 min",
+    eta: "35-45 min",
   },
   READY: {
     label: "Pedido pronto",
     copy: "A cozinha concluiu a producao. Aguardando liberacao manual para entrega.",
-    eta: "15-20 min",
+    eta: "35-45 min",
   },
   OUT_FOR_DELIVERY: {
     label: "Seu pedido saiu para entrega",
     copy: "O entregador esta a caminho do seu endereco.",
-    eta: "10-15 min",
+    eta: "35-45 min",
   },
   DELIVERED: {
     label: "Pedido entregue",

@@ -724,7 +724,13 @@ export function AdminPanel({
           />
         )}
         {tab === "dashboard" && (
-          <DashboardView orders={visibleOrders} />
+          <DashboardView
+            orders={visibleOrders}
+            stockItems={stockItems}
+            stockMovements={stockMovements}
+            customers={crmCustomers}
+            supportTickets={supportTickets}
+          />
         )}
         {tab === "monitoramento" && (
           <MonitoringView adminToken={adminToken} />

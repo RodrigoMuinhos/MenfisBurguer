@@ -28,6 +28,62 @@ type ProductStat = {
   cmv: number;
 };
 
+type StockIndex = {
+  byId: Map<string, StockItem>;
+  byKey: Map<string, StockItem>;
+};
+
+const LEGACY_STOCK_ALIASES: Record<string, string[]> = {
+  "1": ["pao brioche", "pão brioche"],
+  "2": ["carne 70/30", "carne", "adicional de carne"],
+  "3": ["alface"],
+  "4": ["queijo", "extra queijo"],
+  "5": ["coca-cola zero", "coca cola zero", "coca-cola", "coca cola"],
+  "6": ["batata frita", "batata"],
+  "7": ["molho menfi's", "molho menfis", "maionese alho frito", "maionese barbecue", "maionese"],
+  "8": ["filé de frango empanado", "file de frango empanado", "adicional de frango", "frango"],
+  "9": ["bacon", "adicional de bacon"],
+  "10": ["cheddar", "adicional de cheddar"],
+  "11": ["ovo"],
+  "12": ["guaraná zero", "guarana zero", "guaraná", "guarana"],
+  "13": ["água com gás", "agua com gas", "água", "agua"],
+};
+
+const PRODUCT_ID_ALIASES: Record<string, string> = {
+  "combo-menfis": "combo",
+  "combo-menfis-bacon": "bacon-combo",
+  "combo-menfis-chicken": "chicken-combo",
+  "super-combo-menfis": "combo2",
+  "super-combo-menfis-bacon": "bacon-super-combo",
+  "super-combo-menfis-chicken": "chicken-super-combo",
+  "combo-coca-adicional": "coca-zero",
+  "extra-maionese-alho-frito": "extra-molho",
+  "extra-maionese-barbecue": "extra-molho",
+  "coca-zero": "cola",
+};
+
+const DASHBOARD_STOCK_MAP: Record<string, Array<{ stockId: string; qty: number }>> = {
+  "double-burger": [
+    { stockId: "1", qty: 1 },
+    { stockId: "2", qty: 0.2 },
+    { stockId: "3", qty: 0.5 },
+    { stockId: "4", qty: 2 },
+    { stockId: "7", qty: 30 },
+  ],
+  "double-combo": [
+    { stockId: "1", qty: 1 },
+    { stockId: "2", qty: 0.2 },
+    { stockId: "3", qty: 0.5 },
+    { stockId: "4", qty: 2 },
+    { stockId: "7", qty: 30 },
+    { stockId: "5", qty: 1 },
+    { stockId: "6", qty: 0.25 },
+  ],
+  "extra-ovo": [{ stockId: "11", qty: 1 }],
+  "guarana-zero": [{ stockId: "12", qty: 1 }],
+  "agua-com-gas": [{ stockId: "13", qty: 1 }],
+};
+
 export function DashboardView({
   orders,
   stockItems = [],
@@ -192,7 +248,7 @@ export function DashboardView({
 
 function buildProductStats(orders: Order[], stockItems: StockItem[]): ProductStat[] {
   const productNames = new Map(MENU_ITEMS.map((item) => [item.id, item.name]));
-  const stockById = new Map(stockItems.map((item) => [item.id, item]));
+  const stockIndex = buildStockIndex(stockItems);
   const byProduct = new Map<string, ProductStat>();
 
   orders.forEach((order) => {
@@ -200,7 +256,10 @@ function buildProductStats(orders: Order[], stockItems: StockItem[]): ProductSta
       const productId = normalizeProductId(item.productId ?? item.id);
       const qty = Number(item.qty ?? 0);
       const revenue = Number(item.price ?? 0) * qty;
-      const costUnit = estimateProductUnitCost(productId, stockById);
+      const costUnit =
+        estimateProductUnitCost(productId, stockIndex) +
+        estimateAddonUnitCost(item.addonIds, stockIndex) +
+        (item.addonIds?.length ? 0 : estimateComponentUnitCost(item.components, stockIndex));
       const current = byProduct.get(productId) ?? {
         id: productId,
         name: productNames.get(productId) ?? item.name,
@@ -223,15 +282,83 @@ function buildProductStats(orders: Order[], stockItems: StockItem[]): ProductSta
 }
 
 function normalizeProductId(value: string) {
-  return value.replace(/^quick-/, "");
+  const normalized = normalizeKey(value.replace(/^quick-/, ""));
+  return PRODUCT_ID_ALIASES[normalized] ?? normalized;
 }
 
-function estimateProductUnitCost(productId: string, stockById: Map<string, StockItem>) {
-  const recipe = MENU_STOCK_MAP[productId] ?? [];
+function estimateProductUnitCost(productId: string, stockIndex: StockIndex) {
+  const recipe = MENU_STOCK_MAP[productId] ?? DASHBOARD_STOCK_MAP[productId] ?? [];
   return recipe.reduce((sum, ingredient) => {
-    const stock = stockById.get(ingredient.stockId);
+    const stock = findStockItem(ingredient.stockId, stockIndex);
     return sum + Number(stock?.unitCost ?? 0) * ingredient.qty;
   }, 0);
+}
+
+function estimateAddonUnitCost(addonIds: string[] | undefined, stockIndex: StockIndex) {
+  return (addonIds ?? []).reduce(
+    (sum, addonId) => sum + estimateProductUnitCost(normalizeProductId(addonId), stockIndex),
+    0,
+  );
+}
+
+function estimateComponentUnitCost(components: string[] | undefined, stockIndex: StockIndex) {
+  return (components ?? []).reduce((sum, component) => {
+    const productId = productIdFromComponent(component);
+    if (!productId) return sum;
+    return sum + estimateProductUnitCost(productId, stockIndex);
+  }, 0);
+}
+
+function productIdFromComponent(component: string) {
+  const key = normalizeKey(component);
+  if (key.includes("adicional de carne")) return "extra-carne";
+  if (key.includes("adicional de frango")) return "extra-frango";
+  if (key.includes("adicional de bacon")) return "extra-bacon";
+  if (key.includes("adicional de cheddar")) return "extra-cheddar";
+  if (key.includes("extra queijo")) return "extra-queijo";
+  if (key === "ovo" || key.includes(" ovo")) return "extra-ovo";
+  return undefined;
+}
+
+function buildStockIndex(stockItems: StockItem[]): StockIndex {
+  const byId = new Map(stockItems.map((item) => [item.id, item]));
+  const byKey = new Map<string, StockItem>();
+
+  stockItems.forEach((item) => {
+    const keys = [item.id, item.name];
+    Object.entries(LEGACY_STOCK_ALIASES).forEach(([legacyId, aliases]) => {
+      if (item.id === legacyId || aliases.some((alias) => normalizeKey(item.name).includes(normalizeKey(alias)))) {
+        keys.push(legacyId, ...aliases);
+      }
+    });
+    keys.forEach((key) => {
+      byKey.set(normalizeKey(key), item);
+    });
+  });
+
+  return { byId, byKey };
+}
+
+function findStockItem(stockId: string, stockIndex: StockIndex) {
+  const direct = stockIndex.byId.get(stockId) ?? stockIndex.byKey.get(normalizeKey(stockId));
+  if (direct) return direct;
+
+  const aliases = LEGACY_STOCK_ALIASES[stockId] ?? [];
+  for (const alias of aliases) {
+    const byAlias = stockIndex.byKey.get(normalizeKey(alias));
+    if (byAlias) return byAlias;
+  }
+  return undefined;
+}
+
+function normalizeKey(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
 }
 
 function isInactive(lastOrderAt?: string) {

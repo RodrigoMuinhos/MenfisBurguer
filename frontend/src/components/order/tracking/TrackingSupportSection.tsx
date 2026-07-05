@@ -175,7 +175,7 @@ function DeliveryOperationCard({ order }: { order: Order }) {
           <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: VERDE, opacity: 0.45 }}>
             Espera
           </p>
-          <p className="mt-1 text-xl font-black" style={{ color: VERDE }}>25-30 min</p>
+          <p className="mt-1 text-xl font-black" style={{ color: VERDE }}>35-45 min</p>
         </div>
         <div className="rounded-2xl p-3" style={{ background: `${ROSA}55`, border: `1.5px solid ${VERDE}` }}>
           <div className="flex items-center gap-1.5">
