@@ -63,20 +63,13 @@ export function useOrderSync({
       });
       if (!res.ok) return;
       const order = normalizeBackendOrder(await res.json());
-      setOrders((prev) => [
-        {
-          ...prev.find((item) => item.id === order.id),
-          ...order,
-          pixQrCode: prev.find((item) => item.id === order.id)?.pixQrCode ?? order.pixQrCode,
-          pixQrCodeBase64:
-            prev.find((item) => item.id === order.id)?.pixQrCodeBase64 ??
-            order.pixQrCodeBase64,
-          pixTicketUrl:
-            prev.find((item) => item.id === order.id)?.pixTicketUrl ??
-            order.pixTicketUrl,
-        },
-        ...prev.filter((item) => item.id !== order.id),
-      ]);
+      setOrders((prev) => {
+        const existing = prev.find((item) => item.id === order.id);
+        return [
+          keepHighestVisibleStatus(order, existing),
+          ...prev.filter((item) => item.id !== order.id),
+        ];
+      });
       if (order.status === "DELIVERED" || order.status === "CANCELLED") {
         localStorage.removeItem(PENDING_ORDER_KEY);
       }
@@ -231,13 +224,7 @@ export function useOrderSync({
         setOrders((prev) => {
           const existing = prev.find((item) => item.id === order.id);
           return [
-            {
-              ...existing,
-              ...order,
-              pixQrCode: existing?.pixQrCode ?? order.pixQrCode,
-              pixQrCodeBase64: existing?.pixQrCodeBase64 ?? order.pixQrCodeBase64,
-              pixTicketUrl: existing?.pixTicketUrl ?? order.pixTicketUrl,
-            },
+            keepHighestVisibleStatus(order, existing),
             ...prev.filter((item) => item.id !== order.id),
           ];
         });
