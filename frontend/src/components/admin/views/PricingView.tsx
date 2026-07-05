@@ -167,6 +167,7 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
       "produto",
       "categoria",
       "tipo",
+      "custo_unitario",
       "custo_total",
       "preco_venda",
       "preco_coca",
@@ -182,6 +183,7 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
         row.name,
         row.category,
         labelKind(row.kind),
+        row.totalCost.toFixed(2),
         row.totalCost.toFixed(2),
         row.salePrice.toFixed(2),
         row.priceWithAlternativeDrink.toFixed(2),
@@ -293,9 +295,9 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
                   <th className="px-3 py-3">Custo base</th>
                   <th className="px-3 py-3">Batata</th>
                   <th className="px-3 py-3">Bebida</th>
-                  <th className="px-3 py-3">Total</th>
+                  <th className="px-3 py-3">Custo/un</th>
                   <th className="px-3 py-3">Venda</th>
-                  <th className="px-3 py-3">Lucro</th>
+                  <th className="px-3 py-3">Lucro/un</th>
                   <th className="px-3 py-3">CMV</th>
                   <th className="px-3 py-3">Recomendado</th>
                   <th className="px-3 py-3">Status</th>
@@ -460,9 +462,10 @@ function PricingCard({
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
         <Info label="Preco" value={fmt(row.salePrice)} />
-        <Info label="Custo" value={fmt(row.totalCost)} />
-        <Info label="Lucro" value={fmt(row.grossProfit)} />
+        <Info label="Custo/un" value={fmt(row.totalCost)} />
+        <Info label="Lucro/un" value={fmt(row.grossProfit)} />
         <Info label="CMV" value={percent(row.cmv)} />
+        <Info label="Preco recomendado" value={fmt(row.recommendedPrice)} />
       </div>
       <div className="mt-3 flex gap-2">
         <ActionButton onClick={onEdit}>Editar</ActionButton>
@@ -501,8 +504,9 @@ function Simulator({ rows }: { rows: CalculatedPricingRow[] }) {
         <EditField value={price} onChange={setPrice} placeholder={`Preco atual ${fmt(selected.salePrice)}`} />
         <EditField value={cost} onChange={setCost} placeholder={`Custo atual ${fmt(selected.totalCost)}`} />
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <Info label="Lucro simulado" value={fmt(simulatedProfit)} />
+      <div className="grid gap-2 sm:grid-cols-4">
+        <Info label="Custo/un simulado" value={fmt(simulatedCost)} />
+        <Info label="Lucro/un simulado" value={fmt(simulatedProfit)} />
         <Info label="CMV simulado" value={percent(simulatedCmv)} />
         <Info label="Dif. lucro" value={fmt(simulatedProfit - selected.grossProfit)} />
       </div>
