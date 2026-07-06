@@ -35,6 +35,7 @@ function comboPotatoLabel(item: MenuItem) {
 function productStory(item: MenuItem) {
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
+  const isMenfis130 = item.id === "burger" || item.id === "combo" || item.id === "combo2";
   if (name.includes("chicken")) {
     return `${item.desc} Frango crocante, queijo derretido, alface fresca e molho especial no pão macio, com molho extra para acompanhar cada mordida.`;
   }
@@ -44,7 +45,8 @@ function productStory(item: MenuItem) {
   }
   if (item.category === "burger" || item.category === "combo") {
     const quantity = isBig || item.id.includes("super") ? "cada carne" : "o burger";
-    return `${item.desc} Aqui ${quantity} vem com 100g de carne suculenta, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
+    const grams = isMenfis130 ? "130g" : "100g";
+    return `${item.desc} Aqui ${quantity} vem com ${grams} de carne suculenta, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
   }
   return item.desc;
 }
@@ -63,7 +65,13 @@ function productIngredients(item: MenuItem) {
       : "Pão brioche, carne 100g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's.";
   }
   if (item.category === "combo") {
-    const burger = isBig ? "BIG Menfi's com 2 carnes bovinas de 100g" : "Burger Menfi's";
+    const burger = item.id === "combo2"
+      ? "2 Menfi's Burger com carnes bovinas de 130g"
+      : isBig
+        ? "BIG Menfi's com 2 carnes bovinas de 100g"
+        : item.id === "combo"
+          ? "Burger Menfi's 130g"
+          : "Burger Menfi's";
     return `${burger}, ${comboPotatoLabel(item)}, bebida gelada e molho extra para acompanhar.`;
   }
   if (item.category === "bebida") {
@@ -72,7 +80,9 @@ function productIngredients(item: MenuItem) {
   if (item.category === "extra") {
     return item.desc;
   }
-  return "Pão brioche, carne 100g, cheddar, cebola caramelizada, alface e molho Menfi's.";
+  return item.id === "burger"
+    ? "Pão brioche, carne 130g, cheddar, cebola caramelizada, alface e molho Menfi's."
+    : "Pão brioche, carne 100g, cheddar, cebola caramelizada, alface e molho Menfi's.";
 }
 
 function productWeight(item: MenuItem) {
@@ -90,9 +100,12 @@ function productWeight(item: MenuItem) {
     return `${burger}, 40g de bacon${item.category === "combo" ? ` e ${comboPotatoLabel(item)}` : ""}.`;
   }
   if (item.category === "combo") {
+    if (item.id === "combo") return `1 carne de 130g e ${comboPotatoLabel(item)}.`;
+    if (item.id === "combo2") return `2 carnes de 130g (260g no total) e ${comboPotatoLabel(item)}.`;
     return `${isBig || isSuper ? "2 carnes de 100g (200g no total)" : "1 carne de 100g"} e ${comboPotatoLabel(item)}.`;
   }
   if (item.category === "burger") {
+    if (item.id === "burger") return "1 carne de 130g.";
     return isBig ? "2 carnes de 100g (200g no total)." : "1 carne de 100g.";
   }
   return "Porção conforme seleção.";

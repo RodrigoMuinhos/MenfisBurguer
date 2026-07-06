@@ -45,7 +45,7 @@ export const CATEGORIES = [
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 export const BURGER_ID = "burger";
-export const BURGER_PRICE = 21.9;
+export const BURGER_PRICE = 25.9;
 export const CHEESE_PRICE = 2;
 export const SAUCE_PRICE = 2.9;
 export const COMBO_PRICE = 37.9;
