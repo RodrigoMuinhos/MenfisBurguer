@@ -58,7 +58,7 @@ type CalculatedPricingRow = PricingRow & {
 const STORAGE_KEY = "menfis_pricing_table_v1";
 
 const DEFAULT_ROWS: PricingRow[] = [
-  simple("burger", "MENFIS", "Menfi's Burguer", "Sanduiche", 7.5, 21.9),
+  simple("burger", "MENFIS", "Menfi's Burguer", "Sanduiche", 8.85, 21.9),
   simple("double-burger", "BIG-MENFIS", "Big Menfi's Burguer", "Sanduiche", 12, 29.9),
   simple("menfis-chicken", "CHICKEN", "Menfi's Chicken", "Sanduiche", 6.3, 24.9),
   simple("double-menfis-chicken", "BIG-CHICKEN", "Big Chicken", "Sanduiche", 9.8, 32.9),
@@ -67,13 +67,13 @@ const DEFAULT_ROWS: PricingRow[] = [
   side("batata", "BATATA", "Batata", 3.7, 19.9),
   drink("guarana-zero", "GUARANA", "Guarana Zero", 2.89, 6.9),
   drink("coca-zero", "COCA", "Coca-Cola Zero", 3.89, 8.9, 2),
-  combo("combo", "COMBO-MENFIS", "Combo Menfi's", 7.5, 34.9),
+  combo("combo", "COMBO-MENFIS", "Combo Menfi's", 8.85, 34.9),
   combo("double-combo", "COMBO-BIG", "Combo Big Menfi's", 12, 42.9),
   combo("chicken-combo", "COMBO-CHICKEN", "Combo Chicken", 6.3, 38.9),
   combo("double-chicken-combo", "COMBO-BIG-CHICKEN", "Combo Big Chicken", 9.8, 46.9),
   combo("bacon-combo", "COMBO-BACON", "Combo Bacon", 9.8, 40.9),
   combo("double-bacon-combo", "COMBO-BIG-BACON", "Combo Big Bacon", 14.7, 48.9),
-  combo("combo2", "SUPER-MENFIS", "Super Combo Menfi's", 15, 59.9, 5.78, 7.78),
+  combo("combo2", "SUPER-MENFIS", "Super Combo Menfi's", 17.7, 59.9, 5.78, 7.78),
   combo("chicken-super-combo", "SUPER-CHICKEN", "Super Combo Menfi's Chicken", 12.6, 64.9, 5.78, 7.78),
   combo("bacon-super-combo", "SUPER-BACON", "Super Combo Menfi's Bacon", 19.6, 71.9, 5.78, 7.78),
 ];
