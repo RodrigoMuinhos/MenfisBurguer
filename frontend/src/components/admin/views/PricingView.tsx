@@ -332,7 +332,7 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
                   <th className="px-3 py-3 whitespace-nowrap text-right">CMV</th>
                   <th className="px-3 py-3 whitespace-nowrap text-right">Recomendado</th>
                   <th className="px-3 py-3 whitespace-nowrap">Status</th>
-                  <th className="px-3 py-3 whitespace-nowrap">Acoes</th>
+                  <th className="sticky right-0 z-10 px-3 py-3 whitespace-nowrap bg-white">Acoes</th>
                 </tr>
               </thead>
               <tbody className="divide-y" style={{ borderColor: `${VERDE}10` }}>
@@ -465,10 +465,10 @@ function PricingTableRow({
       <td className="px-3 py-4 whitespace-nowrap text-right font-black">{percent(row.cmv)}</td>
       <td className="px-3 py-4 whitespace-nowrap text-right font-black">{fmt(row.recommendedPrice)}</td>
       <td className="px-3 py-4"><StatusPill status={row.status} /></td>
-      <td className="px-3 py-4">
+      <td className="sticky right-0 bg-white px-3 py-4 shadow-[-12px_0_18px_rgba(255,255,255,0.92)]">
         <div className="flex items-center gap-2 whitespace-nowrap">
           {editing ? (
-            <ActionButton onClick={onSave}>Salvar</ActionButton>
+            <ActionButton onClick={onSave} tone="save">Salvar preco</ActionButton>
           ) : (
             <ActionButton onClick={onEdit}><Pencil size={14} /></ActionButton>
           )}
@@ -837,22 +837,82 @@ function MoneyCell({
   editing: boolean;
   setDraft: (row: PricingRow) => void;
 }) {
+  const [rawValue, setRawValue] = useState(() => moneyInputValue(row[field]));
+
+  useEffect(() => {
+    if (editing) setRawValue(moneyInputValue(row[field]));
+  }, [editing, field, row.id, row[field]]);
+
   if (!editing) return <span className="inline-block min-w-20 whitespace-nowrap font-black tabular-nums">{fmt(Number(row[field]))}</span>;
   return (
-    <EditField
-      value={String(row[field])}
-      onChange={(value) => setDraft({ ...row, [field]: Number(value.replace(",", ".")) })}
+    <MoneyInput
+      value={rawValue}
+      onChange={(value) => {
+        setRawValue(value);
+        const parsed = parseMoneyInput(value);
+        if (parsed !== null) {
+          setDraft({ ...row, [field]: parsed });
+        }
+      }}
+      onBlur={() => {
+        const parsed = parseMoneyInput(rawValue) ?? 0;
+        setRawValue(moneyInputValue(parsed));
+        setDraft({ ...row, [field]: parsed });
+      }}
     />
   );
 }
 
-function ActionButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+function MoneyInput({
+  value,
+  onChange,
+  onBlur,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onBlur: () => void;
+}) {
+  return (
+    <input
+      value={value}
+      onChange={(event) => {
+        const next = event.target.value;
+        if (/^\d{0,6}([,.]\d{0,2})?$/.test(next)) {
+          onChange(next);
+        }
+      }}
+      onBlur={onBlur}
+      inputMode="decimal"
+      className="min-h-11 w-24 rounded-2xl px-3 text-right text-sm font-black outline-none tabular-nums"
+      style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+    />
+  );
+}
+
+function parseMoneyInput(value: string) {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized || normalized === "." || normalized.endsWith(".")) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function moneyInputValue(value: number | string) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "";
+  return String(numeric).replace(".", ",");
+}
+
+function ActionButton({ onClick, children, tone = "default" }: { onClick: () => void; children: ReactNode; tone?: "default" | "save" }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-xl px-3 text-[10px] font-black uppercase"
-      style={{ background: `${ROSA}45`, color: VERDE, border: `1px solid ${VERDE}12` }}
+      style={{
+        background: tone === "save" ? VERDE : `${ROSA}45`,
+        color: tone === "save" ? ROSA : VERDE,
+        border: `1px solid ${tone === "save" ? VERDE : `${VERDE}12`}`,
+      }}
     >
       {children}
     </button>
