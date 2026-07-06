@@ -182,7 +182,9 @@ export function useCartCheckout({
   const numberRef = useRef<HTMLInputElement>(null);
   const customerNameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
-  const counterPaymentResolveRef = useRef<((value: "pix" | "cartao") => void) | null>(null);
+  const counterPaymentResolveRef = useRef<((value: "pix" | "atendente") => void) | null>(null);
+  const counterCustomerNameResolveRef = useRef<((value: string) => void) | null>(null);
+  const kioskSuccessResolveRef = useRef<(() => void) | null>(null);
   const kioskKeyboardOpen = kioskMode && kioskKeyboardTarget !== null;
 
   const closeKioskKeyboard = () => {
@@ -195,8 +197,10 @@ export function useCartCheckout({
 
   const [counterPaymentPromptOpen, setCounterPaymentPromptOpen] = useState(false);
   const [counterPaymentTotal, setCounterPaymentTotal] = useState(0);
+  const [counterCustomerNamePromptOpen, setCounterCustomerNamePromptOpen] = useState(false);
+  const [counterCustomerNameDraft, setCounterCustomerNameDraft] = useState("");
 
-  const resolveCounterPaymentPrompt = (value: "pix" | "cartao") => {
+  const resolveCounterPaymentPrompt = (value: "pix" | "atendente") => {
     const resolve = counterPaymentResolveRef.current;
     counterPaymentResolveRef.current = null;
     setCounterPaymentPromptOpen(false);
@@ -204,17 +208,57 @@ export function useCartCheckout({
   };
 
   const confirmCounterPayment = (amount: number) =>
-    new Promise<"pix" | "cartao">((resolve) => {
-      counterPaymentResolveRef.current?.("cartao");
+    new Promise<"pix" | "atendente">((resolve) => {
+      counterPaymentResolveRef.current?.("atendente");
       counterPaymentResolveRef.current = resolve;
       setCounterPaymentTotal(amount);
       setCounterPaymentPromptOpen(true);
     });
 
+  const resolveCounterCustomerNamePrompt = () => {
+    const name = counterCustomerNameDraft.trim();
+    if (name.length < 2) return;
+    const resolve = counterCustomerNameResolveRef.current;
+    counterCustomerNameResolveRef.current = null;
+    setCustomerName(name);
+    setCounterCustomerNamePromptOpen(false);
+    resolve?.(name);
+  };
+
+  const confirmCounterCustomerName = () =>
+    new Promise<string>((resolve) => {
+      const currentName = customerName.trim();
+      counterCustomerNameResolveRef.current?.(
+        currentName && currentName !== "KIOSK-MOB" ? currentName : "Cliente balcão",
+      );
+      counterCustomerNameResolveRef.current = resolve;
+      setCounterCustomerNameDraft(currentName && currentName !== "KIOSK-MOB" ? currentName : "");
+      setCounterCustomerNamePromptOpen(true);
+    });
+
+  const waitForKioskSuccessConfirm = (order: Order) =>
+    new Promise<void>((resolve) => {
+      kioskSuccessResolveRef.current?.();
+      kioskSuccessResolveRef.current = resolve;
+      setKioskSuccessOrder(order);
+      setKioskSuccessOpen(true);
+    });
+
+  const closeKioskSuccess = () => {
+    setKioskSuccessOpen(false);
+    setKioskSuccessOrder(null);
+    kioskSuccessResolveRef.current?.();
+    kioskSuccessResolveRef.current = null;
+  };
+
   useEffect(
     () => () => {
-      counterPaymentResolveRef.current?.("cartao");
+      counterPaymentResolveRef.current?.("atendente");
       counterPaymentResolveRef.current = null;
+      counterCustomerNameResolveRef.current?.("Cliente balcão");
+      counterCustomerNameResolveRef.current = null;
+      kioskSuccessResolveRef.current?.();
+      kioskSuccessResolveRef.current = null;
     },
     [],
   );
@@ -224,7 +268,7 @@ export function useCartCheckout({
     localStorage.removeItem(STORAGE_KEY);
     setDelivery("retirada");
     setPayment((current) =>
-      current === "cartao" || current === "pix" ? current : "pix",
+      current === "presencial" || current === "pix" ? current : "pix",
     );
     if (checkoutStep === "delivery") setCheckoutStep("payment");
   }, [checkoutStep, kioskMode]);
@@ -563,6 +607,8 @@ export function useCartCheckout({
         setClosedHoursAlertOpen(true);
       },
       confirmCounterPayment,
+      confirmCounterCustomerName,
+      waitForKioskSuccessConfirm,
       clearCartItems: clearCart,
     });
     if (appliedCoupon) {
@@ -813,6 +859,10 @@ export function useCartCheckout({
     counterServiceMode,
     counterPaymentPromptOpen,
     counterPaymentTotal,
+    counterCustomerNamePromptOpen,
+    counterCustomerNameDraft,
+    setCounterCustomerNameDraft,
+    confirmCounterCustomerNameChoice: resolveCounterCustomerNamePrompt,
     customerName,
     customerNameRef,
     delivery,
@@ -830,6 +880,7 @@ export function useCartCheckout({
     kioskKeyboardTarget,
     kioskSuccessOpen,
     kioskSuccessOrder,
+    closeKioskSuccess,
     missingDelivery,
     nextActionLabel,
     number,

@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { CheckCircle2, CreditCard, Loader2, QrCode } from "lucide-react";
+import { CheckCircle2, Loader2, QrCode, Store } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
+import { printOrderReceipts } from "@/components/admin/shared";
 import { KIOSK_PIX_CODE, KioskKeyboardTarget, PaymentMethod, pixCodeWithAmount } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
 
@@ -21,8 +22,13 @@ export function CartOverlays({
   closeKioskKeyboard,
   counterPaymentPromptOpen = false,
   counterPaymentTotal = 0,
+  counterCustomerNamePromptOpen = false,
+  counterCustomerNameDraft = "",
   kioskSuccessOrder = null,
   onConfirmCounterPayment,
+  setCounterCustomerNameDraft,
+  onConfirmCounterCustomerName,
+  onCloseKioskSuccess,
 }: {
   kioskSuccessOpen: boolean;
   paying: boolean;
@@ -38,13 +44,20 @@ export function CartOverlays({
   closeKioskKeyboard: () => void;
   counterPaymentPromptOpen?: boolean;
   counterPaymentTotal?: number;
+  counterCustomerNamePromptOpen?: boolean;
+  counterCustomerNameDraft?: string;
   kioskSuccessOrder?: Order | null;
-  onConfirmCounterPayment?: (method: "pix" | "cartao") => void;
+  onConfirmCounterPayment?: (method: "pix" | "atendente") => void;
+  setCounterCustomerNameDraft?: (value: string) => void;
+  onConfirmCounterCustomerName?: () => void;
+  onCloseKioskSuccess?: () => void;
 }) {
-  const [counterPaymentMethod, setCounterPaymentMethod] = useState<"pix" | "cartao" | null>(null);
+  const [counterPaymentMethod, setCounterPaymentMethod] = useState<"pix" | "atendente" | null>(null);
   const successTotal = kioskSuccessOrder
-    ? kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0)
+    ? Number(kioskSuccessOrder.total || kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0))
     : 0;
+  const callName = String(kioskSuccessOrder?.customerName ?? "").trim();
+  const canConfirmCounterName = counterCustomerNameDraft.trim().length >= 2;
   const formatMoney = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -93,15 +106,21 @@ export function CartOverlays({
                     >
                       {counterServiceMode ? "Pedido concluído" : "Pedido realizado"}
                     </p>
-                    {counterServiceMode && kioskSuccessOrder ? (
+                    {kioskSuccessOrder ? (
                       <>
                         <div
-                          className="mx-auto mt-5 grid max-w-md grid-cols-3 gap-3 rounded-3xl p-4 text-left"
+                          className="mx-auto mt-5 grid max-w-md grid-cols-2 gap-3 rounded-3xl p-4 text-left sm:grid-cols-4"
                           style={{ background: "#fff", border: `1px solid ${ROSA}` }}
                         >
                           <div>
                             <p className="text-[10px] font-black uppercase opacity-50">Pedido</p>
                             <p className="text-3xl font-black">#{kioskSuccessOrder.number}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase opacity-50">Nome</p>
+                            <p className="truncate text-2xl font-black">
+                              {callName || "Cliente"}
+                            </p>
                           </div>
                           <div>
                             <p className="text-[10px] font-black uppercase opacity-50">Código</p>
@@ -127,8 +146,29 @@ export function CartOverlays({
                           ))}
                         </div>
                         <p className="mx-auto mt-5 max-w-md text-lg font-black leading-snug">
-                          Aguarde. Quando estiver pronto, chamaremos você pelo número do pedido.
+                          Aguarde na fila. Quando estiver pronto, chamaremos pelo nome e número do pedido.
                         </p>
+                        <div className="mx-auto mt-5 grid max-w-md gap-3 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              printOrderReceipts(kioskSuccessOrder, { confirm: false });
+                              onCloseKioskSuccess?.();
+                            }}
+                            className="min-h-14 rounded-2xl px-4 text-sm font-black uppercase tracking-wide"
+                            style={{ background: VERDE, color: ROSA }}
+                          >
+                            Imprimir nota
+                          </button>
+                          <button
+                            type="button"
+                            onClick={onCloseKioskSuccess}
+                            className="min-h-14 rounded-2xl px-4 text-sm font-black uppercase tracking-wide"
+                            style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}` }}
+                          >
+                            Finalizar sem imprimir
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -142,6 +182,69 @@ export function CartOverlays({
                         </p>
                       </>
                     )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {counterCustomerNamePromptOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[85] flex items-center justify-center px-6"
+                  style={{
+                    background: "rgba(255,255,255,0.94)",
+                    color: VERDE,
+                  }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.95, y: 12 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.95, y: 12 }}
+                    className="w-full max-w-md rounded-3xl border bg-white p-6 shadow-2xl"
+                    style={{ borderColor: ROSA }}
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-50">
+                      Fila de espera
+                    </p>
+                    <h2 className="mt-2 text-2xl font-black uppercase tracking-wide">
+                      Nome para chamada
+                    </h2>
+                    <p className="mt-2 text-sm font-bold leading-relaxed opacity-65">
+                      Digite o nome que vai aparecer na nota e será chamado quando o pedido ficar pronto.
+                    </p>
+                    <input
+                      value={counterCustomerNameDraft}
+                      onChange={(event) => setCounterCustomerNameDraft?.(event.target.value)}
+                      autoFocus
+                      placeholder="Ex.: Mariana"
+                      className="mt-5 min-h-14 w-full rounded-2xl px-4 text-xl font-black uppercase outline-none"
+                      style={{
+                        border: `2px solid ${canConfirmCounterName ? VERDE : ROSA}`,
+                        color: VERDE,
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && canConfirmCounterName) {
+                          onConfirmCounterCustomerName?.();
+                        }
+                      }}
+                    />
+                    {!canConfirmCounterName && (
+                      <p className="mt-2 text-xs font-bold text-red-700">
+                        Informe pelo menos 2 letras para organizar a fila.
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={!canConfirmCounterName}
+                      onClick={onConfirmCounterCustomerName}
+                      className="mt-5 min-h-14 w-full rounded-2xl px-4 text-sm font-black uppercase tracking-wide disabled:opacity-50"
+                      style={{ background: VERDE, color: ROSA }}
+                    >
+                      Confirmar nome e enviar pedido
+                    </button>
                   </motion.div>
                 </motion.div>
               )}
@@ -243,13 +346,13 @@ export function CartOverlays({
                       className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
                       style={{ background: ROSA }}
                     >
-                      {counterPaymentMethod === "cartao" ? <CreditCard size={26} /> : <QrCode size={26} />}
+                      {counterPaymentMethod === "atendente" ? <Store size={26} /> : <QrCode size={26} />}
                     </div>
                     <h2 className="text-xl font-black uppercase tracking-wide">
                       {counterPaymentMethod === "pix"
                         ? "Pagamento Pix"
-                        : counterPaymentMethod === "cartao"
-                          ? "Pagamento no cartão"
+                        : counterPaymentMethod === "atendente"
+                          ? "Pagar com atendente"
                           : "Como será o pagamento?"}
                     </h2>
                     {!counterPaymentMethod && (
@@ -269,12 +372,12 @@ export function CartOverlays({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setCounterPaymentMethod("cartao")}
+                            onClick={() => setCounterPaymentMethod("atendente")}
                             className="flex h-16 items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase text-white"
                             style={{ background: VERDE }}
                           >
-                            <CreditCard size={20} />
-                            Cartão
+                            <Store size={20} />
+                            Atendente
                           </button>
                         </div>
                       </>
@@ -306,21 +409,21 @@ export function CartOverlays({
                         </button>
                       </div>
                     )}
-                    {counterPaymentMethod === "cartao" && (
+                    {counterPaymentMethod === "atendente" && (
                       <div className="mt-5 grid gap-4">
                         <div className="rounded-3xl p-5" style={{ background: `${ROSA}35`, border: `1px solid ${ROSA}` }}>
                           <p className="text-3xl font-black uppercase" style={{ color: VERDE }}>
                             Aguarde o atendente
                           </p>
                           <p className="mt-2 text-sm font-bold leading-relaxed opacity-70">
-                            O pagamento será realizado na maquininha do balcão.
+                            O atendente vai concluir o pagamento no balcão.
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => {
                             setCounterPaymentMethod(null);
-                            onConfirmCounterPayment?.("cartao");
+                            onConfirmCounterPayment?.("atendente");
                           }}
                           className="h-14 rounded-2xl text-sm font-black uppercase text-white"
                           style={{ background: VERDE }}

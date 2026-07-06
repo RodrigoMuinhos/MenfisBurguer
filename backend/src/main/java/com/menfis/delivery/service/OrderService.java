@@ -80,16 +80,6 @@ public class OrderService {
       OrderResponse existing = findByIdempotencyKey(request.idempotencyKey());
       if (existing != null) return existing;
     }
-    if (!settings.testModeEnabled() && settings.isSoldOutNow()) {
-      throw new IllegalStateException("store_sold_out");
-    }
-    if (!settings.testModeEnabled() && !settings.isOperatingNow()) {
-      throw new IllegalStateException("restaurant_closed");
-    }
-
-    long number = jdbc.queryForObject("select nextval('order_number_seq')", Long.class);
-    String id = "#" + number;
-    boolean testMode = settings.testModeEnabled();
     boolean kioskLocalCustomer = isKioskMobName(request.customerName());
     OrderChannel channel = kioskLocalCustomer
       ? OrderChannel.KIOSK
@@ -100,6 +90,16 @@ public class OrderService {
     String customerName = kioskLocalCustomer
       ? "KIOSK-MOB"
       : request.customerName() == null ? null : request.customerName().trim();
+    if (!settings.testModeEnabled() && settings.isSoldOutNow()) {
+      throw new IllegalStateException("store_sold_out");
+    }
+    if (!settings.testModeEnabled() && channel != OrderChannel.KIOSK && !settings.isOperatingNow()) {
+      throw new IllegalStateException("restaurant_closed");
+    }
+
+    long number = jdbc.queryForObject("select nextval('order_number_seq')", Long.class);
+    String id = "#" + number;
+    boolean testMode = settings.testModeEnabled();
     PriceResult price = calculate(request.items());
     boolean chargeDeliveryFees =
       deliveryType == DeliveryType.DELIVERY
@@ -126,7 +126,7 @@ public class OrderService {
     boolean paidKiosk = channel == OrderChannel.KIOSK && !kioskLocalCustomer;
     OrderStatus status = payOnDelivery || paidKiosk || payAtCounter ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
     if (channel == OrderChannel.KIOSK
-        && (isBlank(customerName) || normalizedPhone(request.customerPhone()).length() < 10)) {
+        && isBlank(customerName)) {
       throw new IllegalArgumentException("kiosk_customer_required");
     }
     if (channel == OrderChannel.DELIVERY && authenticatedCustomerId == null) {

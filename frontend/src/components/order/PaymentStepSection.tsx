@@ -250,7 +250,7 @@ export function PaymentStepSection({
                               {counterServiceMode
                                 ? "A via do pedido será impressa e o pedido já entra para a cozinha. O cliente paga pessoalmente no balcão."
                                 : kioskMode
-                                ? "Se for PIX, confira os dados abaixo. Se for cartão, aguarde o atendente levar a maquininha."
+                                ? "Se for PIX, confira os dados abaixo. Se for atendente, aguarde a equipe no balcão."
                                 : payment === "pagar_na_entrega"
                                   ? "O pedido será preparado e o pagamento será feito na maquininha da entrega."
                                    : payment === "presencial"
@@ -404,10 +404,10 @@ export function PaymentStepSection({
                                   Icon: QrCode,
                                 },
                                 {
-                                  id: "cartao" as PaymentMethod,
-                                  label: "Cartão",
-                                  copy: "Maquininha com atendente",
-                                  Icon: CreditCard,
+                                  id: "presencial" as PaymentMethod,
+                                  label: "Atendente",
+                                  copy: "Pagar no balcão",
+                                  Icon: Store,
                                 },
                               ] as {
                                 id: PaymentMethod;
@@ -513,7 +513,7 @@ export function PaymentStepSection({
                                 border: `2px solid ${VERDE}`,
                               }}
                             >
-                              <CreditCard
+                            <Store
                                 size={38}
                                 strokeWidth={2.5}
                                 className="mx-auto"
@@ -522,7 +522,7 @@ export function PaymentStepSection({
                                 Aguarde o atendente
                               </p>
                               <p className="mt-2 text-sm font-bold opacity-70">
-                                O pagamento será feito na maquininha. Ao finalizar,
+                                A equipe vai concluir o pagamento no balcão. Ao finalizar,
                                 seu pedido será enviado direto para a cozinha.
                               </p>
                             </div>

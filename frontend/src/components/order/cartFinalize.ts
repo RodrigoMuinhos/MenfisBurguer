@@ -10,7 +10,6 @@ import {
   SUPPORT_WHATSAPP_URL,
   fmt,
   resolveRuntimeDeliveryType,
-  wait,
 } from "./checkout";
 import { buildOrderWhatsappReceipt } from "./whatsappReceipt";
 
@@ -118,6 +117,8 @@ export async function submitCheckoutOrder({
   setPaymentError,
   onRestaurantClosed,
   confirmCounterPayment,
+  confirmCounterCustomerName,
+  waitForKioskSuccessConfirm,
   clearCartItems,
 }: {
   cart: CartItem[];
@@ -145,7 +146,9 @@ export async function submitCheckoutOrder({
   setKioskSuccessOrder?: (order: Order | null) => void;
   setPaymentError: (value: string) => void;
   onRestaurantClosed?: () => void;
-  confirmCounterPayment?: (amount: number) => Promise<"pix" | "cartao">;
+  confirmCounterPayment?: (amount: number) => Promise<"pix" | "atendente">;
+  confirmCounterCustomerName?: () => Promise<string>;
+  waitForKioskSuccessConfirm?: (order: Order) => Promise<void>;
   clearCartItems?: () => void;
 }) {
   let slowTimer: number | null = null;
@@ -155,9 +158,17 @@ export async function submitCheckoutOrder({
   const effectiveChannel = kioskMode || counterServiceMode ? "KIOSK" : "DELIVERY";
   const selectedCounterPayment =
     counterServiceMode ? await confirmCounterPayment?.(total) : undefined;
+  const counterCustomerName =
+    counterServiceMode ? await confirmCounterCustomerName?.() : undefined;
+  const orderCustomerName =
+    counterServiceMode && counterCustomerName?.trim()
+      ? counterCustomerName.trim()
+      : customerName;
   const backendPaymentMethod =
     counterServiceMode
-      ? (selectedCounterPayment ?? "cartao").toUpperCase()
+      ? selectedCounterPayment === "pix"
+        ? "PIX"
+        : "PRESENCIAL"
       : payment === "mercadopago"
         ? "MERCADO_PAGO"
         : payment === "pix_qrcode"
@@ -205,7 +216,7 @@ export async function submitCheckoutOrder({
         channel: effectiveChannel,
         deliveryType: effectiveDelivery.toUpperCase(),
         paymentMethod: backendPaymentMethod,
-        customerName: customerName.trim() || undefined,
+        customerName: orderCustomerName.trim() || undefined,
         customerPhone: phone || undefined,
         customerAddress: address,
         idempotencyKey: orderFingerprint,
@@ -225,7 +236,7 @@ export async function submitCheckoutOrder({
         cart,
         removedByItemId,
         effectiveDelivery: "retirada",
-        customerName,
+        customerName: orderCustomerName,
         phone,
         address,
         total,
@@ -234,9 +245,11 @@ export async function submitCheckoutOrder({
           channel: "KIOSK",
           deliveryType: "retirada",
           paymentMethod: counterServiceMode
-            ? selectedCounterPayment ?? "cartao"
-            : payment === "cartao"
-              ? "cartao"
+            ? selectedCounterPayment === "pix"
+              ? "pix"
+              : "presencial"
+            : payment === "presencial"
+              ? "presencial"
               : "pix",
           paymentStatus: String(
             createdOrder.paymentStatus ??
@@ -265,24 +278,12 @@ export async function submitCheckoutOrder({
       if (slowTimer) window.clearTimeout(slowTimer);
       setPaymentSlow(false);
       setPaying(false);
-      if (counterServiceMode) {
+      if (waitForKioskSuccessConfirm) {
+        await waitForKioskSuccessConfirm(kioskOrder);
+      } else {
         setKioskSuccessOrder?.(kioskOrder);
         setKioskSuccessOpen(true);
-        await wait(6200);
-        setKioskSuccessOpen(false);
-        setKioskSuccessOrder?.(null);
-        await onPlaceOrder(
-          "retirada",
-          phone,
-          address,
-          removedByItemId,
-          kioskOrder,
-        );
-        return;
       }
-      setKioskSuccessOpen(true);
-      await wait(6200);
-      setKioskSuccessOpen(false);
       await onPlaceOrder(
         "retirada",
         phone,

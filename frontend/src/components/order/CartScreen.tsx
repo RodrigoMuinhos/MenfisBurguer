@@ -87,6 +87,10 @@ export function CartScreen({
     counterServiceMode,
     counterPaymentPromptOpen,
     counterPaymentTotal,
+    counterCustomerNamePromptOpen,
+    counterCustomerNameDraft,
+    setCounterCustomerNameDraft,
+    confirmCounterCustomerNameChoice,
     customerName,
     customerNameRef,
     delivery,
@@ -105,6 +109,7 @@ export function CartScreen({
     kioskKeyboardTarget,
     kioskSuccessOpen,
     kioskSuccessOrder,
+    closeKioskSuccess,
     missingDelivery,
     nextActionLabel,
     number,
@@ -398,6 +403,11 @@ export function CartScreen({
         counterPaymentPromptOpen={counterPaymentPromptOpen}
         counterPaymentTotal={counterPaymentTotal}
         onConfirmCounterPayment={confirmCounterPaymentChoice}
+        counterCustomerNamePromptOpen={counterCustomerNamePromptOpen}
+        counterCustomerNameDraft={counterCustomerNameDraft}
+        setCounterCustomerNameDraft={setCounterCustomerNameDraft}
+        onConfirmCounterCustomerName={confirmCounterCustomerNameChoice}
+        onCloseKioskSuccess={closeKioskSuccess}
       />
       {closedHoursAlertOpen && (
         <ClosedHoursAlertModal

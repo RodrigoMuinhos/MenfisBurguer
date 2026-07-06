@@ -643,7 +643,7 @@ function normalizeKioskMobName(value?: string) {
 }
 
 function isKioskMobOrder(order?: Order | null) {
-  return normalizeKioskMobName(order?.customerName) === "KIOSK-MOB";
+  return order?.channel === "KIOSK" || normalizeKioskMobName(order?.customerName) === "KIOSK-MOB";
 }
 
 function isKioskMobSession() {
