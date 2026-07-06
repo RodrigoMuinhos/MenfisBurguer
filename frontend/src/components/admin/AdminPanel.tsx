@@ -26,7 +26,7 @@ import {
   normalizePresentationSettings,
 } from "@/components/order/checkout";
 import { ROSA, VERDE } from "@/utils/theme";
-import { EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
+import { CapacityItem, EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
 import { AdminHeader, AdminTabs, PaymentRequestsAlert } from "./AdminChrome";
 import {
   API_URL,
@@ -121,6 +121,7 @@ export function AdminPanel({
 
   const [stockItems, setStockItems] = useState<StockItem[]>(INITIAL_ITEMS);
   const [stockMovements, setStockMovements] = useState<Movement[]>([]);
+  const [stockCapacity, setStockCapacity] = useState<CapacityItem[]>([]);
   const stockItemsRef = useRef(stockItems);
   const notifiedPaymentRequestsRef = useRef<Set<string>>(new Set());
   stockItemsRef.current = stockItems;
@@ -291,11 +292,13 @@ export function AdminPanel({
     persistStockItem,
     persistStockMovement,
     persistStockDelete,
+    persistCloseInventoryMonth,
   } = useAdminBackend({
     adminToken,
     kitchenOnly,
     setStockItems,
     setStockMovements,
+    setStockCapacity,
     setCustomCoupons,
   });
 
@@ -746,9 +749,11 @@ export function AdminPanel({
             setItems={setStockItems}
             movements={stockMovements}
             setMovements={setStockMovements}
+            capacity={stockCapacity}
             onSaveItem={persistStockItem}
             onMoveItem={persistStockMovement}
             onDeleteItem={persistStockDelete}
+            onCloseMonth={persistCloseInventoryMonth}
           />
         )}
         {tab === "custos" && (

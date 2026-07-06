@@ -32,7 +32,8 @@ export function StockList({
           const Icon = sm.Icon;
           const expDays = daysUntil(item.expiryDate);
           const expWarn = expDays <= 7;
-          const pct = Math.min(100, (item.qty / (item.minQty * 1.8)) * 100);
+          const base = item.monthlyBaseStock && item.monthlyBaseStock > 0 ? item.monthlyBaseStock : item.minQty * 1.8;
+          const pct = base > 0 ? Math.min(100, (item.qty / base) * 100) : 100;
 
           return (
             <motion.div
@@ -50,6 +51,7 @@ export function StockList({
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <p style={{ flex: 1, fontSize: 13, fontWeight: 800, color: VERDE, lineHeight: 1 }}>
                   {item.name}
+                  <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, opacity: 0.45 }}>{item.category ?? "Geral"}</span>
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, background: sm.bg, border: `1px solid ${sm.border}`, borderRadius: 999, padding: "2px 8px" }}>
                   <Icon size={10} strokeWidth={2.5} style={{ color: sm.text }} />
@@ -74,6 +76,8 @@ export function StockList({
 
               <div style={{ display: "flex", gap: 12, marginBottom: 7 }}>
                 <Metric label="Qtd atual" value={fmtQty(item.qty, item.unit)} color={status === "zerado" ? "#DC2626" : status === "baixo" ? "#D97706" : VERDE} />
+                <Metric label="% mês" value={`${Math.round(pct)}%`} color={pct <= 10 ? "#DC2626" : pct <= 25 ? "#D97706" : VERDE} />
+                <Metric label="Base mês" value={fmtQty(item.monthlyBaseStock ?? 0, item.unit)} />
                 <Metric label="Mínimo" value={fmtQty(item.minQty, item.unit)} />
                 <div>
                   <p style={metricLabelStyle}>Custo unit.</p>

@@ -4,6 +4,7 @@ import com.menfis.delivery.dto.ApiDtos.InventoryItemRequest;
 import com.menfis.delivery.dto.ApiDtos.StockMovementRequest;
 import com.menfis.delivery.service.InventoryService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +35,28 @@ public class InventoryController {
     return inventory.movements();
   }
 
+  @GetMapping("/intelligence")
+  public Map<String, Object> intelligence() {
+    return inventory.intelligence();
+  }
+
+  @GetMapping("/capacity")
+  public List<Map<String, Object>> capacity() {
+    return inventory.productiveCapacity();
+  }
+
+  @GetMapping("/months")
+  public List<Map<String, Object>> months() {
+    return inventory.months();
+  }
+
+  @PostMapping("/months/close")
+  public Map<String, Object> closeMonth(@RequestBody Map<String, String> request) {
+    LocalDate start = LocalDate.parse(request.getOrDefault("startDate", "2026-05-05"));
+    LocalDate end = LocalDate.parse(request.getOrDefault("endDate", "2026-06-05"));
+    return inventory.closeCurrentMonth(request.getOrDefault("name", ""), start, end);
+  }
+
   @PostMapping("/items")
   public Map<String, Object> create(@Valid @RequestBody InventoryItemRequest request) {
     return inventory.upsert(request);
@@ -48,6 +71,8 @@ public class InventoryController {
       request.quantity(),
       request.minQuantity(),
       request.unitCost(),
+      request.category(),
+      request.monthlyBaseStock(),
       request.entryDate(),
       request.expiryDate()
     ));

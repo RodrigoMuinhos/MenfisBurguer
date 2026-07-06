@@ -1,5 +1,5 @@
 import type { Coupon } from "./shared";
-import type { Movement, StockItem } from "./EstoqueView";
+import type { CapacityItem, Movement, StockItem } from "./EstoqueView";
 import type { PricingRow } from "./views/PricingView";
 
 type ApiRow = Record<string, unknown>;
@@ -20,11 +20,25 @@ export function mapStockItem(row: ApiRow): StockItem {
     id: String(row.id),
     name: String(row.name ?? ""),
     unit: String(row.unit ?? "un"),
+    category: String(row.category ?? "Geral"),
     qty: asNumber(row.quantity),
     unitCost: asNumber(row.unit_cost),
     minQty: asNumber(row.min_quantity),
+    monthlyBaseStock: asNumber(row.monthly_base_stock),
+    percentRemaining: asNumber(row.percent_remaining),
+    smartStatus: String(row.smart_status ?? "NORMAL") as StockItem["smartStatus"],
     entryDate: asDate(row.entry_date),
     expiryDate: asDate(row.expires_at),
+  };
+}
+
+export function mapCapacityItem(row: ApiRow): CapacityItem {
+  return {
+    productId: String(row.productId ?? row.product_id ?? ""),
+    productName: String(row.productName ?? row.product_name ?? ""),
+    possibleUnits: asNumber(row.possibleUnits ?? row.possible_units),
+    limitingIngredient: String(row.limitingIngredient ?? row.limiting_ingredient ?? ""),
+    status: String(row.status ?? "NORMAL") as CapacityItem["status"],
   };
 }
 
@@ -90,16 +104,20 @@ export function mapPricingRow(row: ApiRow): PricingRow {
 }
 
 export async function fetchAdminStock(apiUrl: string, adminToken: string) {
-  const [itemsResponse, movementsResponse] = await Promise.all([
+  const [itemsResponse, movementsResponse, capacityResponse] = await Promise.all([
     fetch(`${apiUrl}/inventory`, { cache: "no-store" }),
     fetch(`${apiUrl}/inventory/movements`, { cache: "no-store" }),
+    fetch(`${apiUrl}/inventory/capacity`, { cache: "no-store" }),
   ]);
   if (!itemsResponse.ok) throw new Error("inventory_load_failed");
   const items = ((await itemsResponse.json()) as ApiRow[]).map(mapStockItem);
   const movements = movementsResponse.ok
     ? ((await movementsResponse.json()) as ApiRow[]).map(mapMovement)
     : [];
-  return { items, movements };
+  const capacity = capacityResponse.ok
+    ? ((await capacityResponse.json()) as ApiRow[]).map(mapCapacityItem)
+    : [];
+  return { items, movements, capacity };
 }
 
 export async function saveStockItem(apiUrl: string, adminToken: string, item: StockItem) {
@@ -110,6 +128,8 @@ export async function saveStockItem(apiUrl: string, adminToken: string, item: St
     quantity: item.qty,
     minQuantity: item.minQty,
     unitCost: item.unitCost,
+    category: item.category ?? "Geral",
+    monthlyBaseStock: item.monthlyBaseStock ?? item.qty,
     entryDate: item.entryDate || null,
     expiryDate: item.expiryDate || null,
   });
@@ -149,6 +169,23 @@ export async function deleteStockItem(apiUrl: string, adminToken: string, itemId
     method: "DELETE",
   });
   if (!response.ok) throw new Error("inventory_delete_failed");
+}
+
+export async function closeInventoryMonth(apiUrl: string, adminToken: string) {
+  const today = new Date();
+  const start = new Date(today);
+  start.setMonth(start.getMonth() - 1);
+  const body = JSON.stringify({
+    name: `Mês operacional ${start.toLocaleDateString("pt-BR")} a ${today.toLocaleDateString("pt-BR")}`,
+    startDate: start.toISOString().slice(0, 10),
+    endDate: today.toISOString().slice(0, 10),
+  });
+  const response = await fetch(`${apiUrl}/inventory/months/close`, {
+    method: "POST",
+    headers: jsonHeaders(),
+    body,
+  });
+  if (!response.ok) throw new Error("inventory_month_close_failed");
 }
 
 export async function fetchAdminCoupons(apiUrl: string, adminToken: string) {

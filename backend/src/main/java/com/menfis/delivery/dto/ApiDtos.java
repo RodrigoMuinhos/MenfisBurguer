@@ -137,6 +137,8 @@ public class ApiDtos {
     @NotNull BigDecimal quantity,
     @NotNull BigDecimal minQuantity,
     BigDecimal unitCost,
+    String category,
+    BigDecimal monthlyBaseStock,
     LocalDate entryDate,
     LocalDate expiryDate
   ) {}

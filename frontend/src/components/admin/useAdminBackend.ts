@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import type { Coupon } from "./shared";
 import { API_URL, COUPON_STORAGE_KEY } from "./shared";
-import type { Movement, StockItem } from "./EstoqueView";
+import type { CapacityItem, Movement, StockItem } from "./EstoqueView";
 import {
   deleteStockItem,
+  closeInventoryMonth,
   fetchAdminCoupons,
   fetchAdminStock,
   moveStockItem,
@@ -15,6 +16,7 @@ interface UseAdminBackendProps {
   kitchenOnly: boolean;
   setStockItems: (items: StockItem[]) => void;
   setStockMovements: (movements: Movement[]) => void;
+  setStockCapacity: (capacity: CapacityItem[]) => void;
   setCustomCoupons: (coupons: Coupon[]) => void;
 }
 
@@ -23,6 +25,7 @@ export function useAdminBackend({
   kitchenOnly,
   setStockItems,
   setStockMovements,
+  setStockCapacity,
   setCustomCoupons,
 }: UseAdminBackendProps) {
   const [adminDataError, setAdminDataError] = useState("");
@@ -33,6 +36,7 @@ export function useAdminBackend({
       const data = await fetchAdminStock(API_URL, adminToken);
       if (data.items.length > 0) setStockItems(data.items);
       setStockMovements(data.movements);
+      setStockCapacity(data.capacity);
       setAdminDataError("");
     } catch {
       setAdminDataError("Não foi possível carregar dados de estoque do backend.");
@@ -93,6 +97,16 @@ export function useAdminBackend({
     }
   };
 
+  const persistCloseInventoryMonth = async () => {
+    if (!API_URL) return;
+    try {
+      await closeInventoryMonth(API_URL, adminToken);
+      await syncInventory();
+    } catch {
+      setAdminDataError("Não foi possível fechar o mês do estoque.");
+    }
+  };
+
   return {
     adminDataError,
     setAdminDataError,
@@ -100,5 +114,6 @@ export function useAdminBackend({
     persistStockItem,
     persistStockMovement,
     persistStockDelete,
+    persistCloseInventoryMonth,
   };
 }

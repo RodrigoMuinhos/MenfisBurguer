@@ -159,6 +159,10 @@ function ItemForm({
         <input value={form.name} onChange={(event) => setForm((f) => ({ ...f, name: event.target.value }))} placeholder="Ex: Pão Brioche" style={inputStyle} />
       </Field>
 
+      <Field label="Categoria">
+        <input value={form.category ?? ""} onChange={(event) => setForm((f) => ({ ...f, category: event.target.value }))} placeholder="Carne, pão, bebida, embalagem..." style={inputStyle} />
+      </Field>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <Field label="Unidade">
           <select value={form.unit} onChange={(event) => setForm((f) => ({ ...f, unit: event.target.value }))} style={inputStyle}>
@@ -172,6 +176,8 @@ function ItemForm({
         <NumberField label="Custo unitário (R$)" value={form.unitCost} onChange={(unitCost) => setForm((f) => ({ ...f, unitCost }))} step="0.01" />
         <NumberField label="Mínimo viável" value={form.minQty} onChange={(minQty) => setForm((f) => ({ ...f, minQty }))} step="0.1" />
       </div>
+
+      <NumberField label="Estoque base do mês" value={form.monthlyBaseStock ?? 0} onChange={(monthlyBaseStock) => setForm((f) => ({ ...f, monthlyBaseStock }))} step="0.1" />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <Field label="Data de entrada">

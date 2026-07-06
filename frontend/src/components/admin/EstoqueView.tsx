@@ -16,9 +16,13 @@ export interface StockItem {
   id: string;
   name: string;
   unit: string;
+  category?: string;
   qty: number;
   unitCost: number;
   minQty: number;
+  monthlyBaseStock?: number;
+  percentRemaining?: number;
+  smartStatus?: "NORMAL" | "ATENCAO" | "CRITICO" | "ALERTA_MAXIMO";
   entryDate: string;   // YYYY-MM-DD
   expiryDate: string;  // YYYY-MM-DD
 }
@@ -32,6 +36,14 @@ export interface Movement {
   qtyBefore: number;
   qtyAfter: number;
   note: string;
+}
+
+export interface CapacityItem {
+  productId: string;
+  productName: string;
+  possibleUnits: number;
+  limitingIngredient: string;
+  status: "NORMAL" | "ATENCAO" | "CRITICO" | "ALERTA_MAXIMO";
 }
 
 interface RecipeItem {
@@ -62,7 +74,9 @@ export const daysUntil = (d: string) => {
 };
 
 export function getStatus(item: StockItem): "ok" | "atencao" | "baixo" | "zerado" {
-  if (item.qty <= 0)           return "zerado";
+  if (item.smartStatus === "ALERTA_MAXIMO" || item.qty <= 0) return "zerado";
+  if (item.smartStatus === "CRITICO") return "baixo";
+  if (item.smartStatus === "ATENCAO") return "atencao";
   if (item.qty < item.minQty)  return "baixo";
   if (item.qty < item.minQty * 1.8) return "atencao";
   return "ok";
@@ -88,7 +102,7 @@ function today() { return "2026-06-01"; }
 
 /* ─── Blank form ─────────────────────────────────────── */
 const BLANK_FORM: Omit<StockItem, "id"> = {
-  name: "", unit: "un", qty: 0, unitCost: 0, minQty: 0,
+  name: "", unit: "un", category: "Geral", qty: 0, unitCost: 0, minQty: 0, monthlyBaseStock: 0,
   entryDate: today(), expiryDate: "",
 };
 
@@ -109,6 +123,8 @@ interface EstoqueProps {
     note: string,
   ) => void | Promise<void>;
   onDeleteItem?: (item: StockItem) => void | Promise<void>;
+  capacity?: CapacityItem[];
+  onCloseMonth?: () => void | Promise<void>;
 }
 
 export function EstoqueView({
@@ -119,6 +135,8 @@ export function EstoqueView({
   onSaveItem,
   onMoveItem,
   onDeleteItem,
+  capacity = [],
+  onCloseMonth,
 }: EstoqueProps) {
 
   const [modal, setModal]         = useState<ModalMode>("none");
@@ -140,6 +158,7 @@ export function EstoqueView({
   const totalValue    = items.reduce((s, i) => s + i.qty * i.unitCost, 0);
   const alertItems    = items.filter((i) => getStatus(i) === "baixo" || getStatus(i) === "zerado");
   const expiringItems = items.filter((i) => daysUntil(i.expiryDate) <= 7 && daysUntil(i.expiryDate) >= 0);
+  const limitedProducts = capacity.filter((item) => item.status !== "NORMAL").slice(0, 5);
 
   const logMovement = (m: Omit<Movement, "id" | "timestamp">) =>
     setMovements((prev) => [{ ...m, id: uid(), timestamp: Date.now() }, ...prev]);
@@ -152,7 +171,7 @@ export function EstoqueView({
 
   const openEdit = (item: StockItem) => {
     setTarget(item);
-    setForm({ name: item.name, unit: item.unit, qty: item.qty, unitCost: item.unitCost, minQty: item.minQty, entryDate: item.entryDate, expiryDate: item.expiryDate });
+    setForm({ name: item.name, unit: item.unit, category: item.category ?? "Geral", qty: item.qty, unitCost: item.unitCost, minQty: item.minQty, monthlyBaseStock: item.monthlyBaseStock ?? item.qty, entryDate: item.entryDate, expiryDate: item.expiryDate });
     setModal("edit");
   };
 
@@ -294,6 +313,16 @@ export function EstoqueView({
               Ficha Técnica
             </motion.button>
             <motion.button whileTap={{ scale: 0.94 }}
+              onClick={() => {
+                if (window.confirm("Fechar o mês salva o histórico e zera o estoque atual. Continuar?")) {
+                  void onCloseMonth?.();
+                }
+              }}
+              style={{ height: 36, padding: "0 12px", background: "#FFF8F2", border: `1.5px solid ${VERDE}20`, borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: VERDE, fontSize: 10, fontWeight: 800 }}>
+              <Calendar size={13} strokeWidth={2} />
+              Fechar mês
+            </motion.button>
+            <motion.button whileTap={{ scale: 0.94 }}
               onClick={openAdd}
               style={{ height: 36, padding: "0 14px", background: VERDE, border: "none", borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: ROSA, fontSize: 10, fontWeight: 900 }}>
               <Plus size={14} strokeWidth={2.5} />
@@ -308,6 +337,7 @@ export function EstoqueView({
             { label: "Itens",   value: String(items.length),   Icon: Package },
             { label: "Crítico", value: String(alertItems.length), Icon: AlertTriangle, red: alertItems.length > 0 },
             { label: "Movimentos", value: String(movements.length), Icon: ClipboardList },
+            { label: "Capacidade", value: String(capacity[0]?.possibleUnits ?? 0), Icon: BookOpen, red: Boolean(capacity[0]?.possibleUnits === 0) },
           ].map(({ label, value, Icon, red }) => (
             <div key={label} style={{ flex: 1, background: red ? "#FEF2F2" : "#fff", border: `1px solid ${red ? "#FECACA" : `${VERDE}12`}`, borderRadius: 8, padding: "5px 8px", display: "flex", alignItems: "center", gap: 5 }}>
               <Icon size={10} strokeWidth={2} style={{ color: red ? "#DC2626" : VERDE, opacity: red ? 1 : 0.4 }} />
@@ -317,6 +347,32 @@ export function EstoqueView({
           ))}
         </div>
       </div>
+
+      {capacity.length > 0 && (
+        <div style={{ padding: "12px 14px", borderBottom: `1px solid ${VERDE}10`, background: "#fff" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <BookOpen size={14} strokeWidth={2.4} style={{ color: VERDE }} />
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 900, color: VERDE, textTransform: "uppercase", letterSpacing: "0.08em" }}>Capacidade produtiva</p>
+              <p style={{ fontSize: 10, color: VERDE, opacity: 0.55 }}>Calculada pelo insumo mais limitado da ficha técnica.</p>
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            {(limitedProducts.length > 0 ? limitedProducts : capacity.slice(0, 5)).map((item) => (
+              <div key={item.productId} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, padding: "9px 10px", border: `1px solid ${VERDE}10`, borderRadius: 10, background: item.status === "NORMAL" ? `${VERDE}04` : "#FFF8F2" }}>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: 11, fontWeight: 900, color: VERDE, lineHeight: 1.1 }}>{item.productName}</p>
+                  <p style={{ fontSize: 9, color: VERDE, opacity: 0.55, marginTop: 3 }}>Limitante: {item.limitingIngredient}</p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontFamily: "var(--menfis-font-display)", fontSize: "1.1rem", color: VERDE, lineHeight: 1 }}>{item.possibleUnits}</p>
+                  <p style={{ fontSize: 8, fontWeight: 900, color: VERDE, opacity: 0.5, textTransform: "uppercase" }}>unid.</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Ficha técnica ─────────────────────────────── */}
       <AnimatePresence>
