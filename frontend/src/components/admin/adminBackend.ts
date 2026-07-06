@@ -83,6 +83,8 @@ export function mapPricingRow(row: ApiRow): PricingRow {
     targetCmv: asNumber(row.targetCmv ?? row.target_cmv) || 0.35,
     active: row.active !== false,
     notes: String(row.notes ?? ""),
+    imageUrl: String(row.imageUrl ?? row.image_url ?? ""),
+    originalPrice: asNumber(row.originalPrice ?? row.original_price) || undefined,
     updatedAt: String(row.updatedAt ?? row.updated_at ?? new Date().toISOString()),
   };
 }

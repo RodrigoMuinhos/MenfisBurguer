@@ -18,7 +18,7 @@ import {
 import { CartItem, Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { MENU_ITEMS } from "@/features/catalog/menu";
-import { MenuItem } from "@/features/catalog/types";
+import { MenuItem, ProductCategory } from "@/features/catalog/types";
 import friesPhoto from "@/imports/image-20.png";
 import {
   BuilderState,
@@ -90,6 +90,69 @@ function hasRequiredCustomerProfile(profile: MemberProfile | null) {
   );
 }
 
+function applyPricingToMenu(rows: Array<Record<string, unknown>>) {
+  const byId = new Map(rows.map((row) => [String(row.id), row]));
+  const seen = new Set<string>();
+  const syncedItems = MENU_ITEMS.flatMap((item) => {
+    const pricing = byId.get(item.id);
+    seen.add(item.id);
+    if (!pricing) return [item];
+    if (pricing.active === false) return [];
+    const salePrice = Number(pricing.salePrice ?? pricing.sale_price ?? item.price);
+    const originalPrice = Number(pricing.originalPrice ?? pricing.original_price ?? item.originalPrice ?? 0);
+    const imageUrl = String(pricing.imageUrl ?? pricing.image_url ?? "");
+    return [
+      {
+        ...item,
+        price: Number.isFinite(salePrice) && salePrice > 0 ? salePrice : item.price,
+        originalPrice: Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : item.originalPrice,
+        image: imageUrl || item.image,
+      },
+    ];
+  });
+  const newItems = rows
+    .filter((row) => row.active !== false && !seen.has(String(row.id)))
+    .map(pricingRowToMenuItem)
+    .filter((item): item is MenuItem => Boolean(item));
+  return [...syncedItems, ...newItems];
+}
+
+function pricingRowToMenuItem(row: Record<string, unknown>): MenuItem | null {
+  const id = String(row.id ?? "");
+  const name = String(row.name ?? "").trim();
+  const salePrice = Number(row.salePrice ?? row.sale_price ?? 0);
+  if (!id || !name || !Number.isFinite(salePrice) || salePrice <= 0) return null;
+  const originalPrice = Number(row.originalPrice ?? row.original_price ?? 0);
+  const kind = String(row.kind ?? "");
+  const category = pricingKindToMenuCategory(kind);
+  const categoryLabel = String(row.category ?? "").trim();
+  return {
+    id,
+    name,
+    eyebrow: categoryLabel || labelCategory(category),
+    desc: String(row.notes ?? "").trim() || `${name} cadastrado em Custos e Precificacao.`,
+    price: salePrice,
+    originalPrice: Number.isFinite(originalPrice) && originalPrice > salePrice ? originalPrice : undefined,
+    image: String(row.imageUrl ?? row.image_url ?? ""),
+    tags: [categoryLabel || labelCategory(category)].filter(Boolean),
+    category,
+  };
+}
+
+function pricingKindToMenuCategory(kind: string): ProductCategory {
+  if (kind === "combo") return "combo";
+  if (kind === "drink") return "bebida";
+  if (kind === "side") return "extra";
+  return "burger";
+}
+
+function labelCategory(category: ProductCategory) {
+  if (category === "combo") return "Pedido completo";
+  if (category === "bebida") return "Bebida";
+  if (category === "extra") return "Extra";
+  return "Burger";
+}
+
 function comboPotatoComponent(item: MenuItem) {
   return requiredCustomizerCount(item) > 1
     ? "Batata Frita 200g"
@@ -152,6 +215,7 @@ export function ProductScreen({
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
   const [soldOutMessage, setSoldOutMessage] = useState(SOLD_OUT_MESSAGE);
+  const [catalogItems, setCatalogItems] = useState<MenuItem[]>(MENU_ITEMS);
   const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
@@ -191,18 +255,18 @@ export function ProductScreen({
   const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const filteredItems = useMemo(() => {
     if (category === "chicken") {
-      return MENU_ITEMS.filter(
+      return catalogItems.filter(
         (item) => item.category === "burger" && isChickenProduct(item),
       );
     }
     if (category === "bacon") {
-      return MENU_ITEMS.filter((item) => {
+      return catalogItems.filter((item) => {
         const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
         return item.category === "burger" && text.includes("bacon");
       });
     }
     if (category === "burger") {
-      return MENU_ITEMS.filter(
+      return catalogItems.filter(
         (item) =>
           item.category === "burger" &&
           !isChickenProduct(item) &&
@@ -210,14 +274,14 @@ export function ProductScreen({
       );
     }
     if (category === "extras") {
-      return MENU_ITEMS.filter((item) => item.category === "extra" || item.category === "bebida");
+      return catalogItems.filter((item) => item.category === "extra" || item.category === "bebida");
     }
-    return MENU_ITEMS.filter((item) => item.category === category);
-  }, [category]);
+    return catalogItems.filter((item) => item.category === category);
+  }, [catalogItems, category]);
   const featuredItem =
-    MENU_ITEMS.find((item) => item.id === featuredProductId) ??
-    MENU_ITEMS.find((item) => item.id === "chicken-super-combo") ??
-    MENU_ITEMS[0];
+    catalogItems.find((item) => item.id === featuredProductId) ??
+    catalogItems.find((item) => item.id === "chicken-super-combo") ??
+    catalogItems[0];
   const savedDelivery = readSavedDelivery();
   const kioskMobLoggedIn =
     String(memberProfile?.name ?? "")
@@ -259,6 +323,18 @@ export function ProductScreen({
         setSoldOutMessage(String(settings?.soldOutMessage ?? SOLD_OUT_MESSAGE));
       })
       .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !API_URL) return;
+    fetch(`${API_URL}/pricing`, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((rows) => {
+        if (Array.isArray(rows)) {
+          setCatalogItems(applyPricingToMenu(rows));
+        }
+      })
+      .catch(() => setCatalogItems(MENU_ITEMS));
   }, []);
 
   useEffect(() => {
@@ -690,7 +766,7 @@ export function ProductScreen({
     >
       {!kioskMode && (
         <MobileMenuExperience
-          items={MENU_ITEMS}
+          items={catalogItems}
           cartCount={cartCount}
           cartTotal={cartTotal}
           featuredItem={featuredItem}

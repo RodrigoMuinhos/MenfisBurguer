@@ -5,16 +5,21 @@ import {
   CheckCircle2,
   Download,
   Filter,
+  Image as ImageIcon,
+  LayoutGrid,
   PackageSearch,
   Pencil,
   Plus,
+  Sheet,
   ToggleLeft,
   ToggleRight,
   TrendingUp,
 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
+import { MENU_ITEMS } from "@/features/catalog/menu";
 import { API_URL, fmt } from "../shared";
 import { deletePricingProduct, fetchPricingProducts, savePricingProduct } from "../adminBackend";
+import { imageSrc } from "@/components/product/shared";
 
 type PricingKind = "sandwich" | "combo" | "side" | "drink";
 type PricingStatus = "saudavel" | "atencao" | "ruim";
@@ -35,6 +40,8 @@ export type PricingRow = {
   targetCmv: number;
   active: boolean;
   notes: string;
+  imageUrl?: string;
+  originalPrice?: number;
   updatedAt: string;
 };
 
@@ -75,6 +82,7 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
   const [rows, setRows] = useState<PricingRow[]>(loadRows);
   const [syncError, setSyncError] = useState("");
   const [filter, setFilter] = useState<PricingFilter>("todos");
+  const [viewMode, setViewMode] = useState<"cards" | "sheet">("cards");
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<PricingRow | null>(null);
@@ -170,6 +178,8 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
       "custo_unitario",
       "custo_total",
       "preco_venda",
+      "preco_de",
+      "imagem",
       "preco_coca",
       "lucro_bruto",
       "cmv",
@@ -186,6 +196,8 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
         row.totalCost.toFixed(2),
         row.totalCost.toFixed(2),
         row.salePrice.toFixed(2),
+        row.originalPrice?.toFixed(2) ?? "",
+        row.imageUrl ?? "",
         row.priceWithAlternativeDrink.toFixed(2),
         row.grossProfit.toFixed(2),
         `${(row.cmv * 100).toFixed(2)}%`,
@@ -258,6 +270,8 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
               <p className="mt-1 text-xs font-bold opacity-55">Produtos simples, bebidas, acompanhamentos e combos.</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <FilterButton active={viewMode === "cards"} onClick={() => setViewMode("cards")} icon={LayoutGrid}>Como está</FilterButton>
+              <FilterButton active={viewMode === "sheet"} onClick={() => setViewMode("sheet")} icon={Sheet}>Planilha</FilterButton>
               <FilterButton active={filter === "todos"} onClick={() => setFilter("todos")}>Todos</FilterButton>
               <FilterButton active={filter === "sandwich"} onClick={() => setFilter("sandwich")}>Sanduiches</FilterButton>
               <FilterButton active={filter === "combo"} onClick={() => setFilter("combo")}>Combos</FilterButton>
@@ -286,10 +300,12 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
             </button>
           </div>
 
-          <div className="mt-4 hidden overflow-x-auto xl:block">
+          {viewMode === "sheet" && (
+          <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[1180px] text-left text-sm">
               <thead className="text-[10px] uppercase tracking-widest opacity-55">
                 <tr>
+                  <th className="px-3 py-3">Foto</th>
                   <th className="px-3 py-3">Produto</th>
                   <th className="px-3 py-3">Tipo</th>
                   <th className="px-3 py-3">Custo base</th>
@@ -326,13 +342,18 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
               </tbody>
             </table>
           </div>
+          )}
 
-          <div className="mt-4 grid gap-3 xl:hidden">
+          {viewMode === "cards" && (
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((row) => (
               <PricingCard
                 key={row.id}
                 row={row}
-                onEdit={() => startEdit(row)}
+                onEdit={() => {
+                  setViewMode("sheet");
+                  startEdit(row);
+                }}
                 onDuplicate={() => duplicateRow(row)}
                 onToggle={() => toggleActive(row)}
                 onDelete={() => {
@@ -343,6 +364,7 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
               />
             ))}
           </div>
+          )}
         </div>
 
         <div className="grid gap-4">
@@ -403,8 +425,14 @@ function PricingTableRow({
   return (
     <tr className="align-top">
       <td className="px-3 py-3">
+        <ProductThumb row={row} />
+      </td>
+      <td className="px-3 py-3">
         {editing ? (
-          <EditField value={current.name} onChange={(name) => setDraft({ ...current, name })} />
+          <div className="grid gap-2">
+            <EditField value={current.name} onChange={(name) => setDraft({ ...current, name })} />
+            <EditField value={current.imageUrl ?? ""} onChange={(imageUrl) => setDraft({ ...current, imageUrl })} placeholder="URL da foto" />
+          </div>
         ) : (
           <>
             <p className="font-black">{row.name}</p>
@@ -452,7 +480,17 @@ function PricingCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="rounded-3xl p-4" style={{ border: `1px solid ${ROSA}`, background: "#FFF8F2" }}>
+    <div className="overflow-hidden rounded-3xl" style={{ border: `1px solid ${ROSA}`, background: "#FFF8F2" }}>
+      <div className="relative h-44 bg-white">
+        {row.imageUrl ? (
+          <img src={row.imageUrl} alt={row.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full place-items-center" style={{ color: `${VERDE}55` }}>
+            <ImageIcon size={38} />
+          </div>
+        )}
+      </div>
+      <div className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-base font-black">{row.name}</p>
@@ -472,6 +510,7 @@ function PricingCard({
         <ActionButton onClick={onDuplicate}>Duplicar</ActionButton>
         <ActionButton onClick={onToggle}>{row.active ? "Ativo" : "Inativo"}</ActionButton>
         <ActionButton onClick={onDelete}>Remover</ActionButton>
+      </div>
       </div>
     </div>
   );
@@ -557,7 +596,7 @@ function calculateRow(row: PricingRow): CalculatedPricingRow {
 }
 
 function simple(id: string, code: string, name: string, category: string, baseCost: number, salePrice: number): PricingRow {
-  return baseRow({ id, code, name, category, kind: "sandwich", baseCost, salePrice });
+  return baseRow({ id, code, name, category, kind: "sandwich", baseCost, salePrice, ...catalogDefaults(id) });
 }
 
 function combo(
@@ -581,15 +620,16 @@ function combo(
     alternativeDrinkCost,
     drinkSurcharge: 2,
     salePrice,
+    ...catalogDefaults(id),
   });
 }
 
 function side(id: string, code: string, name: string, baseCost: number, salePrice: number): PricingRow {
-  return baseRow({ id, code, name, category: "Acompanhamento", kind: "side", baseCost, salePrice });
+  return baseRow({ id, code, name, category: "Acompanhamento", kind: "side", baseCost, salePrice, ...catalogDefaults(id) });
 }
 
 function drink(id: string, code: string, name: string, baseCost: number, salePrice: number, drinkSurcharge = 0): PricingRow {
-  return baseRow({ id, code, name, category: "Bebida", kind: "drink", baseCost, salePrice, drinkSurcharge });
+  return baseRow({ id, code, name, category: "Bebida", kind: "drink", baseCost, salePrice, drinkSurcharge, ...catalogDefaults(id) });
 }
 
 function baseRow(input: Partial<PricingRow> & Pick<PricingRow, "id" | "code" | "name" | "category" | "kind" | "baseCost" | "salePrice">): PricingRow {
@@ -601,8 +641,18 @@ function baseRow(input: Partial<PricingRow> & Pick<PricingRow, "id" | "code" | "
     targetCmv: 0.35,
     active: true,
     notes: "",
+    imageUrl: "",
+    originalPrice: undefined,
     updatedAt: new Date().toISOString(),
     ...input,
+  };
+}
+
+function catalogDefaults(id: string) {
+  const item = MENU_ITEMS.find((product) => product.id === id);
+  return {
+    imageUrl: item?.image ? imageSrc(item.image) : "",
+    originalPrice: item?.originalPrice,
   };
 }
 
@@ -695,7 +745,17 @@ function Panel({ title, icon: Icon, children }: { title: string; icon: ElementTy
   );
 }
 
-function FilterButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+function FilterButton({
+  active,
+  onClick,
+  children,
+  icon: Icon = Filter,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  icon?: ElementType;
+}) {
   return (
     <button
       type="button"
@@ -703,8 +763,20 @@ function FilterButton({ active, onClick, children }: { active: boolean; onClick:
       className="inline-flex min-h-10 items-center gap-2 rounded-2xl px-4 text-xs font-black uppercase"
       style={{ background: active ? VERDE : "#FFF8F2", color: active ? ROSA : VERDE, border: `1px solid ${VERDE}14` }}
     >
-      <Filter size={13} /> {children}
+      <Icon size={13} /> {children}
     </button>
+  );
+}
+
+function ProductThumb({ row }: { row: PricingRow }) {
+  return (
+    <div className="grid h-14 w-20 place-items-center overflow-hidden rounded-xl bg-white" style={{ border: `1px solid ${VERDE}10` }}>
+      {row.imageUrl ? (
+        <img src={row.imageUrl} alt={row.name} className="h-full w-full object-cover" />
+      ) : (
+        <ImageIcon size={18} style={{ color: `${VERDE}55` }} />
+      )}
+    </div>
   );
 }
 

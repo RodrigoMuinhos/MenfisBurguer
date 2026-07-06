@@ -49,7 +49,9 @@ public class PricingController {
       request.salePrice(),
       request.targetCmv(),
       request.active(),
-      request.notes()
+      request.notes(),
+      request.imageUrl(),
+      request.originalPrice()
     ));
   }
 

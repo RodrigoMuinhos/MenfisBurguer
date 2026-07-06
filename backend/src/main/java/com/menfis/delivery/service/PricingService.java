@@ -47,13 +47,14 @@ public class PricingService {
   }
 
   public Map<String, Object> upsert(PricingProductRequest request) {
-    return jdbc.queryForMap(
+    Map<String, Object> row = jdbc.queryForMap(
       """
       insert into pricing_products (
         id, code, name, category, kind, base_cost, fries_cost, default_drink_cost,
-        alternative_drink_cost, drink_surcharge, sale_price, target_cmv, active, notes, test_mode, updated_at
+        alternative_drink_cost, drink_surcharge, sale_price, target_cmv, active, notes,
+        test_mode, updated_at, image_url, original_price
       )
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?, ?)
       on conflict (id) do update set
         code = excluded.code,
         name = excluded.name,
@@ -68,6 +69,8 @@ public class PricingService {
         target_cmv = excluded.target_cmv,
         active = excluded.active,
         notes = excluded.notes,
+        image_url = excluded.image_url,
+        original_price = excluded.original_price,
         test_mode = excluded.test_mode,
         updated_at = now()
       returning *
@@ -86,12 +89,17 @@ public class PricingService {
       nz(request.targetCmv()).compareTo(BigDecimal.ZERO) > 0 ? request.targetCmv() : new BigDecimal("0.35"),
       request.active() == null || request.active(),
       request.notes(),
-      settings.testModeEnabled()
+      settings.testModeEnabled(),
+      blankToNull(request.imageUrl()),
+      request.originalPrice()
     );
+    syncCatalogProduct(request);
+    return row;
   }
 
   public void delete(String id) {
     jdbc.update("update pricing_products set active = false, updated_at = now() where id = ? and test_mode = ?", id, settings.testModeEnabled());
+    jdbc.update("update products set active = false, updated_at = now() where id = ?", id);
   }
 
   @Transactional
@@ -175,5 +183,31 @@ public class PricingService {
 
   private BigDecimal nz(BigDecimal value) {
     return value == null ? BigDecimal.ZERO : value;
+  }
+
+  private String blankToNull(String value) {
+    return value == null || value.isBlank() ? null : value.trim();
+  }
+
+  private void syncCatalogProduct(PricingProductRequest request) {
+    jdbc.update(
+      """
+      insert into products (id, name, description, base_price, active, image_url, updated_at)
+      values (?, ?, ?, ?, ?, ?, now())
+      on conflict (id) do update set
+        name = excluded.name,
+        description = excluded.description,
+        base_price = excluded.base_price,
+        active = excluded.active,
+        image_url = excluded.image_url,
+        updated_at = now()
+      """,
+      request.id(),
+      request.name(),
+      blankToNull(request.notes()),
+      nz(request.salePrice()),
+      request.active() == null || request.active(),
+      blankToNull(request.imageUrl())
+    );
   }
 }

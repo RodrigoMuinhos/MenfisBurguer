@@ -675,7 +675,21 @@ public class OrderService {
   private PriceResult calculate(List<OrderItemRequest> requestedItems) {
     List<Map<String, Object>> priced = requestedItems.stream().map(item -> {
       Map<String, Object> product = jdbc.queryForMap(
-        "select id, name, base_price from products where id = ? and active = true",
+        """
+        select p.id, p.name, coalesce(pp.sale_price, p.base_price) as base_price
+        from products p
+        left join pricing_products pp on pp.id = case p.id
+          when 'combo-menfis' then 'combo'
+          when 'combo-menfis-bacon' then 'bacon-combo'
+          when 'combo-menfis-chicken' then 'chicken-combo'
+          when 'super-combo-menfis' then 'combo2'
+          when 'super-combo-menfis-bacon' then 'bacon-super-combo'
+          when 'super-combo-menfis-chicken' then 'chicken-super-combo'
+          else p.id
+        end and pp.test_mode = ? and pp.active = true
+        where p.id = ? and p.active = true
+        """,
+        settings.testModeEnabled(),
         item.productId()
       );
       BigDecimal unit = (BigDecimal) product.get("base_price");

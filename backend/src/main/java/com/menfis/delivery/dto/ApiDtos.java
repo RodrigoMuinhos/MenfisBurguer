@@ -157,7 +157,9 @@ public class ApiDtos {
     @NotNull BigDecimal salePrice,
     @NotNull BigDecimal targetCmv,
     Boolean active,
-    String notes
+    String notes,
+    String imageUrl,
+    BigDecimal originalPrice
   ) {}
 
   public record CouponRequest(
