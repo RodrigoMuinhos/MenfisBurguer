@@ -7,7 +7,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Menfi's Burger",
     eyebrow: "Clássico da casa",
     desc: "Brioche dourado, carne Menfi's 130g, queijo derretido, cebola caramelizada e maionese Menfi's.",
-    price: 21.9,
+    price: 25.9,
     originalPrice: 25.9,
     image: "/menu/menfisburguer.png",
     tags: ["130g", "Molho da casa", "Brioche"],

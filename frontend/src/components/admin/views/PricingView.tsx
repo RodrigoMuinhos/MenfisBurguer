@@ -58,7 +58,7 @@ type CalculatedPricingRow = PricingRow & {
 const STORAGE_KEY = "menfis_pricing_table_v1";
 
 const DEFAULT_ROWS: PricingRow[] = [
-  simple("burger", "MENFIS", "Menfi's Burguer", "Sanduiche", 8.85, 21.9),
+  simple("burger", "MENFIS", "Menfi's Burguer", "Sanduiche", 8.85, 25.9),
   simple("double-burger", "BIG-MENFIS", "Big Menfi's Burguer", "Sanduiche", 12, 29.9),
   simple("menfis-chicken", "CHICKEN", "Menfi's Chicken", "Sanduiche", 6.3, 24.9),
   simple("double-menfis-chicken", "BIG-CHICKEN", "Big Chicken", "Sanduiche", 9.8, 32.9),
