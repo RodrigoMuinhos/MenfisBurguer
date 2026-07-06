@@ -301,23 +301,38 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
           </div>
 
           {viewMode === "sheet" && (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[1180px] text-left text-sm">
-              <thead className="text-[10px] uppercase tracking-widest opacity-55">
+          <div className="mt-4 overflow-x-auto rounded-2xl" style={{ border: `1px solid ${VERDE}10` }}>
+            <table className="w-full min-w-[1380px] table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-[104px]" />
+                <col className="w-[230px]" />
+                <col className="w-[120px]" />
+                <col className="w-[92px]" />
+                <col className="w-[92px]" />
+                <col className="w-[92px]" />
+                <col className="w-[104px]" />
+                <col className="w-[104px]" />
+                <col className="w-[104px]" />
+                <col className="w-[88px]" />
+                <col className="w-[124px]" />
+                <col className="w-[112px]" />
+                <col className="w-[220px]" />
+              </colgroup>
+              <thead className="bg-white text-[10px] uppercase tracking-widest opacity-55">
                 <tr>
-                  <th className="px-3 py-3">Foto</th>
-                  <th className="px-3 py-3">Produto</th>
-                  <th className="px-3 py-3">Tipo</th>
-                  <th className="px-3 py-3">Custo base</th>
-                  <th className="px-3 py-3">Batata</th>
-                  <th className="px-3 py-3">Bebida</th>
-                  <th className="px-3 py-3">Custo/un</th>
-                  <th className="px-3 py-3">Venda</th>
-                  <th className="px-3 py-3">Lucro/un</th>
-                  <th className="px-3 py-3">CMV</th>
-                  <th className="px-3 py-3">Recomendado</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3">Acoes</th>
+                  <th className="px-3 py-3 whitespace-nowrap">Foto</th>
+                  <th className="px-3 py-3 whitespace-nowrap">Produto</th>
+                  <th className="px-3 py-3 whitespace-nowrap">Tipo</th>
+                  <th className="px-3 py-3 whitespace-nowrap text-right">Custo base</th>
+                  <th className="px-3 py-3 whitespace-nowrap text-right">Batata</th>
+                  <th className="px-3 py-3 whitespace-nowrap text-right">Bebida</th>
+                  <th className="px-3 py-3 whitespace-nowrap text-right">Custo/un</th>
+                  <th className="px-3 py-3 whitespace-nowrap text-right">Venda</th>
+                  <th className="px-3 py-3 whitespace-nowrap text-right">Lucro/un</th>
+                  <th className="px-3 py-3 whitespace-nowrap text-right">CMV</th>
+                  <th className="px-3 py-3 whitespace-nowrap text-right">Recomendado</th>
+                  <th className="px-3 py-3 whitespace-nowrap">Status</th>
+                  <th className="px-3 py-3 whitespace-nowrap">Acoes</th>
                 </tr>
               </thead>
               <tbody className="divide-y" style={{ borderColor: `${VERDE}10` }}>
@@ -423,11 +438,11 @@ function PricingTableRow({
 }) {
   const current = editing && draft ? draft : row;
   return (
-    <tr className="align-top">
-      <td className="px-3 py-3">
+    <tr className="align-middle hover:bg-[#FFF8F2]">
+      <td className="px-3 py-4">
         <ProductThumb row={row} />
       </td>
-      <td className="px-3 py-3">
+      <td className="px-3 py-4">
         {editing ? (
           <div className="grid gap-2">
             <EditField value={current.name} onChange={(name) => setDraft({ ...current, name })} />
@@ -435,23 +450,23 @@ function PricingTableRow({
           </div>
         ) : (
           <>
-            <p className="font-black">{row.name}</p>
+            <p className="line-clamp-2 font-black leading-tight">{row.name}</p>
             <p className="mt-1 text-[10px] font-black uppercase opacity-50">{row.code}</p>
           </>
         )}
       </td>
-      <td className="px-3 py-3">{labelKind(row.kind)}</td>
-      <td className="px-3 py-3"><MoneyCell row={current} field="baseCost" editing={editing} setDraft={setDraft} /></td>
-      <td className="px-3 py-3"><MoneyCell row={current} field="friesCost" editing={editing} setDraft={setDraft} /></td>
-      <td className="px-3 py-3"><MoneyCell row={current} field="defaultDrinkCost" editing={editing} setDraft={setDraft} /></td>
-      <td className="px-3 py-3 font-black">{fmt(row.totalCost)}</td>
-      <td className="px-3 py-3"><MoneyCell row={current} field="salePrice" editing={editing} setDraft={setDraft} /></td>
-      <td className="px-3 py-3 font-black">{fmt(row.grossProfit)}</td>
-      <td className="px-3 py-3 font-black">{percent(row.cmv)}</td>
-      <td className="px-3 py-3 font-black">{fmt(row.recommendedPrice)}</td>
-      <td className="px-3 py-3"><StatusPill status={row.status} /></td>
-      <td className="px-3 py-3">
-        <div className="flex flex-wrap gap-2">
+      <td className="px-3 py-4 whitespace-nowrap">{labelKind(row.kind)}</td>
+      <td className="px-3 py-4 text-right"><MoneyCell row={current} field="baseCost" editing={editing} setDraft={setDraft} /></td>
+      <td className="px-3 py-4 text-right"><MoneyCell row={current} field="friesCost" editing={editing} setDraft={setDraft} /></td>
+      <td className="px-3 py-4 text-right"><MoneyCell row={current} field="defaultDrinkCost" editing={editing} setDraft={setDraft} /></td>
+      <td className="px-3 py-4 whitespace-nowrap text-right font-black">{fmt(row.totalCost)}</td>
+      <td className="px-3 py-4 text-right"><MoneyCell row={current} field="salePrice" editing={editing} setDraft={setDraft} /></td>
+      <td className="px-3 py-4 whitespace-nowrap text-right font-black">{fmt(row.grossProfit)}</td>
+      <td className="px-3 py-4 whitespace-nowrap text-right font-black">{percent(row.cmv)}</td>
+      <td className="px-3 py-4 whitespace-nowrap text-right font-black">{fmt(row.recommendedPrice)}</td>
+      <td className="px-3 py-4"><StatusPill status={row.status} /></td>
+      <td className="px-3 py-4">
+        <div className="flex items-center gap-2 whitespace-nowrap">
           {editing ? (
             <ActionButton onClick={onSave}>Salvar</ActionButton>
           ) : (
@@ -770,7 +785,7 @@ function FilterButton({
 
 function ProductThumb({ row }: { row: PricingRow }) {
   return (
-    <div className="grid h-14 w-20 place-items-center overflow-hidden rounded-xl bg-white" style={{ border: `1px solid ${VERDE}10` }}>
+    <div className="grid h-16 w-24 place-items-center overflow-hidden rounded-xl bg-white" style={{ border: `1px solid ${VERDE}10` }}>
       {row.imageUrl ? (
         <img src={row.imageUrl} alt={row.name} className="h-full w-full object-cover" />
       ) : (
@@ -822,7 +837,7 @@ function MoneyCell({
   editing: boolean;
   setDraft: (row: PricingRow) => void;
 }) {
-  if (!editing) return <span className="font-black">{fmt(Number(row[field]))}</span>;
+  if (!editing) return <span className="inline-block min-w-20 whitespace-nowrap font-black tabular-nums">{fmt(Number(row[field]))}</span>;
   return (
     <EditField
       value={String(row[field])}
@@ -836,7 +851,7 @@ function ActionButton({ onClick, children }: { onClick: () => void; children: Re
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl px-3 text-[10px] font-black uppercase"
+      className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-xl px-3 text-[10px] font-black uppercase"
       style={{ background: `${ROSA}45`, color: VERDE, border: `1px solid ${VERDE}12` }}
     >
       {children}
