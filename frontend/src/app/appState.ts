@@ -85,5 +85,6 @@ export function resolveAppMode(explicitMode?: AppMode): AppMode {
   if (pathname.endsWith("/adm")) return "admin";
   const params = new URLSearchParams(window.location.search);
   if (params.get("admin") === "1") return "admin";
+  if (params.get("kiosk") === "1" || params.get("desktop") === "1") return "kiosk";
   return "delivery";
 }
