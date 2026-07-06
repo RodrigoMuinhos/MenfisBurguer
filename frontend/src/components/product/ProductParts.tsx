@@ -21,7 +21,6 @@ import {
   MEAT_POINT_OPTIONS,
   SAUCE_OPTIONS,
   SAUCE_PRICE,
-  buildBurger,
   fmt,
   imageSrc,
   isChickenProduct,
@@ -235,7 +234,9 @@ export function MenuCard({
   onMinus: () => void;
   onOpenDetails: () => void;
 }) {
-  const displayPrice = builder ? buildBurger(builder).price : item.price;
+  const displayPrice = builder
+    ? item.price + (builder.cheese ? CHEESE_PRICE : 0) + (builder.sauce ? SAUCE_PRICE : 0)
+    : item.price;
   const discountPercent = item.originalPrice
     ? Math.round((1 - item.price / item.originalPrice) * 100)
     : 0;
