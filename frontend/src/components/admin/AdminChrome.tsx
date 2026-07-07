@@ -131,7 +131,7 @@ export function AdminTabs({
             color: tab === id ? VERDE : `${ROSA}60`,
             border: "none",
             cursor: "pointer",
-            transition: "all 0.2s",
+            transition: "background-color 0.15s ease, color 0.15s ease",
           }}
         >
           <Icon size={13} strokeWidth={2} />

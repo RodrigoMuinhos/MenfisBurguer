@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ElementType } from "react";
 import {
   ChefHat,
   ClipboardList,
@@ -89,6 +89,7 @@ export function AdminPanel({
     const stored = localStorage.getItem("menfis_admin_tab") as AdminTab | null;
     return stored ?? initialTab;
   });
+  const [, startTabTransition] = useTransition();
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<CrmCustomer[]>([]);
   const [customCoupons, setCustomCoupons] = useState<Coupon[]>(() =>
@@ -278,6 +279,11 @@ export function AdminPanel({
     cupons: mergeCoupons(customCoupons).filter(
       (coupon) => coupon.active !== false,
     ).length,
+  };
+
+  const changeTab = (nextTab: AdminTab) => {
+    if (nextTab === tab) return;
+    startTabTransition(() => setTab(nextTab));
   };
 
   useEffect(() => {
@@ -664,12 +670,12 @@ export function AdminPanel({
             <AdminHeader
               activeOrders={activeOrders}
               onClose={onClose}
-              onOpenConfig={() => setTab("config")}
+              onOpenConfig={() => changeTab("config")}
             />
             <p className="px-5 pb-2 pt-4 text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: `${ROSA}75` }}>
               Gestão da operação
             </p>
-            <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={setTab} />
+            <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={changeTab} />
             <p className="mt-auto p-5 text-xs font-semibold leading-relaxed" style={{ color: `${ROSA}80` }}>
               Da entrada do pedido ao pós-venda, em uma única operação.
             </p>
@@ -681,9 +687,9 @@ export function AdminPanel({
               <AdminHeader
                 activeOrders={activeOrders}
                 onClose={onClose}
-                onOpenConfig={() => setTab("config")}
+                onOpenConfig={() => changeTab("config")}
               />
-              <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={setTab} />
+              <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={changeTab} />
             </div>
           )}
           {/* CONTENT */}
