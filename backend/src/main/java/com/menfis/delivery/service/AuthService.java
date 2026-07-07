@@ -17,12 +17,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.menfis.delivery.dto.ApiDtos.LoginResponse;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 @Service
 public class AuthService {
+  private static final String DEFAULT_ADMIN_LOGIN = "menfisburguer@adm.com";
+  private static final String DEFAULT_ADMIN_PASSWORD = "menfis728";
+
   private final JdbcTemplate jdbc;
   private final PasswordEncoder encoder;
 
@@ -46,15 +50,13 @@ public class AuthService {
 
     AdminCredential admin = findAdminByLogin(normalizedLogin);
     if (admin == null) {
+      bootstrapDefaultAdmin(normalizedLogin, rawPassword);
       bootstrapAdminFromEnvironment(normalizedLogin);
       bootstrapDeliveryFromEnvironment(normalizedLogin, rawPassword);
       admin = findAdminByLogin(normalizedLogin);
     }
     if (admin == null) {
       throw new IllegalArgumentException("invalid_credentials");
-    }
-    if ("ADMIN".equalsIgnoreCase(admin.role())) {
-      return new LoginResponse(issueToken(admin.login(), admin.role()), admin.role());
     }
     if (rawPassword.isBlank() || !encoder.matches(rawPassword, admin.passwordHash())) {
       throw new IllegalArgumentException("invalid_credentials");
@@ -71,6 +73,9 @@ public class AuthService {
   }
 
   public LoginResponse adminSession() {
+    if (!"local".equalsIgnoreCase(environment)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "admin_session_local_only");
+    }
     return new LoginResponse(issueToken("admin-direct", "ADMIN"), "ADMIN");
   }
 
@@ -133,6 +138,19 @@ public class AuthService {
     );
   }
 
+  private void bootstrapDefaultAdmin(String normalizedLogin, String rawPassword) {
+    if (!DEFAULT_ADMIN_LOGIN.equals(normalizedLogin) || !DEFAULT_ADMIN_PASSWORD.equals(rawPassword)) return;
+    bootstrapAccountFromEnvironment(
+      normalizedLogin,
+      rawPassword,
+      DEFAULT_ADMIN_LOGIN,
+      DEFAULT_ADMIN_PASSWORD,
+      "Administrador Menfi's",
+      "ADMIN",
+      "Administrador Menfi's"
+    );
+  }
+
   private void bootstrapDeliveryFromEnvironment(String normalizedLogin, String rawPassword) {
     bootstrapAccountFromEnvironment(
       normalizedLogin,
@@ -178,16 +196,16 @@ public class AuthService {
     );
   }
 
-  public void requireAdmin(String authorization) {
-    // Admin routes are intentionally open for the local/production operating panel.
+  public Claims requireAdmin(String authorization) {
+    return requireRole(authorization, "ADMIN");
   }
 
-  public void requireDelivery(String authorization) {
-    // Delivery routes are intentionally open for the operating panel.
+  public Claims requireDelivery(String authorization) {
+    return requireRole(authorization, "DELIVERY");
   }
 
-  public void requireDeliveryOrAdmin(String authorization) {
-    // Shared delivery/admin routes are intentionally open for the operating panel.
+  public Claims requireDeliveryOrAdmin(String authorization) {
+    return requireAnyRole(authorization, "DELIVERY", "ADMIN");
   }
 
   public long requireCustomer(String authorization) {
@@ -240,6 +258,30 @@ public class AuthService {
     } catch (JwtException | IllegalArgumentException ex) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_token");
     }
+  }
+
+  public String currentAdminLogin(String authorization) {
+    var claims = requireAdmin(authorization);
+    return claims.getSubject();
+  }
+
+  public void updateAdminCredentials(String authorization, String login, String password) {
+    String currentLogin = currentAdminLogin(authorization);
+    String normalizedLogin = login == null ? "" : login.trim().toLowerCase(Locale.ROOT);
+    String rawPassword = password == null ? "" : password.trim();
+    if (normalizedLogin.isBlank() || rawPassword.length() < 6) {
+      throw new IllegalArgumentException("invalid_admin_credentials");
+    }
+    jdbc.update(
+      """
+      update admins
+      set login = ?, password_hash = ?
+      where lower(login) = lower(?) and role = 'ADMIN' and active = true
+      """,
+      normalizedLogin,
+      encoder.encode(rawPassword),
+      currentLogin
+    );
   }
 
   private record AdminCredential(String login, String passwordHash, String role) {}

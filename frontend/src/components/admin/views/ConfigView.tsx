@@ -1,4 +1,5 @@
-import { CalendarClock, FlaskConical, GripVertical, ImagePlus, PackageX, RotateCcw, Save, Table2, Trash2 } from "lucide-react";
+import { CalendarClock, FlaskConical, GripVertical, ImagePlus, KeyRound, PackageX, RotateCcw, Save, Table2, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -15,6 +16,7 @@ export function ConfigView({
   demoTableEnabled,
   soldOutEnabled,
   featuredProductId,
+  adminLogin,
   operatingHours,
   presentation,
   hasUnsavedOperatingHours,
@@ -26,6 +28,7 @@ export function ConfigView({
   onToggleDemoTable,
   onToggleSoldOut,
   onFeaturedProductChange,
+  onSaveAdminCredentials,
   onOperatingHoursChange,
   onPresentationChange,
   onSaveOperatingHours,
@@ -37,6 +40,7 @@ export function ConfigView({
   demoTableEnabled: boolean;
   soldOutEnabled: boolean;
   featuredProductId: string;
+  adminLogin: string;
   operatingHours: OperatingHoursConfig;
   presentation: PresentationSettings;
   hasUnsavedOperatingHours: boolean;
@@ -48,6 +52,7 @@ export function ConfigView({
   onToggleDemoTable: () => void;
   onToggleSoldOut: () => void;
   onFeaturedProductChange: (productId: string) => void;
+  onSaveAdminCredentials: (login: string, password: string) => Promise<boolean>;
   onOperatingHoursChange: (config: OperatingHoursConfig) => void;
   onPresentationChange: (config: PresentationSettings) => void;
   onSaveOperatingHours: () => void;
@@ -56,6 +61,30 @@ export function ConfigView({
 }) {
   const normalizedOperatingHours = normalizeOperatingHours(operatingHours);
   const normalizedPresentation = normalizePresentationSettings(presentation);
+  const [adminLoginDraft, setAdminLoginDraft] = useState(adminLogin || "menfisburguer@adm.com");
+  const [adminPasswordDraft, setAdminPasswordDraft] = useState("");
+  const [adminCredentialsSaved, setAdminCredentialsSaved] = useState(false);
+  const [adminCredentialsError, setAdminCredentialsError] = useState("");
+
+  useEffect(() => {
+    if (adminLogin) setAdminLoginDraft(adminLogin);
+  }, [adminLogin]);
+
+  const saveAdminCredentials = async () => {
+    setAdminCredentialsSaved(false);
+    setAdminCredentialsError("");
+    if (!adminLoginDraft.trim() || adminPasswordDraft.trim().length < 6) {
+      setAdminCredentialsError("Informe login e senha com pelo menos 6 caracteres.");
+      return;
+    }
+    const saved = await onSaveAdminCredentials(adminLoginDraft, adminPasswordDraft);
+    if (!saved) {
+      setAdminCredentialsError("Não foi possível salvar o login do admin.");
+      return;
+    }
+    setAdminPasswordDraft("");
+    setAdminCredentialsSaved(true);
+  };
   const changeOperatingDay = (
     dayNumber: number,
     patch: Partial<OperatingHoursConfig["days"][number]>,
@@ -111,6 +140,60 @@ export function ConfigView({
         disabled={disabled}
         onToggle={onTogglePayOnDelivery}
       />
+
+      <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
+        <div className="mb-4 flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
+            <KeyRound size={19} strokeWidth={2.4} />
+          </div>
+          <div>
+            <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Login do admin</p>
+            <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
+              Altere o e-mail e a senha usados para entrar em /adm.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+          <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+            Login
+            <input
+              value={adminLoginDraft}
+              onChange={(event) => setAdminLoginDraft(event.target.value)}
+              disabled={saving || disabled}
+              className="min-h-12 rounded-2xl px-4 text-sm font-black normal-case outline-none"
+              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+              autoComplete="username"
+            />
+          </label>
+          <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+            Nova senha
+            <input
+              type="password"
+              value={adminPasswordDraft}
+              onChange={(event) => setAdminPasswordDraft(event.target.value)}
+              disabled={saving || disabled}
+              className="min-h-12 rounded-2xl px-4 text-sm font-black normal-case outline-none"
+              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+              autoComplete="new-password"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={saveAdminCredentials}
+            disabled={saving || disabled}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase"
+            style={{ background: VERDE, color: ROSA, opacity: saving || disabled ? 0.6 : 1 }}
+          >
+            <Save size={15} />
+            Salvar acesso
+          </button>
+        </div>
+        {(adminCredentialsError || adminCredentialsSaved) && (
+          <p className="mt-3 text-xs font-bold" style={{ color: adminCredentialsError ? "#991B1B" : VERDE }}>
+            {adminCredentialsError || "Login do admin atualizado. Entre novamente no próximo acesso."}
+          </p>
+        )}
+      </section>
 
       <section
         className="rounded-2xl p-4"

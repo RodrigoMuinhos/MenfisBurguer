@@ -47,6 +47,11 @@ const emptyForm: FormState = {
 const DEFAULT_WHATSAPP_MESSAGE =
   "Olá, lembramos de você. Vim te contar uma novidade que você não pode perder.";
 
+const adminHeaders = (adminToken: string, json = false) => ({
+  ...(json ? { "Content-Type": "application/json" } : {}),
+  ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+});
+
 export function CustomersCrmView({
   customers,
   adminToken,
@@ -111,9 +116,7 @@ export function CustomersCrmView({
           : `${API_URL}/customers/admin`,
         {
           method: form.id ? "PATCH" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: adminHeaders(adminToken, true),
           body: JSON.stringify(form),
         },
       );
@@ -141,6 +144,7 @@ export function CustomersCrmView({
     try {
       const res = await fetch(`${API_URL}/customers/admin/${encodeURIComponent(String(form.id))}`, {
         method: "DELETE",
+        headers: adminHeaders(adminToken),
       });
       if (!res.ok) throw new Error("delete_failed");
       setFeedback("Cliente excluído. Pedidos antigos preservados.");
@@ -160,6 +164,7 @@ export function CustomersCrmView({
     try {
       const res = await fetch(`${API_URL}/customers/admin/${encodeURIComponent(String(form.id))}/temporary-password`, {
         method: "POST",
+        headers: adminHeaders(adminToken),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error("password_failed");

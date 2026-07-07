@@ -63,6 +63,13 @@ import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
 export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "suporte" | "cupons" | "resultados" | "monitoramento" | "config";
 
+function adminHeaders(adminToken: string, json = false) {
+  return {
+    ...(json ? { "Content-Type": "application/json" } : {}),
+    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+  };
+}
+
 interface Props {
   orders: Order[];
   updateOrderStatus: (id: string, status: OrderStatus) => void | Promise<void>;
@@ -113,6 +120,7 @@ export function AdminPanel({
   const [demoTableEnabled, setDemoTableEnabled] = useState(false);
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
+  const [adminLogin, setAdminLogin] = useState("");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [presentation, setPresentation] = useState<PresentationSettings>(DEFAULT_PRESENTATION_SETTINGS);
@@ -346,13 +354,26 @@ export function AdminPanel({
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    if (!API_URL || !adminToken) return;
+    fetch(`${API_URL}/settings/admin-credentials`, {
+      cache: "no-store",
+      headers: adminHeaders(adminToken),
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((settings) => {
+        if (settings?.login) setAdminLogin(String(settings.login));
+      })
+      .catch(() => undefined);
+  }, [adminToken]);
+
   const updateSetting = async (path: string, enabled: boolean) => {
     if (!API_URL || savingPayOnDelivery) return;
     setSavingPayOnDelivery(true);
     try {
       const response = await fetch(`${API_URL}${path}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: adminHeaders(adminToken, true),
         body: JSON.stringify({ enabled }),
       });
       if (!response.ok) return;
@@ -383,7 +404,7 @@ export function AdminPanel({
     try {
       const response = await fetch(`${API_URL}/settings/featured-product`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: adminHeaders(adminToken, true),
         body: JSON.stringify({ productId }),
       });
       if (!response.ok) return;
@@ -405,7 +426,7 @@ export function AdminPanel({
     try {
       const response = await fetch(`${API_URL}/settings/operating-hours`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: adminHeaders(adminToken, true),
         body: JSON.stringify({ operatingHours: normalizeOperatingHours(operatingHours) }),
       });
       if (!response.ok) {
@@ -428,7 +449,7 @@ export function AdminPanel({
     try {
       const response = await fetch(`${API_URL}/settings/presentation`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: adminHeaders(adminToken, true),
         body: JSON.stringify({ presentation: normalizePresentationSettings(presentation) }),
       });
       if (!response.ok) {
@@ -453,10 +474,36 @@ export function AdminPanel({
     try {
       const response = await fetch(`${API_URL}/settings/reset-real-operation`, {
         method: "PATCH",
+        headers: adminHeaders(adminToken),
       });
       if (!response.ok) return;
       await response.json();
       window.location.reload();
+    } finally {
+      setSavingPayOnDelivery(false);
+    }
+  };
+
+  const saveAdminCredentials = async (login: string, password: string) => {
+    if (!API_URL || savingPayOnDelivery) return false;
+    setSavingPayOnDelivery(true);
+    try {
+      const response = await fetch(`${API_URL}/settings/admin-credentials`, {
+        method: "PATCH",
+        headers: adminHeaders(adminToken, true),
+        body: JSON.stringify({ login, password }),
+      });
+      if (!response.ok) {
+        setAdminDataError("Não foi possível salvar o login do admin.");
+        return false;
+      }
+      const settings = await response.json();
+      setAdminLogin(String(settings.login ?? login));
+      setAdminDataError("");
+      return true;
+    } catch {
+      setAdminDataError("Não foi possível salvar o login do admin.");
+      return false;
     } finally {
       setSavingPayOnDelivery(false);
     }
@@ -467,6 +514,7 @@ export function AdminPanel({
     try {
       const res = await fetch(`${API_URL}/support/tickets`, {
         cache: "no-store",
+        headers: adminHeaders(adminToken),
       });
       if (!res.ok) return;
       setSupportTickets(await res.json());
@@ -487,6 +535,7 @@ export function AdminPanel({
     try {
       const res = await fetch(`${API_URL}/customers/crm`, {
         cache: "no-store",
+        headers: adminHeaders(adminToken),
       });
       if (res.ok) setCrmCustomers(await res.json());
     } catch {
@@ -517,6 +566,7 @@ export function AdminPanel({
         `${API_URL}/support/tickets/${encodeURIComponent(id)}/resolve`,
         {
           method: "PATCH",
+          headers: adminHeaders(adminToken),
         },
       );
       await syncSupportTickets();
@@ -835,6 +885,7 @@ export function AdminPanel({
             demoTableEnabled={demoTableEnabled}
             soldOutEnabled={soldOutEnabled}
             featuredProductId={featuredProductId}
+            adminLogin={adminLogin}
             operatingHours={operatingHours}
             presentation={presentation}
             hasUnsavedOperatingHours={
@@ -852,6 +903,7 @@ export function AdminPanel({
             onToggleDemoTable={toggleDemoTable}
             onToggleSoldOut={toggleSoldOut}
             onFeaturedProductChange={updateFeaturedProduct}
+            onSaveAdminCredentials={saveAdminCredentials}
             onOperatingHoursChange={updateOperatingHours}
             onPresentationChange={setPresentation}
             onSaveOperatingHours={saveOperatingHours}

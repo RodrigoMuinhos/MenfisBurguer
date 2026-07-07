@@ -4,8 +4,9 @@ import type { PricingRow } from "./views/PricingView";
 
 type ApiRow = Record<string, unknown>;
 
-const jsonHeaders = () => ({
-  "Content-Type": "application/json",
+const requestHeaders = (adminToken: string, json = false) => ({
+  ...(json ? { "Content-Type": "application/json" } : {}),
+  ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
 });
 
 const asNumber = (value: unknown) => Number(value ?? 0);
@@ -105,9 +106,9 @@ export function mapPricingRow(row: ApiRow): PricingRow {
 
 export async function fetchAdminStock(apiUrl: string, adminToken: string) {
   const [itemsResponse, movementsResponse, capacityResponse] = await Promise.all([
-    fetch(`${apiUrl}/inventory`, { cache: "no-store" }),
-    fetch(`${apiUrl}/inventory/movements`, { cache: "no-store" }),
-    fetch(`${apiUrl}/inventory/capacity`, { cache: "no-store" }),
+    fetch(`${apiUrl}/inventory`, { cache: "no-store", headers: requestHeaders(adminToken) }),
+    fetch(`${apiUrl}/inventory/movements`, { cache: "no-store", headers: requestHeaders(adminToken) }),
+    fetch(`${apiUrl}/inventory/capacity`, { cache: "no-store", headers: requestHeaders(adminToken) }),
   ]);
   if (!itemsResponse.ok) throw new Error("inventory_load_failed");
   const items = ((await itemsResponse.json()) as ApiRow[]).map(mapStockItem);
@@ -135,13 +136,13 @@ export async function saveStockItem(apiUrl: string, adminToken: string, item: St
   });
   const response = await fetch(`${apiUrl}/inventory/items/${encodeURIComponent(item.id)}`, {
     method: "PATCH",
-    headers: jsonHeaders(),
+    headers: requestHeaders(adminToken, true),
     body,
   });
   if (!response.ok) {
     const createResponse = await fetch(`${apiUrl}/inventory/items`, {
       method: "POST",
-      headers: jsonHeaders(),
+      headers: requestHeaders(adminToken, true),
       body,
     });
     if (!createResponse.ok) throw new Error("inventory_save_failed");
@@ -158,7 +159,7 @@ export async function moveStockItem(
 ) {
   const response = await fetch(`${apiUrl}/inventory/items/${encodeURIComponent(itemId)}/movement`, {
     method: "POST",
-    headers: jsonHeaders(),
+    headers: requestHeaders(adminToken, true),
     body: JSON.stringify({ type, quantity, note }),
   });
   if (!response.ok) throw new Error("inventory_movement_failed");
@@ -167,6 +168,7 @@ export async function moveStockItem(
 export async function deleteStockItem(apiUrl: string, adminToken: string, itemId: string) {
   const response = await fetch(`${apiUrl}/inventory/items/${encodeURIComponent(itemId)}`, {
     method: "DELETE",
+    headers: requestHeaders(adminToken),
   });
   if (!response.ok) throw new Error("inventory_delete_failed");
 }
@@ -182,7 +184,7 @@ export async function closeInventoryMonth(apiUrl: string, adminToken: string) {
   });
   const response = await fetch(`${apiUrl}/inventory/months/close`, {
     method: "POST",
-    headers: jsonHeaders(),
+    headers: requestHeaders(adminToken, true),
     body,
   });
   if (!response.ok) throw new Error("inventory_month_close_failed");
@@ -191,6 +193,7 @@ export async function closeInventoryMonth(apiUrl: string, adminToken: string) {
 export async function fetchAdminCoupons(apiUrl: string, adminToken: string) {
   const response = await fetch(`${apiUrl}/coupons`, {
     cache: "no-store",
+    headers: requestHeaders(adminToken),
   });
   if (!response.ok) throw new Error("coupons_load_failed");
   return ((await response.json()) as ApiRow[]).map(mapCoupon);
@@ -199,7 +202,7 @@ export async function fetchAdminCoupons(apiUrl: string, adminToken: string) {
 export async function saveAdminCoupon(apiUrl: string, adminToken: string, coupon: Coupon) {
   const response = await fetch(`${apiUrl}/coupons`, {
     method: "POST",
-    headers: jsonHeaders(),
+    headers: requestHeaders(adminToken, true),
     body: JSON.stringify(coupon),
   });
   if (!response.ok) throw new Error("coupon_save_failed");
@@ -208,7 +211,7 @@ export async function saveAdminCoupon(apiUrl: string, adminToken: string, coupon
 export async function toggleAdminCoupon(apiUrl: string, adminToken: string, coupon: Coupon) {
   const response = await fetch(`${apiUrl}/coupons/${encodeURIComponent(coupon.code)}/active`, {
     method: "PATCH",
-    headers: jsonHeaders(),
+    headers: requestHeaders(adminToken, true),
     body: JSON.stringify({ active: coupon.active !== false }),
   });
   if (!response.ok) throw new Error("coupon_toggle_failed");
@@ -217,6 +220,7 @@ export async function toggleAdminCoupon(apiUrl: string, adminToken: string, coup
 export async function deleteAdminCoupon(apiUrl: string, adminToken: string, code: string) {
   const response = await fetch(`${apiUrl}/coupons/${encodeURIComponent(code)}`, {
     method: "DELETE",
+    headers: requestHeaders(adminToken),
   });
   if (!response.ok) throw new Error("coupon_delete_failed");
 }
@@ -224,7 +228,7 @@ export async function deleteAdminCoupon(apiUrl: string, adminToken: string, code
 export async function fetchPricingProducts(apiUrl: string, adminToken: string) {
   const response = await fetch(`${apiUrl}/pricing`, {
     cache: "no-store",
-    headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+    headers: requestHeaders(adminToken),
   });
   if (!response.ok) throw new Error("pricing_load_failed");
   return ((await response.json()) as ApiRow[]).map(mapPricingRow);
@@ -234,13 +238,13 @@ export async function savePricingProduct(apiUrl: string, adminToken: string, row
   const body = JSON.stringify(row);
   const response = await fetch(`${apiUrl}/pricing/products/${encodeURIComponent(row.id)}`, {
     method: "PATCH",
-    headers: jsonHeaders(),
+    headers: requestHeaders(adminToken, true),
     body,
   });
   if (!response.ok) {
     const createResponse = await fetch(`${apiUrl}/pricing/products`, {
       method: "POST",
-      headers: jsonHeaders(),
+      headers: requestHeaders(adminToken, true),
       body,
     });
     if (!createResponse.ok) throw new Error("pricing_save_failed");
@@ -250,7 +254,7 @@ export async function savePricingProduct(apiUrl: string, adminToken: string, row
 export async function deletePricingProduct(apiUrl: string, adminToken: string, id: string) {
   const response = await fetch(`${apiUrl}/pricing/products/${encodeURIComponent(id)}`, {
     method: "DELETE",
-    headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+    headers: requestHeaders(adminToken),
   });
   if (!response.ok) throw new Error("pricing_delete_failed");
 }
@@ -258,7 +262,7 @@ export async function deletePricingProduct(apiUrl: string, adminToken: string, i
 export async function fetchOperationsMonitoring(apiUrl: string, adminToken: string) {
   const response = await fetch(`${apiUrl}/monitoring/operations`, {
     cache: "no-store",
-    headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : undefined,
+    headers: requestHeaders(adminToken),
   });
   if (!response.ok) throw new Error("monitoring_load_failed");
   return response.json();

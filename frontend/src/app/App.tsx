@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ProductScreen } from "@/components/product/ProductScreen";
 import { CartScreen } from "@/components/order/CartScreen";
 import { TrackingScreen } from "@/components/order/TrackingScreen";
@@ -115,6 +115,8 @@ export default function App({ mode }: { mode?: AppMode }) {
   });
   const {
     adminToken,
+    adminError,
+    loginAdmin,
     openAdmin,
     closeAdmin,
   } = useAdminSession({ adminOnlyMode, appMode, setScreen });
@@ -475,6 +477,9 @@ export default function App({ mode }: { mode?: AppMode }) {
   };
 
   if (adminOnlyMode) {
+    if (!adminToken) {
+      return <AdminLoginScreen error={adminError} onLogin={loginAdmin} />;
+    }
     return (
       <div
         className="size-full flex flex-col"
@@ -548,16 +553,20 @@ export default function App({ mode }: { mode?: AppMode }) {
           </>
         )}
         {screen === "admin" && (
-          <AdminPanel
-            orders={orders}
-            updateOrderStatus={updateOrderStatus}
-            deleteOrder={deleteOrder}
-            updateOrderItems={updateOrderItems}
-            onClose={closeAdmin}
-            initialTab="pedidos"
-            adminToken={adminToken}
-            kitchenOnly={false}
-          />
+          adminToken ? (
+            <AdminPanel
+              orders={orders}
+              updateOrderStatus={updateOrderStatus}
+              deleteOrder={deleteOrder}
+              updateOrderItems={updateOrderItems}
+              onClose={closeAdmin}
+              initialTab="pedidos"
+              adminToken={adminToken}
+              kitchenOnly={false}
+            />
+          ) : (
+            <AdminLoginScreen error={adminError} onLogin={loginAdmin} />
+          )
         )}
         {screen === "cart" && (
           <CartScreen
@@ -590,15 +599,19 @@ export default function App({ mode }: { mode?: AppMode }) {
           />
         )}
         {screen === "admin" && (
-          <AdminPanel
-            orders={orders}
-            updateOrderStatus={updateOrderStatus}
-            deleteOrder={deleteOrder}
-            updateOrderItems={updateOrderItems}
-            onClose={closeAdmin}
-            initialTab="pedidos"
-            adminToken={adminToken}
-          />
+          adminToken ? (
+            <AdminPanel
+              orders={orders}
+              updateOrderStatus={updateOrderStatus}
+              deleteOrder={deleteOrder}
+              updateOrderItems={updateOrderItems}
+              onClose={closeAdmin}
+              initialTab="pedidos"
+              adminToken={adminToken}
+            />
+          ) : (
+            <AdminLoginScreen error={adminError} onLogin={loginAdmin} />
+          )
         )}
       </div>
 
@@ -612,6 +625,68 @@ export default function App({ mode }: { mode?: AppMode }) {
       />
       {paymentTimeoutOrder && <PaymentTimeoutModal onClose={() => setPaymentTimeoutOrder(null)} />}
     </div>
+  );
+}
+
+function AdminLoginScreen({
+  error,
+  onLogin,
+}: {
+  error: string;
+  onLogin: (login: string, password: string) => Promise<boolean>;
+}) {
+  const [login, setLogin] = useState("menfisburguer@adm.com");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onLogin(login, password);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <main className="grid min-h-dvh place-items-center px-4" style={{ background: "#fff", color: VERDE }}>
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl p-5" style={{ border: `1.5px solid ${VERDE}18`, background: "#FFF8F2" }}>
+        <p className="text-xs font-black uppercase tracking-widest opacity-55">Admin Menfi's</p>
+        <h1 className="mt-2 text-2xl font-black">Entrar no painel</h1>
+        <label className="mt-5 grid gap-1 text-[10px] font-black uppercase tracking-wide opacity-70">
+          Login
+          <input
+            value={login}
+            onChange={(event) => setLogin(event.target.value)}
+            className="min-h-12 rounded-xl bg-white px-4 text-sm font-bold normal-case outline-none"
+            style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
+            autoComplete="username"
+          />
+        </label>
+        <label className="mt-3 grid gap-1 text-[10px] font-black uppercase tracking-wide opacity-70">
+          Senha
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="min-h-12 rounded-xl bg-white px-4 text-sm font-bold normal-case outline-none"
+            style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
+            autoComplete="current-password"
+          />
+        </label>
+        {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">{error}</p>}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="mt-5 min-h-12 w-full rounded-xl text-sm font-black uppercase disabled:opacity-60"
+          style={{ background: VERDE, color: ROSA }}
+        >
+          {submitting ? "Entrando..." : "Entrar"}
+        </button>
+      </form>
+    </main>
   );
 }
 

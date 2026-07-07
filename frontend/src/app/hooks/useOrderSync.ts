@@ -40,6 +40,13 @@ function paymentConfirmationReason(paymentMethod?: string | null) {
   return "pagamento_presencial_confirmado";
 }
 
+function authHeaders(adminToken: string, json = false) {
+  return {
+    ...(json ? { "Content-Type": "application/json" } : {}),
+    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+  };
+}
+
 export function useOrderSync({
   adminToken,
   lastOrderId,
@@ -89,6 +96,7 @@ export function useOrderSync({
         if (adminEventsConnectedRef.current && !options?.force) return;
         const res = await fetch(`${API_URL}/orders`, {
           cache: "no-store",
+          headers: authHeaders(adminToken),
         });
         if (!res.ok) return;
         const data = await res.json();
@@ -264,6 +272,7 @@ export function useOrderSync({
           if (!API_URL) return null;
           const latestRes = await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
             cache: "no-store",
+            headers: authHeaders(adminToken),
           });
           if (!latestRes.ok) return null;
           const latest = normalizeBackendOrder(await latestRes.json());
@@ -280,7 +289,7 @@ export function useOrderSync({
           const res = API_URL
             ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/status`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: authHeaders(adminToken, true),
                 body: JSON.stringify({
                   status: nextStatus,
                   actor: currentStatus === "PAYMENT_PENDING" ? "atendente" : "kds",
@@ -318,7 +327,10 @@ export function useOrderSync({
         pendingStatusUpdatesRef.current.delete(id);
         try {
           const latestRes = API_URL
-            ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, { cache: "no-store" })
+            ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
+                cache: "no-store",
+                headers: authHeaders(adminToken),
+              })
             : null;
           if (latestRes?.ok) {
             const latest = normalizeBackendOrder(await latestRes.json());
@@ -353,6 +365,7 @@ export function useOrderSync({
         const res = API_URL
           ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
               method: "DELETE",
+              headers: authHeaders(adminToken),
             })
           : await fetch(`/api/orders/${encodeURIComponent(id)}`, {
               method: "DELETE",
@@ -423,7 +436,7 @@ export function useOrderSync({
         const res = API_URL
           ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/items`, {
               method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+              headers: authHeaders(adminToken, true),
               body: JSON.stringify(body),
             })
           : await fetch(`/api/orders/${encodeURIComponent(id)}`, {

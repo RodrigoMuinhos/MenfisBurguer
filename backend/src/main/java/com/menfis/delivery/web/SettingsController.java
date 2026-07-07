@@ -82,6 +82,20 @@ public class SettingsController {
     return settings.setPresentationSettings(request.presentation());
   }
 
+  @GetMapping("/admin-credentials")
+  public Map<String, Object> adminCredentials(
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    return Map.of("login", auth.currentAdminLogin(authorization));
+  }
+
+  @PatchMapping("/admin-credentials")
+  public Map<String, Object> setAdminCredentials(
+      @RequestBody AdminCredentialsRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.updateAdminCredentials(authorization, request.login(), request.password());
+    return Map.of("login", request.login().trim().toLowerCase());
+  }
+
   @PatchMapping("/reset-real-operation")
   public Map<String, Object> resetRealOperation(
       @RequestHeader(name = "Authorization", required = false) String authorization) {
@@ -96,4 +110,5 @@ public class SettingsController {
   public record FeaturedProductRequest(String productId) {}
   public record OperatingHoursRequest(Map<String, Object> operatingHours) {}
   public record PresentationRequest(Map<String, Object> presentation) {}
+  public record AdminCredentialsRequest(String login, String password) {}
 }
