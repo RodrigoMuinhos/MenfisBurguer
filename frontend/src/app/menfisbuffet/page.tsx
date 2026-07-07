@@ -172,7 +172,7 @@ export default function MenfisBuffetPage() {
         <div className="relative mx-auto flex min-h-[92dvh] max-w-7xl flex-col justify-end px-4 pb-8 pt-28 md:px-6 lg:pb-12">
           <div className="max-w-3xl text-white">
             <p className="mb-4 inline-flex rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.2em]" style={{ background: ROSA, color: VERDE }}>
-              Mini burgers artesanais para eventos
+              Buffet artesanal para eventos
             </p>
             <h1 className="text-5xl font-black leading-none sm:text-6xl lg:text-7xl">Menfi's Buffet</h1>
             <p className="mt-5 max-w-2xl text-base font-semibold leading-relaxed text-white/88 sm:text-lg">
@@ -224,7 +224,7 @@ export default function MenfisBuffetPage() {
           <SectionTitle
             eyebrow="Cardapio Menfi's Buffet"
             title="Mini hamburguer como protagonista, com complementos para evento completo."
-            copy="A ordem do menu foi pensada para vender melhor: mini burgers, salgadinhos, mini pizzas, doces, bebidas, mocktails e pacotes."
+            copy="Mini burgers, salgadinhos, mini pizzas, doces, bebidas, mocktails e pacotes para diferentes tipos de evento."
           />
 
           <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
@@ -233,14 +233,14 @@ export default function MenfisBuffetPage() {
           </div>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-3">
-            <MenuBlock icon={<Utensils size={22} />} title="Salgadinhos classicos" items={salgados} note="Entram como complemento dos combos ou mesa de apoio para festas maiores." />
-            <MenuBlock icon={<Pizza size={22} />} title="Mini pizzas" items={pizzas} note="Sugestao inicial: trabalhar com Marguerita e Calabresa Italiana primeiro." />
-            <PhotoPanel image={miniEventImage} title="Montagem de festa" copy="Mesa com variedade e presenca visual para convidados perceberem valor no pacote." compact />
+            <MenuBlock icon={<Utensils size={22} />} title="Salgadinhos classicos" items={salgados} />
+            <MenuBlock icon={<Pizza size={22} />} title="Mini pizzas" items={pizzas} />
+            <PhotoPanel image={miniEventImage} title="Montagem de festa" copy="Mesa com variedade, organizacao e identidade Menfi's para receber seus convidados." compact />
           </div>
 
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
             <MenuBlock icon={<CakeSlice size={22} />} title="4 docinhos classicos" items={classicSweets} />
-            <MenuBlock icon={<Sparkles size={22} />} title="4 docinhos especiais Menfi's" items={specialSweets} note="A combinacao de classicos + especiais aumenta a percepcao de variedade e valor." />
+            <MenuBlock icon={<Sparkles size={22} />} title="4 docinhos especiais Menfi's" items={specialSweets} />
           </div>
         </div>
       </section>
@@ -263,8 +263,8 @@ export default function MenfisBuffetPage() {
         <div className="mx-auto max-w-7xl">
           <SectionTitle
             eyebrow="Pacotes para festas"
-            title="Modelos prontos para vender de eventos pequenos a festas completas."
-            copy="Cada pacote pode ser ajustado por quantidade de convidados, sabores e nivel de montagem visual."
+            title="Escolha o formato ideal para sua festa."
+            copy="Pacotes pensados para aniversarios, eventos corporativos, confraternizacoes e celebracoes especiais."
           />
           <div className="grid gap-5 lg:grid-cols-3">
             {packages.map((pack) => (
@@ -280,7 +280,7 @@ export default function MenfisBuffetPage() {
               >
                 {pack.featured && (
                   <span className="mb-4 w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest" style={{ background: ROSA, color: VERDE }}>
-                    Mais completo para vender
+                    Mais completo
                   </span>
                 )}
                 <Gift size={24} color={pack.featured ? ROSA : TOMATE} />
