@@ -37,18 +37,43 @@ const PRODUCT_LOOKUP: Record<string, { name: string; price: number }> = {
   "double-bacon-combo": { name: "Combo BIG Menfi's Bacon", price: 48.9 },
 };
 
+const FRIES_PRODUCTS = {
+  small: { id: "batata-pequena", name: "Batata Frita Pequena 90g", price: 9.9 },
+  medium: { id: "batata-media", name: "Batata Frita Média 180g", price: 14.9 },
+  large: { id: "batata", name: "Batata Frita Grande 270g", price: 19.9 },
+};
+
 const DEFAULT_SUGGESTIONS: SuggestedExtra[] = [
   {
-    id: "nuggets-100g",
-    name: "Menfi's Nuggets 100g",
+    id: "batata-pequena",
+    name: "Batata Frita Pequena",
+    price: 9.9,
+    description: "90g crocante",
+    image: "/EXTRAS/batata.jpg",
+  },
+  {
+    id: "batata-media",
+    name: "Batata Frita Média",
+    price: 14.9,
+    description: "180g crocante",
+    image: "/EXTRAS/batata.jpg",
+  },
+  {
+    id: "batata",
+    name: "Batata Frita Grande",
+    price: 19.9,
+    description: "270g para compartilhar",
+    image: "/EXTRAS/batata.jpg",
+  },
+  {
+    id: "nuggets-90g",
+    name: "Menfi's Nuggets 90g",
     price: 12.9,
-    description: "Porção crocante",
-    image: "/nugget.jpeg",
-    message: "Que tal deixar o pedido melhor com Menfi's Nuggets?",
+    description: "Acompanha molho e ketchup",
+    image: "/nuggetfries.jpg",
   },
   { id: "coca-zero", name: "Coca-Cola Zero", price: 8.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
   { id: "guarana-zero", name: "Guaraná Zero", price: 6.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana.jpg" },
-  { id: "batata-media", name: "Batata frita média", price: 14.9, description: "Porção crocante", image: "/EXTRAS/batata.jpg" },
 ];
 
 export function CartBagStepSection({
@@ -146,6 +171,62 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
   const hasFries = cart.some((item) => item.id === "batata" || item.id.startsWith("batata-") || item.id.includes("combo"));
   const hasDrink = cart.some((item) => ["coca-zero", "guarana-zero", "agua-com-gas"].includes(item.id) || item.id.includes("combo"));
   const sandwich = cart.find((item) => SANDWICH_TO_COMBO[item.id]);
+  const hasSmallFries = cart.some((item) => item.id === FRIES_PRODUCTS.small.id);
+  const hasMediumFries = cart.some((item) => item.id === FRIES_PRODUCTS.medium.id);
+  const hasLargeFries = cart.some((item) => item.id === FRIES_PRODUCTS.large.id);
+
+  if (hasSmallFries && !hasMediumFries && !hasLargeFries) {
+    const mediumDiff = FRIES_PRODUCTS.medium.price - FRIES_PRODUCTS.small.price;
+    const largeDiff = FRIES_PRODUCTS.large.price - FRIES_PRODUCTS.small.price;
+    return [
+      {
+        id: "upgrade-batata-pequena-media",
+        name: "Upgrade para Batata Média",
+        price: mediumDiff,
+        description: "180g, o dobro de batata",
+        image: "/EXTRAS/batata.jpg",
+        message: `Vale mais a pena: por mais ${fmt(mediumDiff)}, você leva a Batata Média com o dobro de batata: 180g.`,
+      },
+      {
+        id: "upgrade-batata-pequena-grande",
+        name: "Upgrade para Batata Grande",
+        price: largeDiff,
+        description: "270g para compartilhar",
+        image: "/EXTRAS/batata.jpg",
+        message: `Melhor para dividir: por mais ${fmt(largeDiff)}, você transforma em Batata Grande com 270g para compartilhar.`,
+      },
+      ...DEFAULT_SUGGESTIONS.filter((item) => !ids.has(item.id) && !item.id.startsWith("batata")),
+    ].slice(0, 5);
+  }
+
+  if (hasMediumFries && !hasLargeFries) {
+    const largeDiff = FRIES_PRODUCTS.large.price - FRIES_PRODUCTS.medium.price;
+    return prependUnique(
+      {
+        id: "upgrade-batata-media-grande",
+        name: "Upgrade para Batata Grande",
+        price: largeDiff,
+        description: "270g para compartilhar",
+        image: "/EXTRAS/batata.jpg",
+        message: `Por mais ${fmt(largeDiff)}, você transforma sua Batata Média em Batata Grande com 270g.`,
+      },
+      ids,
+    );
+  }
+
+  if (hasLargeFries && !hasNuggets) {
+    return prependUnique(
+      {
+        id: "nuggets-90g",
+        name: "Menfi's Nuggets 90g",
+        price: 12.9,
+        description: "Acompanha molho e ketchup",
+        image: "/nuggetfries.jpg",
+        message: "Quer completar com uma porção de Menfi's Nuggets?",
+      },
+      ids,
+    );
+  }
 
   if (sandwich && !hasFries && !hasDrink) {
     const combo = PRODUCT_LOOKUP[SANDWICH_TO_COMBO[sandwich.id]];
@@ -195,12 +276,12 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
   if (hasCombo && !hasNuggets) {
     return prependUnique(
       {
-        id: "nuggets-100g",
-        name: "Menfi's Nuggets 100g",
+        id: "nuggets-90g",
+        name: "Menfi's Nuggets 90g",
         price: 12.9,
-        description: "Porção crocante",
-        image: "/nugget.jpeg",
-        message: "Seu combo já vem com batata e refri. Quer deixar ainda melhor com uma porção de Menfi's Nuggets por R$ 12,90?",
+        description: "Acompanha molho e ketchup",
+        image: "/nuggetfries.jpg",
+        message: "Seu combo já vem com batata e refri. Quer deixar ainda melhor com uma porção de Menfi's Nuggets 90g por R$ 12,90?",
       },
       ids,
     );
@@ -209,11 +290,11 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
   if (hasCombo && hasNuggets) {
     return prependUnique(
       {
-        id: "nuggets-10un",
-        name: "Menfi's Nuggets 10 unidades",
+        id: "nuggets-180g",
+        name: "Menfi's Nuggets 180g",
         price: 18.9,
-        description: "Porção média para dividir",
-        image: "/nugget.jpeg",
+        description: "Acompanha molho e ketchup",
+        image: "/nuggetfries.jpg",
         message: "Para mais pessoas, uma porção maior de nuggets aumenta o pedido sem complicar.",
       },
       ids,

@@ -1,5 +1,5 @@
 import type { StaticImageData } from "next/image";
-import { Beef, Drumstick, Package, Plus } from "lucide-react";
+import { Beef, Drumstick, Package, Plus, Utensils } from "lucide-react";
 import { CartItem } from "@/types/order";
 import { MenuItem } from "@/features/catalog/types";
 
@@ -40,6 +40,7 @@ export const CATEGORIES = [
   { id: "burger", label: "Burgers", Icon: Beef },
   { id: "chicken", label: "Chicken", Icon: Drumstick },
   { id: "bacon", label: "Bacon", Icon: Beef },
+  { id: "fries", label: "Fries", Icon: Utensils },
   { id: "extras", label: "Extras", Icon: Plus },
 ] as const;
 
@@ -76,12 +77,6 @@ export const EXTRA_OPTIONS = [
   { id: "extra-ovo", label: "Ovo", price: 2.5, image: "/EXTRAS/ovo.jpg" },
   { id: "extra-bacon", label: "Adicional de bacon", price: 5.9, image: "/EXTRAS/bacon.jpg" },
   { id: "extra-cheddar", label: "Adicional de cheddar", price: 6.9, image: "/queijo.jpg" },
-  { id: "batata-pequena", label: "Batata frita pequena", price: 9.9, image: "/EXTRAS/batata.jpg" },
-  { id: "batata-media", label: "Batata frita média", price: 14.9, image: "/EXTRAS/batata.jpg" },
-  { id: "batata", label: "Batata frita grande", price: 19.9, image: "/EXTRAS/batata.jpg" },
-  { id: "nuggets-100g", label: "Menfi's Nuggets 100g", price: 12.9, image: "/nugget.jpeg" },
-  { id: "nuggets-10un", label: "Menfi's Nuggets 10 unidades", price: 18.9, image: "/nugget.jpeg" },
-  { id: "nuggets-grande", label: "Menfi's Nuggets Grande", price: 29.9, image: "/nugget.jpeg" },
   { id: "extra-maionese-barbecue", label: "Maionese Barbecue", price: 2, image: "/EXTRAS/MaioneseBarbecue.jpg" },
   { id: "extra-maionese-alho-frito", label: "Maionese Alho Frito", price: 2, image: "/EXTRAS/MaionseAlhoFrito.jpg" },
   { id: "coca-zero", label: "Coca-Cola Zero", price: 8.9, image: "/EXTRAS/cocazero.jpg" },

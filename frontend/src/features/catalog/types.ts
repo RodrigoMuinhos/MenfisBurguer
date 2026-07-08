@@ -1,6 +1,6 @@
 import { StaticImageData } from "next/image";
 
-export type ProductCategory = "burger" | "combo" | "bebida" | "extra";
+export type ProductCategory = "burger" | "combo" | "bebida" | "extra" | "fries";
 
 export type MenuItem = {
   id: string;

@@ -76,7 +76,7 @@ function productIngredients(item: MenuItem) {
   if (item.category === "bebida") {
     return "Bebida gelada selecionada.";
   }
-  if (item.category === "extra") {
+  if (item.category === "extra" || item.category === "fries") {
     return item.desc;
   }
   return item.id === "burger"

@@ -31,7 +31,7 @@ import { API_URL, DEFAULT_PROMO_CARDS, PromoCard, PromoCardIcon, SUPPORT_WHATSAP
 import { fmt, imageSrc, MemberProfile } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
-type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "extras";
+type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "fries" | "extras";
 
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
@@ -49,6 +49,7 @@ const MOBILE_CATEGORIES: Array<{
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "chicken", label: "Chicken", icon: Drumstick },
   { id: "bacon", label: "Bacon", icon: Utensils },
+  { id: "fries", label: "Fries", icon: Utensils },
   { id: "extras", label: "Extras", icon: Plus },
 ];
 
@@ -68,11 +69,11 @@ const SALES_ORDER = [
   "bacon-combo",
   "double-bacon-combo",
   "bacon-super-combo",
-  "batata",
-  "batata-media",
   "batata-pequena",
-  "nuggets-100g",
-  "nuggets-10un",
+  "batata-media",
+  "batata",
+  "nuggets-90g",
+  "nuggets-180g",
   "nuggets-grande",
   "coca-zero",
   "guarana-zero",
@@ -111,6 +112,7 @@ function categoryMatches(item: MenuItem, category: MobileCategory) {
     );
   }
   if (category === "combo") return item.category === "combo" && !item.highlight;
+  if (category === "fries") return item.category === "fries";
   if (category === "extras") return item.category === "extra" || item.category === "bebida";
   return false;
 }

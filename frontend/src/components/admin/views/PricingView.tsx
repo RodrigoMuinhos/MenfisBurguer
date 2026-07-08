@@ -64,7 +64,6 @@ const DEFAULT_ROWS: PricingRow[] = [
   simple("double-menfis-chicken", "BIG-CHICKEN", "Big Chicken", "Sanduiche", 9.8, 32.9),
   simple("menfis-bacon", "BACON", "Menfi's Bacon", "Sanduiche", 9.8, 27.9),
   simple("double-menfis-bacon", "BIG-BACON", "Big Menfi's Bacon", "Sanduiche", 14.7, 35.9),
-  side("batata", "BATATA", "Batata", 3.7, 19.9),
   drink("guarana-zero", "GUARANA", "Guarana Zero", 2.89, 6.9),
   drink("coca-zero", "COCA", "Coca-Cola Zero", 3.89, 8.9, 2),
   combo("combo", "COMBO-MENFIS", "Combo Menfi's", 8.85, 34.9),
@@ -76,11 +75,12 @@ const DEFAULT_ROWS: PricingRow[] = [
   combo("combo2", "SUPER-MENFIS", "Super Combo Menfi's", 17.7, 59.9, 5.78, 7.78),
   combo("chicken-super-combo", "SUPER-CHICKEN", "Super Combo Menfi's Chicken", 12.6, 64.9, 5.78, 7.78),
   combo("bacon-super-combo", "SUPER-BACON", "Super Combo Menfi's Bacon", 19.6, 71.9, 5.78, 7.78),
-  side("batata-pequena", "BATATA-P", "Batata Frita Pequena", 1.48, 9.9),
+  side("batata-pequena", "BATATA-P", "Batata Frita Pequena", 1.33, 9.9),
   side("batata-media", "BATATA-M", "Batata Frita Média", 2.66, 14.9),
-  side("nuggets-100g", "NUGGETS-100G", "Menfi's Nuggets 100g", 3.13, 12.9),
-  side("nuggets-10un", "NUGGETS-10UN", "Menfi's Nuggets 10 unidades", 6.26, 18.9),
-  side("nuggets-grande", "NUGGETS-G", "Menfi's Nuggets Grande", 9.39, 29.9),
+  side("batata", "BATATA-G", "Batata Frita Grande", 4.00, 19.9),
+  side("nuggets-90g", "NUGGETS-90G", "Menfi's Nuggets 90g", 2.82, 12.9),
+  side("nuggets-180g", "NUGGETS-180G", "Menfi's Nuggets 180g", 5.63, 18.9),
+  side("nuggets-grande", "NUGGETS-270G", "Menfi's Nuggets 270g", 8.45, 29.9),
 ];
 
 export function PricingView({ adminToken = "" }: { adminToken?: string }) {

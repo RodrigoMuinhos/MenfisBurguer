@@ -124,8 +124,8 @@ function pricingRowToMenuItem(row: Record<string, unknown>): MenuItem | null {
   if (!id || !name || !Number.isFinite(salePrice) || salePrice <= 0) return null;
   const originalPrice = Number(row.originalPrice ?? row.original_price ?? 0);
   const kind = String(row.kind ?? "");
-  const category = pricingKindToMenuCategory(kind);
   const categoryLabel = String(row.category ?? "").trim();
+  const category = pricingKindToMenuCategory(kind, categoryLabel);
   return {
     id,
     name,
@@ -139,9 +139,10 @@ function pricingRowToMenuItem(row: Record<string, unknown>): MenuItem | null {
   };
 }
 
-function pricingKindToMenuCategory(kind: string): ProductCategory {
+function pricingKindToMenuCategory(kind: string, categoryLabel = ""): ProductCategory {
   if (kind === "combo") return "combo";
   if (kind === "drink") return "bebida";
+  if (categoryLabel.toLowerCase().includes("galeria de fritas")) return "fries";
   if (kind === "side") return "extra";
   return "burger";
 }
@@ -150,6 +151,7 @@ function labelCategory(category: ProductCategory) {
   if (category === "combo") return "Pedido completo";
   if (category === "bebida") return "Bebida";
   if (category === "extra") return "Extra";
+  if (category === "fries") return "Galeria de Fritas";
   return "Burger";
 }
 
@@ -275,6 +277,9 @@ export function ProductScreen({
     }
     if (category === "extras") {
       return catalogItems.filter((item) => item.category === "extra" || item.category === "bebida");
+    }
+    if (category === "fries") {
+      return catalogItems.filter((item) => item.category === "fries");
     }
     return catalogItems.filter((item) => item.category === category);
   }, [catalogItems, category]);
