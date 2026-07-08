@@ -17,7 +17,7 @@ const PRINT_BRIDGE_URL_KEY = "menfis_print_bridge_url";
 const PRINT_BRIDGE_LAUNCH_URL_KEY = "menfis_print_bridge_launch_url";
 const PRINT_BROWSER_FALLBACK_KEY = "menfis_print_browser_fallback";
 const DEFAULT_PRINT_BRIDGE_URL = "http://127.0.0.1:17777/print";
-const DEFAULT_PRINT_BRIDGE_LAUNCH_URL = "menfis-print://open";
+const DEFAULT_PRINT_BRIDGE_LAUNCH_URL = "";
 
 export type Coupon = {
   code: string;
@@ -777,9 +777,10 @@ function launchPrintBridge() {
 }
 
 function browserPrintFallbackEnabled(options?: { browserFallback?: boolean }) {
+  if (options?.browserFallback === false) return false;
   if (options?.browserFallback === true) return true;
   if (typeof window === "undefined") return false;
-  return localStorage.getItem(PRINT_BROWSER_FALLBACK_KEY) === "1";
+  return localStorage.getItem(PRINT_BROWSER_FALLBACK_KEY) !== "0";
 }
 
 export async function printOrderReceipts(
@@ -798,12 +799,7 @@ export async function printOrderReceipts(
     if (retriedSilentPrint) return;
   }
 
-  if (!browserPrintFallbackEnabled(options)) {
-    window.alert(
-      "Nao foi possivel abrir a impressao direta automaticamente. Verifique o agente de impressao local.",
-    );
-    return;
-  }
+  if (!browserPrintFallbackEnabled(options)) return;
 
   const receipt = escapeReceipt(rawReceipt);
   const orderId = escapeReceipt(String(order.id || order.number || ""));
