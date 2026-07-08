@@ -1,10 +1,12 @@
-import { CalendarClock, Flame, FlaskConical, Gift, GripVertical, ImagePlus, KeyRound, PackageX, Plus, RotateCcw, Save, Table2, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Beef, CalendarClock, Clock, Flame, FlaskConical, Gift, GripVertical, Heart, ImagePlus, KeyRound, PackageX, Percent, Plus, Save, Star, Table2, Tag, Ticket, Trash2, Utensils, RotateCcw } from "lucide-react";
+import { useEffect, useState, type ElementType } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
   PresentationSettings,
   PromoCard,
+  PromoCardIcon,
+  PROMO_CARD_ICON_OPTIONS,
   OperatingHoursConfig,
   normalizeOperatingHours,
   normalizePresentationSettings,
@@ -370,7 +372,7 @@ export function ConfigView({
 
         <div className="grid gap-4">
           {normalizedPromoCards.map((card) => {
-            const PreviewIcon = card.icon === "flame" ? Flame : Gift;
+            const PreviewIcon = promoCardIcon(card.icon);
             return (
               <div key={card.id} className="grid gap-4 rounded-2xl p-3 lg:grid-cols-[1fr_260px]" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
                 <div className="grid gap-3">
@@ -455,13 +457,16 @@ export function ConfigView({
                       Ícone
                       <select
                         value={card.icon}
-                        onChange={(event) => updatePromoCard(card.id, { icon: event.target.value === "flame" ? "flame" : "gift" })}
+                        onChange={(event) => updatePromoCard(card.id, { icon: event.target.value as PromoCardIcon })}
                         disabled={saving || disabled}
                         className="min-h-11 rounded-xl px-3 text-sm font-black outline-none"
                         style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
                       >
-                        <option value="gift">Presente</option>
-                        <option value="flame">Fogo</option>
+                        {PROMO_CARD_ICON_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                     </label>
                   </div>
@@ -870,4 +875,30 @@ function encodePresentationImage(file: File): Promise<string> {
     };
     reader.readAsDataURL(file);
   });
+}
+
+function promoCardIcon(icon: PromoCardIcon): ElementType {
+  switch (icon) {
+    case "flame":
+      return Flame;
+    case "ticket":
+      return Ticket;
+    case "tag":
+      return Tag;
+    case "percent":
+      return Percent;
+    case "clock":
+      return Clock;
+    case "star":
+      return Star;
+    case "heart":
+      return Heart;
+    case "burger":
+      return Beef;
+    case "fries":
+      return Utensils;
+    case "gift":
+    default:
+      return Gift;
+  }
 }

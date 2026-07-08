@@ -34,7 +34,17 @@ export type PresentationSettings = {
   featuredImage?: string;
 };
 
-export type PromoCardIcon = "gift" | "flame";
+export type PromoCardIcon =
+  | "gift"
+  | "flame"
+  | "ticket"
+  | "tag"
+  | "percent"
+  | "clock"
+  | "star"
+  | "heart"
+  | "burger"
+  | "fries";
 
 export type PromoCard = {
   id: string;
@@ -214,6 +224,25 @@ export const DEFAULT_PROMO_CARDS: PromoCard[] = [
   },
 ];
 
+export const PROMO_CARD_ICON_OPTIONS: Array<{ value: PromoCardIcon; label: string }> = [
+  { value: "gift", label: "Presente" },
+  { value: "flame", label: "Fogo" },
+  { value: "ticket", label: "Cupom" },
+  { value: "tag", label: "Etiqueta" },
+  { value: "percent", label: "Percentual" },
+  { value: "clock", label: "Tempo" },
+  { value: "star", label: "Estrela" },
+  { value: "heart", label: "Coração" },
+  { value: "burger", label: "Burger" },
+  { value: "fries", label: "Fritas" },
+];
+
+function normalizePromoCardIcon(value: unknown): PromoCardIcon {
+  return PROMO_CARD_ICON_OPTIONS.some((option) => option.value === value)
+    ? (value as PromoCardIcon)
+    : "gift";
+}
+
 export function normalizePresentationSettings(value: unknown): PresentationSettings {
   const data =
     value && typeof value === "object"
@@ -250,17 +279,17 @@ export function normalizePromoCards(value: unknown): PromoCard[] {
     .map((row, index): PromoCard => {
       const data = row && typeof row === "object" ? (row as Partial<PromoCard>) : {};
       const id = String(data.id || `promo-${index + 1}`).trim();
-      const title = String(data.title ?? "").trim();
-      const copy = String(data.copy ?? "").trim();
+      const title = String(data.title ?? "");
+      const copy = String(data.copy ?? "");
       return {
         id: id || `promo-${index + 1}`,
         enabled: data.enabled !== false,
-        eyebrow: String(data.eyebrow ?? "").trim(),
+        eyebrow: String(data.eyebrow ?? ""),
         title,
-        copy,
-        value: String(data.value ?? "").trim(),
-        suffix: String(data.suffix ?? "").trim(),
-        icon: data.icon === "flame" ? "flame" : "gift",
+        copy: String(data.copy ?? ""),
+        value: String(data.value ?? ""),
+        suffix: String(data.suffix ?? ""),
+        icon: normalizePromoCardIcon(data.icon),
       };
     })
     .filter((card) => card.title || card.copy || card.value);

@@ -5,15 +5,21 @@ import {
   Bell,
   ChevronRight,
   ClipboardList,
+  Clock,
   Drumstick,
   Flame,
   Gift,
+  Heart,
   Home,
   MessageCircle,
   Package,
+  Percent,
   Plus,
   Search,
   ShoppingCart,
+  Star,
+  Tag,
+  Ticket,
   Utensils,
   UserRound,
   X,
@@ -21,7 +27,7 @@ import {
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
-import { API_URL, DEFAULT_PROMO_CARDS, PromoCard, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
+import { API_URL, DEFAULT_PROMO_CARDS, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
 import { fmt, imageSrc, MemberProfile } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
@@ -611,7 +617,7 @@ function OfferCarousel({
     <section className="relative z-10 mt-2 -mx-4 overflow-x-auto px-4 pb-1">
       <div className="flex snap-x snap-mandatory gap-3">
         {visibleOffers.map((offer) => {
-          const Icon = offer.icon === "flame" ? Flame : Gift;
+          const Icon = promoCardIcon(offer.icon);
           return (
             <button
               key={offer.id}
@@ -671,6 +677,32 @@ function OfferCarousel({
       </div>
     </section>
   );
+}
+
+function promoCardIcon(icon: PromoCardIcon): ElementType {
+  switch (icon) {
+    case "flame":
+      return Flame;
+    case "ticket":
+      return Ticket;
+    case "tag":
+      return Tag;
+    case "percent":
+      return Percent;
+    case "clock":
+      return Clock;
+    case "star":
+      return Star;
+    case "heart":
+      return Heart;
+    case "burger":
+      return Beef;
+    case "fries":
+      return Utensils;
+    case "gift":
+    default:
+      return Gift;
+  }
 }
 
 function MobileBottomNav({
