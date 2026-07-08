@@ -79,6 +79,7 @@ export function ConfigView({
   const [adminPasswordDraft, setAdminPasswordDraft] = useState("");
   const [adminCredentialsSaved, setAdminCredentialsSaved] = useState(false);
   const [adminCredentialsError, setAdminCredentialsError] = useState("");
+  const [adminCredentialsOpen, setAdminCredentialsOpen] = useState(false);
 
   useEffect(() => {
     if (adminLogin) setAdminLoginDraft(adminLogin);
@@ -98,6 +99,7 @@ export function ConfigView({
     }
     setAdminPasswordDraft("");
     setAdminCredentialsSaved(true);
+    setAdminCredentialsOpen(false);
   };
   const changeOperatingDay = (
     dayNumber: number,
@@ -170,6 +172,10 @@ export function ConfigView({
     typeof selectedProduct.image === "string"
       ? selectedProduct.image
       : selectedProduct.image?.src;
+  const maskedAdminLogin = adminLoginDraft.replace(
+    /^(.{2}).*(@.*)$/,
+    "$1***$2",
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -181,52 +187,66 @@ export function ConfigView({
       />
 
       <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
-        <div className="mb-4 flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
-            <KeyRound size={19} strokeWidth={2.4} />
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
+              <KeyRound size={19} strokeWidth={2.4} />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Acesso do admin</p>
+              <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
+                {adminCredentialsOpen
+                  ? "Altere o e-mail e a senha usados para entrar em /adm."
+                  : `Login atual: ${maskedAdminLogin}`}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Login do admin</p>
-            <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
-              Altere o e-mail e a senha usados para entrar em /adm.
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
-          <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-            Login
-            <input
-              value={adminLoginDraft}
-              onChange={(event) => setAdminLoginDraft(event.target.value)}
-              disabled={saving || disabled}
-              className="min-h-12 rounded-2xl px-4 text-sm font-black normal-case outline-none"
-              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-              autoComplete="username"
-            />
-          </label>
-          <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-            Nova senha
-            <input
-              type="password"
-              value={adminPasswordDraft}
-              onChange={(event) => setAdminPasswordDraft(event.target.value)}
-              disabled={saving || disabled}
-              className="min-h-12 rounded-2xl px-4 text-sm font-black normal-case outline-none"
-              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-              autoComplete="new-password"
-            />
-          </label>
           <button
             type="button"
-            onClick={saveAdminCredentials}
-            disabled={saving || disabled}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase"
-            style={{ background: VERDE, color: ROSA, opacity: saving || disabled ? 0.6 : 1 }}
+            onClick={() => setAdminCredentialsOpen((open) => !open)}
+            className="inline-flex min-h-10 items-center justify-center rounded-xl px-4 text-xs font-black uppercase"
+            style={{ background: adminCredentialsOpen ? VERDE : "#F8F1F4", color: adminCredentialsOpen ? ROSA : VERDE }}
           >
-            <Save size={15} />
-            Salvar acesso
+            {adminCredentialsOpen ? "Fechar" : "Alterar acesso"}
           </button>
         </div>
+        {adminCredentialsOpen && (
+          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+              Login
+              <input
+                value={adminLoginDraft}
+                onChange={(event) => setAdminLoginDraft(event.target.value)}
+                disabled={saving || disabled}
+                className="min-h-12 rounded-2xl px-4 text-sm font-black normal-case outline-none"
+                style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+                autoComplete="username"
+              />
+            </label>
+            <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+              Nova senha
+              <input
+                type="password"
+                value={adminPasswordDraft}
+                onChange={(event) => setAdminPasswordDraft(event.target.value)}
+                disabled={saving || disabled}
+                className="min-h-12 rounded-2xl px-4 text-sm font-black normal-case outline-none"
+                style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+                autoComplete="new-password"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={saveAdminCredentials}
+              disabled={saving || disabled}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase"
+              style={{ background: VERDE, color: ROSA, opacity: saving || disabled ? 0.6 : 1 }}
+            >
+              <Save size={15} />
+              Salvar acesso
+            </button>
+          </div>
+        )}
         {(adminCredentialsError || adminCredentialsSaved) && (
           <p className="mt-3 text-xs font-bold" style={{ color: adminCredentialsError ? "#991B1B" : VERDE }}>
             {adminCredentialsError || "Login do admin atualizado. Entre novamente no próximo acesso."}
