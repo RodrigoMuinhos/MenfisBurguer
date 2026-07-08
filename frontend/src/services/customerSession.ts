@@ -5,7 +5,7 @@ import {
   readMemberProfile,
 } from "@/components/product/shared";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 
 type CustomerPayload = {
   name: string;

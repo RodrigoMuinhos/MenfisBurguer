@@ -218,21 +218,32 @@ public class InventoryService {
     );
     jdbc.update(
       """
-      insert into stock_month_snapshots(month_id, inventory_item_id, initial_stock, total_entries, total_sales_output, total_manual_output, final_stock, final_cost)
-      select ?::uuid, ii.id,
-        ii.""" + baseColumn + """,
+      insert into stock_month_snapshots(
+        month_id,
+        inventory_item_id,
+        initial_stock,
+        total_entries,
+        total_sales_output,
+        total_manual_output,
+        final_stock,
+        final_cost
+      )
+      select
+        ?::uuid,
+        ii.id,
+        ii.%s,
         coalesce(sum(case when sm.quantity > 0 then sm.quantity else 0 end), 0),
         abs(coalesce(sum(case when sm.order_id is not null and sm.quantity < 0 then sm.quantity else 0 end), 0)),
         abs(coalesce(sum(case when sm.order_id is null and sm.quantity < 0 then sm.quantity else 0 end), 0)),
-        ii.""" + quantityColumn + """,
-        round(ii.""" + quantityColumn + """ * (case when ? then ii.test_unit_cost else ii.unit_cost end), 2)
+        ii.%s,
+        round(ii.%s * (case when ? then ii.test_unit_cost else ii.unit_cost end), 2)
       from inventory_items ii
       left join stock_movements sm on sm.inventory_item_id = ii.id
         and sm.test_mode = ?
         and sm.created_at::date between ? and ?
       where ii.active = true
       group by ii.id
-      """,
+      """.formatted(baseColumn, quantityColumn, quantityColumn),
       month.get("id"),
       testMode,
       testMode,

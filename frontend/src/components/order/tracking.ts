@@ -2,7 +2,7 @@ import { Bike, CheckCircle2, ChefHat, Clock3, Home, PackageCheck } from "lucide-
 import { Order, OrderStatus } from "@/types/order";
 
 export const WHATSAPP_URL = "https://wa.me/5585997883764";
-export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 
 export const STEPS = [
   { icon: Clock3, label: "Pedido recebido" },

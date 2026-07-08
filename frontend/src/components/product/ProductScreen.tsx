@@ -74,7 +74,7 @@ import { MobileMenuExperience } from "./MobileMenuExperience";
 import { MemberNotification } from "./notifications";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 const CUSTOMIZER_ADDON_IDS = new Set([
   "extra-carne",
   "extra-frango",

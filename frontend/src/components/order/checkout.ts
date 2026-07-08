@@ -174,7 +174,7 @@ export const SUPPORT_WHATSAPP_URL = "https://wa.me/5585997883764";
 export const STORAGE_KEY = "menfis_cliente";
 export const MEMBER_KEY = "menfis_member";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
-export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 export const ORDER_RUNTIME_MODE: OrderRuntimeMode =
   process.env.NEXT_PUBLIC_ORDER_RUNTIME_MODE === "delivery"
     ? "delivery"

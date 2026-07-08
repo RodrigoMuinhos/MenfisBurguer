@@ -11,7 +11,7 @@ import {
 import { Order, OrderStatus } from "@/types/order";
 import { VERDE } from "@/utils/theme";
 import { formatAddressForReceipt } from "@/utils/address";
-export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
 
 export type Coupon = {

@@ -8,7 +8,7 @@ import { ROSA, VERDE } from "@/utils/theme";
 import { deliveryConfirmationCode, fmt } from "@/components/order/tracking";
 import { ITEM_DESC } from "@/components/order/checkout";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 const DELIVERY_SESSION_KEY = "menfis_delivery_session";
 
 export default function DeliveryPage() {
