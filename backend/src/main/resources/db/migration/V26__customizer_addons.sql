@@ -6,7 +6,7 @@ values
   ('extra-ovo', 'Ovo', 2.50, true),
   ('extra-bacon', 'Adicional de bacon', 5.90, true),
   ('extra-cheddar', 'Adicional de cheddar', 6.90, true),
-  ('extra-maionese-barbecue', 'Maionse Grill', 2.00, true),
+  ('extra-maionese-barbecue', 'Maionese Barbecue', 2.00, true),
   ('extra-maionese-alho-frito', 'Maionese Alho Frito', 2.00, true)
 on conflict (id) do update set
   name = excluded.name,
