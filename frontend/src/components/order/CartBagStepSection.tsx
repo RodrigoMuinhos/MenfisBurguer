@@ -1,7 +1,55 @@
 import Image from "next/image";
 import { CartItem } from "@/types/order";
 import { VERDE } from "@/utils/theme";
+import { fmt } from "./checkout";
 import { SuggestedCard } from "./SuggestedCard";
+
+type SuggestedExtra = {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  image: string;
+  message?: string;
+};
+
+const SANDWICH_TO_COMBO: Record<string, string> = {
+  burger: "combo",
+  "double-burger": "double-combo",
+  "menfis-chicken": "chicken-combo",
+  "double-menfis-chicken": "double-chicken-combo",
+  "menfis-bacon": "bacon-combo",
+  "double-menfis-bacon": "double-bacon-combo",
+};
+
+const PRODUCT_LOOKUP: Record<string, { name: string; price: number }> = {
+  burger: { name: "Menfi's Burger", price: 25.9 },
+  "double-burger": { name: "BIG Menfi's", price: 29.9 },
+  "menfis-chicken": { name: "Menfi's Chicken", price: 24.9 },
+  "double-menfis-chicken": { name: "BIG Menfi's Chicken", price: 32.9 },
+  "menfis-bacon": { name: "Menfi's Bacon", price: 27.9 },
+  "double-menfis-bacon": { name: "BIG Menfi's Bacon", price: 35.9 },
+  combo: { name: "Combo Menfi's", price: 34.9 },
+  "double-combo": { name: "Combo BIG Menfi's", price: 42.9 },
+  "chicken-combo": { name: "Combo Menfi's Chicken", price: 38.9 },
+  "double-chicken-combo": { name: "Combo BIG Menfi's Chicken", price: 46.9 },
+  "bacon-combo": { name: "Combo Menfi's Bacon", price: 40.9 },
+  "double-bacon-combo": { name: "Combo BIG Menfi's Bacon", price: 48.9 },
+};
+
+const DEFAULT_SUGGESTIONS: SuggestedExtra[] = [
+  {
+    id: "nuggets-100g",
+    name: "Menfi's Nuggets 100g",
+    price: 12.9,
+    description: "Porção crocante",
+    image: "/nugget.jpeg",
+    message: "Que tal deixar o pedido melhor com Menfi's Nuggets?",
+  },
+  { id: "coca-zero", name: "Coca-Cola Zero", price: 8.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
+  { id: "guarana-zero", name: "Guaraná Zero", price: 6.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana.jpg" },
+  { id: "batata-media", name: "Batata frita média", price: 14.9, description: "Porção crocante", image: "/EXTRAS/batata.jpg" },
+];
 
 export function CartBagStepSection({
   cart,
@@ -14,6 +62,8 @@ export function CartBagStepSection({
   clearCart: () => void;
   goToMenu: () => void;
 }) {
+  const suggestions = buildUpsellSuggestions(cart);
+  const primaryMessage = suggestions.find((item) => item.message)?.message;
   return (
     <>
       <div
@@ -65,45 +115,115 @@ export function CartBagStepSection({
         <h3 className="mb-3 text-xl font-black" style={{ color: "#1F1F1F" }}>
           Peça também
         </h3>
+        {primaryMessage && (
+          <p className="mb-3 rounded-2xl px-4 py-3 text-xs font-black leading-relaxed" style={{ background: "#FFF8F2", color: VERDE, border: `1px solid ${VERDE}12` }}>
+            {primaryMessage}
+          </p>
+        )}
         <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
-          <SuggestedCard
-            id="coca-zero"
-            name="Coca-Cola Zero"
-            price={8.9}
-            description="Lata 350ml gelada"
-            image="/EXTRAS/cocazero.jpg"
-            qty={cart.find((item) => item.id === "coca-zero")?.qty ?? 0}
-            onAdd={addToCart}
-          />
-          <SuggestedCard
-            id="guarana-zero"
-            name="Guaraná Zero"
-            price={6.9}
-            description="Lata 350ml gelada"
-            image="/EXTRAS/Gurarana.jpg"
-            qty={cart.find((item) => item.id === "guarana-zero")?.qty ?? 0}
-            onAdd={addToCart}
-          />
-          <SuggestedCard
-            id="agua-com-gas"
-            name="Água com gás"
-            price={5.9}
-            description="Garrafa gelada"
-            image="/EXTRAS/aguaComGas.png"
-            qty={cart.find((item) => item.id === "agua-com-gas")?.qty ?? 0}
-            onAdd={addToCart}
-          />
-          <SuggestedCard
-            id="batata"
-            name="Batata frita"
-            price={19.9}
-            description="Porção crocante"
-            image="/EXTRAS/batata.jpg"
-            qty={cart.find((item) => item.id === "batata")?.qty ?? 0}
-            onAdd={addToCart}
-          />
+          {suggestions.map((suggestion) => (
+            <SuggestedCard
+              key={suggestion.id}
+              id={suggestion.id}
+              name={suggestion.name}
+              price={suggestion.price}
+              description={suggestion.description}
+              image={suggestion.image}
+              qty={cart.find((item) => item.id === suggestion.id)?.qty ?? 0}
+              onAdd={addToCart}
+            />
+          ))}
         </div>
       </div>
     </>
   );
+}
+
+function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
+  const ids = new Set(cart.map((item) => item.id));
+  const hasCombo = cart.some((item) => item.id.includes("combo"));
+  const hasNuggets = cart.some((item) => item.id.includes("nuggets"));
+  const hasFries = cart.some((item) => item.id === "batata" || item.id.startsWith("batata-") || item.id.includes("combo"));
+  const hasDrink = cart.some((item) => ["coca-zero", "guarana-zero", "agua-com-gas"].includes(item.id) || item.id.includes("combo"));
+  const sandwich = cart.find((item) => SANDWICH_TO_COMBO[item.id]);
+
+  if (sandwich && !hasFries && !hasDrink) {
+    const combo = PRODUCT_LOOKUP[SANDWICH_TO_COMBO[sandwich.id]];
+    const base = PRODUCT_LOOKUP[sandwich.id];
+    const diff = Math.max(0, (combo?.price ?? 0) - (base?.price ?? sandwich.price));
+    return prependUnique(
+      {
+        id: `upgrade-${sandwich.id}-combo`,
+        name: "Upgrade para combo",
+        price: diff,
+        description: "Troque por combo completo",
+        image: "/menu/combomenfis.png",
+        message: `Por mais ${fmt(diff)} você transforma seu ${base?.name ?? sandwich.name} em combo com batata + refrigerante.`,
+      },
+      ids,
+    );
+  }
+
+  if (sandwich && hasFries && !hasDrink) {
+    return prependUnique(
+      {
+        id: "guarana-zero",
+        name: "Guaraná Zero",
+        price: 6.9,
+        description: "Falta só o refrigerante",
+        image: "/EXTRAS/Gurarana.jpg",
+        message: "Falta só o refrigerante para completar seu combo.",
+      },
+      ids,
+    );
+  }
+
+  if (sandwich && hasDrink && !hasFries) {
+    return prependUnique(
+      {
+        id: "batata-pequena",
+        name: "Batata frita pequena",
+        price: 9.9,
+        description: "Falta só a batata",
+        image: "/EXTRAS/batata.jpg",
+        message: "Falta só a batata para completar seu combo.",
+      },
+      ids,
+    );
+  }
+
+  if (hasCombo && !hasNuggets) {
+    return prependUnique(
+      {
+        id: "nuggets-100g",
+        name: "Menfi's Nuggets 100g",
+        price: 12.9,
+        description: "Porção crocante",
+        image: "/nugget.jpeg",
+        message: "Seu combo já vem com batata e refri. Quer deixar ainda melhor com uma porção de Menfi's Nuggets por R$ 12,90?",
+      },
+      ids,
+    );
+  }
+
+  if (hasCombo && hasNuggets) {
+    return prependUnique(
+      {
+        id: "nuggets-10un",
+        name: "Menfi's Nuggets 10 unidades",
+        price: 18.9,
+        description: "Porção média para dividir",
+        image: "/nugget.jpeg",
+        message: "Para mais pessoas, uma porção maior de nuggets aumenta o pedido sem complicar.",
+      },
+      ids,
+    );
+  }
+
+  return DEFAULT_SUGGESTIONS.filter((item) => !ids.has(item.id));
+}
+
+function prependUnique(primary: SuggestedExtra, cartIds: Set<string>) {
+  const rest = DEFAULT_SUGGESTIONS.filter((item) => item.id !== primary.id && !cartIds.has(item.id));
+  return [primary, ...rest].slice(0, 5);
 }

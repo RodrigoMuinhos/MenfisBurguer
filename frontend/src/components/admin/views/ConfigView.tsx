@@ -72,6 +72,7 @@ export function ConfigView({
   const normalizedOperatingHours = normalizeOperatingHours(operatingHours);
   const normalizedPresentation = normalizePresentationSettings(presentation);
   const normalizedPromoCards = normalizePromoCards(promoCards);
+  const activePromoCardsCount = normalizedPromoCards.filter((card) => card.enabled).length;
   const [adminLoginDraft, setAdminLoginDraft] = useState(adminLogin || "menfisburguer@adm.com");
   const [adminPasswordDraft, setAdminPasswordDraft] = useState("");
   const [adminCredentialsSaved, setAdminCredentialsSaved] = useState(false);
@@ -347,6 +348,11 @@ export function ConfigView({
               <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Cards promocionais</p>
               <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
                 Edite os cards que aparecem no carrossel de promoções do cardápio mobile.
+              </p>
+              <p className="mt-1 text-xs font-black" style={{ color: activePromoCardsCount === 0 ? "#991B1B" : `${VERDE}99` }}>
+                {activePromoCardsCount === 0
+                  ? "Todos os cards estão ocultos. O carrossel não aparecerá para o cliente."
+                  : `${activePromoCardsCount} card${activePromoCardsCount !== 1 ? "s" : ""} ativo${activePromoCardsCount !== 1 ? "s" : ""} no carrossel.`}
               </p>
             </div>
           </div>

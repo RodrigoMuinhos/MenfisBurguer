@@ -628,12 +628,17 @@ export function AdminPanel({
     const code = couponCode.trim();
     const value = Number(couponValue.replace(",", "."));
     if (!code || !Number.isFinite(value) || (couponType !== "free_shipping" && value <= 0)) return;
+    const existingCoupon = editingCouponCode
+      ? mergeCoupons(customCoupons).find(
+          (item) => item.code.toLowerCase() === editingCouponCode.toLowerCase(),
+        )
+      : null;
     const coupon: Coupon = {
       code,
       label: couponLabel(couponType, value),
       type: couponType,
       value: couponType === "free_shipping" ? 0 : value,
-      active: true,
+      active: editingCouponCode ? existingCoupon?.active !== false : true,
       maxUsesPerDay: Number(couponMaxUsesPerDay) > 0 ? Number(couponMaxUsesPerDay) : undefined,
       maxUsesTotal: Number(couponMaxUsesTotal) > 0 ? Number(couponMaxUsesTotal) : undefined,
       startsAt: couponStartsAt || undefined,

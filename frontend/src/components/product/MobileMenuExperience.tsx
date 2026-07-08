@@ -63,6 +63,11 @@ const SALES_ORDER = [
   "double-bacon-combo",
   "bacon-super-combo",
   "batata",
+  "batata-media",
+  "batata-pequena",
+  "nuggets-100g",
+  "nuggets-10un",
+  "nuggets-grande",
   "coca-zero",
   "guarana-zero",
   "agua-com-gas",
@@ -169,6 +174,14 @@ export function MobileMenuExperience({
     featuredItem ?? items.find((item) => item.id === "double-burger") ?? items[0];
   const categoryLabel =
     MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label ?? "Produtos";
+  const friesGalleryItems =
+    category === "extras"
+      ? visibleItems.filter((item) => item.eyebrow === "Galeria de Fritas")
+      : [];
+  const regularVisibleItems =
+    category === "extras"
+      ? visibleItems.filter((item) => item.eyebrow !== "Galeria de Fritas")
+      : visibleItems;
   const whatsappText = encodeURIComponent(
     "Oi, Menfi's! Quero fazer um pedido pelo WhatsApp.",
   );
@@ -329,7 +342,27 @@ export function MobileMenuExperience({
             {categoryLabel}
           </h2>
           <div className="mt-3 grid gap-3">
-            {visibleItems.map((item) => (
+            {friesGalleryItems.length > 0 && (
+              <div className="grid gap-3 rounded-[22px] p-3" style={{ background: "#FFF8F2", border: `1px solid ${VINHO}12` }}>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: MAGENTA }}>
+                    Galeria de Fritas
+                  </p>
+                  <p className="mt-1 text-xs font-bold opacity-60">
+                    Batatas e Menfi's Nuggets para adicionar ao pedido.
+                  </p>
+                </div>
+                {friesGalleryItems.map((item) => (
+                  <MobileListItem
+                    key={item.id}
+                    item={item}
+                    onAdd={() => onQuickAdd(item)}
+                    onOpen={() => onOpenDetails(item)}
+                  />
+                ))}
+              </div>
+            )}
+            {regularVisibleItems.map((item) => (
               <MobileListItem
                 key={item.id}
                 item={item}
