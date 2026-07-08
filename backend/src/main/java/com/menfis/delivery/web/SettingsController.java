@@ -2,6 +2,7 @@ package com.menfis.delivery.web;
 
 import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.SettingsService;
+import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -82,6 +83,14 @@ public class SettingsController {
     return settings.setPresentationSettings(request.presentation());
   }
 
+  @PatchMapping("/promo-cards")
+  public Map<String, Object> setPromoCards(
+      @RequestBody PromoCardsRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return settings.setPromoCards(request.promoCards());
+  }
+
   @GetMapping("/admin-credentials")
   public Map<String, Object> adminCredentials(
       @RequestHeader(name = "Authorization", required = false) String authorization) {
@@ -110,5 +119,6 @@ public class SettingsController {
   public record FeaturedProductRequest(String productId) {}
   public record OperatingHoursRequest(Map<String, Object> operatingHours) {}
   public record PresentationRequest(Map<String, Object> presentation) {}
+  public record PromoCardsRequest(List<Map<String, Object>> promoCards) {}
   public record AdminCredentialsRequest(String login, String password) {}
 }

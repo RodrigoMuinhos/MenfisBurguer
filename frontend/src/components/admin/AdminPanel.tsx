@@ -18,12 +18,15 @@ import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order"
 import {
   DEFAULT_OPERATING_HOURS,
   DEFAULT_PRESENTATION_SETTINGS,
+  DEFAULT_PROMO_CARDS,
   DELIVERY_FEE,
   OperatingHoursConfig,
+  PromoCard,
   PresentationSettings,
   SERVICE_FEE,
   normalizeOperatingHours,
   normalizePresentationSettings,
+  normalizePromoCards,
 } from "@/components/order/checkout";
 import { ROSA, VERDE } from "@/utils/theme";
 import { CapacityItem, EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
@@ -125,6 +128,8 @@ export function AdminPanel({
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [presentation, setPresentation] = useState<PresentationSettings>(DEFAULT_PRESENTATION_SETTINGS);
   const [savedPresentation, setSavedPresentation] = useState<PresentationSettings>(DEFAULT_PRESENTATION_SETTINGS);
+  const [promoCards, setPromoCards] = useState<PromoCard[]>(DEFAULT_PROMO_CARDS);
+  const [savedPromoCards, setSavedPromoCards] = useState<PromoCard[]>(DEFAULT_PROMO_CARDS);
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
   const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
 
@@ -344,6 +349,9 @@ export function AdminPanel({
     const normalizedPresentation = normalizePresentationSettings(settings.presentation);
     setPresentation(normalizedPresentation);
     setSavedPresentation(normalizedPresentation);
+    const normalizedPromoCards = normalizePromoCards(settings.promoCards);
+    setPromoCards(normalizedPromoCards);
+    setSavedPromoCards(normalizedPromoCards);
   };
 
   useEffect(() => {
@@ -461,6 +469,29 @@ export function AdminPanel({
       setAdminDataError("");
     } catch {
       setAdminDataError("Não foi possível salvar a apresentação.");
+    } finally {
+      setSavingPayOnDelivery(false);
+    }
+  };
+
+  const savePromoCards = async () => {
+    if (!API_URL || savingPayOnDelivery) return;
+    setSavingPayOnDelivery(true);
+    try {
+      const response = await fetch(`${API_URL}/settings/promo-cards`, {
+        method: "PATCH",
+        headers: adminHeaders(adminToken, true),
+        body: JSON.stringify({ promoCards: normalizePromoCards(promoCards) }),
+      });
+      if (!response.ok) {
+        setAdminDataError("Não foi possível salvar os cards promocionais.");
+        return;
+      }
+      const settings = await response.json();
+      applyPublicSettings(settings);
+      setAdminDataError("");
+    } catch {
+      setAdminDataError("Não foi possível salvar os cards promocionais.");
     } finally {
       setSavingPayOnDelivery(false);
     }
@@ -888,6 +919,7 @@ export function AdminPanel({
             adminLogin={adminLogin}
             operatingHours={operatingHours}
             presentation={presentation}
+            promoCards={promoCards}
             hasUnsavedOperatingHours={
               JSON.stringify(normalizeOperatingHours(operatingHours)) !==
               JSON.stringify(normalizeOperatingHours(savedOperatingHours))
@@ -895,6 +927,10 @@ export function AdminPanel({
             hasUnsavedPresentation={
               JSON.stringify(normalizePresentationSettings(presentation)) !==
               JSON.stringify(normalizePresentationSettings(savedPresentation))
+            }
+            hasUnsavedPromoCards={
+              JSON.stringify(normalizePromoCards(promoCards)) !==
+              JSON.stringify(normalizePromoCards(savedPromoCards))
             }
             saving={savingPayOnDelivery}
             disabled={!API_URL}
@@ -906,8 +942,10 @@ export function AdminPanel({
             onSaveAdminCredentials={saveAdminCredentials}
             onOperatingHoursChange={updateOperatingHours}
             onPresentationChange={setPresentation}
+            onPromoCardsChange={setPromoCards}
             onSaveOperatingHours={saveOperatingHours}
             onSavePresentation={savePresentation}
+            onSavePromoCards={savePromoCards}
             onResetRealOperation={resetRealOperation}
           />
         )}

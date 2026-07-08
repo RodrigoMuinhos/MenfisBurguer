@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
-import { API_URL, SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
+import { API_URL, DEFAULT_PROMO_CARDS, PromoCard, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
 import { fmt, imageSrc, MemberProfile } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
@@ -148,6 +148,7 @@ export function MobileMenuExperience({
   const [closedHoursOpen, setClosedHoursOpen] = useState(false);
   const [closedHoursMessage, setClosedHoursMessage] = useState("");
   const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
+  const [promoCards, setPromoCards] = useState<PromoCard[]>(DEFAULT_PROMO_CARDS);
   const searchRef = useRef<HTMLInputElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -190,12 +191,13 @@ export function MobileMenuExperience({
 
   useEffect(() => {
     if (!API_URL) return;
-    if (soldOutEnabled) return;
-    if (sessionStorage.getItem(CLOSED_HOURS_ALERT_KEY) === "1") return;
     const controller = new AbortController();
     fetch(`${API_URL}/settings/public`, { cache: "no-store", signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((settings) => {
+        setPromoCards(normalizePromoCards(settings?.promoCards));
+        if (soldOutEnabled) return;
+        if (sessionStorage.getItem(CLOSED_HOURS_ALERT_KEY) === "1") return;
         if (settings?.operatingNow !== false) return;
         setClosedHoursMessage(String(settings.operatingHoursMessage ?? "Estamos fechados no momento."));
         setClosedHoursOpen(true);
@@ -281,6 +283,7 @@ export function MobileMenuExperience({
         </div>
 
         <OfferCarousel
+          offers={promoCards}
           onOpenReviews={() => setPanel("reviews")}
         />
 
@@ -562,43 +565,25 @@ function CategoryNav({
 }
 
 function OfferCarousel({
+  offers,
   onOpenReviews,
 }: {
+  offers: PromoCard[];
   onOpenReviews: () => void;
 }) {
-  const offers = [
-    {
-      id: "mfb10",
-      eyebrow: "Primeira compra?",
-      title: "MFB10",
-      copy: "Ganhe 10% OFF no primeiro pedido",
-      value: "10%",
-      suffix: "OFF",
-      icon: Gift,
-      action: onOpenReviews,
-    },
-    {
-      id: "combolove",
-      eyebrow: "Quarta-feira",
-      title: "LOV50",
-      copy: "Na compra de um combo, o segundo sai com 50% OFF",
-      value: "50%",
-      suffix: "2o combo",
-      icon: Flame,
-      action: onOpenReviews,
-    },
-  ];
+  const visibleOffers = normalizePromoCards(offers).filter((offer) => offer.enabled);
+  if (visibleOffers.length === 0) return null;
 
   return (
     <section className="relative z-10 mt-2 -mx-4 overflow-x-auto px-4 pb-1">
       <div className="flex snap-x snap-mandatory gap-3">
-        {offers.map((offer) => {
-          const Icon = offer.icon;
+        {visibleOffers.map((offer) => {
+          const Icon = offer.icon === "flame" ? Flame : Gift;
           return (
             <button
               key={offer.id}
               type="button"
-              onClick={offer.action}
+              onClick={onOpenReviews}
               className="relative min-h-[132px] w-[86vw] max-w-[380px] shrink-0 snap-start overflow-hidden rounded-[18px] px-4 py-4 text-left text-white"
               style={{ background: VINHO }}
             >

@@ -34,6 +34,19 @@ export type PresentationSettings = {
   featuredImage?: string;
 };
 
+export type PromoCardIcon = "gift" | "flame";
+
+export type PromoCard = {
+  id: string;
+  enabled: boolean;
+  eyebrow: string;
+  title: string;
+  copy: string;
+  value: string;
+  suffix: string;
+  icon: PromoCardIcon;
+};
+
 export type Coupon = {
   code: string;
   label: string;
@@ -173,6 +186,29 @@ export const DEFAULT_PRESENTATION_SETTINGS: PresentationSettings = {
   featuredImage: "",
 };
 
+export const DEFAULT_PROMO_CARDS: PromoCard[] = [
+  {
+    id: "mfb10",
+    enabled: true,
+    eyebrow: "Primeira compra?",
+    title: "MFB10",
+    copy: "Ganhe 10% OFF no primeiro pedido",
+    value: "10%",
+    suffix: "OFF",
+    icon: "gift",
+  },
+  {
+    id: "combolove",
+    enabled: true,
+    eyebrow: "Quarta-feira",
+    title: "LOV50",
+    copy: "Na compra de um combo, o segundo sai com 50% OFF",
+    value: "50%",
+    suffix: "2o combo",
+    icon: "flame",
+  },
+];
+
 export function normalizePresentationSettings(value: unknown): PresentationSettings {
   const data =
     value && typeof value === "object"
@@ -201,6 +237,29 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
     images: images.length ? images : DEFAULT_PRESENTATION_SETTINGS.images,
     featuredImage,
   };
+}
+
+export function normalizePromoCards(value: unknown): PromoCard[] {
+  const rows = Array.isArray(value) ? value : DEFAULT_PROMO_CARDS;
+  const cards: PromoCard[] = rows
+    .map((row, index): PromoCard => {
+      const data = row && typeof row === "object" ? (row as Partial<PromoCard>) : {};
+      const id = String(data.id || `promo-${index + 1}`).trim();
+      const title = String(data.title ?? "").trim();
+      const copy = String(data.copy ?? "").trim();
+      return {
+        id: id || `promo-${index + 1}`,
+        enabled: data.enabled !== false,
+        eyebrow: String(data.eyebrow ?? "").trim(),
+        title,
+        copy,
+        value: String(data.value ?? "").trim(),
+        suffix: String(data.suffix ?? "").trim(),
+        icon: data.icon === "flame" ? "flame" : "gift",
+      };
+    })
+    .filter((card) => card.title || card.copy || card.value);
+  return cards.length ? cards.slice(0, 8) : DEFAULT_PROMO_CARDS;
 }
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;

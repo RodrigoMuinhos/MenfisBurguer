@@ -19,6 +19,7 @@ public class SettingsService {
   public static final String OPERATING_HOURS = "operating_hours";
   public static final String SOLD_OUT = "sold_out_enabled";
   public static final String PRESENTATION = "presentation_settings";
+  public static final String PROMO_CARDS = "promo_cards";
   public static final String SOLD_OUT_MESSAGE = """
     FELIZMENTE, HOJE ESGOTAMOS TUDO!
 
@@ -41,6 +42,12 @@ public class SettingsService {
     """;
   private static final String DEFAULT_PRESENTATION = """
     {"enabled":true,"intervalSeconds":6,"imageCount":1,"images":["/descanso.png"]}
+    """;
+  private static final String DEFAULT_PROMO_CARDS = """
+    [
+      {"id":"mfb10","enabled":true,"eyebrow":"Primeira compra?","title":"MFB10","copy":"Ganhe 10% OFF no primeiro pedido","value":"10%","suffix":"OFF","icon":"gift"},
+      {"id":"combolove","enabled":true,"eyebrow":"Quarta-feira","title":"LOV50","copy":"Na compra de um combo, o segundo sai com 50% OFF","value":"50%","suffix":"2o combo","icon":"flame"}
+    ]
     """;
 
   private final JdbcTemplate jdbc;
@@ -95,6 +102,18 @@ public class SettingsService {
     }
   }
 
+  public List<Map<String, Object>> promoCards() {
+    try {
+      return objectMapper.readValue(value(PROMO_CARDS, DEFAULT_PROMO_CARDS), new TypeReference<>() {});
+    } catch (Exception ignored) {
+      try {
+        return objectMapper.readValue(DEFAULT_PROMO_CARDS, new TypeReference<>() {});
+      } catch (Exception fallbackError) {
+        return List.of();
+      }
+    }
+  }
+
   public Map<String, Object> publicSettings() {
     OperatingStatus operatingStatus = operatingStatus();
     boolean soldOut = soldOutEnabled();
@@ -106,6 +125,7 @@ public class SettingsService {
     response.put("demoTableEnabled", demoTableEnabled());
     response.put("operatingHours", operatingHours());
     response.put("presentation", presentationSettings());
+    response.put("promoCards", promoCards());
     response.put("soldOutEnabled", soldOut);
     response.put("soldOutActive", soldOutActive);
     response.put("soldOutMessage", SOLD_OUT_MESSAGE);
@@ -288,6 +308,23 @@ public class SettingsService {
       );
     } catch (Exception e) {
       throw new IllegalArgumentException("Apresentação inválida.");
+    }
+    return publicSettings();
+  }
+
+  public Map<String, Object> setPromoCards(List<Map<String, Object>> promoCards) {
+    try {
+      jdbc.update(
+        """
+        insert into app_settings(key, value, updated_at)
+        values (?, ?, now())
+        on conflict (key) do update set value = excluded.value, updated_at = now()
+        """,
+        PROMO_CARDS,
+        objectMapper.writeValueAsString(promoCards == null ? List.of() : promoCards)
+      );
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Cards promocionais inválidos.");
     }
     return publicSettings();
   }

@@ -1,12 +1,14 @@
-import { CalendarClock, FlaskConical, GripVertical, ImagePlus, KeyRound, PackageX, RotateCcw, Save, Table2, Trash2 } from "lucide-react";
+import { CalendarClock, Flame, FlaskConical, Gift, GripVertical, ImagePlus, KeyRound, PackageX, Plus, RotateCcw, Save, Table2, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
   PresentationSettings,
+  PromoCard,
   OperatingHoursConfig,
   normalizeOperatingHours,
   normalizePresentationSettings,
+  normalizePromoCards,
 } from "@/components/order/checkout";
 import { PayOnDeliverySettings } from "../AdminChrome";
 
@@ -19,8 +21,10 @@ export function ConfigView({
   adminLogin,
   operatingHours,
   presentation,
+  promoCards,
   hasUnsavedOperatingHours,
   hasUnsavedPresentation,
+  hasUnsavedPromoCards,
   saving,
   disabled,
   onTogglePayOnDelivery,
@@ -31,8 +35,10 @@ export function ConfigView({
   onSaveAdminCredentials,
   onOperatingHoursChange,
   onPresentationChange,
+  onPromoCardsChange,
   onSaveOperatingHours,
   onSavePresentation,
+  onSavePromoCards,
   onResetRealOperation,
 }: {
   payOnDeliveryEnabled: boolean;
@@ -43,8 +49,10 @@ export function ConfigView({
   adminLogin: string;
   operatingHours: OperatingHoursConfig;
   presentation: PresentationSettings;
+  promoCards: PromoCard[];
   hasUnsavedOperatingHours: boolean;
   hasUnsavedPresentation: boolean;
+  hasUnsavedPromoCards: boolean;
   saving: boolean;
   disabled: boolean;
   onTogglePayOnDelivery: () => void;
@@ -55,12 +63,15 @@ export function ConfigView({
   onSaveAdminCredentials: (login: string, password: string) => Promise<boolean>;
   onOperatingHoursChange: (config: OperatingHoursConfig) => void;
   onPresentationChange: (config: PresentationSettings) => void;
+  onPromoCardsChange: (cards: PromoCard[]) => void;
   onSaveOperatingHours: () => void;
   onSavePresentation: () => void;
+  onSavePromoCards: () => void;
   onResetRealOperation: () => void;
 }) {
   const normalizedOperatingHours = normalizeOperatingHours(operatingHours);
   const normalizedPresentation = normalizePresentationSettings(presentation);
+  const normalizedPromoCards = normalizePromoCards(promoCards);
   const [adminLoginDraft, setAdminLoginDraft] = useState(adminLogin || "menfisburguer@adm.com");
   const [adminPasswordDraft, setAdminPasswordDraft] = useState("");
   const [adminCredentialsSaved, setAdminCredentialsSaved] = useState(false);
@@ -125,6 +136,31 @@ export function ConfigView({
     if (!file) return;
     const featuredImage = await encodePresentationImage(file);
     updatePresentation({ featuredImage });
+  };
+  const updatePromoCard = (id: string, patch: Partial<PromoCard>) => {
+    onPromoCardsChange(
+      normalizedPromoCards.map((card) =>
+        card.id === id ? { ...card, ...patch } : card,
+      ),
+    );
+  };
+  const addPromoCard = () => {
+    onPromoCardsChange([
+      ...normalizedPromoCards,
+      {
+        id: `promo-${Date.now()}`,
+        enabled: true,
+        eyebrow: "Nova promoção",
+        title: "CUPOM",
+        copy: "Descreva aqui a oferta para o cliente.",
+        value: "10%",
+        suffix: "OFF",
+        icon: "gift",
+      },
+    ]);
+  };
+  const removePromoCard = (id: string) => {
+    onPromoCardsChange(normalizedPromoCards.filter((card) => card.id !== id));
   };
   const selectedProduct = MENU_ITEMS.find((item) => item.id === featuredProductId) ?? MENU_ITEMS[0];
   const selectedProductImage =
@@ -298,6 +334,175 @@ export function ConfigView({
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
+              <Flame size={19} strokeWidth={2.4} />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Cards promocionais</p>
+              <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
+                Edite os cards que aparecem no carrossel de promoções do cardápio mobile.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={addPromoCard}
+            disabled={saving || disabled || normalizedPromoCards.length >= 8}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
+            style={{ background: VERDE, color: ROSA, opacity: saving || disabled || normalizedPromoCards.length >= 8 ? 0.6 : 1 }}
+          >
+            <Plus size={15} />
+            Novo card
+          </button>
+        </div>
+
+        <div className="grid gap-4">
+          {normalizedPromoCards.map((card) => {
+            const PreviewIcon = card.icon === "flame" ? Flame : Gift;
+            return (
+              <div key={card.id} className="grid gap-4 rounded-2xl p-3 lg:grid-cols-[1fr_260px]" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}12` }}>
+                <div className="grid gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updatePromoCard(card.id, { enabled: !card.enabled })}
+                      disabled={saving || disabled}
+                      className="rounded-full px-4 py-2 text-[10px] font-black uppercase"
+                      style={{
+                        background: card.enabled ? VERDE : "#E5E7EB",
+                        color: card.enabled ? ROSA : "#4B5563",
+                        opacity: saving || disabled ? 0.6 : 1,
+                      }}
+                    >
+                      {card.enabled ? "Ativo" : "Oculto"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removePromoCard(card.id)}
+                      disabled={saving || disabled || normalizedPromoCards.length <= 1}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase"
+                      style={{ background: "#FEF2F2", color: "#991B1B", border: "1px solid #FCA5A5", opacity: normalizedPromoCards.length <= 1 ? 0.45 : 1 }}
+                    >
+                      <Trash2 size={13} />
+                      Remover
+                    </button>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                      Chamada pequena
+                      <input
+                        value={card.eyebrow}
+                        onChange={(event) => updatePromoCard(card.id, { eyebrow: event.target.value })}
+                        disabled={saving || disabled}
+                        className="min-h-11 rounded-xl px-3 text-sm font-black outline-none"
+                        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                      Título/cupom
+                      <input
+                        value={card.title}
+                        onChange={(event) => updatePromoCard(card.id, { title: event.target.value })}
+                        disabled={saving || disabled}
+                        className="min-h-11 rounded-xl px-3 text-sm font-black uppercase outline-none"
+                        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide md:col-span-2" style={{ color: `${VERDE}99` }}>
+                      Texto
+                      <input
+                        value={card.copy}
+                        onChange={(event) => updatePromoCard(card.id, { copy: event.target.value })}
+                        disabled={saving || disabled}
+                        className="min-h-11 rounded-xl px-3 text-sm font-black outline-none"
+                        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                      Destaque
+                      <input
+                        value={card.value}
+                        onChange={(event) => updatePromoCard(card.id, { value: event.target.value })}
+                        disabled={saving || disabled}
+                        className="min-h-11 rounded-xl px-3 text-sm font-black outline-none"
+                        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                      Complemento
+                      <input
+                        value={card.suffix}
+                        onChange={(event) => updatePromoCard(card.id, { suffix: event.target.value })}
+                        disabled={saving || disabled}
+                        className="min-h-11 rounded-xl px-3 text-sm font-black outline-none"
+                        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                      Ícone
+                      <select
+                        value={card.icon}
+                        onChange={(event) => updatePromoCard(card.id, { icon: event.target.value === "flame" ? "flame" : "gift" })}
+                        disabled={saving || disabled}
+                        className="min-h-11 rounded-xl px-3 text-sm font-black outline-none"
+                        style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#fff" }}
+                      >
+                        <option value="gift">Presente</option>
+                        <option value="flame">Fogo</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="relative min-h-[132px] overflow-hidden rounded-[18px] px-4 py-4 text-left text-white" style={{ background: "#65001F", opacity: card.enabled ? 1 : 0.55 }}>
+                  <span className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20" style={{ background: ROSA }} />
+                  <span className="absolute right-3 top-3 flex min-h-14 min-w-16 flex-col items-center justify-center rounded-2xl px-2 text-center" style={{ background: ROSA, color: "#65001F" }}>
+                    <span className="text-2xl font-black leading-none">{card.value || "10%"}</span>
+                    <span className="mt-0.5 max-w-[58px] text-[10px] font-black uppercase leading-[0.95]">{card.suffix || "OFF"}</span>
+                  </span>
+                  <span className="grid max-w-[calc(100%-82px)] grid-cols-[48px_minmax(0,1fr)] gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: ROSA, color: "#65001F" }}>
+                      <PreviewIcon size={24} strokeWidth={2.6} />
+                    </span>
+                    <span className="min-w-0 pt-0.5">
+                      <span className="block text-[13px] font-black uppercase leading-tight text-white">{card.eyebrow || "Promoção"}</span>
+                      <span className="mt-1 block truncate text-[clamp(1.75rem,8vw,2.35rem)] font-black uppercase leading-[0.9]" style={{ color: ROSA }}>
+                        {card.title || "CUPOM"}
+                      </span>
+                      <span className="mt-2 block max-w-[210px] text-[11px] font-black uppercase leading-tight opacity-90">{card.copy || "Texto da oferta"}</span>
+                    </span>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: `${VERDE}12` }}>
+          <p className="text-xs font-bold" style={{ color: hasUnsavedPromoCards ? "#B45309" : `${VERDE}99` }}>
+            {hasUnsavedPromoCards ? "Há alterações nos cards que ainda não foram salvas." : "Cards promocionais salvos e ativos no cardápio."}
+          </p>
+          <button
+            type="button"
+            onClick={onSavePromoCards}
+            disabled={saving || disabled || !hasUnsavedPromoCards}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase"
+            style={{
+              background: hasUnsavedPromoCards ? VERDE : "#E5E7EB",
+              color: hasUnsavedPromoCards ? ROSA : "#6B7280",
+              opacity: saving || disabled ? 0.6 : 1,
+            }}
+          >
+            <Save size={15} />
+            {saving ? "Salvando..." : "Salvar cards"}
+          </button>
         </div>
       </section>
 
