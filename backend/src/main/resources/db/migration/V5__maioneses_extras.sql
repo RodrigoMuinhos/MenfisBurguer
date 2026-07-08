@@ -1,6 +1,6 @@
 insert into products (id, name, description, base_price, active)
 values
-  ('extra-maionese-barbecue', 'Maionese Barbecue', 'Porção extra de maionese barbecue', 2.00, true),
+  ('extra-maionese-barbecue', 'Maionse Grill', 'Porção extra de Maionse Grill', 2.00, true),
   ('extra-maionese-alho-frito', 'Maionese Alho Frito', 'Porção extra de maionese alho frito', 2.00, true)
 on conflict (id) do update set
   name = excluded.name,

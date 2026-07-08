@@ -52,7 +52,7 @@ function buildPendingCreatedOrder({
     overrides: {
       ...couponOrderFields,
       paymentProvider,
-      paymentMethod: payment,
+      paymentMethod: payment || undefined,
       paymentStatus: String(paymentStatus ?? createdOrder.paymentStatus ?? "pending"),
       paymentId:
         typeof createdOrder.paymentId === "string" ? createdOrder.paymentId : undefined,

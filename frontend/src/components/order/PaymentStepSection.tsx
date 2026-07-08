@@ -102,6 +102,15 @@ export function PaymentStepSection({
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
 }) {
+  const choosePayment = (id: Exclude<PaymentMethod, "">) => {
+    setPayment(id);
+    window.setTimeout(() => {
+      document
+        .querySelector("[data-checkout-submit]")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+  };
+
   return (
     <>
               <AnimatePresence>
@@ -332,7 +341,7 @@ export function PaymentStepSection({
                               return (
                                 <button
                                   key={id}
-                                  onClick={() => setPayment(id)}
+                                  onClick={() => choosePayment(id as Exclude<PaymentMethod, "">)}
                                   className="flex min-h-[104px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-4 py-5 text-sm font-black uppercase tracking-wider"
                                   style={{
                                     background: active ? VERDE : "#fff",
@@ -420,7 +429,7 @@ export function PaymentStepSection({
                               return (
                                 <button
                                   key={id}
-                                  onClick={() => setPayment(id)}
+                                  onClick={() => choosePayment(id as Exclude<PaymentMethod, "">)}
                                   className="flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl px-3 py-4 text-xs font-black uppercase tracking-wider"
                                   style={{
                                     background: active ? VERDE : "#fff",

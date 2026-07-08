@@ -137,7 +137,7 @@ export function useCartCheckout({
   );
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [payment, setPayment] = useState<PaymentMethod>(
-    kioskMode || counterServiceMode ? "pix" : "whatsapp",
+    kioskMode || counterServiceMode ? "pix" : "",
   );
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -280,9 +280,10 @@ export function useCartCheckout({
       current === "cartao" ||
       current === "pagar_na_entrega" ||
       current === "presencial" ||
-      current === "whatsapp"
+      current === "whatsapp" ||
+      current === ""
         ? current
-        : "whatsapp",
+        : "",
     );
   }, [counterServiceMode, kioskMode]);
 
@@ -316,7 +317,7 @@ export function useCartCheckout({
         setSoldOutMessage(String(settings.soldOutMessage ?? SOLD_OUT_MESSAGE));
         if (!enabled) {
           setPayment((current) =>
-            current === "pagar_na_entrega" ? "pix" : current,
+            current === "pagar_na_entrega" ? "" : current,
           );
         }
       })

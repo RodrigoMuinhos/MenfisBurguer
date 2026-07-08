@@ -2,6 +2,7 @@ import { CartItem } from "@/types/order";
 
 export type DeliveryType = "retirada" | "delivery";
 export type PaymentMethod =
+  | ""
   | "pix"
   | "pix_qrcode"
   | "mercadopago"
@@ -129,7 +130,7 @@ export const ITEM_DESC: Record<string, string> = {
   "extra-queijo": "Queijo extra derretido",
   "extra-ovo": "Ovo adicional no burger",
   "extra-molho": "Porção extra do molho Menfi's",
-  "extra-maionese-barbecue": "Porção extra de maionese barbecue",
+  "extra-maionese-barbecue": "Porção extra de Maionse Grill",
   "extra-maionese-alho-frito": "Porção extra de maionese alho frito",
   "batata-pequena": "Batata frita pequena 90g",
   "batata-media": "Batata frita média 180g",

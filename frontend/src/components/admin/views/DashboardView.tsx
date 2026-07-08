@@ -41,7 +41,7 @@ const LEGACY_STOCK_ALIASES: Record<string, string[]> = {
   "4": ["queijo", "extra queijo"],
   "5": ["coca-cola zero", "coca cola zero", "coca-cola", "coca cola"],
   "6": ["batata frita", "batata"],
-  "7": ["molho menfi's", "molho menfis", "maionese alho frito", "maionese barbecue", "maionese"],
+  "7": ["molho menfi's", "molho menfis", "maionese alho frito", "maionse grill", "maionese"],
   "8": ["filé de frango empanado", "file de frango empanado", "adicional de frango", "frango"],
   "9": ["bacon", "adicional de bacon"],
   "10": ["cheddar", "adicional de cheddar"],

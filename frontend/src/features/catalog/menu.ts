@@ -271,12 +271,12 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "extra-maionese-barbecue",
-    name: "Maionese Barbecue",
+    name: "Maionse Grill",
     eyebrow: "Adicional",
-    desc: "Porção extra de maionese barbecue.",
+    desc: "Porção extra de Maionse Grill.",
     price: 2,
     image: "/EXTRAS/MaioneseBarbecue.jpg",
-    tags: ["Maionese", "Barbecue"],
+    tags: ["Maionse", "Grill"],
     category: "extra",
   },
   {

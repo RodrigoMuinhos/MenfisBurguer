@@ -138,6 +138,7 @@ export function CartStickyCta({
                 )}
               </div>
               <motion.button
+                data-checkout-submit
                 whileTap={{ scale: 0.97 }}
                 onClick={() => void onFinalize()}
                 disabled={paying}

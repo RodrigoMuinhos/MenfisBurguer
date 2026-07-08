@@ -13,6 +13,9 @@ import { VERDE } from "@/utils/theme";
 import { formatAddressForReceipt } from "@/utils/address";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
+const PRINT_BRIDGE_URL_KEY = "menfis_print_bridge_url";
+const PRINT_BROWSER_FALLBACK_KEY = "menfis_print_browser_fallback";
+const DEFAULT_PRINT_BRIDGE_URL = "http://127.0.0.1:17777/print";
 
 export type Coupon = {
   code: string;
@@ -716,10 +719,63 @@ export function generateCustomerReceipt(order: Order) {
   return receipt;
 }
 
-export function printOrderReceipts(order: Order, options?: { confirm?: boolean }) {
+function printBridgeUrls() {
+  const urls = [
+    process.env.NEXT_PUBLIC_PRINT_BRIDGE_URL,
+    typeof window !== "undefined" ? localStorage.getItem(PRINT_BRIDGE_URL_KEY) : "",
+    DEFAULT_PRINT_BRIDGE_URL,
+  ]
+    .map((url) => String(url ?? "").trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  return [...new Set(urls)];
+}
+
+async function trySilentReceiptPrint(order: Order, receipt: string) {
+  const orderId = String(order.id || order.number || "");
+  for (const url of printBridgeUrls()) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "customer_receipt",
+          printer: "POS-58",
+          orderId,
+          content: receipt,
+        }),
+      });
+      if (response.ok) return true;
+    } catch {
+      // Local print bridge is optional; try the next configured URL.
+    }
+  }
+  return false;
+}
+
+function browserPrintFallbackEnabled(options?: { browserFallback?: boolean }) {
+  if (options?.browserFallback === true) return true;
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(PRINT_BROWSER_FALLBACK_KEY) === "1";
+}
+
+export async function printOrderReceipts(
+  order: Order,
+  options?: { confirm?: boolean; browserFallback?: boolean },
+) {
   if (options?.confirm !== false && !window.confirm("Imprimir via do cliente agora?")) return;
 
-  const receipt = escapeReceipt(generateCustomerReceipt(order));
+  const rawReceipt = generateCustomerReceipt(order);
+  const silentPrinted = await trySilentReceiptPrint(order, rawReceipt);
+  if (silentPrinted) return;
+
+  if (!browserPrintFallbackEnabled(options)) {
+    window.alert(
+      "Impressao direta nao conectada. Abra o agente de impressao local ou configure menfis_print_bridge_url.",
+    );
+    return;
+  }
+
+  const receipt = escapeReceipt(rawReceipt);
   const orderId = escapeReceipt(String(order.id || order.number || ""));
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
