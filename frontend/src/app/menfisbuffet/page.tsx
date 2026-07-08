@@ -29,9 +29,11 @@ const WHATSAPP_TEXT = encodeURIComponent(
   "Olá! Quero levar o Menfi's Buffet para minha festa. Pode me ajudar a montar um orçamento personalizado?",
 );
 
-const heroImage = "/menfisbuffet-static/assets/image-6-5SjDxcF7.png";
-const burgerImage = "/menfisbuffet-static/assets/image-4-XDcwhyYc.png";
-const miniEventImage = "/menfisbuffet-static/assets/image-5-COuJdcpv.png";
+const buffetImage = (file: string) => `/menfisbuffet-static/${file}`;
+
+const heroImage = buffetImage("51249c626219f0979a899f7ac154adbb.jpg");
+const burgerImage = buffetImage("c399bea57b582447054409573018894e.jpg");
+const miniEventImage = buffetImage("4f5aa646709ea409a634e71aa72dee3e.jpg");
 const logoImage = "/menfisbuffet-static/assets/logonome-D-L_tmq8.jpeg";
 
 const miniBurgers = [
@@ -129,13 +131,87 @@ const packages = [
   },
 ];
 
-const gallery = [
-  "/menfisbuffet-static/assets/image-1-3BC4Og4k.png",
-  "/menfisbuffet-static/assets/image-4-XDcwhyYc.png",
-  "/menfisbuffet-static/assets/image-5-COuJdcpv.png",
-  "/menfisbuffet-static/assets/image-6-5SjDxcF7.png",
-  "/menfisbuffet-static/assets/image-7-INGNXHjL.png",
-  "/menfisbuffet-static/assets/image-8-6OiReUZY.png",
+const categoryHighlights = [
+  {
+    title: "Mini burgers",
+    href: "#acervo-mini-burgers",
+    image: buffetImage("83f021109f03ee421aad67a7972f97a4.jpg"),
+    copy: "Estacao principal com burgers artesanais e montagem para servir bem.",
+  },
+  {
+    title: "Mini pizzas",
+    href: "#acervo-mini-pizzas",
+    image: buffetImage("pizzamini.jpg"),
+    copy: "Sabores familiares para completar o menu e agradar diferentes convidados.",
+  },
+  {
+    title: "Salgados",
+    href: "#acervo-salgados",
+    image: buffetImage("179bbadd456feddb6033fdae4f7466e8.jpg"),
+    copy: "Coxinhas, bolinhas, kibes, empadas e opcoes de apoio para festa.",
+  },
+  {
+    title: "Montagens",
+    href: "#acervo-montagens",
+    image: buffetImage("2866d06071e440916ea19a0bfbad0dd3.jpg"),
+    copy: "Mesas completas com volume, variedade e apresentacao para evento.",
+  },
+];
+
+const gallerySections = [
+  {
+    id: "acervo-mini-burgers",
+    title: "Mini burgers e combos infantis",
+    copy: "Burgers artesanais, mini chicken, acompanhamentos e caixas para festa.",
+    images: [
+      buffetImage("83f021109f03ee421aad67a7972f97a4.jpg"),
+      buffetImage("c399bea57b582447054409573018894e.jpg"),
+      buffetImage("4f5aa646709ea409a634e71aa72dee3e.jpg"),
+      buffetImage("6acc5f4a09b5eae74ffc742ddf7f0e44.jpg"),
+      buffetImage("8696e5861d3147173c9bdf315745c35c.jpg"),
+      "/menfisbuffet-static/assets/image-4-XDcwhyYc.png",
+      "/menfisbuffet-static/assets/image-6-5SjDxcF7.png",
+    ],
+  },
+  {
+    id: "acervo-mini-pizzas",
+    title: "Mini pizzas",
+    copy: "Mini pizzas em bandejas, caixas e combinacoes com outros itens do buffet.",
+    images: [
+      buffetImage("pizzamini.jpg"),
+      buffetImage("6d35d89fc3bf214e19cec00006c307de.jpg"),
+      buffetImage("4f5aa646709ea409a634e71aa72dee3e.jpg"),
+      buffetImage("55026341e085bd03a74275d48dc0ba4a.jpg"),
+      "/menfisbuffet-static/assets/image-1-3BC4Og4k.png",
+    ],
+  },
+  {
+    id: "acervo-salgados",
+    title: "Salgados e acompanhamentos",
+    copy: "Salgados classicos, empadas, sanduiches e porcoes para reforcar a mesa.",
+    images: [
+      buffetImage("179bbadd456feddb6033fdae4f7466e8.jpg"),
+      buffetImage("bf62121a2569ed53eade2b95d11a4e48.jpg"),
+      buffetImage("55026341e085bd03a74275d48dc0ba4a.jpg"),
+      buffetImage("20cc3b5d7a70580c9f931785e0e1f70c.jpg"),
+      buffetImage("67079aa4015289e2a886ab5880001c10.jpg"),
+      buffetImage("bc215ee2e6bfa96b8206541f75395849.jpg"),
+      buffetImage("fcc9ef2182eb0eb26910f77225661259.jpg"),
+    ],
+  },
+  {
+    id: "acervo-montagens",
+    title: "Montagens de evento",
+    copy: "Mesas completas, caixas montadas e apresentacao visual para eventos maiores.",
+    images: [
+      buffetImage("51249c626219f0979a899f7ac154adbb.jpg"),
+      buffetImage("2866d06071e440916ea19a0bfbad0dd3.jpg"),
+      buffetImage("cff2556e865bae7b826286333246f1d5.jpg"),
+      buffetImage("669bf2ba91fc4116a5fa420225251763.jpg"),
+      buffetImage("8696e5861d3147173c9bdf315745c35c.jpg"),
+      "/menfisbuffet-static/assets/image-8-6OiReUZY.png",
+    ],
+  },
 ];
 
 export default function MenfisBuffetPage() {
@@ -217,6 +293,24 @@ export default function MenfisBuffetPage() {
             Nosso cardapio conta com mini hamburgueres artesanais, salgadinhos classicos, mini pizzas, docinhos especiais, praca de bebidas infantis e drinks sem alcool. Montamos uma experiencia completa, visual e saborosa para deixar seu evento mais pratico, bonito e inesquecivel.
           </p>
         </div>
+        <div className="mx-auto mt-10 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {categoryHighlights.map((item) => (
+            <a
+              key={item.title}
+              href={item.href}
+              className="group overflow-hidden rounded-3xl border border-[#314A37]/10 bg-white transition duration-200 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#314A37]/12"
+            >
+              <img src={item.image} alt={item.title} className="h-48 w-full object-cover transition duration-300 group-hover:scale-105" />
+              <div className="p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-black">{item.title}</h3>
+                  <ArrowRight size={18} color={TOMATE} />
+                </div>
+                <p className="mt-2 text-sm font-semibold leading-relaxed text-[#314A37]/62">{item.copy}</p>
+              </div>
+            </a>
+          ))}
+        </div>
       </section>
 
       <section id="cardapio" className="px-4 py-14 md:px-6 lg:py-20">
@@ -250,7 +344,7 @@ export default function MenfisBuffetPage() {
           <SectionTitle
             eyebrow="Praca de bebidas"
             title="Bebidas infantis e drinks sem alcool para deixar o buffet mais premium."
-            copy='Para festas infantis, use "drinks sem alcool" ou "mocktails infantis": fica bonito e evita confusao.'
+            copy="Sucos, refrigerantes, agua saborizada e mocktails infantis para acompanhar a experiencia completa do buffet."
           />
           <div className="grid gap-5 lg:grid-cols-2">
             <MenuBlock icon={<CupSoda size={22} />} title="Bebidas infantis" items={drinks} />
@@ -316,14 +410,29 @@ export default function MenfisBuffetPage() {
             title="Montagem bonita, mesa cheia e identidade Menfi's."
             copy="Fotos de referencia do buffet para mostrar variedade, volume e acabamento de evento."
           />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:gap-4">
-            {gallery.map((image, index) => (
-              <img
-                key={image}
-                src={image}
-                alt={`Galeria Menfi's Buffet ${index + 1}`}
-                className={`h-full min-h-52 w-full rounded-3xl object-cover ${index === 0 ? "md:row-span-2 md:min-h-[430px]" : ""}`}
-              />
+          <div className="grid gap-8">
+            {gallerySections.map((section) => (
+              <section key={section.title} id={section.id} className="scroll-mt-24">
+                <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h3 className="text-2xl font-black">{section.title}</h3>
+                    <p className="mt-1 text-sm font-semibold text-[#314A37]/62">{section.copy}</p>
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: TOMATE }}>
+                    {section.images.length} fotos
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
+                  {section.images.map((image, index) => (
+                    <img
+                      key={`${section.title}-${image}-${index}`}
+                      src={image}
+                      alt={`${section.title} Menfi's Buffet ${index + 1}`}
+                      className={`h-full min-h-52 w-full rounded-3xl object-cover ${index === 0 ? "md:col-span-2 md:min-h-[430px]" : ""}`}
+                    />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </div>
