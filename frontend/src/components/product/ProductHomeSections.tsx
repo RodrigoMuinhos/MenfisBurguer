@@ -143,6 +143,7 @@ export function ProductHero({
   kioskMode,
   featuredItem,
   featuredImage,
+  heroReady = true,
   onIdleShortcutTap,
   onAddFeatured,
   operatingNow,
@@ -152,6 +153,7 @@ export function ProductHero({
   kioskMode: boolean;
   featuredItem: MenuItem;
   featuredImage?: string;
+  heroReady?: boolean;
   onIdleShortcutTap: () => void;
   onAddFeatured: () => void;
   operatingNow: boolean;
@@ -304,14 +306,16 @@ export function ProductHero({
         className="relative min-h-[280px] overflow-hidden rounded-[24px]"
         style={{ background: "#fff" }}
       >
-        <Image
-          src={featuredImage || featuredItem.image || burgerPhoto}
-          alt={featuredItem.name}
-          fill
-          priority
-          sizes="(max-width: 768px) 100vw, 50vw"
-          style={{ objectFit: "cover", objectPosition: "center 42%" }}
-        />
+        {heroReady ? (
+          <Image
+            src={featuredImage || featuredItem.image || burgerPhoto}
+            alt={featuredItem.name}
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 50vw"
+            style={{ objectFit: "cover", objectPosition: "center 42%" }}
+          />
+        ) : null}
         <div
           className="absolute inset-x-0 bottom-0 p-4"
           style={{

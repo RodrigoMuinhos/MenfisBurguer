@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 import {
   Beef,
   Bell,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Clock,
@@ -128,6 +129,7 @@ export function MobileMenuExperience({
   cartTotal,
   featuredItem,
   featuredImage,
+  heroReady = true,
   memberProfile,
   notificationCount,
   onOpenMember,
@@ -143,6 +145,7 @@ export function MobileMenuExperience({
   cartTotal: number;
   featuredItem?: MenuItem;
   featuredImage?: string;
+  heroReady?: boolean;
   memberProfile: MemberProfile | null;
   notificationCount: number;
   onOpenMember: () => void;
@@ -274,7 +277,7 @@ export function MobileMenuExperience({
             className="relative block aspect-[1.08/1] w-full overflow-hidden bg-white min-[420px]:aspect-[1.18/1]"
             aria-label={`Ver ${heroItem?.name ?? "produto"}`}
           >
-            {featuredImage || heroItem?.image ? (
+            {heroReady && (featuredImage || heroItem?.image) ? (
               <Image
                 src={featuredImage || imageSrc(heroItem.image)}
                 alt={heroItem.name}
@@ -613,70 +616,109 @@ function OfferCarousel({
   onOpenReviews: () => void;
 }) {
   const visibleOffers = normalizePromoCards(offers).filter((offer) => offer.enabled);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const activeOffer = visibleOffers[activeIndex] ?? visibleOffers[0];
+  const hasMultipleOffers = visibleOffers.length > 1;
+
+  useEffect(() => {
+    if (activeIndex <= visibleOffers.length - 1) return;
+    setActiveIndex(0);
+  }, [activeIndex, visibleOffers.length]);
+
+  useEffect(() => {
+    if (!hasMultipleOffers) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % visibleOffers.length);
+    }, 4500);
+    return () => window.clearInterval(timer);
+  }, [hasMultipleOffers, visibleOffers.length]);
+
   if (visibleOffers.length === 0) return null;
+  const Icon = promoCardIcon(activeOffer.icon);
+  const previousOffer = () =>
+    setActiveIndex((current) => (current - 1 + visibleOffers.length) % visibleOffers.length);
+  const nextOffer = () =>
+    setActiveIndex((current) => (current + 1) % visibleOffers.length);
 
   return (
-    <section className="relative z-10 mt-2 -mx-4 overflow-x-auto px-4 pb-1">
-      <div className="flex snap-x snap-mandatory gap-3">
-        {visibleOffers.map((offer) => {
-          const Icon = promoCardIcon(offer.icon);
-          return (
-            <button
-              key={offer.id}
-              type="button"
-              onClick={onOpenReviews}
-              className="relative min-h-[132px] w-[86vw] max-w-[380px] shrink-0 snap-start overflow-hidden rounded-[18px] px-4 py-4 text-left text-white"
-              style={{ background: VINHO }}
+    <section className="relative z-10 mt-2 px-0 pb-1">
+      <button
+        type="button"
+        onClick={onOpenReviews}
+        className="relative block min-h-[132px] w-full overflow-hidden rounded-[18px] px-4 py-4 text-left text-white"
+        style={{ background: VINHO }}
+      >
+        <span
+          className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20"
+          style={{ background: ROSA }}
+        />
+        <span
+          className="absolute right-3 top-3 flex min-h-14 min-w-16 flex-col items-center justify-center rounded-2xl px-2 text-center"
+          style={{ background: ROSA, color: VINHO }}
+        >
+          <span className="text-2xl font-black leading-none">
+            {activeOffer.value}
+          </span>
+          <span className="mt-0.5 max-w-[58px] text-[10px] font-black uppercase leading-[0.95]">
+            {activeOffer.suffix}
+          </span>
+        </span>
+
+        <span className="grid max-w-[calc(100%-82px)] grid-cols-[48px_minmax(0,1fr)] gap-3">
+          <span
+            className="flex h-12 w-12 items-center justify-center rounded-2xl"
+            style={{ background: ROSA, color: VINHO }}
+          >
+            <Icon size={24} strokeWidth={2.6} />
+          </span>
+          <span className="min-w-0 pt-0.5">
+            <span className="block text-[13px] font-black uppercase leading-tight text-white">
+              {activeOffer.eyebrow}
+            </span>
+            <span
+              className="mt-1 block truncate text-[clamp(1.75rem,8vw,2.35rem)] font-black uppercase leading-[0.9]"
+              style={{ color: ROSA }}
             >
-              <span
-                className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20"
-                style={{ background: ROSA }}
-              />
-              <span
-                className="absolute right-3 top-3 flex min-h-14 min-w-16 flex-col items-center justify-center rounded-2xl px-2 text-center"
-                style={{ background: ROSA, color: VINHO }}
-              >
-                <span className="text-2xl font-black leading-none">
-                  {offer.value}
-                </span>
-                <span className="mt-0.5 max-w-[58px] text-[10px] font-black uppercase leading-[0.95]">
-                  {offer.suffix}
-                </span>
-              </span>
+              {activeOffer.title}
+            </span>
+            <span className="mt-2 block max-w-[210px] text-[11px] font-black uppercase leading-tight opacity-90">
+              {activeOffer.copy}
+            </span>
+          </span>
+        </span>
 
-              <span className="grid max-w-[calc(100%-82px)] grid-cols-[48px_minmax(0,1fr)] gap-3">
-                <span
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl"
-                  style={{ background: ROSA, color: VINHO }}
-                >
-                  <Icon size={24} strokeWidth={2.6} />
-                </span>
-                <span className="min-w-0 pt-0.5">
-                  <span className="block text-[13px] font-black uppercase leading-tight text-white">
-                    {offer.eyebrow}
-                  </span>
-                  <span
-                    className="mt-1 block truncate text-[clamp(1.75rem,8vw,2.35rem)] font-black uppercase leading-[0.9]"
-                    style={{ color: ROSA }}
-                  >
-                    {offer.title}
-                  </span>
-                  <span className="mt-2 block max-w-[210px] text-[11px] font-black uppercase leading-tight opacity-90">
-                    {offer.copy}
-                  </span>
-                </span>
-              </span>
-
-              <span className="absolute bottom-3 left-4 right-4 h-1 overflow-hidden rounded-full bg-white/10">
-                <span
-                  className="block h-full w-1/2 rounded-full"
-                  style={{ background: ROSA }}
-                />
-              </span>
-            </button>
-          );
-        })}
-      </div>
+        <span className="absolute bottom-3 left-4 right-4 h-1 overflow-hidden rounded-full bg-white/10">
+          <span
+            className="block h-full rounded-full transition-all duration-300"
+            style={{
+              background: ROSA,
+              width: hasMultipleOffers ? `${((activeIndex + 1) / visibleOffers.length) * 100}%` : "100%",
+            }}
+          />
+        </span>
+      </button>
+      {hasMultipleOffers && (
+        <div className="pointer-events-none absolute inset-y-0 left-2 right-2 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={previousOffer}
+            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/95 shadow-lg"
+            style={{ color: VINHO }}
+            aria-label="Promoção anterior"
+          >
+            <ChevronLeft size={18} strokeWidth={2.8} />
+          </button>
+          <button
+            type="button"
+            onClick={nextOffer}
+            className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/95 shadow-lg"
+            style={{ color: VINHO }}
+            aria-label="Próxima promoção"
+          >
+            <ChevronRight size={18} strokeWidth={2.8} />
+          </button>
+        </div>
+      )}
     </section>
   );
 }

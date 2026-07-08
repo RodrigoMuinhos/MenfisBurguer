@@ -212,6 +212,7 @@ export function ProductScreen({
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [featuredImage, setFeaturedImage] = useState("");
+  const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
   const [operatingNow, setOperatingNow] = useState(true);
   const [operatingHoursSummary, setOperatingHoursSummary] = useState("");
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
@@ -311,12 +312,17 @@ export function ProductScreen({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!API_URL) return;
+    if (!API_URL) {
+      setHeroSettingsLoaded(true);
+      return;
+    }
+    let cancelled = false;
     fetch(`${API_URL}/settings/public`, {
       cache: "no-store",
     })
       .then((response) => (response.ok ? response.json() : null))
       .then((settings) => {
+        if (cancelled) return;
         if (settings?.featuredProductId) {
           setFeaturedProductId(String(settings.featuredProductId));
         }
@@ -327,7 +333,15 @@ export function ProductScreen({
         setSoldOutEnabled(settings?.soldOutActive === true);
         setSoldOutMessage(String(settings?.soldOutMessage ?? SOLD_OUT_MESSAGE));
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) {
+          setHeroSettingsLoaded(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -776,6 +790,7 @@ export function ProductScreen({
           cartTotal={cartTotal}
           featuredItem={featuredItem}
           featuredImage={featuredImage}
+          heroReady={heroSettingsLoaded}
           memberProfile={memberProfile}
           notificationCount={unreadNotificationCount}
           onOpenMember={openMemberAccess}
@@ -806,6 +821,7 @@ export function ProductScreen({
             kioskMode={kioskMode}
             featuredItem={featuredItem}
             featuredImage={featuredImage}
+            heroReady={heroSettingsLoaded}
             onIdleShortcutTap={handleIdleShortcutTap}
             onAddFeatured={() => addMenuItem(featuredItem)}
             operatingNow={operatingNow}
