@@ -14,8 +14,6 @@ import {
   Plus,
   Search,
   ShoppingCart,
-  Star,
-  Timer,
   Utensils,
   UserRound,
   X,
@@ -244,25 +242,6 @@ export function MobileMenuExperience({
               </span>
             </span>
           </button>
-        </div>
-
-        <div className="relative z-10 mt-4 flex flex-wrap gap-2">
-          <TopTrustItem
-            icon={Star}
-            title="4.9"
-            subtitle="avaliacao dos clientes"
-            onClick={() => setPanel("reviews")}
-          />
-          <TopTrustItem
-            icon={Gift}
-            title="Frete gratis"
-            subtitle="acima de R$ 59,90"
-          />
-          <TopTrustItem
-            icon={Timer}
-            title="35-50 min"
-            subtitle="entrega media"
-          />
         </div>
 
         <div className="relative z-10 mt-4 overflow-hidden rounded-[26px] bg-white shadow-[0_18px_42px_rgba(101,0,31,0.08)]">
@@ -537,38 +516,6 @@ function IconButton({
         </span>
       )}
     </button>
-  );
-}
-
-function TopTrustItem({
-  icon: Icon,
-  title,
-  subtitle,
-  onClick,
-}: {
-  icon: ElementType;
-  title: string;
-  subtitle: string;
-  onClick?: () => void;
-}) {
-  const Component = onClick ? "button" : "div";
-  return (
-    <Component
-      type={onClick ? "button" : undefined}
-      onClick={onClick}
-      className="flex min-h-12 flex-1 basis-[30%] items-center gap-2 rounded-2xl bg-white px-2 py-2 text-left shadow-sm"
-      style={{ border: `1px solid ${VINHO}10` }}
-    >
-      <Icon size={17} strokeWidth={2.5} style={{ color: PINK }} />
-      <span className="min-w-0">
-        <span className="block text-[11px] font-black leading-tight">
-          {title}
-        </span>
-        <span className="block text-[9px] font-bold leading-tight opacity-65">
-          {subtitle}
-        </span>
-      </span>
-    </Component>
   );
 }
 
