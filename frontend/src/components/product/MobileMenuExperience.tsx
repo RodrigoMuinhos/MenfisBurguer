@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
-import { API_URL, DEFAULT_PROMO_CARDS, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
+import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
 import { fmt, imageSrc, MemberProfile } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
@@ -161,7 +161,7 @@ export function MobileMenuExperience({
   const [closedHoursOpen, setClosedHoursOpen] = useState(false);
   const [closedHoursMessage, setClosedHoursMessage] = useState("");
   const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
-  const [promoCards, setPromoCards] = useState<PromoCard[]>(DEFAULT_PROMO_CARDS);
+  const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
 

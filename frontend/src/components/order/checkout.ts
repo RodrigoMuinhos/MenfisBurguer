@@ -274,7 +274,8 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
 }
 
 export function normalizePromoCards(value: unknown): PromoCard[] {
-  const rows = Array.isArray(value) ? value : DEFAULT_PROMO_CARDS;
+  const hasExplicitRows = Array.isArray(value);
+  const rows = hasExplicitRows ? value : DEFAULT_PROMO_CARDS;
   const cards: PromoCard[] = rows
     .map((row, index): PromoCard => {
       const data = row && typeof row === "object" ? (row as Partial<PromoCard>) : {};
@@ -293,7 +294,8 @@ export function normalizePromoCards(value: unknown): PromoCard[] {
       };
     })
     .filter((card) => card.title || card.copy || card.value);
-  return cards.length ? cards.slice(0, 8) : DEFAULT_PROMO_CARDS;
+  if (cards.length) return cards.slice(0, 8);
+  return hasExplicitRows ? [] : DEFAULT_PROMO_CARDS;
 }
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
