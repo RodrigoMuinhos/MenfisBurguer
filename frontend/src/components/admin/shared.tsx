@@ -14,8 +14,10 @@ import { formatAddressForReceipt } from "@/utils/address";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
 const PRINT_BRIDGE_URL_KEY = "menfis_print_bridge_url";
+const PRINT_BRIDGE_LAUNCH_URL_KEY = "menfis_print_bridge_launch_url";
 const PRINT_BROWSER_FALLBACK_KEY = "menfis_print_browser_fallback";
 const DEFAULT_PRINT_BRIDGE_URL = "http://127.0.0.1:17777/print";
+const DEFAULT_PRINT_BRIDGE_LAUNCH_URL = "menfis-print://open";
 
 export type Coupon = {
   code: string;
@@ -752,6 +754,28 @@ async function trySilentReceiptPrint(order: Order, receipt: string) {
   return false;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function launchPrintBridge() {
+  if (typeof window === "undefined") return false;
+  const launchUrl = String(
+    process.env.NEXT_PUBLIC_PRINT_BRIDGE_LAUNCH_URL ||
+      localStorage.getItem(PRINT_BRIDGE_LAUNCH_URL_KEY) ||
+      DEFAULT_PRINT_BRIDGE_LAUNCH_URL,
+  ).trim();
+  if (!launchUrl) return false;
+
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.src = launchUrl;
+  document.body.appendChild(iframe);
+  window.setTimeout(() => iframe.remove(), 3000);
+  return true;
+}
+
 function browserPrintFallbackEnabled(options?: { browserFallback?: boolean }) {
   if (options?.browserFallback === true) return true;
   if (typeof window === "undefined") return false;
@@ -768,9 +792,15 @@ export async function printOrderReceipts(
   const silentPrinted = await trySilentReceiptPrint(order, rawReceipt);
   if (silentPrinted) return;
 
+  if (launchPrintBridge()) {
+    await sleep(1800);
+    const retriedSilentPrint = await trySilentReceiptPrint(order, rawReceipt);
+    if (retriedSilentPrint) return;
+  }
+
   if (!browserPrintFallbackEnabled(options)) {
     window.alert(
-      "Impressao direta nao conectada. Abra o agente de impressao local ou configure menfis_print_bridge_url.",
+      "Nao foi possivel abrir a impressao direta automaticamente. Verifique o agente de impressao local.",
     );
     return;
   }
