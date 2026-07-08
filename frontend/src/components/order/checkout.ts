@@ -57,6 +57,27 @@ export type PromoCard = {
   icon: PromoCardIcon;
 };
 
+function normalizePromoCardEnabled(data: Record<string, unknown>) {
+  const raw =
+    data.enabled ??
+    data.active ??
+    data.visible ??
+    data.isActive ??
+    data.isEnabled;
+  if (typeof raw === "boolean") return raw;
+  if (typeof raw === "number") return raw !== 0;
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (["false", "0", "no", "nao", "não", "off", "hidden", "oculto"].includes(normalized)) {
+      return false;
+    }
+    if (["true", "1", "yes", "sim", "on", "visible", "ativo"].includes(normalized)) {
+      return true;
+    }
+  }
+  return true;
+}
+
 export type Coupon = {
   code: string;
   label: string;
@@ -278,13 +299,13 @@ export function normalizePromoCards(value: unknown): PromoCard[] {
   const rows = hasExplicitRows ? value : DEFAULT_PROMO_CARDS;
   const cards: PromoCard[] = rows
     .map((row, index): PromoCard => {
-      const data = row && typeof row === "object" ? (row as Partial<PromoCard>) : {};
+      const data = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
       const id = String(data.id || `promo-${index + 1}`).trim();
       const title = String(data.title ?? "");
       const copy = String(data.copy ?? "");
       return {
         id: id || `promo-${index + 1}`,
-        enabled: data.enabled !== false,
+        enabled: normalizePromoCardEnabled(data),
         eyebrow: String(data.eyebrow ?? ""),
         title,
         copy: String(data.copy ?? ""),

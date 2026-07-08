@@ -65,7 +65,11 @@ import {
   ProductHeader,
   ProductHero,
 } from "./ProductHomeSections";
-import { normalizePresentationSettings } from "@/components/order/checkout";
+import {
+  PromoCard,
+  normalizePresentationSettings,
+  normalizePromoCards,
+} from "@/components/order/checkout";
 import { MobileMenuExperience } from "./MobileMenuExperience";
 import { MemberNotification } from "./notifications";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
@@ -213,6 +217,7 @@ export function ProductScreen({
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [featuredImage, setFeaturedImage] = useState("");
   const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
+  const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
   const [operatingNow, setOperatingNow] = useState(true);
   const [operatingHoursSummary, setOperatingHoursSummary] = useState("");
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
@@ -317,6 +322,11 @@ export function ProductScreen({
       return;
     }
     let cancelled = false;
+    const fallbackTimer = window.setTimeout(() => {
+      if (!cancelled) {
+        setHeroSettingsLoaded(true);
+      }
+    }, 900);
     fetch(`${API_URL}/settings/public`, {
       cache: "no-store",
     })
@@ -327,6 +337,7 @@ export function ProductScreen({
           setFeaturedProductId(String(settings.featuredProductId));
         }
         setFeaturedImage(normalizePresentationSettings(settings?.presentation).featuredImage ?? "");
+        setPromoCards(normalizePromoCards(settings?.promoCards));
         setOperatingNow(settings?.operatingNow !== false);
         setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
         setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
@@ -336,11 +347,13 @@ export function ProductScreen({
       .catch(() => undefined)
       .finally(() => {
         if (!cancelled) {
+          window.clearTimeout(fallbackTimer);
           setHeroSettingsLoaded(true);
         }
       });
     return () => {
       cancelled = true;
+      window.clearTimeout(fallbackTimer);
     };
   }, []);
 
@@ -791,6 +804,7 @@ export function ProductScreen({
           featuredItem={featuredItem}
           featuredImage={featuredImage}
           heroReady={heroSettingsLoaded}
+          promoCards={promoCards}
           memberProfile={memberProfile}
           notificationCount={unreadNotificationCount}
           onOpenMember={openMemberAccess}

@@ -130,6 +130,7 @@ export function MobileMenuExperience({
   featuredItem,
   featuredImage,
   heroReady = true,
+  promoCards = [],
   memberProfile,
   notificationCount,
   onOpenMember,
@@ -146,6 +147,7 @@ export function MobileMenuExperience({
   featuredItem?: MenuItem;
   featuredImage?: string;
   heroReady?: boolean;
+  promoCards?: PromoCard[];
   memberProfile: MemberProfile | null;
   notificationCount: number;
   onOpenMember: () => void;
@@ -164,7 +166,6 @@ export function MobileMenuExperience({
   const [closedHoursOpen, setClosedHoursOpen] = useState(false);
   const [closedHoursMessage, setClosedHoursMessage] = useState("");
   const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
-  const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -219,7 +220,6 @@ export function MobileMenuExperience({
     fetch(`${API_URL}/settings/public`, { cache: "no-store", signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((settings) => {
-        setPromoCards(normalizePromoCards(settings?.promoCards));
         if (soldOutEnabled) return;
         if (sessionStorage.getItem(CLOSED_HOURS_ALERT_KEY) === "1") return;
         if (settings?.operatingNow !== false) return;
