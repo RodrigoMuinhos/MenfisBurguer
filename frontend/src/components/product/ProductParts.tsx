@@ -35,12 +35,17 @@ function productStory(item: MenuItem) {
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
   const isMenfis130 = item.id === "burger" || item.id === "combo" || item.id === "combo2";
+  const isBacon130 =
+    item.id === "menfis-bacon" ||
+    item.id === "bacon-combo" ||
+    item.id === "bacon-super-combo";
   if (name.includes("chicken")) {
     return `${item.desc} Frango crocante, queijo derretido, alface fresca e molho especial no pão macio, com molho extra para acompanhar cada mordida.`;
   }
   if (name.includes("bacon")) {
     const quantity = isBig || item.id.includes("super") ? "cada carne" : "o burger";
-    return `${item.desc} Aqui ${quantity} vem com 100g de carne suculenta, 40g de bacon crocante, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
+    const grams = isBacon130 ? "130g" : "100g";
+    return `${item.desc} Aqui ${quantity} vem com ${grams} de carne suculenta, 40g de bacon crocante, duas fatias de queijo cheddar, cebola caramelizada no ponto, alface crocante e molho especial da casa. Vai com molho extra para acompanhar: uma explosão de sabor do começo ao fim.`;
   }
   if (item.category === "burger" || item.category === "combo") {
     const quantity = isBig || item.id.includes("super") ? "cada carne" : "o burger";
@@ -59,6 +64,12 @@ function productIngredients(item: MenuItem) {
       : "Pão brioche, chicken 120g, queijo cheddar, alface, tomate e molho especial.";
   }
   if (name.includes("bacon")) {
+    if (item.id === "bacon-super-combo") {
+      return "Pão brioche, 2 burgers com carne bovina de 130g, 40g de bacon cada, cheddar, cebola caramelizada, alface e molho Menfi's.";
+    }
+    if (item.id === "menfis-bacon" || item.id === "bacon-combo") {
+      return "Pão brioche, carne 130g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's.";
+    }
     return isBig
       ? "Pão brioche, 2 carnes bovinas de 100g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's."
       : "Pão brioche, carne 100g, 40g de bacon, cheddar, cebola caramelizada, alface e molho Menfi's.";
