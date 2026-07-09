@@ -164,8 +164,8 @@ export function CartBagStepSection({
             {primaryMessage}
           </p>
         )}
-        <div className="-mx-4 grid auto-cols-[calc((100%-2rem)/3)] grid-flow-col gap-3 overflow-hidden px-4 pb-2">
-          {visibleSuggestions.map((suggestion) => (
+        <div className="grid grid-cols-3 gap-3 overflow-hidden pb-2">
+          {visibleSuggestions.slice(0, 3).map((suggestion) => (
             <SuggestedCard
               key={suggestion.id}
               id={suggestion.id}

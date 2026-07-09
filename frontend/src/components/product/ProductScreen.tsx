@@ -375,16 +375,24 @@ export function ProductScreen({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!heroSettingsLoaded || !specialOffer.enabled || soldOutEnabled) return;
-    if (specialOffer.oncePerSession && sessionStorage.getItem(SPECIAL_OFFER_SESSION_KEY) === "1") return;
+    if (!heroSettingsLoaded || !specialOffer.enabled) return;
+    const sessionKey = specialOfferSessionKey(specialOffer, kioskMode);
+    if (specialOffer.oncePerSession && sessionStorage.getItem(sessionKey) === "1") return;
     const timer = window.setTimeout(() => {
       if (specialOffer.oncePerSession) {
-        sessionStorage.setItem(SPECIAL_OFFER_SESSION_KEY, "1");
+        sessionStorage.setItem(sessionKey, "1");
       }
       setSpecialOfferOpen(true);
     }, 5000);
     return () => window.clearTimeout(timer);
-  }, [heroSettingsLoaded, soldOutEnabled, specialOffer.enabled, specialOffer.oncePerSession]);
+  }, [
+    heroSettingsLoaded,
+    kioskMode,
+    specialOffer.enabled,
+    specialOffer.oncePerSession,
+    specialOffer.productId,
+    specialOffer.title,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !API_URL) return;
@@ -537,7 +545,7 @@ export function ProductScreen({
 
   const closeSpecialOffer = () => {
     if (specialOffer.oncePerSession && typeof window !== "undefined") {
-      sessionStorage.setItem(SPECIAL_OFFER_SESSION_KEY, "1");
+      sessionStorage.setItem(specialOfferSessionKey(specialOffer, kioskMode), "1");
     }
     setSpecialOfferOpen(false);
   };
@@ -1242,6 +1250,20 @@ function BottomNavButton({
       <span>{label}</span>
     </button>
   );
+}
+
+function specialOfferSessionKey(offer: SpecialOfferSettings, kioskMode: boolean) {
+  const mode =
+    kioskMode
+      ? "pdv"
+      : typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
+        ? "mobile"
+        : "desktop";
+  const offerKey = `${offer.productId}-${offer.title}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${SPECIAL_OFFER_SESSION_KEY}:${mode}:${offerKey || "default"}`;
 }
 
 function SpecialOfferModal({

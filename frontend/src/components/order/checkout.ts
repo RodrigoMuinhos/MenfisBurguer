@@ -239,7 +239,7 @@ export const DEFAULT_PRESENTATION_SETTINGS: PresentationSettings = {
 };
 
 export const DEFAULT_SPECIAL_OFFER_SETTINGS: SpecialOfferSettings = {
-  enabled: false,
+  enabled: true,
   oncePerSession: true,
   productId: "triple-combo",
   title: "Combo Triple Menfi's — O Matador de Fome",

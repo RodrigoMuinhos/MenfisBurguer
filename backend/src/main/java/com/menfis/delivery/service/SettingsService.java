@@ -51,7 +51,7 @@ public class SettingsService {
     ]
     """;
   private static final String DEFAULT_SPECIAL_OFFER = """
-    {"enabled":false,"oncePerSession":true,"productId":"triple-combo","title":"Combo Triple Menfi's — O Matador de Fome","description":"3 carnes suculentas, cheddar derretido, salada, molho Menfi's e muito capricho. Um combo pesado, feito para quem chega com fome de verdade.","image":"/menu/supercombomnfis.png","price":65.9,"primaryButton":"Adicionar ao pedido","secondaryButton":"Ver cardápio"}
+    {"enabled":true,"oncePerSession":true,"productId":"triple-combo","title":"Combo Triple Menfi's — O Matador de Fome","description":"3 carnes suculentas, cheddar derretido, salada, molho Menfi's e muito capricho. Um combo pesado, feito para quem chega com fome de verdade.","image":"/menu/supercombomnfis.png","price":65.9,"primaryButton":"Adicionar ao pedido","secondaryButton":"Ver cardápio"}
     """;
 
   private final JdbcTemplate jdbc;
