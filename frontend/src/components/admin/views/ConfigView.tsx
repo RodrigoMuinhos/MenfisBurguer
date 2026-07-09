@@ -541,7 +541,7 @@ export function ConfigView({
               <img src={normalizedSpecialOffer.image} alt="Prévia do pop-up" className="h-full w-full object-cover" />
             </div>
             <div className="p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55" style={{ color: VERDE }}>Oferta especial</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55" style={{ color: VERDE }}>Destaque especial do mês</p>
               <p className="mt-1 text-lg font-black uppercase leading-tight" style={{ color: VERDE }}>{normalizedSpecialOffer.title}</p>
               <p className="mt-2 text-sm font-black" style={{ color: VERDE }}>R$ {normalizedSpecialOffer.price.toFixed(2).replace(".", ",")}</p>
             </div>

@@ -219,7 +219,7 @@ export function ProductScreen({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
+  const [featuredProductId, setFeaturedProductId] = useState("");
   const [featuredImage, setFeaturedImage] = useState("");
   const [featuredTitle, setFeaturedTitle] = useState("");
   const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
@@ -303,8 +303,8 @@ export function ProductScreen({
     return visibleCatalogItems.filter((item) => item.category === category);
   }, [catalogItems, category]);
   const featuredItem =
-    catalogItems.find((item) => item.id === featuredProductId) ??
-    catalogItems.find((item) => item.id === "chicken-super-combo") ??
+    (featuredProductId ? catalogItems.find((item) => item.id === featuredProductId) : undefined) ??
+    (!heroSettingsLoaded ? undefined : catalogItems.find((item) => item.id === "chicken-super-combo")) ??
     catalogItems[0];
   const savedDelivery = readSavedDelivery();
   const kioskMobLoggedIn =
@@ -335,11 +335,6 @@ export function ProductScreen({
       return;
     }
     let cancelled = false;
-    const fallbackTimer = window.setTimeout(() => {
-      if (!cancelled) {
-        setHeroSettingsLoaded(true);
-      }
-    }, 900);
     fetch(`${API_URL}/settings/public`, {
       cache: "no-store",
     })
@@ -363,13 +358,11 @@ export function ProductScreen({
       .catch(() => undefined)
       .finally(() => {
         if (!cancelled) {
-          window.clearTimeout(fallbackTimer);
           setHeroSettingsLoaded(true);
         }
       });
     return () => {
       cancelled = true;
-      window.clearTimeout(fallbackTimer);
     };
   }, []);
 
@@ -383,7 +376,7 @@ export function ProductScreen({
         sessionStorage.setItem(sessionKey, "1");
       }
       setSpecialOfferOpen(true);
-    }, 5000);
+    }, 1600);
     return () => window.clearTimeout(timer);
   }, [
     heroSettingsLoaded,
@@ -1282,18 +1275,18 @@ function SpecialOfferModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 px-3 pb-3 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label={offer.title}
       onClick={onClose}
     >
       <motion.div
-        initial={{ y: 28, scale: 0.97 }}
+        initial={{ y: 20, scale: 0.94 }}
         animate={{ y: 0, scale: 1 }}
-        exit={{ y: 20, scale: 0.98 }}
+        exit={{ y: 16, scale: 0.96 }}
         transition={{ type: "spring", stiffness: 260, damping: 24 }}
-        className="relative max-h-[92dvh] w-full max-w-lg overflow-hidden rounded-[26px] bg-white shadow-2xl"
+        className="relative max-h-[86dvh] w-full max-w-[390px] overflow-hidden rounded-[26px] bg-white shadow-[0_28px_80px_rgba(0,0,0,0.35)] sm:max-w-lg"
         style={{ color: VERDE }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -1307,7 +1300,7 @@ function SpecialOfferModal({
           <X size={19} strokeWidth={2.7} />
         </button>
 
-        <div className="max-h-[92dvh] overflow-y-auto">
+        <div className="max-h-[86dvh] overflow-y-auto">
           <div className="relative aspect-[1.18/1] bg-white sm:aspect-[1.45/1]">
             {offer.image ? (
               <img
@@ -1325,7 +1318,7 @@ function SpecialOfferModal({
               className="absolute left-4 top-4 rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em]"
               style={{ background: VERDE, color: ROSA }}
             >
-              Oferta especial
+              Destaque especial do mês
             </span>
           </div>
 

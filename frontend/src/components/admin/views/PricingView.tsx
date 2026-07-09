@@ -446,7 +446,11 @@ function PricingTableRow({
   return (
     <tr className="align-middle hover:bg-[#FFF8F2]">
       <td className="px-3 py-4">
-        <ProductThumb row={row} />
+        <ProductThumb
+          row={current}
+          editable={editing}
+          onUpload={(imageUrl) => setDraft({ ...current, imageUrl })}
+        />
       </td>
       <td className="px-3 py-4">
         {editing ? (
@@ -789,15 +793,56 @@ function FilterButton({
   );
 }
 
-function ProductThumb({ row }: { row: PricingRow }) {
-  return (
-    <div className="grid h-16 w-24 place-items-center overflow-hidden rounded-xl bg-white" style={{ border: `1px solid ${VERDE}10` }}>
+function ProductThumb({
+  row,
+  editable = false,
+  onUpload,
+}: {
+  row: PricingRow;
+  editable?: boolean;
+  onUpload?: (imageUrl: string) => void;
+}) {
+  const content = (
+    <>
       {row.imageUrl ? (
         <img src={row.imageUrl} alt={row.name} className="h-full w-full object-cover" />
       ) : (
         <ImageIcon size={18} style={{ color: `${VERDE}55` }} />
       )}
-    </div>
+      {editable && (
+        <span
+          className="absolute inset-x-1 bottom-1 rounded-lg px-1 py-0.5 text-center text-[8px] font-black uppercase"
+          style={{ background: "rgba(255,255,255,0.92)", color: VERDE }}
+        >
+          Upload
+        </span>
+      )}
+    </>
+  );
+  const className = "relative grid h-16 w-24 place-items-center overflow-hidden rounded-xl bg-white";
+  const style = { border: `1px solid ${VERDE}10` };
+  if (!editable) {
+    return (
+      <div className={className} style={style}>
+        {content}
+      </div>
+    );
+  }
+  return (
+    <label className={`${className} cursor-pointer`} style={style} title="Enviar nova imagem">
+      {content}
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.currentTarget.value = "";
+          if (!file) return;
+          void encodePricingImage(file).then((imageUrl) => onUpload?.(imageUrl));
+        }}
+      />
+    </label>
   );
 }
 
@@ -906,6 +951,35 @@ function moneyInputValue(value: number | string) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return "";
   return String(numeric).replace(".", ",");
+}
+
+function encodePricingImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("image_read_failed"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("image_load_failed"));
+      image.onload = () => {
+        const maxWidth = 1200;
+        const scale = Math.min(1, maxWidth / image.width);
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("canvas_unavailable"));
+          return;
+        }
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.84));
+      };
+      image.src = String(reader.result ?? "");
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function ActionButton({ onClick, children, tone = "default" }: { onClick: () => void; children: ReactNode; tone?: "default" | "save" }) {

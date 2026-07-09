@@ -319,40 +319,42 @@ export function ProductHero({
             style={{ objectFit: "cover", objectPosition: "center 42%" }}
           />
         ) : null}
-        <div
-          className="absolute inset-x-0 bottom-0 p-4"
-          style={{
-            background:
-              "linear-gradient(to top, rgba(31,61,46,0.92), rgba(31,61,46,0))",
-          }}
-        >
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/70">
-                Destaque
-              </p>
-              <p
-                className="uppercase"
-                style={{
-                  fontFamily: "var(--menfis-font-display)",
-                  fontSize: "2rem",
-                  lineHeight: 1,
-                  color: ROSA,
-                }}
+        {heroReady && (
+          <div
+            className="absolute inset-x-0 bottom-0 p-4"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(31,61,46,0.92), rgba(31,61,46,0))",
+            }}
+          >
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/70">
+                  Destaque
+                </p>
+                <p
+                  className="uppercase"
+                  style={{
+                    fontFamily: "var(--menfis-font-display)",
+                    fontSize: "2rem",
+                    lineHeight: 1,
+                    color: ROSA,
+                  }}
+                >
+                  {displayTitle}
+                </p>
+              </div>
+              <button
+                onClick={onAddFeatured}
+                className="flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider"
+                style={{ background: ROSA, color: VERDE }}
               >
-                {displayTitle}
-              </p>
+                Adicionar
+                <Plus size={15} strokeWidth={2.5} />
+              </button>
             </div>
-            <button
-              onClick={onAddFeatured}
-              className="flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider"
-              style={{ background: ROSA, color: VERDE }}
-            >
-              Adicionar
-              <Plus size={15} strokeWidth={2.5} />
-            </button>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

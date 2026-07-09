@@ -188,7 +188,9 @@ export function MobileMenuExperience({
   );
   const heroItem =
     featuredItem ?? items.find((item) => item.id === "double-burger") ?? items[0];
-  const heroTitle = featuredTitle?.trim() || heroItem?.name || "Hamburguer artesanal feito na hora.";
+  const heroTitle = heroReady
+    ? featuredTitle?.trim() || heroItem?.name || "Hamburguer artesanal feito na hora."
+    : "";
   const categoryLabel =
     MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label ?? "Produtos";
   const friesGalleryItems =
