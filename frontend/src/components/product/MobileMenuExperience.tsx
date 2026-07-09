@@ -25,6 +25,7 @@ import {
   UserRound,
   X,
   CalendarClock,
+  Candy,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
@@ -32,7 +33,7 @@ import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromo
 import { fmt, imageSrc, isSpecialOfferOnlyProduct, MemberProfile } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
-type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "fries" | "extras";
+type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "fries" | "extras" | "sweet";
 
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
@@ -52,6 +53,7 @@ const MOBILE_CATEGORIES: Array<{
   { id: "bacon", label: "Bacon", icon: Utensils },
   { id: "fries", label: "Fries", icon: Utensils },
   { id: "extras", label: "Extras", icon: Plus },
+  { id: "sweet", label: "Sweet", icon: Candy },
 ];
 
 const SALES_ORDER = [
@@ -80,6 +82,7 @@ const SALES_ORDER = [
   "coca-zero",
   "guarana-zero",
   "agua-com-gas",
+  "monte-sua-caixinha",
 ];
 
 const SEARCHABLE_ITEM_FIELDS = ["name", "desc", "tags"] as const;
@@ -116,6 +119,7 @@ function categoryMatches(item: MenuItem, category: MobileCategory) {
   if (category === "combo") return item.category === "combo" && !item.highlight;
   if (category === "fries") return item.category === "fries";
   if (category === "extras") return item.category === "extra" || item.category === "bebida";
+  if (category === "sweet") return item.category === "sweet";
   return false;
 }
 
@@ -224,7 +228,14 @@ export function MobileMenuExperience({
   useEffect(() => {
     if (!API_URL) return;
     const controller = new AbortController();
-    fetch(`${API_URL}/settings/public`, { cache: "no-store", signal: controller.signal })
+    fetch(`${API_URL}/settings/public?_=${Date.now()}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+      signal: controller.signal,
+    })
       .then((response) => (response.ok ? response.json() : null))
       .then((settings) => {
         if (soldOutEnabled) return;

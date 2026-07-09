@@ -46,6 +46,8 @@ async function proxyBackend(
 
   const responseHeaders = new Headers(response.headers);
   HOP_BY_HOP_HEADERS.forEach((header) => responseHeaders.delete(header));
+  responseHeaders.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  responseHeaders.set("Pragma", "no-cache");
 
   return new NextResponse(response.body, {
     status: response.status,

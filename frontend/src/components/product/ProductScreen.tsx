@@ -34,6 +34,8 @@ import {
   MemberProfile,
   SAUCE_OPTIONS,
   SAUCE_PRICE,
+  SWEET_BOX_REQUIRED_COUNT,
+  SWEET_OPTIONS,
   buildBurger,
   fmt,
   getExtraOptionsForItem,
@@ -41,6 +43,7 @@ import {
   isChickenProduct,
   isNuggetsProduct,
   isSpecialOfferOnlyProduct,
+  isSweetBoxProduct,
   readMemberProfile,
   readSavedDelivery,
   requiredCustomizerCount,
@@ -68,6 +71,7 @@ import {
   ProductHero,
 } from "./ProductHomeSections";
 import {
+  DEFAULT_SPECIAL_OFFER_SETTINGS,
   PromoCard,
   SpecialOfferSettings,
   normalizePresentationSettings,
@@ -80,6 +84,7 @@ import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNot
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 const SPECIAL_OFFER_SESSION_KEY = "menfis_special_offer_seen";
+const DEFAULT_FEATURED_PRODUCT_ID = DEFAULT_SPECIAL_OFFER_SETTINGS.productId;
 const CUSTOMIZER_ADDON_IDS = new Set([
   "extra-carne",
   "extra-frango",
@@ -151,7 +156,12 @@ function pricingRowToMenuItem(row: Record<string, unknown>): MenuItem | null {
 function pricingKindToMenuCategory(kind: string, categoryLabel = ""): ProductCategory {
   if (kind === "combo") return "combo";
   if (kind === "drink") return "bebida";
-  if (categoryLabel.toLowerCase().includes("galeria de fritas")) return "fries";
+  if (categoryLabel.toLowerCase().includes("sweet")) return "sweet";
+  if (
+    categoryLabel.toLowerCase().includes("galeria de fritas") ||
+    categoryLabel.toLowerCase().includes("fries") ||
+    categoryLabel.toLowerCase().includes("batata")
+  ) return "fries";
   if (kind === "side") return "extra";
   return "burger";
 }
@@ -161,6 +171,7 @@ function labelCategory(category: ProductCategory) {
   if (category === "bebida") return "Bebida";
   if (category === "extra") return "Extra";
   if (category === "fries") return "Galeria de Fritas";
+  if (category === "sweet") return "Sweet";
   return "Burger";
 }
 
@@ -168,6 +179,23 @@ function comboPotatoComponent(item: MenuItem) {
   return requiredCustomizerCount(item) > 1
     ? "Batata Frita 200g"
     : "Batata Frita 100g";
+}
+
+function freshApiUrl(path: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${API_URL}${path}${separator}_=${Date.now()}`;
+}
+
+function preloadClientImages(srcs: Array<string | undefined>) {
+  if (typeof window === "undefined") return;
+  srcs
+    .map((src) => String(src ?? "").trim())
+    .filter(Boolean)
+    .forEach((src) => {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = src;
+    });
 }
 
 interface Props {
@@ -219,10 +247,10 @@ export function ProductScreen({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [featuredProductId, setFeaturedProductId] = useState("");
+  const [featuredProductId, setFeaturedProductId] = useState(DEFAULT_FEATURED_PRODUCT_ID);
   const [featuredImage, setFeaturedImage] = useState("");
   const [featuredTitle, setFeaturedTitle] = useState("");
-  const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
+  const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(true);
   const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
   const [specialOffer, setSpecialOffer] = useState<SpecialOfferSettings>(() =>
     normalizeSpecialOfferSettings(null),
@@ -297,14 +325,17 @@ export function ProductScreen({
     if (category === "extras") {
       return visibleCatalogItems.filter((item) => item.category === "extra" || item.category === "bebida");
     }
-    if (category === "fries") {
+  if (category === "fries") {
       return visibleCatalogItems.filter((item) => item.category === "fries");
+    }
+    if (category === "sweet") {
+      return visibleCatalogItems.filter((item) => item.category === "sweet");
     }
     return visibleCatalogItems.filter((item) => item.category === category);
   }, [catalogItems, category]);
   const featuredItem =
     (featuredProductId ? catalogItems.find((item) => item.id === featuredProductId) : undefined) ??
-    (!heroSettingsLoaded ? undefined : catalogItems.find((item) => item.id === "chicken-super-combo")) ??
+    catalogItems.find((item) => item.id === DEFAULT_FEATURED_PRODUCT_ID) ??
     catalogItems[0];
   const savedDelivery = readSavedDelivery();
   const kioskMobLoggedIn =
@@ -335,20 +366,31 @@ export function ProductScreen({
       return;
     }
     let cancelled = false;
-    fetch(`${API_URL}/settings/public`, {
+    fetch(freshApiUrl("/settings/public"), {
       cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
     })
       .then((response) => (response.ok ? response.json() : null))
       .then((settings) => {
         if (cancelled) return;
-        if (settings?.featuredProductId) {
-          setFeaturedProductId(String(settings.featuredProductId));
-        }
+        setFeaturedProductId(
+          settings?.featuredProductId
+            ? String(settings.featuredProductId)
+            : DEFAULT_FEATURED_PRODUCT_ID,
+        );
         const normalizedPresentation = normalizePresentationSettings(settings?.presentation);
+        const normalizedSpecialOffer = normalizeSpecialOfferSettings(settings?.specialOffer);
         setFeaturedImage(normalizedPresentation.featuredImage ?? "");
         setFeaturedTitle(normalizedPresentation.featuredTitle ?? "");
         setPromoCards(normalizePromoCards(settings?.promoCards));
-        setSpecialOffer(normalizeSpecialOfferSettings(settings?.specialOffer));
+        setSpecialOffer(normalizedSpecialOffer);
+        preloadClientImages([
+          normalizedPresentation.featuredImage,
+          normalizedSpecialOffer.image,
+        ]);
         setOperatingNow(settings?.operatingNow !== false);
         setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
         setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
@@ -369,6 +411,7 @@ export function ProductScreen({
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!heroSettingsLoaded || !specialOffer.enabled) return;
+    preloadClientImages([specialOffer.image]);
     const sessionKey = specialOfferSessionKey(specialOffer, kioskMode);
     if (specialOffer.oncePerSession && sessionStorage.getItem(sessionKey) === "1") return;
     const timer = window.setTimeout(() => {
@@ -376,7 +419,7 @@ export function ProductScreen({
         sessionStorage.setItem(sessionKey, "1");
       }
       setSpecialOfferOpen(true);
-    }, 1600);
+    }, 900);
     return () => window.clearTimeout(timer);
   }, [
     heroSettingsLoaded,
@@ -384,12 +427,19 @@ export function ProductScreen({
     specialOffer.enabled,
     specialOffer.oncePerSession,
     specialOffer.productId,
+    specialOffer.image,
     specialOffer.title,
   ]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !API_URL) return;
-    fetch(`${API_URL}/pricing`, { cache: "no-store" })
+    fetch(freshApiUrl("/pricing"), {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    })
       .then((response) => (response.ok ? response.json() : []))
       .then((rows) => {
         if (Array.isArray(rows)) {
@@ -580,11 +630,14 @@ export function ProductScreen({
     const requiresSauce =
       customizer.item.category === "burger" || customizer.item.category === "combo";
     const requiresFreeMayo = isNuggetsProduct(customizer.item);
+    const requiresSweetBox = isSweetBoxProduct(customizer.item);
+    const sweetCount = Object.values(customizer.extras).reduce((sum, quantity) => sum + quantity, 0);
     const sauceRequiredCount = requiresFreeMayo ? 1 : requiredCount;
     const requiresDrink = customizer.item.category === "combo";
     if (
+      (requiresSweetBox && sweetCount !== SWEET_BOX_REQUIRED_COUNT) ||
       (meatRequired && customizer.meatPoints.length < requiredCount) ||
-      ((requiresSauce || requiresFreeMayo) &&
+      (!requiresSweetBox && (requiresSauce || requiresFreeMayo) &&
         customizer.sauces.length < sauceRequiredCount) ||
       (requiresDrink && customizer.drinks.length < requiredCount)
     ) {
@@ -592,10 +645,28 @@ export function ProductScreen({
     }
 
     for (let i = 0; i < customizer.qty; i += 1) {
+      const selectedSweets = Object.entries(customizer.extras)
+        .map(([sweetId, quantity]) => ({
+          quantity,
+          sweet: SWEET_OPTIONS.find((option) => option.id === sweetId),
+        }))
+        .filter(
+          (entry): entry is {
+            quantity: number;
+            sweet: NonNullable<(typeof SWEET_OPTIONS)[number]>;
+          } => Boolean(entry.sweet) && entry.quantity > 0,
+        );
+      const sweetLabels = selectedSweets.map(({ sweet, quantity }) =>
+        quantity > 1 ? `${quantity}x ${sweet.label}` : sweet.label,
+      );
+      const sweetPremiumTotal = selectedSweets.reduce(
+        (sum, { sweet, quantity }) => sum + sweet.price * quantity,
+        0,
+      );
       const drinkLabels = customizer.drinks
         .map((drinkId) => DRINK_OPTIONS.find((option) => option.id === drinkId)?.label)
         .filter(Boolean) as string[];
-      const selectedExtras = Object.entries(customizer.extras)
+      const selectedExtras = requiresSweetBox ? [] : Object.entries(customizer.extras)
         .map(([extraId, quantity]) => ({
           quantity,
           extra: getExtraOptionsForItem(customizer.item).find(
@@ -625,6 +696,7 @@ export function ProductScreen({
           ? [comboPotatoComponent(customizer.item)]
           : []),
         ...customizer.sauces,
+        ...sweetLabels,
         ...addonLabels,
       ];
       addToCart({
@@ -633,6 +705,7 @@ export function ProductScreen({
         name: customizer.item.name.toUpperCase(),
         price:
           customizer.item.price +
+          sweetPremiumTotal +
           selectedExtras
             .filter(({ extra }) => CUSTOMIZER_ADDON_IDS.has(extra.id))
             .reduce((sum, { extra, quantity }) => sum + extra.price * quantity, 0),

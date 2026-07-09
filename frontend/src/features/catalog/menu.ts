@@ -331,4 +331,14 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ["Com gás", "Gelada"],
     category: "bebida",
   },
+  {
+    id: "monte-sua-caixinha",
+    name: "Monte sua Caixinha",
+    eyebrow: "Sweet",
+    desc: "Caixinha com 4 doces a sua escolha. Brigadeiro, beijinho, cajuzinho, casadinho e opções premium.",
+    price: 8.9,
+    image: "/sweet.jpg",
+    tags: ["4 doces", "Monte do seu jeito", "Premium + R$ 2,90"],
+    category: "sweet",
+  },
 ];

@@ -167,7 +167,13 @@ export default function App({ mode }: { mode?: AppMode }) {
 
   useEffect(() => {
     if (!API_URL) return;
-    fetch(`${API_URL}/settings/public`, { cache: "no-store" })
+    fetch(`${API_URL}/settings/public?_=${Date.now()}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    })
       .then((response) => (response.ok ? response.json() : null))
       .then((settings) => {
         setPresentation(normalizePresentationSettings(settings?.presentation));

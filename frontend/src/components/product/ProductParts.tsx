@@ -92,6 +92,9 @@ function productIngredients(item: MenuItem) {
   if (item.category === "bebida") {
     return "Bebida gelada selecionada.";
   }
+  if (item.category === "sweet") {
+    return "Caixinha com 4 doces escolhidos pelo cliente. Opções premium podem somar acréscimo.";
+  }
   if (item.category === "extra" || item.category === "fries") {
     return item.desc;
   }
@@ -124,11 +127,13 @@ function productWeight(item: MenuItem) {
     if (item.id === "burger") return "1 carne de 130g.";
     return isBig ? "2 carnes de 100g (200g no total)." : "1 carne de 100g.";
   }
+  if (item.category === "sweet") return "4 doces por caixinha.";
   return "Porção conforme seleção.";
 }
 
 function productAllergens(item: MenuItem) {
   if (item.category === "bebida") return "Consulte o rótulo da bebida.";
+  if (item.category === "sweet") return "Contém leite e derivados. Pode conter amendoim, castanhas, ovo e glúten.";
   return "Contém glúten, leite e derivados. Pode conter ovo e soja.";
 }
 
@@ -536,6 +541,8 @@ export function ProductDetailModal({
                 ? "Escolha ponto, molho, bebida e adicionais antes de adicionar ao pedido."
                 : item.category === "burger"
                   ? "Escolha ponto, molho e adicionais antes de adicionar ao pedido."
+                  : item.category === "sweet"
+                    ? "Escolha 4 doces para montar a caixinha antes de adicionar ao pedido."
                   : "Adicione diretamente ao pedido ou personalize na próxima etapa quando disponível."}
             </p>
           </div>

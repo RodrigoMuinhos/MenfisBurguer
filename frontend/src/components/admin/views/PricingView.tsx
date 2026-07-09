@@ -24,6 +24,7 @@ import { imageSrc } from "@/components/product/shared";
 type PricingKind = "sandwich" | "combo" | "side" | "drink";
 type PricingStatus = "saudavel" | "atencao" | "ruim";
 type PricingFilter = "todos" | PricingKind | PricingStatus | "ativo" | "inativo";
+type PricingCategoryFilter = "todos" | "Burgers" | "Bebidas" | "Fries" | "Extras" | "Sweet";
 
 export type PricingRow = {
   id: string;
@@ -58,12 +59,12 @@ type CalculatedPricingRow = PricingRow & {
 const STORAGE_KEY = "menfis_pricing_table_v1";
 
 const DEFAULT_ROWS: PricingRow[] = [
-  simple("burger", "MENFIS", "Menfi's Burguer", "Sanduiche", 8.85, 25.9),
-  simple("double-burger", "BIG-MENFIS", "Big Menfi's Burguer", "Sanduiche", 12, 29.9),
-  simple("menfis-chicken", "CHICKEN", "Menfi's Chicken", "Sanduiche", 6.3, 24.9),
-  simple("double-menfis-chicken", "BIG-CHICKEN", "Big Chicken", "Sanduiche", 9.8, 32.9),
-  simple("menfis-bacon", "BACON", "Menfi's Bacon", "Sanduiche", 9.8, 27.9),
-  simple("double-menfis-bacon", "BIG-BACON", "Big Menfi's Bacon", "Sanduiche", 14.7, 35.9),
+  simple("burger", "MENFIS", "Menfi's Burguer", "Burgers", 8.85, 25.9),
+  simple("double-burger", "BIG-MENFIS", "Big Menfi's Burguer", "Burgers", 12, 29.9),
+  simple("menfis-chicken", "CHICKEN", "Menfi's Chicken", "Burgers", 6.3, 24.9),
+  simple("double-menfis-chicken", "BIG-CHICKEN", "Big Chicken", "Burgers", 9.8, 32.9),
+  simple("menfis-bacon", "BACON", "Menfi's Bacon", "Burgers", 9.8, 27.9),
+  simple("double-menfis-bacon", "BIG-BACON", "Big Menfi's Bacon", "Burgers", 14.7, 35.9),
   drink("guarana-zero", "GUARANA", "Guarana Zero", 2.89, 6.9),
   drink("coca-zero", "COCA", "Coca-Cola Zero", 3.89, 8.9, 2),
   combo("combo", "COMBO-MENFIS", "Combo Menfi's", 8.85, 34.9),
@@ -76,18 +77,20 @@ const DEFAULT_ROWS: PricingRow[] = [
   combo("combo2", "SUPER-MENFIS", "Super Combo Menfi's", 17.7, 59.9, 5.78, 7.78),
   combo("chicken-super-combo", "SUPER-CHICKEN", "Super Combo Menfi's Chicken", 12.6, 64.9, 5.78, 7.78),
   combo("bacon-super-combo", "SUPER-BACON", "Super Combo Menfi's Bacon", 19.6, 71.9, 5.78, 7.78),
-  side("batata-pequena", "BATATA-P", "Batata Frita Pequena", 1.33, 9.9),
-  side("batata-media", "BATATA-M", "Batata Frita Média", 2.66, 14.9),
-  side("batata", "BATATA-G", "Batata Frita Grande", 4.00, 19.9),
-  side("nuggets-90g", "NUGGETS-90G", "Menfi's Nuggets 90g", 2.82, 12.9),
-  side("nuggets-180g", "NUGGETS-180G", "Menfi's Nuggets 180g", 5.63, 18.9),
-  side("nuggets-grande", "NUGGETS-270G", "Menfi's Nuggets 270g", 8.45, 29.9),
+  side("batata-pequena", "BATATA-P", "Batata Frita Pequena", 1.33, 9.9, "Fries"),
+  side("batata-media", "BATATA-M", "Batata Frita Média", 2.66, 14.9, "Fries"),
+  side("batata", "BATATA-G", "Batata Frita Grande", 4.00, 19.9, "Fries"),
+  side("nuggets-90g", "NUGGETS-90G", "Menfi's Nuggets 90g", 2.82, 12.9, "Extras"),
+  side("nuggets-180g", "NUGGETS-180G", "Menfi's Nuggets 180g", 5.63, 18.9, "Extras"),
+  side("nuggets-grande", "NUGGETS-270G", "Menfi's Nuggets 270g", 8.45, 29.9, "Extras"),
+  side("monte-sua-caixinha", "SWEET-BOX", "Monte sua Caixinha", 3.1, 8.9, "Sweet"),
 ];
 
 export function PricingView({ adminToken = "" }: { adminToken?: string }) {
   const [rows, setRows] = useState<PricingRow[]>(loadRows);
   const [syncError, setSyncError] = useState("");
   const [filter, setFilter] = useState<PricingFilter>("todos");
+  const [categoryFilter, setCategoryFilter] = useState<PricingCategoryFilter>("todos");
   const [viewMode, setViewMode] = useState<"cards" | "sheet">("cards");
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -101,10 +104,13 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
       row.status === filter ||
       (filter === "ativo" && row.active) ||
       (filter === "inativo" && !row.active);
+    const matchesCategory =
+      categoryFilter === "todos" || normalizePricingCategory(row) === categoryFilter;
     const matchesQuery = `${row.code} ${row.name} ${row.category}`.toLowerCase().includes(query.toLowerCase());
-    return matchesFilter && matchesQuery;
+    return matchesFilter && matchesCategory && matchesQuery;
   });
   const activeRows = calculated.filter((row) => row.active);
+  const categorySummaries = buildCategorySummaries(activeRows);
   const avgCmv = average(activeRows.map((row) => row.cmv));
   const worst = [...activeRows].sort((a, b) => b.cmv - a.cmv)[0];
   const best = [...activeRows].sort((a, b) => a.cmv - b.cmv)[0];
@@ -268,6 +274,17 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
         <Summary label="Lucro medio" value={fmt(average(activeRows.map((row) => row.grossProfit)))} />
       </section>
 
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        {categorySummaries.map((summary) => (
+          <Summary
+            key={summary.category}
+            label={`${summary.category} · CMV`}
+            value={`${Math.round(summary.cmv * 100)}%`}
+            alert={summary.cmv > 0.4}
+          />
+        ))}
+      </section>
+
       <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
         <div className="rounded-3xl bg-white p-4" style={{ border: `1px solid ${ROSA}` }}>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -283,6 +300,17 @@ export function PricingView({ adminToken = "" }: { adminToken?: string }) {
               <FilterButton active={filter === "combo"} onClick={() => setFilter("combo")}>Combos</FilterButton>
               <FilterButton active={filter === "ruim"} onClick={() => setFilter("ruim")}>Ruim</FilterButton>
             </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(["todos", "Burgers", "Bebidas", "Fries", "Extras", "Sweet"] as PricingCategoryFilter[]).map((category) => (
+              <FilterButton
+                key={category}
+                active={categoryFilter === category}
+                onClick={() => setCategoryFilter(category)}
+              >
+                {category === "todos" ? "Todas categorias" : category}
+              </FilterButton>
+            ))}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <input
@@ -649,12 +677,12 @@ function combo(
   });
 }
 
-function side(id: string, code: string, name: string, baseCost: number, salePrice: number): PricingRow {
-  return baseRow({ id, code, name, category: "Acompanhamento", kind: "side", baseCost, salePrice, ...catalogDefaults(id) });
+function side(id: string, code: string, name: string, baseCost: number, salePrice: number, category = "Extras"): PricingRow {
+  return baseRow({ id, code, name, category, kind: "side", baseCost, salePrice, ...catalogDefaults(id) });
 }
 
 function drink(id: string, code: string, name: string, baseCost: number, salePrice: number, drinkSurcharge = 0): PricingRow {
-  return baseRow({ id, code, name, category: "Bebida", kind: "drink", baseCost, salePrice, drinkSurcharge, ...catalogDefaults(id) });
+  return baseRow({ id, code, name, category: "Bebidas", kind: "drink", baseCost, salePrice, drinkSurcharge, ...catalogDefaults(id) });
 }
 
 function baseRow(input: Partial<PricingRow> & Pick<PricingRow, "id" | "code" | "name" | "category" | "kind" | "baseCost" | "salePrice">): PricingRow {
@@ -686,10 +714,32 @@ function blankRow(): PricingRow {
     id: `produto-${Date.now()}`,
     code: "NOVO",
     name: "Novo produto",
-    category: "Sanduiche",
+    category: "Burgers",
     kind: "sandwich",
     baseCost: 0,
     salePrice: 0,
+  });
+}
+
+function normalizePricingCategory(row: PricingRow): PricingCategoryFilter {
+  const value = `${row.category} ${row.kind}`.toLowerCase();
+  if (value.includes("sweet") || value.includes("doce") || value.includes("caixinha")) return "Sweet";
+  if (value.includes("bebida") || row.kind === "drink") return "Bebidas";
+  if (value.includes("fries") || value.includes("frita") || value.includes("batata")) return "Fries";
+  if (value.includes("extra") || value.includes("acompanhamento") || value.includes("nuggets") || row.kind === "side") return "Extras";
+  return "Burgers";
+}
+
+function buildCategorySummaries(rows: CalculatedPricingRow[]) {
+  const categories: PricingCategoryFilter[] = ["Burgers", "Bebidas", "Fries", "Extras", "Sweet"];
+  return categories.map((category) => {
+    const scoped = rows.filter((row) => normalizePricingCategory(row) === category);
+    const revenue = scoped.reduce((sum, row) => sum + row.salePrice, 0);
+    const cost = scoped.reduce((sum, row) => sum + row.totalCost, 0);
+    return {
+      category,
+      cmv: revenue > 0 ? cost / revenue : 0,
+    };
   });
 }
 

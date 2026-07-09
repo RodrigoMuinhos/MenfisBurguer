@@ -1,5 +1,5 @@
 import type { StaticImageData } from "next/image";
-import { Beef, Drumstick, Package, Plus, Utensils } from "lucide-react";
+import { Beef, Candy, Drumstick, Package, Plus, Utensils } from "lucide-react";
 import { CartItem } from "@/types/order";
 import { MenuItem } from "@/features/catalog/types";
 
@@ -42,6 +42,7 @@ export const CATEGORIES = [
   { id: "bacon", label: "Bacon", Icon: Beef },
   { id: "fries", label: "Fries", Icon: Utensils },
   { id: "extras", label: "Extras", Icon: Plus },
+  { id: "sweet", label: "Sweet", Icon: Candy },
 ] as const;
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -85,6 +86,19 @@ export const EXTRA_OPTIONS = [
   { id: "agua-com-gas", label: "Água com gás", price: 5.9, image: "/EXTRAS/aguaComGas.png" },
 ];
 
+export const SWEET_BOX_REQUIRED_COUNT = 4;
+export const SWEET_PREMIUM_PRICE = 2.9;
+export const SWEET_OPTIONS = [
+  { id: "brigadeiro", label: "Brigadeiro", price: 0, premium: false },
+  { id: "beijinho", label: "Beijinho", price: 0, premium: false },
+  { id: "cajuzinho", label: "Cajuzinho", price: 0, premium: false },
+  { id: "casadinho", label: "Casadinho", price: 0, premium: false },
+  { id: "bala-baiana", label: "Bala baiana", price: SWEET_PREMIUM_PRICE, premium: true },
+  { id: "ninho-nutella", label: "Ninho com Nutella", price: SWEET_PREMIUM_PRICE, premium: true },
+  { id: "churros", label: "Churros", price: SWEET_PREMIUM_PRICE, premium: true },
+  { id: "cafe", label: "Café", price: SWEET_PREMIUM_PRICE, premium: true },
+];
+
 const EXTRA_CARNE_OPTION = {
   id: "extra-carne",
   label: "Adicional de carne",
@@ -118,6 +132,10 @@ export function isNuggetsProduct(item: MenuItem) {
 
 export function isSpecialOfferOnlyProduct(item: MenuItem) {
   return item.id === SPECIAL_OFFER_PRODUCT_ID;
+}
+
+export function isSweetBoxProduct(item: MenuItem) {
+  return item.id === "monte-sua-caixinha" || item.category === "sweet";
 }
 
 export function getExtraOptionsForItem(item: MenuItem) {

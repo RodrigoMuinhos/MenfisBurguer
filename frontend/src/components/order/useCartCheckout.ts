@@ -305,7 +305,13 @@ export function useCartCheckout({
 
   useEffect(() => {
     if (kioskMode || !API_URL) return;
-    fetch(`${API_URL}/settings/public`, { cache: "no-store" })
+    fetch(`${API_URL}/settings/public?_=${Date.now()}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    })
       .then((response) => response.json())
       .then((settings) => {
         const enabled = settings.payOnDeliveryEnabled === true;

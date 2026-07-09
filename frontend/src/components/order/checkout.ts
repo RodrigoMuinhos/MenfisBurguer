@@ -152,6 +152,7 @@ export const ITEM_DESC: Record<string, string> = {
   "nuggets-90g": "Menfi's Nuggets 90g com molho e ketchup",
   "nuggets-180g": "Menfi's Nuggets 180g com molho e ketchup",
   "nuggets-grande": "Menfi's Nuggets 270g com molho e ketchup",
+  "monte-sua-caixinha": "Caixinha Sweet com 4 doces escolhidos",
   cola: "Coca-Cola 350ml gelada",
   "coca-zero": "Coca-Cola Zero gelada",
   "guarana-zero": "Guaraná Zero gelado",

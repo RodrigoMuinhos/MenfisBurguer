@@ -73,8 +73,80 @@ const DEFAULT_SUGGESTIONS: SuggestedExtra[] = [
     description: "Acompanha molho e ketchup",
     image: "/nuggetfries.jpg",
   },
+  {
+    id: "nuggets-180g",
+    name: "Menfi's Nuggets 180g",
+    price: 18.9,
+    description: "180g com molho e ketchup",
+    image: "/nuggetfries.jpg",
+  },
+  {
+    id: "nuggets-grande",
+    name: "Menfi's Nuggets 270g",
+    price: 29.9,
+    description: "270g para compartilhar",
+    image: "/nuggetfries.jpg",
+  },
   { id: "coca-zero", name: "Coca-Cola Zero", price: 8.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
   { id: "guarana-zero", name: "Guaraná Zero", price: 6.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana.jpg" },
+  { id: "agua-com-gas", name: "Água com gás", price: 5.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
+];
+
+const COMBO_OFFER_BUNDLES: SuggestedExtra[][] = [
+  [
+    {
+      id: "batata-pequena",
+      name: "Batata Frita Pequena",
+      price: 9.9,
+      description: "90g crocante",
+      image: "/EXTRAS/batata.jpg",
+      message: "Seu combo já vem com batata e refri. Quer deixar ainda melhor com nuggets e uma porção extra?",
+    },
+    {
+      id: "nuggets-180g",
+      name: "Menfi's Nuggets 180g",
+      price: 18.9,
+      description: "180g com molho e ketchup",
+      image: "/nuggetfries.jpg",
+    },
+    { id: "guarana-zero", name: "Guaraná Zero", price: 6.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana.jpg" },
+  ],
+  [
+    {
+      id: "batata-media",
+      name: "Batata Frita Média",
+      price: 14.9,
+      description: "180g crocante",
+      image: "/EXTRAS/batata.jpg",
+      message: "Outra combinação para aumentar o ticket: batata média, nuggets pequeno e Coca gelada.",
+    },
+    {
+      id: "nuggets-90g",
+      name: "Menfi's Nuggets 90g",
+      price: 12.9,
+      description: "Acompanha molho e ketchup",
+      image: "/nuggetfries.jpg",
+    },
+    { id: "coca-zero", name: "Coca-Cola Zero", price: 8.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
+  ],
+  [
+    {
+      id: "batata",
+      name: "Batata Frita Grande",
+      price: 19.9,
+      description: "270g para compartilhar",
+      image: "/EXTRAS/batata.jpg",
+      message: "Para dividir melhor: batata grande, nuggets grande e bebida extra.",
+    },
+    {
+      id: "nuggets-grande",
+      name: "Menfi's Nuggets 270g",
+      price: 29.9,
+      description: "270g com molho e ketchup",
+      image: "/nuggetfries.jpg",
+    },
+    { id: "agua-com-gas", name: "Água com gás", price: 5.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
+  ],
 ];
 
 export function CartBagStepSection({
@@ -94,7 +166,7 @@ export function CartBagStepSection({
     () => rotatingWindow(suggestions, suggestionPage, 3),
     [suggestionPage, suggestions],
   );
-  const primaryMessage = suggestions.find((item) => item.message)?.message;
+  const primaryMessage = visibleSuggestions.find((item) => item.message)?.message;
 
   useEffect(() => {
     setSuggestionPage(0);
@@ -103,8 +175,8 @@ export function CartBagStepSection({
   useEffect(() => {
     if (suggestions.length <= 3) return;
     const timer = window.setInterval(() => {
-      setSuggestionPage((page) => (page + 1) % suggestions.length);
-    }, 4200);
+      setSuggestionPage((page) => (page + 3) % suggestions.length);
+    }, 9000);
     return () => window.clearInterval(timer);
   }, [suggestions.length]);
 
@@ -293,31 +365,11 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
   }
 
   if (hasCombo && !hasNuggets) {
-    return prependUnique(
-      {
-        id: "nuggets-90g",
-        name: "Menfi's Nuggets 90g",
-        price: 12.9,
-        description: "Acompanha molho e ketchup",
-        image: "/nuggetfries.jpg",
-        message: "Seu combo já vem com batata e refri. Quer deixar ainda melhor com uma porção de Menfi's Nuggets 90g por R$ 12,90?",
-      },
-      ids,
-    );
+    return buildComboOfferRotation(ids);
   }
 
   if (hasCombo && hasNuggets) {
-    return prependUnique(
-      {
-        id: "nuggets-180g",
-        name: "Menfi's Nuggets 180g",
-        price: 18.9,
-        description: "Acompanha molho e ketchup",
-        image: "/nuggetfries.jpg",
-        message: "Para mais pessoas, uma porção maior de nuggets aumenta o pedido sem complicar.",
-      },
-      ids,
-    );
+    return buildComboOfferRotation(ids);
   }
 
   return DEFAULT_SUGGESTIONS.filter((item) => !ids.has(item.id));
@@ -326,6 +378,18 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
 function prependUnique(primary: SuggestedExtra, cartIds: Set<string>) {
   const rest = DEFAULT_SUGGESTIONS.filter((item) => item.id !== primary.id && !cartIds.has(item.id));
   return [primary, ...rest].slice(0, 5);
+}
+
+function buildComboOfferRotation(cartIds: Set<string>) {
+  const suggestions = COMBO_OFFER_BUNDLES.flatMap((bundle) => {
+    const available = bundle.filter((item) => !cartIds.has(item.id));
+    if (available.length >= 3) return available.slice(0, 3);
+    const fill = DEFAULT_SUGGESTIONS.filter(
+      (item) => !cartIds.has(item.id) && !available.some((current) => current.id === item.id),
+    );
+    return [...available, ...fill].slice(0, 3);
+  });
+  return suggestions.length ? suggestions : DEFAULT_SUGGESTIONS.filter((item) => !cartIds.has(item.id));
 }
 
 function rotatingWindow<T>(items: T[], start: number, size: number) {

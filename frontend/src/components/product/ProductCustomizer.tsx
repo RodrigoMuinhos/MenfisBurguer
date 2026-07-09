@@ -17,11 +17,14 @@ import {
   DRINK_OPTIONS,
   MEAT_POINT_OPTIONS,
   SAUCE_OPTIONS,
+  SWEET_BOX_REQUIRED_COUNT,
+  SWEET_OPTIONS,
   fmt,
   getExtraOptionsForItem,
   imageSrc,
   isChickenProduct,
   isNuggetsProduct,
+  isSweetBoxProduct,
   requiredCustomizerCount,
 } from "./shared";
 
@@ -41,8 +44,14 @@ export function ProductCustomizer({
   const needsSauce = state.item.category === "burger" || state.item.category === "combo";
   const needsFreeMayo = isNuggetsProduct(state.item);
   const needsDrink = state.item.category === "combo";
+  const isSweetBox = isSweetBoxProduct(state.item);
   const sauceRequiredCount = needsFreeMayo ? 1 : requiredCount;
   const extraOptions = getExtraOptionsForItem(state.item);
+  const sweetCount = Object.values(state.extras).reduce((sum, quantity) => sum + quantity, 0);
+  const sweetTotal = SWEET_OPTIONS.reduce(
+    (sum, option) => sum + (state.extras[option.id] ?? 0) * option.price,
+    0,
+  );
   const extrasTotal = Object.entries(state.extras).reduce((sum, [extraId, quantity]) => {
     const extra = extraOptions.find((option) => option.id === extraId);
     return sum + (extra?.price ?? 0) * quantity;
@@ -52,10 +61,11 @@ export function ProductCustomizer({
     const hasSurchargeProduct = Boolean(COMBO_DRINK_SURCHARGE_PRODUCT_ID[drinkId]);
     return sum + (hasSurchargeProduct ? drink?.comboPrice ?? 0 : 0);
   }, 0);
-  const total = (state.item.price + drinkSurchargeTotal + extrasTotal) * state.qty;
+  const total = (state.item.price + drinkSurchargeTotal + (isSweetBox ? sweetTotal : extrasTotal)) * state.qty;
   const valid =
+    (!isSweetBox || sweetCount === SWEET_BOX_REQUIRED_COUNT) &&
     (!needsMeatPoint || state.meatPoints.length === requiredCount) &&
-    (!(needsSauce || needsFreeMayo) || state.sauces.length === sauceRequiredCount) &&
+    (!(needsSauce || needsFreeMayo) || isSweetBox || state.sauces.length === sauceRequiredCount) &&
     (!needsDrink || state.drinks.length === requiredCount);
 
   const toggleLimited = (
@@ -98,6 +108,23 @@ export function ProductCustomizer({
         delete nextExtras[extraId];
       } else {
         nextExtras[extraId] = nextQty;
+      }
+      return { ...prev, extras: nextExtras };
+    });
+  };
+
+  const updateSweetQty = (sweetId: string, delta: number) => {
+    setState((prev) => {
+      if (!prev) return prev;
+      const currentTotal = Object.values(prev.extras).reduce((sum, quantity) => sum + quantity, 0);
+      const current = prev.extras[sweetId] ?? 0;
+      const nextQty = Math.max(0, current + delta);
+      if (delta > 0 && currentTotal >= SWEET_BOX_REQUIRED_COUNT) return prev;
+      const nextExtras = { ...prev.extras };
+      if (nextQty === 0) {
+        delete nextExtras[sweetId];
+      } else {
+        nextExtras[sweetId] = nextQty;
       }
       return { ...prev, extras: nextExtras };
     });
@@ -184,7 +211,79 @@ export function ProductCustomizer({
             </p>
           </div>
 
-          {needsMeatPoint && (
+          {isSweetBox && (
+            <OptionSection
+              title="Monte sua caixinha"
+              subtitle="Escolha exatamente 4 doces. Premium soma R$ 2,90 por unidade."
+              count={sweetCount}
+              total={SWEET_BOX_REQUIRED_COUNT}
+              required
+            >
+              {SWEET_OPTIONS.map((sweet) => {
+                const quantity = state.extras[sweet.id] ?? 0;
+                const active = quantity > 0;
+                return (
+                  <div
+                    key={sweet.id}
+                    className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
+                    style={{ borderColor: `${VERDE}10`, background: "#fff" }}
+                  >
+                    <span>
+                      <span className="block text-sm font-bold">{sweet.label}</span>
+                      <span className="text-xs text-black/50">
+                        {sweet.premium ? `Premium + ${fmt(sweet.price)}` : "Básico incluso"}
+                      </span>
+                    </span>
+                    {active ? (
+                      <span
+                        className="grid h-10 w-32 grid-cols-3 overflow-hidden rounded-2xl"
+                        style={{ border: `1.5px solid ${VERDE}18` }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => updateSweetQty(sweet.id, -1)}
+                          className="flex items-center justify-center"
+                          style={{ color: VERDE }}
+                          aria-label={`Remover ${sweet.label}`}
+                        >
+                          <Minus size={15} strokeWidth={2.6} />
+                        </button>
+                        <span
+                          className="flex items-center justify-center text-sm font-black"
+                          style={{ background: VERDE, color: ROSA }}
+                        >
+                          {quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateSweetQty(sweet.id, 1)}
+                          disabled={sweetCount >= SWEET_BOX_REQUIRED_COUNT}
+                          className="flex items-center justify-center disabled:opacity-35"
+                          style={{ color: VERDE }}
+                          aria-label={`Adicionar ${sweet.label}`}
+                        >
+                          <Plus size={15} strokeWidth={2.6} />
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => updateSweetQty(sweet.id, 1)}
+                        disabled={sweetCount >= SWEET_BOX_REQUIRED_COUNT}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-lg font-black disabled:opacity-35"
+                        style={{ background: "#F8F4F5", color: VERDE }}
+                        aria-label={`Adicionar ${sweet.label}`}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </OptionSection>
+          )}
+
+          {!isSweetBox && needsMeatPoint && (
             <OptionSection
               title="Ponto da carne"
               subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
@@ -224,7 +323,7 @@ export function ProductCustomizer({
             </OptionSection>
           )}
 
-          {(needsSauce || needsFreeMayo) && (
+          {!isSweetBox && (needsSauce || needsFreeMayo) && (
             <OptionSection
               title={needsFreeMayo ? "Maionese grátis" : "Molhos para o burger"}
               subtitle={
@@ -273,7 +372,7 @@ export function ProductCustomizer({
             </OptionSection>
           )}
 
-          {needsDrink && (
+          {!isSweetBox && needsDrink && (
             <OptionSection
               title="Aceita uma bebida?"
               subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
@@ -320,6 +419,7 @@ export function ProductCustomizer({
             </OptionSection>
           )}
 
+          {!isSweetBox && (
           <OptionSection title="Extras" subtitle="Escolha até 3 de cada opção">
             {extraOptions.map((extra) => {
               const quantity = state.extras[extra.id] ?? 0;
@@ -383,6 +483,7 @@ export function ProductCustomizer({
               );
             })}
           </OptionSection>
+          )}
 
           <div className="px-5 py-5">
             <p className="mb-2 text-xs font-black uppercase tracking-wider text-black/45">
@@ -434,7 +535,9 @@ export function ProductCustomizer({
           >
             {valid
               ? `Adicionar ${fmt(total)}`
-              : `Complete obrigatórios (${[
+              : isSweetBox
+                ? `Escolha ${SWEET_BOX_REQUIRED_COUNT - sweetCount} doce${SWEET_BOX_REQUIRED_COUNT - sweetCount === 1 ? "" : "s"}`
+                : `Complete obrigatórios (${[
                   needsMeatPoint ? Math.min(state.meatPoints.length, requiredCount) : requiredCount,
                   needsSauce ? Math.min(state.sauces.length, requiredCount) : requiredCount,
                   needsDrink ? Math.min(state.drinks.length, requiredCount) : requiredCount,
