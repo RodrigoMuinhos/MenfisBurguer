@@ -33,6 +33,19 @@ export type PresentationSettings = {
   imageCount: number;
   images: string[];
   featuredImage?: string;
+  featuredTitle?: string;
+};
+
+export type SpecialOfferSettings = {
+  enabled: boolean;
+  oncePerSession: boolean;
+  productId: string;
+  title: string;
+  description: string;
+  image: string;
+  price: number;
+  primaryButton: string;
+  secondaryButton: string;
 };
 
 export type PromoCardIcon =
@@ -116,6 +129,7 @@ export const ITEM_DESC: Record<string, string> = {
   combo: "Menfi's Burger · Coca-Cola 350ml · Batata Frita 100g",
   "double-combo": "BIG Menfi's com 2 carnes bovinas de 100g (200g no total) · Coca-Cola 350ml · Batata Frita 100g",
   "combo-upgrade": "Batata frita 100g · Coca-Cola 350ml",
+  "triple-combo": "Combo Triple Menfi's com 3 carnes bovinas de 100g · Bebida · Batata Frita",
   "bacon-combo": "Menfi's Bacon 130g · Coca-Cola 350ml · Batata Frita 100g",
   "double-bacon-combo": "BIG Menfi's Bacon com 2 carnes bovinas de 100g (200g no total) · Coca-Cola 350ml · Batata Frita 100g",
   "chicken-combo": "Menfi's Chicken · Coca-Cola 350ml · Batata Frita 100g",
@@ -221,6 +235,20 @@ export const DEFAULT_PRESENTATION_SETTINGS: PresentationSettings = {
   imageCount: 1,
   images: ["/descanso.png"],
   featuredImage: "",
+  featuredTitle: "",
+};
+
+export const DEFAULT_SPECIAL_OFFER_SETTINGS: SpecialOfferSettings = {
+  enabled: false,
+  oncePerSession: true,
+  productId: "triple-combo",
+  title: "Combo Triple Menfi's — O Matador de Fome",
+  description:
+    "3 carnes suculentas, cheddar derretido, salada, molho Menfi's e muito capricho. Um combo pesado, feito para quem chega com fome de verdade.",
+  image: "/menu/supercombomnfis.png",
+  price: 65.9,
+  primaryButton: "Adicionar ao pedido",
+  secondaryButton: "Ver cardápio",
 };
 
 export const DEFAULT_PROMO_CARDS: PromoCard[] = [
@@ -277,6 +305,8 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
   const imageCount = Number(data.imageCount);
   const featuredImage =
     typeof data.featuredImage === "string" ? data.featuredImage.trim() : "";
+  const featuredTitle =
+    typeof data.featuredTitle === "string" ? data.featuredTitle.trim().slice(0, 80) : "";
   return {
     enabled:
       typeof data.enabled === "boolean"
@@ -292,6 +322,29 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
         : Math.max(1, images.length),
     images: images.length ? images : DEFAULT_PRESENTATION_SETTINGS.images,
     featuredImage,
+    featuredTitle,
+  };
+}
+
+export function normalizeSpecialOfferSettings(value: unknown): SpecialOfferSettings {
+  const data =
+    value && typeof value === "object"
+      ? (value as Partial<SpecialOfferSettings>)
+      : {};
+  const price = Number(data.price);
+  return {
+    enabled: typeof data.enabled === "boolean" ? data.enabled : DEFAULT_SPECIAL_OFFER_SETTINGS.enabled,
+    oncePerSession:
+      typeof data.oncePerSession === "boolean"
+        ? data.oncePerSession
+        : DEFAULT_SPECIAL_OFFER_SETTINGS.oncePerSession,
+    productId: String(data.productId || DEFAULT_SPECIAL_OFFER_SETTINGS.productId).trim(),
+    title: String(data.title || DEFAULT_SPECIAL_OFFER_SETTINGS.title).trim().slice(0, 90),
+    description: String(data.description || DEFAULT_SPECIAL_OFFER_SETTINGS.description).trim().slice(0, 260),
+    image: String(data.image || DEFAULT_SPECIAL_OFFER_SETTINGS.image).trim(),
+    price: Number.isFinite(price) && price > 0 ? Math.round(price * 100) / 100 : DEFAULT_SPECIAL_OFFER_SETTINGS.price,
+    primaryButton: String(data.primaryButton || DEFAULT_SPECIAL_OFFER_SETTINGS.primaryButton).trim().slice(0, 32),
+    secondaryButton: String(data.secondaryButton || DEFAULT_SPECIAL_OFFER_SETTINGS.secondaryButton).trim().slice(0, 32),
   };
 }
 

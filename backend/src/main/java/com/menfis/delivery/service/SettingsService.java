@@ -20,6 +20,7 @@ public class SettingsService {
   public static final String SOLD_OUT = "sold_out_enabled";
   public static final String PRESENTATION = "presentation_settings";
   public static final String PROMO_CARDS = "promo_cards";
+  public static final String SPECIAL_OFFER = "special_offer_settings";
   public static final String SOLD_OUT_MESSAGE = """
     FELIZMENTE, HOJE ESGOTAMOS TUDO!
 
@@ -48,6 +49,9 @@ public class SettingsService {
       {"id":"mfb10","enabled":true,"eyebrow":"Primeira compra?","title":"MFB10","copy":"Ganhe 10% OFF no primeiro pedido","value":"10%","suffix":"OFF","icon":"gift"},
       {"id":"combolove","enabled":true,"eyebrow":"Quarta-feira","title":"LOV50","copy":"Na compra de um combo, o segundo sai com 50% OFF","value":"50%","suffix":"2o combo","icon":"flame"}
     ]
+    """;
+  private static final String DEFAULT_SPECIAL_OFFER = """
+    {"enabled":false,"oncePerSession":true,"productId":"triple-combo","title":"Combo Triple Menfi's — O Matador de Fome","description":"3 carnes suculentas, cheddar derretido, salada, molho Menfi's e muito capricho. Um combo pesado, feito para quem chega com fome de verdade.","image":"/menu/supercombomnfis.png","price":65.9,"primaryButton":"Adicionar ao pedido","secondaryButton":"Ver cardápio"}
     """;
 
   private final JdbcTemplate jdbc;
@@ -114,6 +118,18 @@ public class SettingsService {
     }
   }
 
+  public Map<String, Object> specialOfferSettings() {
+    try {
+      return objectMapper.readValue(value(SPECIAL_OFFER, DEFAULT_SPECIAL_OFFER), new TypeReference<>() {});
+    } catch (Exception ignored) {
+      try {
+        return objectMapper.readValue(DEFAULT_SPECIAL_OFFER, new TypeReference<>() {});
+      } catch (Exception fallbackError) {
+        return Map.of();
+      }
+    }
+  }
+
   public Map<String, Object> publicSettings() {
     OperatingStatus operatingStatus = operatingStatus();
     boolean soldOut = soldOutEnabled();
@@ -126,6 +142,7 @@ public class SettingsService {
     response.put("operatingHours", operatingHours());
     response.put("presentation", presentationSettings());
     response.put("promoCards", promoCards());
+    response.put("specialOffer", specialOfferSettings());
     response.put("soldOutEnabled", soldOut);
     response.put("soldOutActive", soldOutActive);
     response.put("soldOutMessage", SOLD_OUT_MESSAGE);
@@ -325,6 +342,23 @@ public class SettingsService {
       );
     } catch (Exception e) {
       throw new IllegalArgumentException("Cards promocionais inválidos.");
+    }
+    return publicSettings();
+  }
+
+  public Map<String, Object> setSpecialOfferSettings(Map<String, Object> specialOffer) {
+    try {
+      jdbc.update(
+        """
+        insert into app_settings(key, value, updated_at)
+        values (?, ?, now())
+        on conflict (key) do update set value = excluded.value, updated_at = now()
+        """,
+        SPECIAL_OFFER,
+        objectMapper.writeValueAsString(specialOffer == null ? Map.of() : specialOffer)
+      );
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Pop-up promocional inválido.");
     }
     return publicSettings();
   }

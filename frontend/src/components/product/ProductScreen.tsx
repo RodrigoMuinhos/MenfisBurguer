@@ -39,6 +39,7 @@ import {
   getExtraOptionsForItem,
   imageSrc,
   isChickenProduct,
+  isNuggetsProduct,
   readMemberProfile,
   readSavedDelivery,
   requiredCustomizerCount,
@@ -67,14 +68,17 @@ import {
 } from "./ProductHomeSections";
 import {
   PromoCard,
+  SpecialOfferSettings,
   normalizePresentationSettings,
   normalizePromoCards,
+  normalizeSpecialOfferSettings,
 } from "@/components/order/checkout";
 import { MobileMenuExperience } from "./MobileMenuExperience";
 import { MemberNotification } from "./notifications";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
+const SPECIAL_OFFER_SESSION_KEY = "menfis_special_offer_seen";
 const CUSTOMIZER_ADDON_IDS = new Set([
   "extra-carne",
   "extra-frango",
@@ -216,8 +220,13 @@ export function ProductScreen({
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [featuredImage, setFeaturedImage] = useState("");
+  const [featuredTitle, setFeaturedTitle] = useState("");
   const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
   const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
+  const [specialOffer, setSpecialOffer] = useState<SpecialOfferSettings>(() =>
+    normalizeSpecialOfferSettings(null),
+  );
+  const [specialOfferOpen, setSpecialOfferOpen] = useState(false);
   const [operatingNow, setOperatingNow] = useState(true);
   const [operatingHoursSummary, setOperatingHoursSummary] = useState("");
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
@@ -336,8 +345,11 @@ export function ProductScreen({
         if (settings?.featuredProductId) {
           setFeaturedProductId(String(settings.featuredProductId));
         }
-        setFeaturedImage(normalizePresentationSettings(settings?.presentation).featuredImage ?? "");
+        const normalizedPresentation = normalizePresentationSettings(settings?.presentation);
+        setFeaturedImage(normalizedPresentation.featuredImage ?? "");
+        setFeaturedTitle(normalizedPresentation.featuredTitle ?? "");
         setPromoCards(normalizePromoCards(settings?.promoCards));
+        setSpecialOffer(normalizeSpecialOfferSettings(settings?.specialOffer));
         setOperatingNow(settings?.operatingNow !== false);
         setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
         setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
@@ -356,6 +368,19 @@ export function ProductScreen({
       window.clearTimeout(fallbackTimer);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!heroSettingsLoaded || !specialOffer.enabled || soldOutEnabled) return;
+    if (specialOffer.oncePerSession && sessionStorage.getItem(SPECIAL_OFFER_SESSION_KEY) === "1") return;
+    const timer = window.setTimeout(() => {
+      if (specialOffer.oncePerSession) {
+        sessionStorage.setItem(SPECIAL_OFFER_SESSION_KEY, "1");
+      }
+      setSpecialOfferOpen(true);
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [heroSettingsLoaded, soldOutEnabled, specialOffer.enabled, specialOffer.oncePerSession]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !API_URL) return;
@@ -506,6 +531,40 @@ export function ProductScreen({
     goToCart();
   };
 
+  const closeSpecialOffer = () => {
+    if (specialOffer.oncePerSession && typeof window !== "undefined") {
+      sessionStorage.setItem(SPECIAL_OFFER_SESSION_KEY, "1");
+    }
+    setSpecialOfferOpen(false);
+  };
+
+  const addSpecialOffer = () => {
+    const baseItem =
+      catalogItems.find((item) => item.id === specialOffer.productId) ??
+      featuredItem;
+    closeSpecialOffer();
+    openCustomizer({
+      ...baseItem,
+      name: specialOffer.title || baseItem.name,
+      desc: specialOffer.description || baseItem.desc,
+      price: specialOffer.price || baseItem.price,
+      image: specialOffer.image || baseItem.image,
+      originalPrice:
+        baseItem.originalPrice && baseItem.originalPrice > specialOffer.price
+          ? baseItem.originalPrice
+          : undefined,
+    });
+  };
+
+  const viewSpecialOfferMenu = () => {
+    closeSpecialOffer();
+    window.setTimeout(() => {
+      document
+        .getElementById("menfis-products")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
   const confirmCustomizer = () => {
     if (!customizer) return;
     const meatRequired =
@@ -515,10 +574,13 @@ export function ProductScreen({
     const requiredCount = requiredCustomizerCount(customizer.item);
     const requiresSauce =
       customizer.item.category === "burger" || customizer.item.category === "combo";
+    const requiresFreeMayo = isNuggetsProduct(customizer.item);
+    const sauceRequiredCount = requiresFreeMayo ? 1 : requiredCount;
     const requiresDrink = customizer.item.category === "combo";
     if (
       (meatRequired && customizer.meatPoints.length < requiredCount) ||
-      (requiresSauce && customizer.sauces.length < requiredCount) ||
+      ((requiresSauce || requiresFreeMayo) &&
+        customizer.sauces.length < sauceRequiredCount) ||
       (requiresDrink && customizer.drinks.length < requiredCount)
     ) {
       return;
@@ -803,6 +865,7 @@ export function ProductScreen({
           cartTotal={cartTotal}
           featuredItem={featuredItem}
           featuredImage={featuredImage}
+          featuredTitle={featuredTitle}
           heroReady={heroSettingsLoaded}
           promoCards={promoCards}
           memberProfile={memberProfile}
@@ -835,6 +898,7 @@ export function ProductScreen({
             kioskMode={kioskMode}
             featuredItem={featuredItem}
             featuredImage={featuredImage}
+            featuredTitle={featuredTitle}
             heroReady={heroSettingsLoaded}
             onIdleShortcutTap={handleIdleShortcutTap}
             onAddFeatured={() => addMenuItem(featuredItem)}
@@ -858,7 +922,7 @@ export function ProductScreen({
           )}
 
           <CategoryTabs category={category} setCategory={setCategory} />
-          <section className="mt-6 px-4">
+          <section id="menfis-products" className="mt-6 px-4">
             <div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredItems.map((item) => (
@@ -1008,6 +1072,17 @@ export function ProductScreen({
           onClose={() => setSoldOutAlertOpen(false)}
         />
       )}
+
+      <AnimatePresence>
+        {specialOfferOpen && (
+          <SpecialOfferModal
+            offer={specialOffer}
+            onClose={closeSpecialOffer}
+            onAdd={addSpecialOffer}
+            onViewMenu={viewSpecialOfferMenu}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {customizer && (
@@ -1162,6 +1237,126 @@ function BottomNavButton({
       </span>
       <span>{label}</span>
     </button>
+  );
+}
+
+function SpecialOfferModal({
+  offer,
+  onClose,
+  onAdd,
+  onViewMenu,
+}: {
+  offer: SpecialOfferSettings;
+  onClose: () => void;
+  onAdd: () => void;
+  onViewMenu: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 px-3 pb-3 backdrop-blur-sm sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={offer.title}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 28, scale: 0.97 }}
+        animate={{ y: 0, scale: 1 }}
+        exit={{ y: 20, scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24 }}
+        className="relative max-h-[92dvh] w-full max-w-lg overflow-hidden rounded-[26px] bg-white shadow-2xl"
+        style={{ color: VERDE }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-3 top-3 z-10 grid h-11 w-11 place-items-center rounded-full"
+          style={{ background: "rgba(255,255,255,0.92)", color: VERDE, border: `1px solid ${VERDE}14` }}
+          aria-label="Fechar promoção"
+        >
+          <X size={19} strokeWidth={2.7} />
+        </button>
+
+        <div className="max-h-[92dvh] overflow-y-auto">
+          <div className="relative aspect-[1.18/1] bg-white sm:aspect-[1.45/1]">
+            {offer.image ? (
+              <img
+                src={offer.image}
+                alt={offer.title}
+                className="h-full w-full object-cover"
+                loading="eager"
+              />
+            ) : (
+              <div className="grid h-full place-items-center" style={{ background: `${ROSA}35` }}>
+                <Sparkles size={54} strokeWidth={1.7} />
+              </div>
+            )}
+            <span
+              className="absolute left-4 top-4 rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em]"
+              style={{ background: VERDE, color: ROSA }}
+            >
+              Oferta especial
+            </span>
+          </div>
+
+          <div className="p-5 sm:p-6">
+            <h2
+              className="uppercase"
+              style={{
+                fontFamily: "var(--menfis-font-display)",
+                fontSize: "clamp(2.1rem, 9vw, 3.25rem)",
+                lineHeight: 0.9,
+                letterSpacing: 0,
+              }}
+            >
+              {offer.title}
+            </h2>
+            <p className="mt-3 text-sm font-semibold leading-relaxed opacity-75 sm:text-base">
+              {offer.description}
+            </p>
+            <div className="mt-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45">
+                  Preço especial
+                </p>
+                <p
+                  className="mt-1"
+                  style={{
+                    fontFamily: "var(--menfis-font-display)",
+                    fontSize: "2.6rem",
+                    lineHeight: 0.9,
+                  }}
+                >
+                  {fmt(offer.price)}
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <button
+                type="button"
+                onClick={onAdd}
+                className="min-h-13 rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-wide"
+                style={{ background: VERDE, color: ROSA }}
+              >
+                {offer.primaryButton}
+              </button>
+              <button
+                type="button"
+                onClick={onViewMenu}
+                className="min-h-13 rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-wide"
+                style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}18` }}
+              >
+                {offer.secondaryButton}
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

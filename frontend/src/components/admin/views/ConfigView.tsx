@@ -7,10 +7,12 @@ import {
   PromoCard,
   PromoCardIcon,
   PROMO_CARD_ICON_OPTIONS,
+  SpecialOfferSettings,
   OperatingHoursConfig,
   normalizeOperatingHours,
   normalizePresentationSettings,
   normalizePromoCards,
+  normalizeSpecialOfferSettings,
 } from "@/components/order/checkout";
 import { PayOnDeliverySettings } from "../AdminChrome";
 
@@ -24,9 +26,11 @@ export function ConfigView({
   operatingHours,
   presentation,
   promoCards,
+  specialOffer,
   hasUnsavedOperatingHours,
   hasUnsavedPresentation,
   hasUnsavedPromoCards,
+  hasUnsavedSpecialOffer,
   saving,
   disabled,
   onTogglePayOnDelivery,
@@ -38,9 +42,11 @@ export function ConfigView({
   onOperatingHoursChange,
   onPresentationChange,
   onPromoCardsChange,
+  onSpecialOfferChange,
   onSaveOperatingHours,
   onSavePresentation,
   onSavePromoCards,
+  onSaveSpecialOffer,
   onResetRealOperation,
 }: {
   payOnDeliveryEnabled: boolean;
@@ -52,9 +58,11 @@ export function ConfigView({
   operatingHours: OperatingHoursConfig;
   presentation: PresentationSettings;
   promoCards: PromoCard[];
+  specialOffer: SpecialOfferSettings;
   hasUnsavedOperatingHours: boolean;
   hasUnsavedPresentation: boolean;
   hasUnsavedPromoCards: boolean;
+  hasUnsavedSpecialOffer: boolean;
   saving: boolean;
   disabled: boolean;
   onTogglePayOnDelivery: () => void;
@@ -66,14 +74,17 @@ export function ConfigView({
   onOperatingHoursChange: (config: OperatingHoursConfig) => void;
   onPresentationChange: (config: PresentationSettings) => void;
   onPromoCardsChange: (cards: PromoCard[]) => void;
+  onSpecialOfferChange: (config: SpecialOfferSettings) => void;
   onSaveOperatingHours: () => void;
   onSavePresentation: () => void;
   onSavePromoCards: () => void;
+  onSaveSpecialOffer: () => void;
   onResetRealOperation: () => void;
 }) {
   const normalizedOperatingHours = normalizeOperatingHours(operatingHours);
   const normalizedPresentation = normalizePresentationSettings(presentation);
   const normalizedPromoCards = normalizePromoCards(promoCards);
+  const normalizedSpecialOffer = normalizeSpecialOfferSettings(specialOffer);
   const activePromoCardsCount = normalizedPromoCards.filter((card) => card.enabled).length;
   const [adminLoginDraft, setAdminLoginDraft] = useState(adminLogin || "menfisburguer@adm.com");
   const [adminPasswordDraft, setAdminPasswordDraft] = useState("");
@@ -148,6 +159,15 @@ export function ConfigView({
         card.id === id ? { ...card, ...patch } : card,
       ),
     );
+  };
+  const updateSpecialOffer = (patch: Partial<SpecialOfferSettings>) => {
+    onSpecialOfferChange(normalizeSpecialOfferSettings({ ...normalizedSpecialOffer, ...patch }));
+  };
+  const setSpecialOfferImageFromFiles = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    const image = await encodePresentationImage(file);
+    updateSpecialOffer({ image });
   };
   const addPromoCard = () => {
     onPromoCardsChange([
@@ -344,6 +364,18 @@ export function ConfigView({
                 </option>
               ))}
             </select>
+            <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+              Nome no destaque
+              <input
+                value={normalizedPresentation.featuredTitle ?? ""}
+                onChange={(event) => updatePresentation({ featuredTitle: event.target.value })}
+                disabled={saving || disabled}
+                placeholder={selectedProduct.name}
+                maxLength={80}
+                className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+                style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+              />
+            </label>
             <div className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2" }}>
               <div className="relative aspect-video bg-black">
                 <img
@@ -354,9 +386,186 @@ export function ConfigView({
                 <span className="absolute left-2 top-2 rounded-full px-2 py-1 text-[10px] font-black" style={{ background: "#fff", color: VERDE }}>
                   {normalizedPresentation.featuredImage ? "Upload" : "Produto"}
                 </span>
+                <span className="absolute inset-x-2 bottom-2 truncate rounded-xl px-3 py-2 text-xs font-black uppercase" style={{ background: "rgba(255,255,255,0.92)", color: VERDE }}>
+                  {normalizedPresentation.featuredTitle || selectedProduct.name}
+                </span>
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
+              <Star size={19} strokeWidth={2.4} />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Pop-up promocional</p>
+              <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
+                Aparece no cardápio 5 segundos depois que o cliente abre o menu.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => updateSpecialOffer({ enabled: !normalizedSpecialOffer.enabled })}
+            disabled={saving || disabled}
+            className="min-h-12 min-w-36 rounded-full px-5 text-xs font-black uppercase tracking-wide"
+            style={{
+              background: normalizedSpecialOffer.enabled ? VERDE : "#E5E7EB",
+              color: normalizedSpecialOffer.enabled ? ROSA : "#4B5563",
+              opacity: saving || disabled ? 0.6 : 1,
+            }}
+          >
+            {normalizedSpecialOffer.enabled ? "Ligado" : "Desligado"}
+          </button>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+          <div className="grid gap-3">
+            <div className="grid gap-3 md:grid-cols-[1fr_150px]">
+              <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                Produto/combo destacado
+                <select
+                  value={normalizedSpecialOffer.productId}
+                  onChange={(event) => updateSpecialOffer({ productId: event.target.value })}
+                  disabled={saving || disabled}
+                  className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+                  style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+                >
+                  {MENU_ITEMS.filter((item) => item.category === "combo" || item.category === "burger").map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                Preço
+                <input
+                  value={String(normalizedSpecialOffer.price).replace(".", ",")}
+                  onChange={(event) => updateSpecialOffer({ price: Number(event.target.value.replace(",", ".")) })}
+                  disabled={saving || disabled}
+                  className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+                  style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+                />
+              </label>
+            </div>
+            <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+              Título
+              <input
+                value={normalizedSpecialOffer.title}
+                onChange={(event) => updateSpecialOffer({ title: event.target.value })}
+                disabled={saving || disabled}
+                className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+                style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+              />
+            </label>
+            <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+              Descrição
+              <textarea
+                value={normalizedSpecialOffer.description}
+                onChange={(event) => updateSpecialOffer({ description: event.target.value })}
+                disabled={saving || disabled}
+                className="min-h-24 resize-none rounded-2xl px-4 py-3 text-sm font-bold outline-none"
+                style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+              />
+            </label>
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                Botão principal
+                <input
+                  value={normalizedSpecialOffer.primaryButton}
+                  onChange={(event) => updateSpecialOffer({ primaryButton: event.target.value })}
+                  disabled={saving || disabled}
+                  className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+                  style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+                />
+              </label>
+              <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
+                Botão secundário
+                <input
+                  value={normalizedSpecialOffer.secondaryButton}
+                  onChange={(event) => updateSpecialOffer({ secondaryButton: event.target.value })}
+                  disabled={saving || disabled}
+                  className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+                  style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
+                />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => updateSpecialOffer({ oncePerSession: true })}
+                disabled={saving || disabled}
+                className="rounded-full px-4 py-2 text-[10px] font-black uppercase"
+                style={{
+                  background: normalizedSpecialOffer.oncePerSession ? VERDE : "#F8F1F4",
+                  color: normalizedSpecialOffer.oncePerSession ? ROSA : VERDE,
+                }}
+              >
+                Uma vez por sessão
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSpecialOffer({ oncePerSession: false })}
+                disabled={saving || disabled}
+                className="rounded-full px-4 py-2 text-[10px] font-black uppercase"
+                style={{
+                  background: !normalizedSpecialOffer.oncePerSession ? VERDE : "#F8F1F4",
+                  color: !normalizedSpecialOffer.oncePerSession ? ROSA : VERDE,
+                }}
+              >
+                Toda vez que abrir
+              </button>
+              <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase" style={{ background: `${ROSA}35`, color: VERDE, border: `1.5px solid ${ROSA}` }}>
+                <ImagePlus size={15} />
+                Upload imagem
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={saving || disabled}
+                  onChange={(event) => {
+                    void setSpecialOfferImageFromFiles(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+          <div className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2" }}>
+            <div className="relative aspect-[4/3] bg-white">
+              <img src={normalizedSpecialOffer.image} alt="Prévia do pop-up" className="h-full w-full object-cover" />
+            </div>
+            <div className="p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55" style={{ color: VERDE }}>Oferta especial</p>
+              <p className="mt-1 text-lg font-black uppercase leading-tight" style={{ color: VERDE }}>{normalizedSpecialOffer.title}</p>
+              <p className="mt-2 text-sm font-black" style={{ color: VERDE }}>R$ {normalizedSpecialOffer.price.toFixed(2).replace(".", ",")}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: `${VERDE}12` }}>
+          <p className="text-xs font-bold" style={{ color: hasUnsavedSpecialOffer ? "#B45309" : `${VERDE}99` }}>
+            {hasUnsavedSpecialOffer ? "Há alterações no pop-up que ainda não foram salvas." : "Pop-up promocional salvo."}
+          </p>
+          <button
+            type="button"
+            onClick={onSaveSpecialOffer}
+            disabled={saving || disabled || !hasUnsavedSpecialOffer}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase"
+            style={{
+              background: hasUnsavedSpecialOffer ? VERDE : "#E5E7EB",
+              color: hasUnsavedSpecialOffer ? ROSA : "#6B7280",
+              opacity: saving || disabled ? 0.6 : 1,
+            }}
+          >
+            <Save size={15} />
+            {saving ? "Salvando..." : "Salvar pop-up"}
+          </button>
         </div>
       </section>
 

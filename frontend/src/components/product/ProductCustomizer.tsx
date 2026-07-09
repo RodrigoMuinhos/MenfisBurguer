@@ -21,6 +21,7 @@ import {
   getExtraOptionsForItem,
   imageSrc,
   isChickenProduct,
+  isNuggetsProduct,
   requiredCustomizerCount,
 } from "./shared";
 
@@ -38,7 +39,9 @@ export function ProductCustomizer({
     (state.item.category === "burger" || state.item.category === "combo");
   const requiredCount = requiredCustomizerCount(state.item);
   const needsSauce = state.item.category === "burger" || state.item.category === "combo";
+  const needsFreeMayo = isNuggetsProduct(state.item);
   const needsDrink = state.item.category === "combo";
+  const sauceRequiredCount = needsFreeMayo ? 1 : requiredCount;
   const extraOptions = getExtraOptionsForItem(state.item);
   const extrasTotal = Object.entries(state.extras).reduce((sum, [extraId, quantity]) => {
     const extra = extraOptions.find((option) => option.id === extraId);
@@ -52,7 +55,7 @@ export function ProductCustomizer({
   const total = (state.item.price + drinkSurchargeTotal + extrasTotal) * state.qty;
   const valid =
     (!needsMeatPoint || state.meatPoints.length === requiredCount) &&
-    (!needsSauce || state.sauces.length === requiredCount) &&
+    (!(needsSauce || needsFreeMayo) || state.sauces.length === sauceRequiredCount) &&
     (!needsDrink || state.drinks.length === requiredCount);
 
   const toggleLimited = (
@@ -221,12 +224,16 @@ export function ProductCustomizer({
             </OptionSection>
           )}
 
-          {needsSauce && (
+          {(needsSauce || needsFreeMayo) && (
             <OptionSection
-              title="Molhos para o burger"
-              subtitle={`Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`}
+              title={needsFreeMayo ? "Maionese grátis" : "Molhos para o burger"}
+              subtitle={
+                needsFreeMayo
+                  ? "Escolha 1 opção. Uma maionese acompanha sem custo."
+                  : `Escolha ${requiredCount} ${requiredCount === 1 ? "opção" : "opções"}`
+              }
               count={state.sauces.length}
-              total={requiredCount}
+              total={sauceRequiredCount}
               required
             >
               {SAUCE_OPTIONS.map((sauce) => {
@@ -236,14 +243,19 @@ export function ProductCustomizer({
                   <button
                     key={sauce.label}
                     onClick={() =>
-                      toggleLimited("sauces", sauce.label, requiredCount)
+                      toggleLimited("sauces", sauce.label, sauceRequiredCount)
                     }
                     className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
                     style={{ borderColor: `${VERDE}10`, background: "#fff" }}
                   >
                     <span className="flex items-center gap-3">
                       <OptionThumb src={sauce.image} alt={sauce.label} />
-                      <span className="text-sm font-bold">{sauce.label}</span>
+                      <span>
+                        <span className="block text-sm font-bold">{sauce.label}</span>
+                        {needsFreeMayo && (
+                          <span className="block text-xs font-bold opacity-60">grátis</span>
+                        )}
+                      </span>
                     </span>
                     <span
                       className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-black"

@@ -143,6 +143,7 @@ export function ProductHero({
   kioskMode,
   featuredItem,
   featuredImage,
+  featuredTitle,
   heroReady = true,
   onIdleShortcutTap,
   onAddFeatured,
@@ -153,6 +154,7 @@ export function ProductHero({
   kioskMode: boolean;
   featuredItem: MenuItem;
   featuredImage?: string;
+  featuredTitle?: string;
   heroReady?: boolean;
   onIdleShortcutTap: () => void;
   onAddFeatured: () => void;
@@ -160,6 +162,7 @@ export function ProductHero({
   operatingHoursSummary: string;
   operatingHoursMessage: string;
 }) {
+  const displayTitle = featuredTitle?.trim() || featuredItem.name;
   return (
     <section
       className="mx-0 grid gap-4 overflow-hidden rounded-none p-4 md:grid-cols-[1.05fr_0.95fr] md:p-6"
@@ -309,7 +312,7 @@ export function ProductHero({
         {heroReady ? (
           <Image
             src={featuredImage || featuredItem.image || burgerPhoto}
-            alt={featuredItem.name}
+            alt={displayTitle}
             fill
             priority
             sizes="(max-width: 768px) 100vw, 50vw"
@@ -337,7 +340,7 @@ export function ProductHero({
                   color: ROSA,
                 }}
               >
-                {featuredItem.name}
+                {displayTitle}
               </p>
             </div>
             <button

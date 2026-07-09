@@ -34,7 +34,10 @@ function comboPotatoLabel(item: MenuItem) {
 function productStory(item: MenuItem) {
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
-  const isMenfis130 = item.id === "burger" || item.id === "combo" || item.id === "combo2";
+  const isMenfis130 =
+    item.id === "burger" ||
+    item.id === "combo" ||
+    item.id === "combo2";
   const isBacon130 =
     item.id === "menfis-bacon" ||
     item.id === "bacon-combo" ||
@@ -77,6 +80,8 @@ function productIngredients(item: MenuItem) {
   if (item.category === "combo") {
     const burger = item.id === "combo2"
       ? "2 Menfi's Burger com carnes bovinas de 130g"
+      : item.id === "triple-combo"
+        ? "Combo Triple com 3 carnes bovinas de 100g"
       : isBig
         ? "BIG Menfi's com 2 carnes bovinas de 100g"
         : item.id === "combo"
@@ -112,6 +117,7 @@ function productWeight(item: MenuItem) {
   if (item.category === "combo") {
     if (item.id === "combo") return `1 carne de 130g e ${comboPotatoLabel(item)}.`;
     if (item.id === "combo2") return `2 carnes de 130g (260g no total) e ${comboPotatoLabel(item)}.`;
+    if (item.id === "triple-combo") return `3 carnes de 100g (300g no total) e ${comboPotatoLabel(item)}.`;
     return `${isBig || isSuper ? "2 carnes de 100g (200g no total)" : "1 carne de 100g"} e ${comboPotatoLabel(item)}.`;
   }
   if (item.category === "burger") {

@@ -102,6 +102,18 @@ export const MENU_ITEMS: MenuItem[] = [
     highlight: true,
   },
   {
+    id: "triple-combo",
+    name: "Combo Triple Menfi's",
+    eyebrow: "O Matador de Fome",
+    desc: "Burger com 3 carnes suculentas de 100g, cheddar derretido, salada, molho Menfi's, batata e bebida gelada.",
+    price: 65.9,
+    originalPrice: 79.9,
+    image: "/menu/supercombomnfis.png",
+    tags: ["3 carnes 100g", "Batata", "Bebida"],
+    category: "combo",
+    highlight: true,
+  },
+  {
     id: "chicken-combo",
     name: "Combo Menfi's Chicken",
     eyebrow: "Pedido completo",

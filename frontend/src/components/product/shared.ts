@@ -111,6 +111,10 @@ export function isChickenProduct(item: MenuItem) {
   return item.id.includes("chicken");
 }
 
+export function isNuggetsProduct(item: MenuItem) {
+  return item.id.includes("nuggets");
+}
+
 export function getExtraOptionsForItem(item: MenuItem) {
   if (item.category !== "burger" && item.category !== "combo") {
     return EXTRA_OPTIONS;

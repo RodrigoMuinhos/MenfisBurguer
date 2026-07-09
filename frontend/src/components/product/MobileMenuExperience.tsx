@@ -64,6 +64,7 @@ const SALES_ORDER = [
   "combo2",
   "combo",
   "double-combo",
+  "triple-combo",
   "chicken-combo",
   "double-chicken-combo",
   "chicken-super-combo",
@@ -129,6 +130,7 @@ export function MobileMenuExperience({
   cartTotal,
   featuredItem,
   featuredImage,
+  featuredTitle,
   heroReady = true,
   promoCards = [],
   memberProfile,
@@ -146,6 +148,7 @@ export function MobileMenuExperience({
   cartTotal: number;
   featuredItem?: MenuItem;
   featuredImage?: string;
+  featuredTitle?: string;
   heroReady?: boolean;
   promoCards?: PromoCard[];
   memberProfile: MemberProfile | null;
@@ -184,6 +187,7 @@ export function MobileMenuExperience({
   );
   const heroItem =
     featuredItem ?? items.find((item) => item.id === "double-burger") ?? items[0];
+  const heroTitle = featuredTitle?.trim() || heroItem?.name || "Hamburguer artesanal feito na hora.";
   const categoryLabel =
     MOBILE_CATEGORIES.find((tab) => tab.id === category)?.label ?? "Produtos";
   const friesGalleryItems =
@@ -301,7 +305,7 @@ export function MobileMenuExperience({
               priority
             />
             <p className="text-[15px] font-black uppercase leading-tight">
-              Hamburguer artesanal feito na hora.
+              {heroTitle}
             </p>
           </div>
         </div>

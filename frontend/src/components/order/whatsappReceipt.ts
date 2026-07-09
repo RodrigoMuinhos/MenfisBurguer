@@ -8,6 +8,7 @@ const DEFAULT_COMPOSITION: Record<string, string[]> = {
   combo: ["Menfi's Burger", "Coca-Cola 350ml", "Batata Frita 100g"],
   "double-combo": ["BIG Menfi's", "Coca-Cola 350ml", "Batata Frita 100g"],
   combo2: ["2x Menfi's Burger", "2 bebidas", "Batata Frita 200g"],
+  "triple-combo": ["Combo Triple Menfi's", "3 carnes 100g", "Bebida", "Batata Frita"],
   "bacon-combo": ["Menfi's Bacon 130g", "Coca-Cola 350ml", "Batata Frita 100g"],
   "double-bacon-combo": ["BIG Menfi's Bacon", "Coca-Cola 350ml", "Batata Frita 100g"],
   "bacon-super-combo": ["2x Menfi's Bacon 130g", "2 bebidas", "Batata Frita 200g"],

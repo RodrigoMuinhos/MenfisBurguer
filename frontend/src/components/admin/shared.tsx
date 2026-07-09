@@ -363,6 +363,7 @@ const DEFAULT_COMPOSITION: Record<string, string[]> = {
   combo: ["Menfi's Burger", "Coca-Cola 350ml", "Batata Frita 100g"],
   "double-combo": ["BIG Menfi's", "Coca-Cola 350ml", "Batata Frita 100g"],
   combo2: ["2x Menfi's Burger", "2 bebidas", "Batata Frita 200g"],
+  "triple-combo": ["Combo Triple Menfi's", "3 carnes 100g", "Bebida", "Batata Frita"],
   "bacon-combo": ["Menfi's Bacon 130g", "Coca-Cola 350ml", "Batata Frita 100g"],
   "double-bacon-combo": ["BIG Menfi's Bacon", "Coca-Cola 350ml", "Batata Frita 100g"],
   "bacon-super-combo": ["2x Menfi's Bacon 130g", "2 bebidas", "Batata Frita 200g"],
@@ -373,6 +374,7 @@ const DEFAULT_COMPOSITION: Record<string, string[]> = {
 
 const SUPER_COMBO_SANDWICH: Record<string, string> = {
   combo2: "Menfi's Burger",
+  "triple-combo": "Combo Triple Menfi's",
   "bacon-super-combo": "Menfi's Bacon",
   "chicken-super-combo": "Menfi's Chicken",
 };
@@ -1040,6 +1042,15 @@ export const MENU_STOCK_MAP: Record<
     { stockId: "4", qty: 2 },
     { stockId: "7", qty: 60 },
     { stockId: "5", qty: 2 },
+    { stockId: "6", qty: 0.25 },
+  ],
+  "triple-combo": [
+    { stockId: "1", qty: 1 },
+    { stockId: "2", qty: 0.3 },
+    { stockId: "3", qty: 0.5 },
+    { stockId: "4", qty: 3 },
+    { stockId: "7", qty: 30 },
+    { stockId: "5", qty: 1 },
     { stockId: "6", qty: 0.25 },
   ],
   "bacon-super-combo": [

@@ -91,6 +91,14 @@ public class SettingsController {
     return settings.setPromoCards(request.promoCards());
   }
 
+  @PatchMapping("/special-offer")
+  public Map<String, Object> setSpecialOffer(
+      @RequestBody SpecialOfferRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return settings.setSpecialOfferSettings(request.specialOffer());
+  }
+
   @GetMapping("/admin-credentials")
   public Map<String, Object> adminCredentials(
       @RequestHeader(name = "Authorization", required = false) String authorization) {
@@ -120,5 +128,6 @@ public class SettingsController {
   public record OperatingHoursRequest(Map<String, Object> operatingHours) {}
   public record PresentationRequest(Map<String, Object> presentation) {}
   public record PromoCardsRequest(List<Map<String, Object>> promoCards) {}
+  public record SpecialOfferRequest(Map<String, Object> specialOffer) {}
   public record AdminCredentialsRequest(String login, String password) {}
 }

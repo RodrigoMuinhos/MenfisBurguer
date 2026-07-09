@@ -19,14 +19,17 @@ import {
   DEFAULT_OPERATING_HOURS,
   DEFAULT_PRESENTATION_SETTINGS,
   DEFAULT_PROMO_CARDS,
+  DEFAULT_SPECIAL_OFFER_SETTINGS,
   DELIVERY_FEE,
   OperatingHoursConfig,
   PromoCard,
   PresentationSettings,
   SERVICE_FEE,
+  SpecialOfferSettings,
   normalizeOperatingHours,
   normalizePresentationSettings,
   normalizePromoCards,
+  normalizeSpecialOfferSettings,
 } from "@/components/order/checkout";
 import { ROSA, VERDE } from "@/utils/theme";
 import { CapacityItem, EstoqueView, INITIAL_ITEMS, Movement, StockItem } from "./EstoqueView";
@@ -130,6 +133,8 @@ export function AdminPanel({
   const [savedPresentation, setSavedPresentation] = useState<PresentationSettings>(DEFAULT_PRESENTATION_SETTINGS);
   const [promoCards, setPromoCards] = useState<PromoCard[]>(DEFAULT_PROMO_CARDS);
   const [savedPromoCards, setSavedPromoCards] = useState<PromoCard[]>(DEFAULT_PROMO_CARDS);
+  const [specialOffer, setSpecialOffer] = useState<SpecialOfferSettings>(DEFAULT_SPECIAL_OFFER_SETTINGS);
+  const [savedSpecialOffer, setSavedSpecialOffer] = useState<SpecialOfferSettings>(DEFAULT_SPECIAL_OFFER_SETTINGS);
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
   const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
 
@@ -352,6 +357,9 @@ export function AdminPanel({
     const normalizedPromoCards = normalizePromoCards(settings.promoCards);
     setPromoCards(normalizedPromoCards);
     setSavedPromoCards(normalizedPromoCards);
+    const normalizedSpecialOffer = normalizeSpecialOfferSettings(settings.specialOffer);
+    setSpecialOffer(normalizedSpecialOffer);
+    setSavedSpecialOffer(normalizedSpecialOffer);
   };
 
   useEffect(() => {
@@ -492,6 +500,29 @@ export function AdminPanel({
       setAdminDataError("");
     } catch {
       setAdminDataError("Não foi possível salvar os cards promocionais.");
+    } finally {
+      setSavingPayOnDelivery(false);
+    }
+  };
+
+  const saveSpecialOffer = async () => {
+    if (!API_URL || savingPayOnDelivery) return;
+    setSavingPayOnDelivery(true);
+    try {
+      const response = await fetch(`${API_URL}/settings/special-offer`, {
+        method: "PATCH",
+        headers: adminHeaders(adminToken, true),
+        body: JSON.stringify({ specialOffer: normalizeSpecialOfferSettings(specialOffer) }),
+      });
+      if (!response.ok) {
+        setAdminDataError("Não foi possível salvar o pop-up promocional.");
+        return;
+      }
+      const settings = await response.json();
+      applyPublicSettings(settings);
+      setAdminDataError("");
+    } catch {
+      setAdminDataError("Não foi possível salvar o pop-up promocional.");
     } finally {
       setSavingPayOnDelivery(false);
     }
@@ -925,6 +956,7 @@ export function AdminPanel({
             operatingHours={operatingHours}
             presentation={presentation}
             promoCards={promoCards}
+            specialOffer={specialOffer}
             hasUnsavedOperatingHours={
               JSON.stringify(normalizeOperatingHours(operatingHours)) !==
               JSON.stringify(normalizeOperatingHours(savedOperatingHours))
@@ -937,6 +969,10 @@ export function AdminPanel({
               JSON.stringify(normalizePromoCards(promoCards)) !==
               JSON.stringify(normalizePromoCards(savedPromoCards))
             }
+            hasUnsavedSpecialOffer={
+              JSON.stringify(normalizeSpecialOfferSettings(specialOffer)) !==
+              JSON.stringify(normalizeSpecialOfferSettings(savedSpecialOffer))
+            }
             saving={savingPayOnDelivery}
             disabled={!API_URL}
             onTogglePayOnDelivery={togglePayOnDelivery}
@@ -948,9 +984,11 @@ export function AdminPanel({
             onOperatingHoursChange={updateOperatingHours}
             onPresentationChange={setPresentation}
             onPromoCardsChange={setPromoCards}
+            onSpecialOfferChange={setSpecialOffer}
             onSaveOperatingHours={saveOperatingHours}
             onSavePresentation={savePresentation}
             onSavePromoCards={savePromoCards}
+            onSaveSpecialOffer={saveSpecialOffer}
             onResetRealOperation={resetRealOperation}
           />
         )}
