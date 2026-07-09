@@ -40,6 +40,7 @@ import {
   imageSrc,
   isChickenProduct,
   isNuggetsProduct,
+  isSpecialOfferOnlyProduct,
   readMemberProfile,
   readSavedDelivery,
   requiredCustomizerCount,
@@ -271,19 +272,22 @@ export function ProductScreen({
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const filteredItems = useMemo(() => {
+    const visibleCatalogItems = catalogItems.filter(
+      (item) => !isSpecialOfferOnlyProduct(item),
+    );
     if (category === "chicken") {
-      return catalogItems.filter(
+      return visibleCatalogItems.filter(
         (item) => item.category === "burger" && isChickenProduct(item),
       );
     }
     if (category === "bacon") {
-      return catalogItems.filter((item) => {
+      return visibleCatalogItems.filter((item) => {
         const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
         return item.category === "burger" && text.includes("bacon");
       });
     }
     if (category === "burger") {
-      return catalogItems.filter(
+      return visibleCatalogItems.filter(
         (item) =>
           item.category === "burger" &&
           !isChickenProduct(item) &&
@@ -291,12 +295,12 @@ export function ProductScreen({
       );
     }
     if (category === "extras") {
-      return catalogItems.filter((item) => item.category === "extra" || item.category === "bebida");
+      return visibleCatalogItems.filter((item) => item.category === "extra" || item.category === "bebida");
     }
     if (category === "fries") {
-      return catalogItems.filter((item) => item.category === "fries");
+      return visibleCatalogItems.filter((item) => item.category === "fries");
     }
-    return catalogItems.filter((item) => item.category === category);
+    return visibleCatalogItems.filter((item) => item.category === category);
   }, [catalogItems, category]);
   const featuredItem =
     catalogItems.find((item) => item.id === featuredProductId) ??

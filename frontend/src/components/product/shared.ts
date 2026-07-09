@@ -54,6 +54,7 @@ export const COMBO_UPGRADE_PRICE = COMBO_PRICE - BURGER_PRICE;
 export const MEMBER_KEY = "menfis_member";
 export const MEMBER_TOKEN_KEY = "menfis_member_token";
 export const DELIVERY_STORAGE_KEY = "menfis_cliente";
+export const SPECIAL_OFFER_PRODUCT_ID = "triple-combo";
 
 export const MEAT_POINT_OPTIONS = [
   { label: "Ao ponto", copy: "Centro suculento" },
@@ -113,6 +114,10 @@ export function isChickenProduct(item: MenuItem) {
 
 export function isNuggetsProduct(item: MenuItem) {
   return item.id.includes("nuggets");
+}
+
+export function isSpecialOfferOnlyProduct(item: MenuItem) {
+  return item.id === SPECIAL_OFFER_PRODUCT_ID;
 }
 
 export function getExtraOptionsForItem(item: MenuItem) {

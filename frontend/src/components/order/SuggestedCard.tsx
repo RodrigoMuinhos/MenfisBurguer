@@ -23,7 +23,7 @@ export function SuggestedCard({
   return (
     <button
       onClick={() => onAdd({ id, name, price })}
-      className="min-w-[142px] text-left rounded-2xl p-3"
+      className="min-w-0 text-left rounded-2xl p-3"
       style={{
         background: qty > 0 ? `${ROSA}45` : "#fff",
         border: `2px solid ${qty > 0 ? VERDE : `${VERDE}10`}`,

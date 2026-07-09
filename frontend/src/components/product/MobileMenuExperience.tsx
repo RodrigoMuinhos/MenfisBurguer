@@ -29,7 +29,7 @@ import {
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
 import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
-import { fmt, imageSrc, MemberProfile } from "./shared";
+import { fmt, imageSrc, isSpecialOfferOnlyProduct, MemberProfile } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
 type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "fries" | "extras";
@@ -179,6 +179,7 @@ export function MobileMenuExperience({
   const visibleItems = useMemo(
     () =>
       sortedItems.filter((item) => {
+        if (isSpecialOfferOnlyProduct(item)) return false;
         const matchesSearch =
           !normalizedQuery || itemSearchText(item).includes(normalizedQuery);
         return matchesSearch && categoryMatches(item, category);

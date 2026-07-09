@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import { CartItem } from "@/types/order";
 import { VERDE } from "@/utils/theme";
 import { fmt } from "./checkout";
@@ -88,7 +89,25 @@ export function CartBagStepSection({
   goToMenu: () => void;
 }) {
   const suggestions = buildUpsellSuggestions(cart);
+  const [suggestionPage, setSuggestionPage] = useState(0);
+  const visibleSuggestions = useMemo(
+    () => rotatingWindow(suggestions, suggestionPage, 3),
+    [suggestionPage, suggestions],
+  );
   const primaryMessage = suggestions.find((item) => item.message)?.message;
+
+  useEffect(() => {
+    setSuggestionPage(0);
+  }, [suggestions.map((item) => item.id).join("|")]);
+
+  useEffect(() => {
+    if (suggestions.length <= 3) return;
+    const timer = window.setInterval(() => {
+      setSuggestionPage((page) => (page + 1) % suggestions.length);
+    }, 4200);
+    return () => window.clearInterval(timer);
+  }, [suggestions.length]);
+
   return (
     <>
       <div
@@ -145,8 +164,8 @@ export function CartBagStepSection({
             {primaryMessage}
           </p>
         )}
-        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
-          {suggestions.map((suggestion) => (
+        <div className="-mx-4 grid auto-cols-[calc((100%-2rem)/3)] grid-flow-col gap-3 overflow-hidden px-4 pb-2">
+          {visibleSuggestions.map((suggestion) => (
             <SuggestedCard
               key={suggestion.id}
               id={suggestion.id}
@@ -307,4 +326,9 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
 function prependUnique(primary: SuggestedExtra, cartIds: Set<string>) {
   const rest = DEFAULT_SUGGESTIONS.filter((item) => item.id !== primary.id && !cartIds.has(item.id));
   return [primary, ...rest].slice(0, 5);
+}
+
+function rotatingWindow<T>(items: T[], start: number, size: number) {
+  if (items.length <= size) return items;
+  return Array.from({ length: size }, (_, index) => items[(start + index) % items.length]);
 }

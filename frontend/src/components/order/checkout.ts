@@ -306,7 +306,7 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
   const featuredImage =
     typeof data.featuredImage === "string" ? data.featuredImage.trim() : "";
   const featuredTitle =
-    typeof data.featuredTitle === "string" ? data.featuredTitle.trim().slice(0, 80) : "";
+    typeof data.featuredTitle === "string" ? data.featuredTitle.slice(0, 80) : "";
   return {
     enabled:
       typeof data.enabled === "boolean"
