@@ -705,7 +705,10 @@ function baseRow(input: Partial<PricingRow> & Pick<PricingRow, "id" | "code" | "
 function catalogDefaults(id: string) {
   const item = MENU_ITEMS.find((product) => product.id === id);
   return {
-    imageUrl: item?.image ? imageSrc(item.image) : "",
+    imageUrl:
+      id === "triple-combo"
+        ? "/menu/supercombomnfis.png"
+        : item?.image ? imageSrc(item.image) : "",
     originalPrice: item?.originalPrice,
   };
 }
@@ -748,10 +751,18 @@ function loadRows() {
   if (typeof window === "undefined") return DEFAULT_ROWS;
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-    return Array.isArray(stored) && stored.length ? stored : DEFAULT_ROWS;
+    return Array.isArray(stored) && stored.length
+      ? stored.map(canonicalPricingRow)
+      : DEFAULT_ROWS;
   } catch {
     return DEFAULT_ROWS;
   }
+}
+
+function canonicalPricingRow(row: PricingRow): PricingRow {
+  return row.id === "triple-combo"
+    ? { ...row, imageUrl: "/menu/supercombomnfis.png" }
+    : row;
 }
 
 function roundCommercial(value: number) {

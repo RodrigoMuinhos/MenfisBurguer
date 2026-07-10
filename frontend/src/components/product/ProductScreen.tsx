@@ -85,6 +85,7 @@ import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNot
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 const SPECIAL_OFFER_SESSION_KEY = "menfis_special_offer_seen";
 const DEFAULT_FEATURED_PRODUCT_ID = DEFAULT_SPECIAL_OFFER_SETTINGS.productId;
+const TRIPLE_COMBO_IMAGE = "/menu/supercombomnfis.png";
 const CUSTOMIZER_ADDON_IDS = new Set([
   "extra-carne",
   "extra-frango",
@@ -114,7 +115,7 @@ function applyPricingToMenu(rows: Array<Record<string, unknown>>) {
     if (pricing.active === false) return [];
     const salePrice = Number(pricing.salePrice ?? pricing.sale_price ?? item.price);
     const originalPrice = Number(pricing.originalPrice ?? pricing.original_price ?? item.originalPrice ?? 0);
-    const imageUrl = String(pricing.imageUrl ?? pricing.image_url ?? "");
+    const imageUrl = canonicalProductImage(item.id, String(pricing.imageUrl ?? pricing.image_url ?? ""));
     return [
       {
         ...item,
@@ -147,10 +148,14 @@ function pricingRowToMenuItem(row: Record<string, unknown>): MenuItem | null {
     desc: String(row.notes ?? "").trim() || `${name} cadastrado em Custos e Precificacao.`,
     price: salePrice,
     originalPrice: Number.isFinite(originalPrice) && originalPrice > salePrice ? originalPrice : undefined,
-    image: String(row.imageUrl ?? row.image_url ?? ""),
+    image: canonicalProductImage(id, String(row.imageUrl ?? row.image_url ?? "")),
     tags: [categoryLabel || labelCategory(category)].filter(Boolean),
     category,
   };
+}
+
+function canonicalProductImage(id: string, imageUrl: string) {
+  return id === DEFAULT_FEATURED_PRODUCT_ID ? TRIPLE_COMBO_IMAGE : imageUrl;
 }
 
 function pricingKindToMenuCategory(kind: string, categoryLabel = ""): ProductCategory {
@@ -247,10 +252,10 @@ export function ProductScreen({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [featuredProductId, setFeaturedProductId] = useState(DEFAULT_FEATURED_PRODUCT_ID);
+  const [featuredProductId, setFeaturedProductId] = useState("");
   const [featuredImage, setFeaturedImage] = useState("");
   const [featuredTitle, setFeaturedTitle] = useState("");
-  const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(true);
+  const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
   const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
   const [specialOffer, setSpecialOffer] = useState<SpecialOfferSettings>(() =>
     normalizeSpecialOfferSettings(null),
@@ -335,7 +340,7 @@ export function ProductScreen({
   }, [catalogItems, category]);
   const featuredItem =
     (featuredProductId ? catalogItems.find((item) => item.id === featuredProductId) : undefined) ??
-    catalogItems.find((item) => item.id === DEFAULT_FEATURED_PRODUCT_ID) ??
+    (heroSettingsLoaded ? catalogItems.find((item) => item.id === DEFAULT_FEATURED_PRODUCT_ID) : undefined) ??
     catalogItems[0];
   const savedDelivery = readSavedDelivery();
   const kioskMobLoggedIn =
@@ -419,7 +424,7 @@ export function ProductScreen({
         sessionStorage.setItem(sessionKey, "1");
       }
       setSpecialOfferOpen(true);
-    }, 900);
+    }, 120);
     return () => window.clearTimeout(timer);
   }, [
     heroSettingsLoaded,
