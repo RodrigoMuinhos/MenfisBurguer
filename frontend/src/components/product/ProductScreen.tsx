@@ -106,30 +106,40 @@ function hasRequiredCustomerProfile(profile: MemberProfile | null) {
 }
 
 function applyPricingToMenu(rows: Array<Record<string, unknown>>) {
-  const byId = new Map(rows.map((row) => [String(row.id), row]));
-  const seen = new Set<string>();
-  const syncedItems = MENU_ITEMS.flatMap((item) => {
-    const pricing = byId.get(item.id);
-    seen.add(item.id);
-    if (!pricing) return [item];
-    if (pricing.active === false) return [];
-    const salePrice = Number(pricing.salePrice ?? pricing.sale_price ?? item.price);
-    const originalPrice = Number(pricing.originalPrice ?? pricing.original_price ?? item.originalPrice ?? 0);
-    const imageUrl = canonicalProductImage(item.id, String(pricing.imageUrl ?? pricing.image_url ?? ""));
-    return [
-      {
+  const defaults = new Map(MENU_ITEMS.map((item) => [item.id, item]));
+  return rows
+    .filter((row) => row.active !== false)
+    .map((row) => {
+      const id = String(row.id ?? "");
+      const item = defaults.get(id);
+      if (!item) return pricingRowToMenuItem(row);
+      const salePrice = Number(row.salePrice ?? row.sale_price ?? item.price);
+      const originalPrice = Number(row.originalPrice ?? row.original_price ?? item.originalPrice ?? 0);
+      const imageUrl = canonicalProductImage(item.id, String(row.imageUrl ?? row.image_url ?? ""));
+      const name = String(row.name ?? "").trim();
+      const notes = String(row.notes ?? "").trim();
+      const categoryLabel = String(row.category ?? "").trim();
+      const category = pricingKindToMenuCategory(String(row.kind ?? ""), categoryLabel);
+      const nextCategory =
+        categoryLabel || row.kind ? category : item.category;
+      const nextEyebrow = categoryLabel || labelCategory(nextCategory);
+      const nextItem: MenuItem = {
         ...item,
+        name: name || item.name,
+        eyebrow: nextEyebrow,
+        desc: notes || `${name || item.name} cadastrado em Custos e Precificacao.`,
         price: Number.isFinite(salePrice) && salePrice > 0 ? salePrice : item.price,
-        originalPrice: Number.isFinite(originalPrice) && originalPrice > 0 ? originalPrice : item.originalPrice,
-        image: imageUrl || item.image,
-      },
-    ];
-  });
-  const newItems = rows
-    .filter((row) => row.active !== false && !seen.has(String(row.id)))
-    .map(pricingRowToMenuItem)
+        originalPrice:
+          Number.isFinite(originalPrice) && originalPrice > salePrice
+            ? originalPrice
+            : undefined,
+        image: imageUrl || "/logo_M.jpeg",
+        tags: [nextEyebrow].filter(Boolean),
+        category: nextCategory,
+      };
+      return nextItem;
+    })
     .filter((item): item is MenuItem => Boolean(item));
-  return [...syncedItems, ...newItems];
 }
 
 function pricingRowToMenuItem(row: Record<string, unknown>): MenuItem | null {
@@ -178,6 +188,36 @@ function labelCategory(category: ProductCategory) {
   if (category === "fries") return "Galeria de Fritas";
   if (category === "sweet") return "Sweet";
   return "Burger";
+}
+
+function CatalogLoadingScreen({ kioskMode }: { kioskMode: boolean }) {
+  return (
+    <div
+      className="flex min-h-dvh items-center justify-center px-6"
+      style={{
+        background: "#fff",
+        color: VERDE,
+        fontFamily: "'Inter', system-ui, sans-serif",
+      }}
+    >
+      <div className="w-full max-w-sm text-center">
+        <img
+          src="/logo_M.jpeg"
+          alt="Menfi's Burger"
+          className="mx-auto h-20 w-20 rounded-3xl object-cover shadow-lg"
+        />
+        <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] opacity-45">
+          {kioskMode ? "Preparando o PDV" : "Carregando cardapio"}
+        </p>
+        <div
+          className="mx-auto mt-4 h-2 w-48 overflow-hidden rounded-full"
+          style={{ background: `${ROSA}55` }}
+        >
+          <div className="h-full w-1/2 animate-pulse rounded-full" style={{ background: VERDE }} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function comboPotatoComponent(item: MenuItem) {
@@ -266,7 +306,10 @@ export function ProductScreen({
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
   const [soldOutMessage, setSoldOutMessage] = useState(SOLD_OUT_MESSAGE);
-  const [catalogItems, setCatalogItems] = useState<MenuItem[]>(MENU_ITEMS);
+  const [catalogItems, setCatalogItems] = useState<MenuItem[]>(() =>
+    API_URL ? [] : MENU_ITEMS,
+  );
+  const [catalogLoaded, setCatalogLoaded] = useState(!API_URL);
   const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
@@ -438,6 +481,7 @@ export function ProductScreen({
 
   useEffect(() => {
     if (typeof window === "undefined" || !API_URL) return;
+    setCatalogLoaded(false);
     fetch(freshApiUrl("/pricing"), {
       cache: "no-store",
       headers: {
@@ -451,7 +495,8 @@ export function ProductScreen({
           setCatalogItems(applyPricingToMenu(rows));
         }
       })
-      .catch(() => setCatalogItems(MENU_ITEMS));
+      .catch(() => setCatalogItems([]))
+      .finally(() => setCatalogLoaded(true));
   }, []);
 
   useEffect(() => {
@@ -931,6 +976,10 @@ export function ProductScreen({
     setMemberAuthMode("login");
     setLoginOpen(true);
   };
+
+  if (!catalogLoaded || !featuredItem) {
+    return <CatalogLoadingScreen kioskMode={kioskMode} />;
+  }
 
   return (
     <div

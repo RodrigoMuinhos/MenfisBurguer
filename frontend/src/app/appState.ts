@@ -12,7 +12,7 @@ export const CART_STORAGE_KEY = "menfis_cart";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 export const KIOSK_IDLE_PROMPT_MS = 2.5 * 60 * 1000;
 export const KIOSK_IDLE_PROMPT_GRACE_MS = 15 * 1000;
-export const CACHE_VERSION = "2026-06-12-order-isolation-1";
+export const CACHE_VERSION = "2026-07-10-catalog-no-ghosts-1";
 
 const STATUS_RANK: Partial<Record<OrderStatus, number>> = {
   CREATED: 0,
