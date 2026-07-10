@@ -41,8 +41,8 @@ export const CATEGORIES = [
   { id: "chicken", label: "Chicken", Icon: Drumstick },
   { id: "bacon", label: "Bacon", Icon: Beef },
   { id: "fries", label: "Fries", Icon: Utensils },
-  { id: "extras", label: "Extras", Icon: Plus },
   { id: "sweet", label: "Sweet", Icon: Candy },
+  { id: "extras", label: "Extras", Icon: Plus },
 ] as const;
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;

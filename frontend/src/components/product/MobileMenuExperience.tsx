@@ -52,8 +52,8 @@ const MOBILE_CATEGORIES: Array<{
   { id: "chicken", label: "Chicken", icon: Drumstick },
   { id: "bacon", label: "Bacon", icon: Utensils },
   { id: "fries", label: "Fries", icon: Utensils },
-  { id: "extras", label: "Extras", icon: Plus },
   { id: "sweet", label: "Sweet", icon: Candy },
+  { id: "extras", label: "Extras", icon: Plus },
 ];
 
 const SALES_ORDER = [
