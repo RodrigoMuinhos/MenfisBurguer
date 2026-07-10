@@ -92,6 +92,43 @@ const DEFAULT_SUGGESTIONS: SuggestedExtra[] = [
   { id: "agua-com-gas", name: "Água com gás", price: 5.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
 ];
 
+const FRY_SUGGESTIONS = DEFAULT_SUGGESTIONS.filter((item) =>
+  item.id.startsWith("batata") || item.id.includes("nuggets"),
+);
+
+const DRINK_SUGGESTIONS = DEFAULT_SUGGESTIONS.filter((item) =>
+  ["coca-zero", "guarana-zero", "agua-com-gas"].includes(item.id),
+);
+
+const SWEET_SUGGESTIONS: SuggestedExtra[] = [
+  {
+    id: "sweet-menfis-classic",
+    name: "Sweet Menfi's Classic",
+    price: 8.9,
+    description: "Caixinha com 4 doces clássicos",
+    image: "/sweet2.jpg",
+  },
+  {
+    id: "sweet-menfis-plus",
+    name: "Sweet Menfi's Plus",
+    price: 12.9,
+    description: "Caixinha com 4 doces premium",
+    image: "/s2.jpg",
+  },
+];
+
+const EXTRA_SUGGESTIONS: SuggestedExtra[] = [
+  { id: "extra-maionese-barbecue", name: "Maionse Grill", price: 2, description: "Molho extra", image: "/EXTRAS/MaioneseBarbecue.jpg" },
+  { id: "extra-maionese-alho-frito", name: "Maionese Alho Frito", price: 2, description: "Molho extra", image: "/EXTRAS/MaionseAlhoFrito.jpg" },
+  { id: "extra-cheddar", name: "Adicional de cheddar", price: 6.9, description: "Cheddar extra", image: "/queijo.jpg" },
+];
+
+const BURGER_SUGGESTIONS: SuggestedExtra[] = [
+  { id: "burger", name: "Menfi's Burger", price: 25.9, description: "Burger 130g", image: "/menu/menfisburguer.png" },
+  { id: "menfis-chicken", name: "Menfi's Chicken", price: 24.9, description: "Chicken crocante", image: "/menu/CHICKEN.png" },
+  { id: "menfis-bacon", name: "Menfi's Bacon", price: 27.9, description: "Burger 130g com bacon", image: "/menu/BACON.png" },
+];
+
 const COMBO_OFFER_BUNDLES: SuggestedExtra[][] = [
   [
     {
@@ -100,15 +137,9 @@ const COMBO_OFFER_BUNDLES: SuggestedExtra[][] = [
       price: 9.9,
       description: "90g crocante",
       image: "/EXTRAS/batata.jpg",
-      message: "Seu combo já vem com batata e refri. Quer deixar ainda melhor com nuggets e uma porção extra?",
+      message: "Seu combo já vem com batata e refri. Quer completar com uma fritura, um doce e uma bebida?",
     },
-    {
-      id: "nuggets-180g",
-      name: "Menfi's Nuggets 180g",
-      price: 18.9,
-      description: "180g com molho e ketchup",
-      image: "/nuggetfries.jpg",
-    },
+    SWEET_SUGGESTIONS[0],
     { id: "guarana-zero", name: "Guaraná Zero", price: 6.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana.jpg" },
   ],
   [
@@ -118,33 +149,21 @@ const COMBO_OFFER_BUNDLES: SuggestedExtra[][] = [
       price: 14.9,
       description: "180g crocante",
       image: "/EXTRAS/batata.jpg",
-      message: "Outra combinação para aumentar o ticket: batata média, nuggets pequeno e Coca gelada.",
+      message: "Outra opção para completar: uma fritura, um extra e um burger.",
     },
-    {
-      id: "nuggets-90g",
-      name: "Menfi's Nuggets 90g",
-      price: 12.9,
-      description: "Acompanha molho e ketchup",
-      image: "/nuggetfries.jpg",
-    },
-    { id: "coca-zero", name: "Coca-Cola Zero", price: 8.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
+    EXTRA_SUGGESTIONS[0],
+    BURGER_SUGGESTIONS[0],
   ],
   [
-    {
-      id: "batata",
-      name: "Batata Frita Grande",
-      price: 19.9,
-      description: "270g para compartilhar",
-      image: "/EXTRAS/batata.jpg",
-      message: "Para dividir melhor: batata grande, nuggets grande e bebida extra.",
-    },
     {
       id: "nuggets-grande",
       name: "Menfi's Nuggets 270g",
       price: 29.9,
       description: "270g com molho e ketchup",
       image: "/nuggetfries.jpg",
+      message: "Quer variar? Fritura, doce e bebida sempre aparecem como opção.",
     },
+    SWEET_SUGGESTIONS[1],
     { id: "agua-com-gas", name: "Água com gás", price: 5.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
   ],
 ];
@@ -372,24 +391,47 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
     return buildComboOfferRotation(ids);
   }
 
-  return DEFAULT_SUGGESTIONS.filter((item) => !ids.has(item.id));
+  return buildMixedOfferRotation(ids);
 }
 
 function prependUnique(primary: SuggestedExtra, cartIds: Set<string>) {
-  const rest = DEFAULT_SUGGESTIONS.filter((item) => item.id !== primary.id && !cartIds.has(item.id));
-  return [primary, ...rest].slice(0, 5);
+  const rest = buildMixedOfferRotation(cartIds).filter((item) => item.id !== primary.id);
+  return [primary, ...rest].slice(0, 6);
 }
 
 function buildComboOfferRotation(cartIds: Set<string>) {
   const suggestions = COMBO_OFFER_BUNDLES.flatMap((bundle) => {
     const available = bundle.filter((item) => !cartIds.has(item.id));
     if (available.length >= 3) return available.slice(0, 3);
-    const fill = DEFAULT_SUGGESTIONS.filter(
+    const fill = buildMixedOfferRotation(cartIds).filter(
       (item) => !cartIds.has(item.id) && !available.some((current) => current.id === item.id),
     );
     return [...available, ...fill].slice(0, 3);
   });
-  return suggestions.length ? suggestions : DEFAULT_SUGGESTIONS.filter((item) => !cartIds.has(item.id));
+  return suggestions.length ? suggestions : buildMixedOfferRotation(cartIds);
+}
+
+function pickAvailable(group: SuggestedExtra[], cartIds: Set<string>, offset = 0) {
+  const available = group.filter((item) => !cartIds.has(item.id));
+  if (!available.length) return null;
+  return available[offset % available.length];
+}
+
+function buildMixedOfferRotation(cartIds: Set<string>) {
+  const bundles = [
+    [pickAvailable(FRY_SUGGESTIONS, cartIds, 0), pickAvailable(SWEET_SUGGESTIONS, cartIds, 0), pickAvailable(DRINK_SUGGESTIONS, cartIds, 0)],
+    [pickAvailable(FRY_SUGGESTIONS, cartIds, 1), pickAvailable(EXTRA_SUGGESTIONS, cartIds, 0), pickAvailable(BURGER_SUGGESTIONS, cartIds, 0)],
+    [pickAvailable(FRY_SUGGESTIONS, cartIds, 2), pickAvailable(SWEET_SUGGESTIONS, cartIds, 1), pickAvailable(DRINK_SUGGESTIONS, cartIds, 1)],
+    [pickAvailable(FRY_SUGGESTIONS, cartIds, 3), pickAvailable(EXTRA_SUGGESTIONS, cartIds, 1), pickAvailable(BURGER_SUGGESTIONS, cartIds, 1)],
+  ];
+  const seen = new Set<string>();
+  return bundles.flatMap((bundle) =>
+    bundle.filter((item): item is SuggestedExtra => {
+      if (!item || seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    }),
+  );
 }
 
 function rotatingWindow<T>(items: T[], start: number, size: number) {
