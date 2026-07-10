@@ -139,6 +139,71 @@ export function isSpecialOfferOnlyProduct(item: MenuItem) {
   return item.id === SPECIAL_OFFER_PRODUCT_ID;
 }
 
+function itemText(item: MenuItem) {
+  return `${item.id} ${item.name} ${item.tags.join(" ")} ${item.eyebrow}`.toLowerCase();
+}
+
+function productFamilyRank(item: MenuItem) {
+  const text = itemText(item);
+  if (text.includes("chicken")) return 1;
+  if (text.includes("bacon")) return 2;
+  return 0;
+}
+
+function friesFamilyRank(item: MenuItem) {
+  const text = itemText(item);
+  if (text.includes("nugget")) return 1;
+  return 0;
+}
+
+function sizeRank(item: MenuItem) {
+  const text = itemText(item);
+  if (text.includes("pequena") || text.includes("90g")) return 0;
+  if (text.includes("media") || text.includes("média") || text.includes("180g")) return 1;
+  if (text.includes("grande") || text.includes("270g")) return 2;
+  return 9;
+}
+
+function categoryRank(item: MenuItem) {
+  if (item.category === "combo") return 0;
+  if (item.category === "burger") return 1;
+  if (item.category === "fries") return 2;
+  if (item.category === "sweet") return 3;
+  if (item.category === "bebida") return 4;
+  return 5;
+}
+
+export function sortCatalogItems<T extends MenuItem>(items: T[]) {
+  return [...items].sort((a, b) => {
+    if (a.category === "combo" && b.category === "combo") {
+      return (
+        productFamilyRank(a) - productFamilyRank(b) ||
+        a.price - b.price ||
+        a.name.localeCompare(b.name)
+      );
+    }
+    if (a.category === "burger" && b.category === "burger") {
+      return (
+        productFamilyRank(a) - productFamilyRank(b) ||
+        a.price - b.price ||
+        a.name.localeCompare(b.name)
+      );
+    }
+    if (a.category === "fries" && b.category === "fries") {
+      return (
+        friesFamilyRank(a) - friesFamilyRank(b) ||
+        sizeRank(a) - sizeRank(b) ||
+        a.price - b.price ||
+        a.name.localeCompare(b.name)
+      );
+    }
+    if (a.category === b.category) {
+      return a.price - b.price || a.name.localeCompare(b.name);
+    }
+    return categoryRank(a) - categoryRank(b);
+  });
+}
+
 export function isSweetBoxProduct(item: MenuItem) {
   return item.id === SWEET_CLASSIC_PRODUCT_ID || item.id === SWEET_PLUS_PRODUCT_ID || item.category === "sweet";
 }

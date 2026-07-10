@@ -30,7 +30,7 @@ import {
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
 import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
-import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSweetBoxProduct, MemberProfile, sweetCardPriceLabel } from "./shared";
+import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
 type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "fries" | "extras" | "sweet";
@@ -56,42 +56,7 @@ const MOBILE_CATEGORIES: Array<{
   { id: "extras", label: "Extras", icon: Plus },
 ];
 
-const SALES_ORDER = [
-  "double-burger",
-  "menfis-bacon",
-  "menfis-chicken",
-  "burger",
-  "double-menfis-bacon",
-  "double-menfis-chicken",
-  "combo2",
-  "combo",
-  "double-combo",
-  "triple-combo",
-  "chicken-combo",
-  "double-chicken-combo",
-  "chicken-super-combo",
-  "bacon-combo",
-  "double-bacon-combo",
-  "bacon-super-combo",
-  "batata-pequena",
-  "batata-media",
-  "batata",
-  "nuggets-90g",
-  "nuggets-180g",
-  "nuggets-grande",
-  "coca-zero",
-  "guarana-zero",
-  "agua-com-gas",
-  "sweet-menfis-classic",
-  "sweet-menfis-plus",
-];
-
 const SEARCHABLE_ITEM_FIELDS = ["name", "desc", "tags"] as const;
-
-function saleRank(item: MenuItem) {
-  const index = SALES_ORDER.indexOf(item.id);
-  return index >= 0 ? index : SALES_ORDER.length + 1;
-}
 
 function itemSearchText(item: MenuItem) {
   return SEARCHABLE_ITEM_FIELDS.map((field) => {
@@ -178,7 +143,7 @@ export function MobileMenuExperience({
   const normalizedQuery = query.trim().toLowerCase();
 
   const sortedItems = useMemo(
-    () => [...items].sort((a, b) => saleRank(a) - saleRank(b)),
+    () => sortCatalogItems(items),
     [items],
   );
   const visibleItems = useMemo(

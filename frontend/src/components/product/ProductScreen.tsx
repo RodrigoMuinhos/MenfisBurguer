@@ -47,6 +47,7 @@ import {
   readMemberProfile,
   readSavedDelivery,
   requiredCustomizerCount,
+  sortCatalogItems,
 } from "./shared";
 import {
   loginCustomerSession,
@@ -418,35 +419,33 @@ export function ProductScreen({
     const visibleCatalogItems = catalogItems.filter(
       (item) => !isSpecialOfferOnlyProduct(item),
     );
+    let nextItems: MenuItem[];
     if (category === "chicken") {
-      return visibleCatalogItems.filter(
+      nextItems = visibleCatalogItems.filter(
         (item) => item.category === "burger" && isChickenProduct(item),
       );
-    }
-    if (category === "bacon") {
-      return visibleCatalogItems.filter((item) => {
+    } else if (category === "bacon") {
+      nextItems = visibleCatalogItems.filter((item) => {
         const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
         return item.category === "burger" && text.includes("bacon");
       });
-    }
-    if (category === "burger") {
-      return visibleCatalogItems.filter(
+    } else if (category === "burger") {
+      nextItems = visibleCatalogItems.filter(
         (item) =>
           item.category === "burger" &&
           !isChickenProduct(item) &&
           !`${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase().includes("bacon"),
       );
+    } else if (category === "extras") {
+      nextItems = visibleCatalogItems.filter((item) => item.category === "extra" || item.category === "bebida");
+    } else if (category === "fries") {
+      nextItems = visibleCatalogItems.filter((item) => item.category === "fries");
+    } else if (category === "sweet") {
+      nextItems = visibleCatalogItems.filter((item) => item.category === "sweet");
+    } else {
+      nextItems = visibleCatalogItems.filter((item) => item.category === category);
     }
-    if (category === "extras") {
-      return visibleCatalogItems.filter((item) => item.category === "extra" || item.category === "bebida");
-    }
-  if (category === "fries") {
-      return visibleCatalogItems.filter((item) => item.category === "fries");
-    }
-    if (category === "sweet") {
-      return visibleCatalogItems.filter((item) => item.category === "sweet");
-    }
-    return visibleCatalogItems.filter((item) => item.category === category);
+    return sortCatalogItems(nextItems);
   }, [catalogItems, category]);
   const featuredItem =
     (featuredProductId ? catalogItems.find((item) => item.id === featuredProductId) : undefined) ??
