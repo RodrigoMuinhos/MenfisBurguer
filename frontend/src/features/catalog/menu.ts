@@ -338,7 +338,7 @@ export const MENU_ITEMS: MenuItem[] = [
     desc: "Caixinha com 4 doces clássicos à sua escolha. Brigadeiro, beijinho, cajuzinho e casadinho.",
     price: 8.9,
     image: "/sweet.jpg",
-    tags: ["4 doces", "Clássicos", "Sem adicional"],
+    tags: ["4 doces", "Clássicos"],
     category: "sweet",
   },
   {
@@ -348,7 +348,7 @@ export const MENU_ITEMS: MenuItem[] = [
     desc: "Caixinha com 4 doces premium à sua escolha. Bala baiana, ninho com Nutella, churros e café.",
     price: 8.9,
     image: "/sweet.jpg",
-    tags: ["A partir de R$ 11,80", "Premium", "+ R$ 2,90 cada"],
+    tags: ["A partir de R$ 11,80", "Premium"],
     category: "sweet",
   },
 ];
