@@ -35,9 +35,9 @@ import {
   SAUCE_OPTIONS,
   SAUCE_PRICE,
   SWEET_BOX_REQUIRED_COUNT,
-  SWEET_OPTIONS,
   buildBurger,
   fmt,
+  getSweetOptionsForItem,
   getExtraOptionsForItem,
   imageSrc,
   isChickenProduct,
@@ -648,12 +648,12 @@ export function ProductScreen({
       const selectedSweets = Object.entries(customizer.extras)
         .map(([sweetId, quantity]) => ({
           quantity,
-          sweet: SWEET_OPTIONS.find((option) => option.id === sweetId),
+          sweet: getSweetOptionsForItem(customizer.item).find((option) => option.id === sweetId),
         }))
         .filter(
           (entry): entry is {
             quantity: number;
-            sweet: NonNullable<(typeof SWEET_OPTIONS)[number]>;
+            sweet: ReturnType<typeof getSweetOptionsForItem>[number];
           } => Boolean(entry.sweet) && entry.quantity > 0,
         );
       const sweetLabels = selectedSweets.map(({ sweet, quantity }) =>

@@ -18,12 +18,13 @@ import {
   MEAT_POINT_OPTIONS,
   SAUCE_OPTIONS,
   SWEET_BOX_REQUIRED_COUNT,
-  SWEET_OPTIONS,
   fmt,
+  getSweetOptionsForItem,
   getExtraOptionsForItem,
   imageSrc,
   isChickenProduct,
   isNuggetsProduct,
+  isSweetPlusProduct,
   isSweetBoxProduct,
   requiredCustomizerCount,
 } from "./shared";
@@ -45,10 +46,12 @@ export function ProductCustomizer({
   const needsFreeMayo = isNuggetsProduct(state.item);
   const needsDrink = state.item.category === "combo";
   const isSweetBox = isSweetBoxProduct(state.item);
+  const isSweetPlus = isSweetPlusProduct(state.item);
+  const sweetOptions = getSweetOptionsForItem(state.item);
   const sauceRequiredCount = needsFreeMayo ? 1 : requiredCount;
   const extraOptions = getExtraOptionsForItem(state.item);
   const sweetCount = Object.values(state.extras).reduce((sum, quantity) => sum + quantity, 0);
-  const sweetTotal = SWEET_OPTIONS.reduce(
+  const sweetTotal = sweetOptions.reduce(
     (sum, option) => sum + (state.extras[option.id] ?? 0) * option.price,
     0,
   );
@@ -207,19 +210,23 @@ export function ProductCustomizer({
                 lineHeight: 1,
               }}
             >
-              a partir de {fmt(state.item.price)}
+              {isSweetPlus ? `a partir de ${fmt(state.item.price + 2.9)}` : fmt(state.item.price)}
             </p>
           </div>
 
           {isSweetBox && (
             <OptionSection
-              title="Monte sua caixinha"
-              subtitle="Escolha exatamente 4 doces. Premium soma R$ 2,90 por unidade."
+              title={isSweetPlus ? "Sweet Menfi's Plus" : "Sweet Menfi's Classic"}
+              subtitle={
+                isSweetPlus
+                  ? "Escolha exatamente 4 doces premium. Cada unidade soma R$ 2,90."
+                  : "Escolha exatamente 4 doces clássicos. Sem adicional."
+              }
               count={sweetCount}
               total={SWEET_BOX_REQUIRED_COUNT}
               required
             >
-              {SWEET_OPTIONS.map((sweet) => {
+              {sweetOptions.map((sweet) => {
                 const quantity = state.extras[sweet.id] ?? 0;
                 const active = quantity > 0;
                 return (
@@ -231,7 +238,7 @@ export function ProductCustomizer({
                     <span>
                       <span className="block text-sm font-bold">{sweet.label}</span>
                       <span className="text-xs text-black/50">
-                        {sweet.premium ? `Premium + ${fmt(sweet.price)}` : "Básico incluso"}
+                        {sweet.premium ? `Premium + ${fmt(sweet.price)}` : "Incluso"}
                       </span>
                     </span>
                     {active ? (
@@ -534,7 +541,7 @@ export function ProductCustomizer({
             style={{ background: VERDE, color: ROSA }}
           >
             {valid
-              ? `Adicionar ${fmt(total)}`
+              ? `Adicionar — ${fmt(total)}`
               : isSweetBox
                 ? `Escolha ${SWEET_BOX_REQUIRED_COUNT - sweetCount} doce${SWEET_BOX_REQUIRED_COUNT - sweetCount === 1 ? "" : "s"}`
                 : `Complete obrigatórios (${[

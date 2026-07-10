@@ -30,7 +30,7 @@ import {
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
 import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
-import { fmt, imageSrc, isSpecialOfferOnlyProduct, MemberProfile } from "./shared";
+import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSweetBoxProduct, MemberProfile, sweetCardPriceLabel } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
 type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "fries" | "extras" | "sweet";
@@ -82,7 +82,8 @@ const SALES_ORDER = [
   "coca-zero",
   "guarana-zero",
   "agua-com-gas",
-  "monte-sua-caixinha",
+  "sweet-menfis-classic",
+  "sweet-menfis-plus",
 ];
 
 const SEARCHABLE_ITEM_FIELDS = ["name", "desc", "tags"] as const;
@@ -1162,7 +1163,7 @@ function PriceBlock({
           color: VINHO,
         }}
       >
-        {fmt(item.price)}
+        {isSweetBoxProduct(item) ? sweetCardPriceLabel(item) : fmt(item.price)}
       </p>
     </div>
   );

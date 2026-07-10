@@ -88,16 +88,21 @@ export const EXTRA_OPTIONS = [
 
 export const SWEET_BOX_REQUIRED_COUNT = 4;
 export const SWEET_PREMIUM_PRICE = 2.9;
-export const SWEET_OPTIONS = [
+export const SWEET_CLASSIC_PRODUCT_ID = "sweet-menfis-classic";
+export const SWEET_PLUS_PRODUCT_ID = "sweet-menfis-plus";
+export const SWEET_CLASSIC_OPTIONS = [
   { id: "brigadeiro", label: "Brigadeiro", price: 0, premium: false },
   { id: "beijinho", label: "Beijinho", price: 0, premium: false },
   { id: "cajuzinho", label: "Cajuzinho", price: 0, premium: false },
   { id: "casadinho", label: "Casadinho", price: 0, premium: false },
+];
+export const SWEET_PLUS_OPTIONS = [
   { id: "bala-baiana", label: "Bala baiana", price: SWEET_PREMIUM_PRICE, premium: true },
   { id: "ninho-nutella", label: "Ninho com Nutella", price: SWEET_PREMIUM_PRICE, premium: true },
   { id: "churros", label: "Churros", price: SWEET_PREMIUM_PRICE, premium: true },
   { id: "cafe", label: "Café", price: SWEET_PREMIUM_PRICE, premium: true },
 ];
+export const SWEET_OPTIONS = [...SWEET_CLASSIC_OPTIONS, ...SWEET_PLUS_OPTIONS];
 
 const EXTRA_CARNE_OPTION = {
   id: "extra-carne",
@@ -135,7 +140,19 @@ export function isSpecialOfferOnlyProduct(item: MenuItem) {
 }
 
 export function isSweetBoxProduct(item: MenuItem) {
-  return item.id === "monte-sua-caixinha" || item.category === "sweet";
+  return item.id === SWEET_CLASSIC_PRODUCT_ID || item.id === SWEET_PLUS_PRODUCT_ID || item.category === "sweet";
+}
+
+export function isSweetPlusProduct(item: MenuItem) {
+  return item.id === SWEET_PLUS_PRODUCT_ID;
+}
+
+export function getSweetOptionsForItem(item: MenuItem) {
+  return isSweetPlusProduct(item) ? SWEET_PLUS_OPTIONS : SWEET_CLASSIC_OPTIONS;
+}
+
+export function sweetCardPriceLabel(item: MenuItem) {
+  return isSweetPlusProduct(item) ? `A partir de ${fmt(item.price + SWEET_PREMIUM_PRICE)}` : fmt(item.price);
 }
 
 export function getExtraOptionsForItem(item: MenuItem) {

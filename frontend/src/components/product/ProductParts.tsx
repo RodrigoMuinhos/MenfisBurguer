@@ -24,7 +24,9 @@ import {
   fmt,
   imageSrc,
   isChickenProduct,
+  isSweetBoxProduct,
   requiredCustomizerCount,
+  sweetCardPriceLabel,
 } from "./shared";
 
 function comboPotatoLabel(item: MenuItem) {
@@ -93,7 +95,9 @@ function productIngredients(item: MenuItem) {
     return "Bebida gelada selecionada.";
   }
   if (item.category === "sweet") {
-    return "Caixinha com 4 doces escolhidos pelo cliente. Opções premium podem somar acréscimo.";
+    return item.id.includes("plus")
+      ? "Caixinha com 4 doces premium escolhidos pelo cliente. Cada unidade premium soma acréscimo."
+      : "Caixinha com 4 doces clássicos escolhidos pelo cliente, sem adicional.";
   }
   if (item.category === "extra" || item.category === "fries") {
     return item.desc;
@@ -350,7 +354,7 @@ export function MenuCard({
                 lineHeight: 1,
               }}
             >
-              {fmt(displayPrice)}
+              {isSweetBoxProduct(item) ? sweetCardPriceLabel(item) : fmt(displayPrice)}
             </p>
           </div>
         </div>
@@ -506,7 +510,7 @@ export function ProductDetailModal({
                 lineHeight: 1,
               }}
             >
-              {fmt(item.price)}
+              {isSweetBoxProduct(item) ? sweetCardPriceLabel(item) : fmt(item.price)}
             </p>
           </div>
           <p className="mt-3 text-sm leading-6" style={{ color: `${VERDE}AD` }}>{productStory(item)}</p>
