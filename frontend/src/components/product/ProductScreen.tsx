@@ -211,7 +211,42 @@ function labelCategory(category: ProductCategory) {
   return "Burger";
 }
 
-function CatalogLoadingScreen({ kioskMode }: { kioskMode: boolean }) {
+function CatalogLoadingScreen({
+  kioskMode,
+  openingDone,
+  onOpeningDone,
+}: {
+  kioskMode: boolean;
+  openingDone: boolean;
+  onOpeningDone: () => void;
+}) {
+  useEffect(() => {
+    if (openingDone) return;
+    const fallback = window.setTimeout(onOpeningDone, 4200);
+    return () => window.clearTimeout(fallback);
+  }, [onOpeningDone, openingDone]);
+
+  if (!openingDone) {
+    return (
+      <div
+        className="fixed inset-0 z-[200] overflow-hidden"
+        style={{ background: VERDE }}
+      >
+        <video
+          className="h-full w-full object-cover"
+          src="/abertura.mp4"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          onEnded={onOpeningDone}
+          onError={onOpeningDone}
+          aria-label="Abertura Menfi's Burger"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative flex min-h-dvh items-center justify-center overflow-hidden px-6"
@@ -221,37 +256,34 @@ function CatalogLoadingScreen({ kioskMode }: { kioskMode: boolean }) {
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      <video
-        className="absolute inset-0 h-full w-full object-cover"
-        src="/abertura.mp4"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        aria-hidden="true"
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(180deg, rgba(101,0,31,0.1), rgba(101,0,31,0.72))",
-        }}
-      />
+      <div className="absolute inset-0 opacity-25">
+        <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: ROSA, filter: "blur(80px)" }} />
+      </div>
       <div className="relative z-10 w-full max-w-sm text-center">
-        <img
-          src="/logo_M.jpeg"
-          alt="Menfi's Burger"
-          className="mx-auto h-20 w-20 rounded-3xl object-cover shadow-lg"
-        />
-        <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] opacity-80">
+        <div className="mx-auto grid h-24 w-24 place-items-center rounded-[2rem] bg-white shadow-2xl">
+          <img
+            src="/logo_M.jpeg"
+            alt="Menfi's Burger"
+            className="h-20 w-20 rounded-3xl object-cover"
+          />
+        </div>
+        <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] opacity-85">
           {kioskMode ? "Preparando o PDV" : "Carregando cardapio"}
         </p>
         <div
-          className="mx-auto mt-4 h-2 w-48 overflow-hidden rounded-full"
+          className="mx-auto mt-5 h-2 w-56 overflow-hidden rounded-full"
           style={{ background: "rgba(255,255,255,0.32)" }}
         >
-          <div className="h-full w-1/2 animate-pulse rounded-full" style={{ background: ROSA }} />
+          <motion.div
+            className="h-full w-1/3 rounded-full"
+            style={{ background: ROSA }}
+            animate={{ x: ["-120%", "360%"] }}
+            transition={{ duration: 1.35, repeat: Infinity, ease: "easeInOut" }}
+          />
         </div>
+        <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] opacity-55">
+          Buscando dados atuais
+        </p>
       </div>
     </div>
   );
@@ -333,6 +365,7 @@ export function ProductScreen({
   const [featuredImage, setFeaturedImage] = useState("");
   const [featuredTitle, setFeaturedTitle] = useState("");
   const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
+  const [openingDone, setOpeningDone] = useState(false);
   const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
   const [specialOffer, setSpecialOffer] = useState<SpecialOfferSettings>(() =>
     normalizeSpecialOfferSettings(null),
@@ -1041,8 +1074,14 @@ export function ProductScreen({
     setLoginOpen(true);
   };
 
-  if (!catalogLoaded || !heroSettingsLoaded || !featuredItem) {
-    return <CatalogLoadingScreen kioskMode={kioskMode} />;
+  if (!openingDone || !catalogLoaded || !heroSettingsLoaded || !featuredItem) {
+    return (
+      <CatalogLoadingScreen
+        kioskMode={kioskMode}
+        openingDone={openingDone}
+        onOpeningDone={() => setOpeningDone(true)}
+      />
+    );
   }
 
   return (
