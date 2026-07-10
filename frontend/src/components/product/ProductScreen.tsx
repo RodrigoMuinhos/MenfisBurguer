@@ -193,27 +193,43 @@ function labelCategory(category: ProductCategory) {
 function CatalogLoadingScreen({ kioskMode }: { kioskMode: boolean }) {
   return (
     <div
-      className="flex min-h-dvh items-center justify-center px-6"
+      className="relative flex min-h-dvh items-center justify-center overflow-hidden px-6"
       style={{
-        background: "#fff",
-        color: VERDE,
+        background: VERDE,
+        color: "#fff",
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      <div className="w-full max-w-sm text-center">
+      <video
+        className="absolute inset-0 h-full w-full object-cover"
+        src="/abertura.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(180deg, rgba(101,0,31,0.1), rgba(101,0,31,0.72))",
+        }}
+      />
+      <div className="relative z-10 w-full max-w-sm text-center">
         <img
           src="/logo_M.jpeg"
           alt="Menfi's Burger"
           className="mx-auto h-20 w-20 rounded-3xl object-cover shadow-lg"
         />
-        <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] opacity-45">
+        <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] opacity-80">
           {kioskMode ? "Preparando o PDV" : "Carregando cardapio"}
         </p>
         <div
           className="mx-auto mt-4 h-2 w-48 overflow-hidden rounded-full"
-          style={{ background: `${ROSA}55` }}
+          style={{ background: "rgba(255,255,255,0.32)" }}
         >
-          <div className="h-full w-1/2 animate-pulse rounded-full" style={{ background: VERDE }} />
+          <div className="h-full w-1/2 animate-pulse rounded-full" style={{ background: ROSA }} />
         </div>
       </div>
     </div>
@@ -977,7 +993,7 @@ export function ProductScreen({
     setLoginOpen(true);
   };
 
-  if (!catalogLoaded || !featuredItem) {
+  if (!catalogLoaded || !heroSettingsLoaded || !featuredItem) {
     return <CatalogLoadingScreen kioskMode={kioskMode} />;
   }
 
