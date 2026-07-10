@@ -212,77 +212,29 @@ function labelCategory(category: ProductCategory) {
   return "Burger";
 }
 
-function CatalogLoadingScreen({
-  kioskMode,
-  openingDone,
-  onOpeningDone,
-}: {
-  kioskMode: boolean;
-  openingDone: boolean;
-  onOpeningDone: () => void;
-}) {
+function OpeningVideoOverlay({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    if (openingDone) return;
-    const fallback = window.setTimeout(onOpeningDone, 6500);
+    const fallback = window.setTimeout(onDone, 6500);
     return () => window.clearTimeout(fallback);
-  }, [onOpeningDone, openingDone]);
-
-  if (!openingDone) {
-    return (
-      <div
-        className="fixed inset-0 z-[200] overflow-hidden"
-        style={{ background: VERDE }}
-      >
-        <video
-          className="h-full w-full object-cover"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-          onEnded={onOpeningDone}
-          aria-label="Abertura Menfi's Burger"
-        >
-          <source src="/abertura.mp4" type="video/mp4" />
-        </video>
-      </div>
-    );
-  }
+  }, [onDone]);
 
   return (
     <div
-      className="relative flex min-h-dvh items-center justify-center overflow-hidden px-6"
-      style={{
-        background: VERDE,
-        color: "#fff",
-        fontFamily: "'Inter', system-ui, sans-serif",
-      }}
+      className="fixed inset-0 z-[200] overflow-hidden"
+      style={{ background: "#000" }}
     >
-      <div className="absolute inset-0 opacity-25">
-        <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ background: ROSA, filter: "blur(80px)" }} />
-      </div>
-      <div className="relative z-10 w-full max-w-sm text-center">
-        <div className="mx-auto grid h-24 w-24 place-items-center rounded-[2rem] bg-white shadow-2xl">
-          <img
-            src="/logo_M.jpeg"
-            alt="Menfi's Burger"
-            className="h-20 w-20 rounded-3xl object-cover"
-          />
-        </div>
-        <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] opacity-85">
-          {kioskMode ? "Preparando o PDV" : "Carregando cardapio"}
-        </p>
-        <div
-          className="mx-auto mt-5 h-2 w-56 overflow-hidden rounded-full"
-          style={{ background: "rgba(255,255,255,0.32)" }}
-        >
-          <motion.div
-            className="h-full w-1/3 rounded-full"
-            style={{ background: ROSA }}
-            animate={{ x: ["-120%", "360%"] }}
-            transition={{ duration: 1.35, repeat: Infinity, ease: "easeInOut" }}
-          />
-        </div>
-      </div>
+      <video
+        className="h-full w-full object-cover"
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+        onEnded={onDone}
+        onError={onDone}
+        aria-label="Abertura Menfi's Burger"
+      >
+        <source src="/abertura.mp4" type="video/mp4" />
+      </video>
     </div>
   );
 }
@@ -450,7 +402,9 @@ export function ProductScreen({
   const featuredItem =
     (featuredProductId ? catalogItems.find((item) => item.id === featuredProductId) : undefined) ??
     (heroSettingsLoaded ? catalogItems.find((item) => item.id === DEFAULT_FEATURED_PRODUCT_ID) : undefined) ??
-    catalogItems[0];
+    catalogItems[0] ??
+    MENU_ITEMS.find((item) => item.id === DEFAULT_FEATURED_PRODUCT_ID) ??
+    MENU_ITEMS[0];
   const savedDelivery = readSavedDelivery();
   const kioskMobLoggedIn =
     String(memberProfile?.name ?? "")
@@ -1070,16 +1024,6 @@ export function ProductScreen({
     setLoginOpen(true);
   };
 
-  if (!openingDone || !catalogLoaded || !heroSettingsLoaded || !featuredItem) {
-    return (
-      <CatalogLoadingScreen
-        kioskMode={kioskMode}
-        openingDone={openingDone}
-        onOpeningDone={() => setOpeningDone(true)}
-      />
-    );
-  }
-
   return (
     <div
       style={{
@@ -1110,6 +1054,12 @@ export function ProductScreen({
           soldOutMessage={soldOutMessage}
         />
       )}
+
+      <AnimatePresence>
+        {!openingDone && (
+          <OpeningVideoOverlay onDone={() => setOpeningDone(true)} />
+        )}
+      </AnimatePresence>
 
       <div className={!kioskMode ? "hidden md:block" : undefined}>
         <ProductHeader
