@@ -222,7 +222,7 @@ function CatalogLoadingScreen({
 }) {
   useEffect(() => {
     if (openingDone) return;
-    const fallback = window.setTimeout(onOpeningDone, 4200);
+    const fallback = window.setTimeout(onOpeningDone, 6500);
     return () => window.clearTimeout(fallback);
   }, [onOpeningDone, openingDone]);
 
@@ -234,15 +234,15 @@ function CatalogLoadingScreen({
       >
         <video
           className="h-full w-full object-cover"
-          src="/abertura.mp4"
           autoPlay
           muted
           playsInline
           preload="auto"
           onEnded={onOpeningDone}
-          onError={onOpeningDone}
           aria-label="Abertura Menfi's Burger"
-        />
+        >
+          <source src="/abertura.mp4" type="video/mp4" />
+        </video>
       </div>
     );
   }
@@ -281,9 +281,6 @@ function CatalogLoadingScreen({
             transition={{ duration: 1.35, repeat: Infinity, ease: "easeInOut" }}
           />
         </div>
-        <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.18em] opacity-55">
-          Buscando dados atuais
-        </p>
       </div>
     </div>
   );
