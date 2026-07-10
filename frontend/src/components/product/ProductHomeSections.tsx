@@ -309,16 +309,15 @@ export function ProductHero({
         className="relative min-h-[280px] overflow-hidden rounded-[24px]"
         style={{ background: "#fff" }}
       >
-        {heroReady ? (
-          <Image
-            src={featuredImage || featuredItem.image || burgerPhoto}
-            alt={displayTitle}
-            fill
-            priority
-            sizes="(max-width: 768px) 100vw, 50vw"
-            style={{ objectFit: "cover", objectPosition: "center 42%" }}
-          />
-        ) : null}
+        <Image
+          src={featuredImage || featuredItem.image || burgerPhoto}
+          alt={displayTitle}
+          fill
+          priority
+          loading="eager"
+          sizes="(max-width: 768px) 100vw, 50vw"
+          style={{ objectFit: "cover", objectPosition: "center 42%" }}
+        />
         {heroReady && (
           <div
             className="absolute inset-x-0 bottom-0 p-4"

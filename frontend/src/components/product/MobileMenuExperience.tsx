@@ -261,12 +261,13 @@ export function MobileMenuExperience({
             className="relative block aspect-[1.08/1] w-full overflow-hidden bg-white min-[420px]:aspect-[1.18/1]"
             aria-label={`Ver ${heroItem?.name ?? "produto"}`}
           >
-            {heroReady && (featuredImage || heroItem?.image) ? (
+            {heroItem && (featuredImage || heroItem.image) ? (
               <Image
                 src={featuredImage || imageSrc(heroItem.image)}
                 alt={heroItem.name}
                 fill
                 priority
+                loading="eager"
                 sizes="100vw"
                 style={{
                   objectFit: "cover",

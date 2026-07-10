@@ -426,6 +426,7 @@ export function ProductScreen({
     setSpecialOffer(normalizedSpecialOffer);
     preloadClientImages([
       normalizedPresentation.featuredImage,
+      featuredItem?.image ? imageSrc(featuredItem.image) : undefined,
       normalizedSpecialOffer.image,
     ]);
     setOperatingNow(settings?.operatingNow !== false);
@@ -488,6 +489,13 @@ export function ProductScreen({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    preloadClientImages([
+      featuredImage,
+      featuredItem?.image ? imageSrc(featuredItem.image) : undefined,
+    ]);
+  }, [featuredImage, featuredItem?.id, featuredItem?.image]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
