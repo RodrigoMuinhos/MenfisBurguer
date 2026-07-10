@@ -400,6 +400,7 @@ export function CartScreen({
         backspaceKioskKey={backspaceKioskKey}
         clearKioskKey={clearKioskKey}
         closeKioskKeyboard={closeKioskKeyboard}
+        setKioskKeyboardTarget={setKioskKeyboardTarget}
         counterPaymentPromptOpen={counterPaymentPromptOpen}
         counterPaymentTotal={counterPaymentTotal}
         onConfirmCounterPayment={confirmCounterPaymentChoice}

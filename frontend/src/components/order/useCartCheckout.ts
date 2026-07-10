@@ -185,7 +185,7 @@ export function useCartCheckout({
   const counterPaymentResolveRef = useRef<((value: "pix" | "atendente") => void) | null>(null);
   const counterCustomerNameResolveRef = useRef<((value: string) => void) | null>(null);
   const kioskSuccessResolveRef = useRef<(() => void) | null>(null);
-  const kioskKeyboardOpen = kioskMode && kioskKeyboardTarget !== null;
+  const kioskKeyboardOpen = (kioskMode || counterServiceMode) && kioskKeyboardTarget !== null;
 
   const closeKioskKeyboard = () => {
     setKioskKeyboardTarget(null);
@@ -291,6 +291,9 @@ export function useCartCheckout({
     if (!counterServiceMode) return;
     setDelivery("retirada");
     setPayment("presencial");
+    setWithinOperatingHours(true);
+    setOperatingNow(true);
+    setClosedHoursAlertOpen(false);
   }, [counterServiceMode]);
 
   useEffect(() => {
@@ -304,7 +307,7 @@ export function useCartCheckout({
   }, [counterServiceMode, delivery, kioskMode, payment]);
 
   useEffect(() => {
-    if (kioskMode || !API_URL) return;
+    if (kioskMode || counterServiceMode || !API_URL) return;
     fetch(`${API_URL}/settings/public?_=${Date.now()}`, {
       cache: "no-store",
       headers: {
@@ -328,7 +331,7 @@ export function useCartCheckout({
         }
       })
       .catch(() => setPayOnDeliveryEnabled(false));
-  }, [kioskMode]);
+  }, [counterServiceMode, kioskMode]);
 
   useEffect(() => {
     if (kioskMode) {
@@ -762,6 +765,10 @@ export function useCartCheckout({
       setCustomerName((current) => `${current}${key}`.slice(0, 36));
       return;
     }
+    if (kioskKeyboardTarget === "counterName") {
+      setCounterCustomerNameDraft((current) => `${current}${key}`.slice(0, 36));
+      return;
+    }
     if (kioskKeyboardTarget === "coupon") {
       setCouponCode((current) => `${current}${key}`.slice(0, 24));
       setCouponError("");
@@ -777,6 +784,10 @@ export function useCartCheckout({
       setCustomerName((current) => current.slice(0, -1));
       return;
     }
+    if (kioskKeyboardTarget === "counterName") {
+      setCounterCustomerNameDraft((current) => current.slice(0, -1));
+      return;
+    }
     if (kioskKeyboardTarget === "coupon") {
       setCouponCode((current) => current.slice(0, -1));
       setCouponError("");
@@ -789,6 +800,7 @@ export function useCartCheckout({
 
   const clearKioskKey = () => {
     if (kioskKeyboardTarget === "name") setCustomerName("");
+    if (kioskKeyboardTarget === "counterName") setCounterCustomerNameDraft("");
     if (kioskKeyboardTarget === "coupon") {
       setCouponCode("");
       setCouponError("");

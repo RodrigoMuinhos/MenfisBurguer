@@ -90,17 +90,17 @@ export function CheckoutReviewSection({
             <input
               value={couponCode}
               onFocus={() => {
-                if (kioskMode) setKioskKeyboardTarget("coupon");
+                if (counterFlow) setKioskKeyboardTarget("coupon");
               }}
               onClick={() => {
-                if (kioskMode) setKioskKeyboardTarget("coupon");
+                if (counterFlow) setKioskKeyboardTarget("coupon");
               }}
               onChange={(event) => {
                 setCouponCode(event.target.value);
                 setCouponError("");
               }}
               placeholder="Digite seu cupom"
-              inputMode={kioskMode ? "none" : "text"}
+              inputMode={counterFlow ? "none" : "text"}
               autoComplete="off"
               style={inputStyle(Boolean(couponError))}
             />

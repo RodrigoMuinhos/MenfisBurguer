@@ -90,7 +90,7 @@ public class OrderService {
     String customerName = kioskLocalCustomer
       ? "KIOSK-MOB"
       : request.customerName() == null ? null : request.customerName().trim();
-    if (!settings.testModeEnabled() && settings.isSoldOutNow()) {
+    if (!settings.testModeEnabled() && channel != OrderChannel.KIOSK && settings.isSoldOutNow()) {
       throw new IllegalStateException("store_sold_out");
     }
     if (!settings.testModeEnabled() && channel != OrderChannel.KIOSK && !settings.isOperatingNow()) {

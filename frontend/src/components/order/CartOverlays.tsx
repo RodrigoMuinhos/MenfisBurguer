@@ -20,6 +20,7 @@ export function CartOverlays({
   backspaceKioskKey,
   clearKioskKey,
   closeKioskKeyboard,
+  setKioskKeyboardTarget,
   counterPaymentPromptOpen = false,
   counterPaymentTotal = 0,
   counterCustomerNamePromptOpen = false,
@@ -42,6 +43,7 @@ export function CartOverlays({
   backspaceKioskKey: () => void;
   clearKioskKey: () => void;
   closeKioskKeyboard: () => void;
+  setKioskKeyboardTarget: (target: KioskKeyboardTarget) => void;
   counterPaymentPromptOpen?: boolean;
   counterPaymentTotal?: number;
   counterCustomerNamePromptOpen?: boolean;
@@ -218,8 +220,15 @@ export function CartOverlays({
                     <input
                       value={counterCustomerNameDraft}
                       onChange={(event) => setCounterCustomerNameDraft?.(event.target.value)}
+                      onFocus={() => {
+                        if (counterServiceMode) setKioskKeyboardTarget("counterName");
+                      }}
+                      onClick={() => {
+                        if (counterServiceMode) setKioskKeyboardTarget("counterName");
+                      }}
                       autoFocus
                       placeholder="Ex.: Mariana"
+                      inputMode={counterServiceMode ? "none" : "text"}
                       className="mt-5 min-h-14 w-full rounded-2xl px-4 text-xl font-black uppercase outline-none"
                       style={{
                         border: `2px solid ${canConfirmCounterName ? VERDE : ROSA}`,

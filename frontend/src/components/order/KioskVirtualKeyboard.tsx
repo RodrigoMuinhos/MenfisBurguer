@@ -37,7 +37,7 @@ export function KioskVirtualKeyboard({
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 280, opacity: 0 }}
       transition={{ duration: 0.18 }}
-      className="sticky bottom-0 z-40 mt-4 px-3 pb-3 pt-4"
+      className="fixed inset-x-0 bottom-0 z-[100] px-3 pb-3 pt-4"
       style={{
         background: "rgba(255,255,255,0.98)",
         borderTop: `2px solid ${ROSA}`,
