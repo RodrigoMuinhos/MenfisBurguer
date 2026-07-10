@@ -210,7 +210,7 @@ export function ProductCustomizer({
                 lineHeight: 1,
               }}
             >
-              {isSweetPlus ? `a partir de ${fmt(state.item.price + 2.9)}` : fmt(state.item.price)}
+              {fmt(state.item.price)}
             </p>
           </div>
 
@@ -219,7 +219,7 @@ export function ProductCustomizer({
               title={isSweetPlus ? "Sweet Menfi's Plus" : "Sweet Menfi's Classic"}
               subtitle={
                 isSweetPlus
-                  ? "Escolha exatamente 4 doces premium. Cada unidade soma R$ 2,90."
+                  ? "Escolha exatamente 4 doces premium."
                   : "Escolha exatamente 4 doces clássicos. Sem adicional."
               }
               count={sweetCount}
@@ -238,7 +238,7 @@ export function ProductCustomizer({
                     <span>
                       <span className="block text-sm font-bold">{sweet.label}</span>
                       <span className="text-xs text-black/50">
-                        {sweet.premium ? `Premium + ${fmt(sweet.price)}` : "Incluso"}
+                        {sweet.premium ? "Premium" : "Incluso"}
                       </span>
                     </span>
                     {active ? (

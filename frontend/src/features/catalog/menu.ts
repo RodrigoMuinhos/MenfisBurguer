@@ -346,9 +346,9 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Sweet Menfi's Plus",
     eyebrow: "Sweet",
     desc: "Caixinha com 4 doces premium à sua escolha. Bala baiana, ninho com Nutella, churros e café.",
-    price: 8.9,
+    price: 12.9,
     image: "/sweet.jpg",
-    tags: ["A partir de R$ 11,80", "Premium"],
+    tags: ["Premium"],
     category: "sweet",
   },
 ];

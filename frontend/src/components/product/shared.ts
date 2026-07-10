@@ -87,7 +87,7 @@ export const EXTRA_OPTIONS = [
 ];
 
 export const SWEET_BOX_REQUIRED_COUNT = 4;
-export const SWEET_PREMIUM_PRICE = 2.9;
+export const SWEET_PREMIUM_PRICE = 0;
 export const SWEET_CLASSIC_PRODUCT_ID = "sweet-menfis-classic";
 export const SWEET_PLUS_PRODUCT_ID = "sweet-menfis-plus";
 export const SWEET_CLASSIC_OPTIONS = [
@@ -152,7 +152,7 @@ export function getSweetOptionsForItem(item: MenuItem) {
 }
 
 export function sweetCardPriceLabel(item: MenuItem) {
-  return isSweetPlusProduct(item) ? `A partir de ${fmt(item.price + SWEET_PREMIUM_PRICE)}` : fmt(item.price);
+  return fmt(item.price);
 }
 
 export function getExtraOptionsForItem(item: MenuItem) {

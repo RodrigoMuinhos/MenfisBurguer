@@ -141,6 +141,14 @@ function productAllergens(item: MenuItem) {
   return "Contém glúten, leite e derivados. Pode conter ovo e soja.";
 }
 
+function visibleProductTags(item: MenuItem) {
+  if (item.category !== "sweet") return item.tags;
+  return item.tags.filter((tag) => {
+    const normalized = tag.toLowerCase();
+    return !normalized.includes("sem adicional") && !normalized.includes("2,90");
+  });
+}
+
 function DetailInfo({ title, copy }: { title: string; copy: string }) {
   return (
     <div className="rounded-2xl bg-white p-3" style={{ border: `1px solid ${VERDE}12` }}>
@@ -364,7 +372,7 @@ export function MenuCard({
         </p>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {item.tags.map((tag) => (
+          {visibleProductTags(item).map((tag) => (
             <span
               key={tag}
               className="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider"
@@ -515,7 +523,7 @@ export function ProductDetailModal({
           </div>
           <p className="mt-3 text-sm leading-6" style={{ color: `${VERDE}AD` }}>{productStory(item)}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            {item.tags.map((tag) => (
+            {visibleProductTags(item).map((tag) => (
               <span
                 key={tag}
                 className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider"
