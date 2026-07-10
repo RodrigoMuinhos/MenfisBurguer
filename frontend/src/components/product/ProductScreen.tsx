@@ -212,33 +212,6 @@ function labelCategory(category: ProductCategory) {
   return "Burger";
 }
 
-function OpeningVideoOverlay({ onDone }: { onDone: () => void }) {
-  useEffect(() => {
-    const fallback = window.setTimeout(onDone, 6500);
-    return () => window.clearTimeout(fallback);
-  }, [onDone]);
-
-  return (
-    <div
-      className="fixed inset-0 z-[200] overflow-hidden"
-      style={{ background: "#000" }}
-    >
-      <video
-        className="h-full w-full object-cover"
-        autoPlay
-        muted
-        playsInline
-        preload="auto"
-        onEnded={onDone}
-        onError={onDone}
-        aria-label="Abertura Menfi's Burger"
-      >
-        <source src="/abertura.mp4" type="video/mp4" />
-      </video>
-    </div>
-  );
-}
-
 function comboPotatoComponent(item: MenuItem) {
   return requiredCustomizerCount(item) > 1
     ? "Batata Frita 200g"
@@ -315,7 +288,6 @@ export function ProductScreen({
   const [featuredImage, setFeaturedImage] = useState("");
   const [featuredTitle, setFeaturedTitle] = useState("");
   const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
-  const [openingDone, setOpeningDone] = useState(false);
   const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
   const [specialOffer, setSpecialOffer] = useState<SpecialOfferSettings>(() =>
     normalizeSpecialOfferSettings(null),
@@ -1062,12 +1034,6 @@ export function ProductScreen({
           soldOutMessage={soldOutMessage}
         />
       )}
-
-      <AnimatePresence>
-        {!openingDone && (
-          <OpeningVideoOverlay onDone={() => setOpeningDone(true)} />
-        )}
-      </AnimatePresence>
 
       <div className={!kioskMode ? "hidden md:block" : undefined}>
         <ProductHeader

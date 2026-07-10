@@ -86,6 +86,7 @@ export default function App({ mode }: { mode?: AppMode }) {
   const adminOnlyMode = appMode === "admin" || appMode === "kds" || appMode === "notes";
   const kioskMode = appMode === "kiosk";
   const [started, setStarted] = useState(true);
+  const [splashOpen, setSplashOpen] = useState(!adminOnlyMode);
   const [screen, setScreen] = useState<Screen>(() => {
     if (appMode === "admin" || appMode === "kds" || appMode === "notes") return "admin";
     if (typeof window !== "undefined") {
@@ -139,6 +140,12 @@ export default function App({ mode }: { mode?: AppMode }) {
     resetKioskActivity,
     openKioskIdleScreen,
   } = useKioskIdle({ kioskMode, screen, started, setCart, setScreen });
+
+  useEffect(() => {
+    if (!splashOpen) return;
+    const timer = window.setTimeout(() => setSplashOpen(false), 6500);
+    return () => window.clearTimeout(timer);
+  }, [splashOpen]);
 
   useEffect(() => {
     if (localStorage.getItem("menfis_cache_version") === CACHE_VERSION) return;
@@ -630,6 +637,26 @@ export default function App({ mode }: { mode?: AppMode }) {
         presentation={presentation}
       />
       {paymentTimeoutOrder && <PaymentTimeoutModal onClose={() => setPaymentTimeoutOrder(null)} />}
+      {splashOpen && <OpeningSplash onDone={() => setSplashOpen(false)} />}
+    </div>
+  );
+}
+
+function OpeningSplash({ onDone }: { onDone: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[9999] overflow-hidden bg-black">
+      <video
+        className="h-full w-full object-cover"
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+        onEnded={onDone}
+        onError={onDone}
+        aria-label="Abertura Menfi's Burger"
+      >
+        <source src="/abertura.mp4" type="video/mp4" />
+      </video>
     </div>
   );
 }
