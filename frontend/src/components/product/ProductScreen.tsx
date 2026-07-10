@@ -86,6 +86,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend
 const SPECIAL_OFFER_SESSION_KEY = "menfis_special_offer_seen";
 const DEFAULT_FEATURED_PRODUCT_ID = DEFAULT_SPECIAL_OFFER_SETTINGS.productId;
 const TRIPLE_COMBO_IMAGE = "/menu/supercombomnfis.png";
+const PUBLIC_SETTINGS_CACHE_KEY = "menfis_public_settings_cache_v2";
+const PRICING_ROWS_CACHE_KEY = "menfis_pricing_rows_cache_v2";
 const CUSTOMIZER_ADDON_IDS = new Set([
   "extra-carne",
   "extra-frango",
@@ -103,6 +105,25 @@ function hasRequiredCustomerProfile(profile: MemberProfile | null) {
       profile.phone?.replace(/\D/g, "").length >= 10 &&
       profile.hasPassword !== false,
   );
+}
+
+function readJsonCache<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJsonCache(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Cache is best-effort; never block the menu because storage is full or unavailable.
+  }
 }
 
 function applyPricingToMenu(rows: Array<Record<string, unknown>>) {
@@ -408,6 +429,28 @@ export function ProductScreen({
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "-")
       .replace(/-+/g, "-") === "KIOSK-MOB";
+  const applyPublicSettings = (settings: Record<string, unknown> | null | undefined) => {
+    setFeaturedProductId(
+      settings?.featuredProductId
+        ? String(settings.featuredProductId)
+        : DEFAULT_FEATURED_PRODUCT_ID,
+    );
+    const normalizedPresentation = normalizePresentationSettings(settings?.presentation);
+    const normalizedSpecialOffer = normalizeSpecialOfferSettings(settings?.specialOffer);
+    setFeaturedImage(normalizedPresentation.featuredImage ?? "");
+    setFeaturedTitle(normalizedPresentation.featuredTitle ?? "");
+    setPromoCards(normalizePromoCards(settings?.promoCards));
+    setSpecialOffer(normalizedSpecialOffer);
+    preloadClientImages([
+      normalizedPresentation.featuredImage,
+      normalizedSpecialOffer.image,
+    ]);
+    setOperatingNow(settings?.operatingNow !== false);
+    setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
+    setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
+    setSoldOutEnabled(settings?.soldOutActive === true);
+    setSoldOutMessage(String(settings?.soldOutMessage ?? SOLD_OUT_MESSAGE));
+  };
   useEffect(() => {
     if (kioskMode) return;
     void loadCustomerSession().then((profile) => {
@@ -430,6 +473,13 @@ export function ProductScreen({
       return;
     }
     let cancelled = false;
+    const cachedSettings = readJsonCache<Record<string, unknown> | null>(
+      PUBLIC_SETTINGS_CACHE_KEY,
+      null,
+    );
+    if (cachedSettings) {
+      applyPublicSettings(cachedSettings);
+    }
     fetch(freshApiUrl("/settings/public"), {
       cache: "no-store",
       headers: {
@@ -440,26 +490,10 @@ export function ProductScreen({
       .then((response) => (response.ok ? response.json() : null))
       .then((settings) => {
         if (cancelled) return;
-        setFeaturedProductId(
-          settings?.featuredProductId
-            ? String(settings.featuredProductId)
-            : DEFAULT_FEATURED_PRODUCT_ID,
-        );
-        const normalizedPresentation = normalizePresentationSettings(settings?.presentation);
-        const normalizedSpecialOffer = normalizeSpecialOfferSettings(settings?.specialOffer);
-        setFeaturedImage(normalizedPresentation.featuredImage ?? "");
-        setFeaturedTitle(normalizedPresentation.featuredTitle ?? "");
-        setPromoCards(normalizePromoCards(settings?.promoCards));
-        setSpecialOffer(normalizedSpecialOffer);
-        preloadClientImages([
-          normalizedPresentation.featuredImage,
-          normalizedSpecialOffer.image,
-        ]);
-        setOperatingNow(settings?.operatingNow !== false);
-        setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
-        setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? ""));
-        setSoldOutEnabled(settings?.soldOutActive === true);
-        setSoldOutMessage(String(settings?.soldOutMessage ?? SOLD_OUT_MESSAGE));
+        if (settings) {
+          writeJsonCache(PUBLIC_SETTINGS_CACHE_KEY, settings);
+        }
+        applyPublicSettings(settings);
       })
       .catch(() => undefined)
       .finally(() => {
@@ -498,6 +532,15 @@ export function ProductScreen({
   useEffect(() => {
     if (typeof window === "undefined" || !API_URL) return;
     setCatalogLoaded(false);
+    const cachedRows = readJsonCache<Array<Record<string, unknown>>>(
+      PRICING_ROWS_CACHE_KEY,
+      [],
+    );
+    if (cachedRows.length) {
+      const cachedItems = applyPricingToMenu(cachedRows);
+      setCatalogItems(cachedItems);
+      preloadClientImages(cachedItems.map((item) => imageSrc(item.image)));
+    }
     fetch(freshApiUrl("/pricing"), {
       cache: "no-store",
       headers: {
@@ -508,10 +551,15 @@ export function ProductScreen({
       .then((response) => (response.ok ? response.json() : []))
       .then((rows) => {
         if (Array.isArray(rows)) {
-          setCatalogItems(applyPricingToMenu(rows));
+          writeJsonCache(PRICING_ROWS_CACHE_KEY, rows);
+          const nextItems = applyPricingToMenu(rows);
+          setCatalogItems(nextItems);
+          preloadClientImages(nextItems.map((item) => imageSrc(item.image)));
         }
       })
-      .catch(() => setCatalogItems([]))
+      .catch(() => {
+        if (!cachedRows.length) setCatalogItems([]);
+      })
       .finally(() => setCatalogLoaded(true));
   }, []);
 
