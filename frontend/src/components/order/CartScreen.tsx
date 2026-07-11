@@ -314,6 +314,7 @@ export function CartScreen({
           counterServiceMode={counterServiceMode}
           payment={payment}
           setPayment={setPayment}
+          setCheckoutStep={setCheckoutStep}
           customerNameRef={customerNameRef}
           phoneRef={phoneRef}
           customerName={customerName}

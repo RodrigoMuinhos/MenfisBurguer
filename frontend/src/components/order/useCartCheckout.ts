@@ -654,7 +654,7 @@ export function useCartCheckout({
     if (checkoutStep === "bag") {
       if (kioskMode) playAttendantBeep();
       closeKioskKeyboard();
-      setCheckoutStep(kioskMode ? "customer" : counterServiceMode ? "payment" : "delivery");
+      setCheckoutStep(kioskMode ? "review" : counterServiceMode ? "payment" : "delivery");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -685,6 +685,10 @@ export function useCartCheckout({
         return;
       }
       closeKioskKeyboard();
+      if (kioskMode && payment) {
+        await submitSelectedPayment(payment);
+        return;
+      }
       setCheckoutStep("review");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -742,7 +746,7 @@ export function useCartCheckout({
       return;
     }
     if (checkoutStep === "review") {
-      setCheckoutStep(kioskMode ? "customer" : "delivery");
+      setCheckoutStep(kioskMode ? "bag" : "delivery");
       return;
     }
     if (checkoutStep === "customer") {

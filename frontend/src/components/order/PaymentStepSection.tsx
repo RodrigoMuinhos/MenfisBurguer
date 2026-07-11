@@ -1,4 +1,4 @@
-import { RefObject } from "react";
+import { RefObject, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CreditCard,
@@ -73,6 +73,7 @@ export function PaymentStepSection({
   counterServiceMode,
   payment,
   setPayment,
+  setCheckoutStep,
   customerNameRef,
   phoneRef,
   customerName,
@@ -90,6 +91,7 @@ export function PaymentStepSection({
   counterServiceMode: boolean;
   payment: PaymentMethod;
   setPayment: (payment: PaymentMethod) => void;
+  setCheckoutStep: (step: CheckoutStep) => void;
   customerNameRef: RefObject<HTMLInputElement>;
   phoneRef: RefObject<HTMLInputElement>;
   customerName: string;
@@ -102,8 +104,22 @@ export function PaymentStepSection({
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
 }) {
+  const [pixSeconds, setPixSeconds] = useState(40);
+
+  useEffect(() => {
+    if (!kioskMode || checkoutStep !== "payment" || !["pix", "pix_qrcode"].includes(payment)) return;
+    if (pixSeconds <= 0) {
+      setCheckoutStep("customer");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const timer = window.setTimeout(() => setPixSeconds((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [checkoutStep, kioskMode, payment, pixSeconds, setCheckoutStep]);
+
   const choosePayment = (id: Exclude<PaymentMethod, "">) => {
     setPayment(id);
+    if (id === "pix" || id === "pix_qrcode") setPixSeconds(40);
     window.setTimeout(() => {
       document
         .querySelector("[data-checkout-submit]")
@@ -471,6 +487,13 @@ export function PaymentStepSection({
                                 />
                               </div>
                               <div className="min-w-0">
+                                {kioskMode && (
+                                  <div className="mb-3 rounded-xl px-4 py-3 text-center" style={{ background: ROSA }}>
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Tempo para escanear</p>
+                                    <p className="mt-1 text-2xl font-black">00:{String(pixSeconds).padStart(2, "0")}</p>
+                                    <p className="mt-1 text-[10px] font-bold opacity-65">Depois, você informará o nome do cliente.</p>
+                                  </div>
+                                )}
                                 <p className="text-sm font-black uppercase tracking-wide">
                                   Pix Menfi's Burger
                                 </p>
