@@ -180,7 +180,7 @@ export function CartBagStepSection({
   clearCart: () => void;
   goToMenu: () => void;
 }) {
-  const suggestions = buildUpsellSuggestions(cart);
+  const suggestions = buildHeroSuggestions(cart);
   const [suggestionPage, setSuggestionPage] = useState(0);
   const activeSuggestion = suggestions[suggestionPage % Math.max(suggestions.length, 1)];
   const primaryMessage = activeSuggestion?.message;
@@ -294,6 +294,19 @@ export function CartBagStepSection({
       </div>
     </>
   );
+}
+
+function buildHeroSuggestions(cart: CartItem[]): SuggestedExtra[] {
+  const cartIds = new Set(cart.map((item) => item.id));
+  const nuggetsOnly = DEFAULT_SUGGESTIONS.filter((item) => item.id.includes("nuggets"));
+  const saucesOnly = EXTRA_SUGGESTIONS.filter((item) => item.id.includes("maionese"));
+
+  // O hero tem sempre três páginas: nugget, molho e doce.
+  return [
+    pickAvailable(nuggetsOnly, cartIds) ?? nuggetsOnly[0],
+    pickAvailable(saucesOnly, cartIds) ?? saucesOnly[0],
+    pickAvailable(SWEET_SUGGESTIONS, cartIds) ?? SWEET_SUGGESTIONS[0],
+  ];
 }
 
 function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
