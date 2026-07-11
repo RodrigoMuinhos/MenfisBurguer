@@ -119,8 +119,8 @@ const SWEET_SUGGESTIONS: SuggestedExtra[] = [
 ];
 
 const EXTRA_SUGGESTIONS: SuggestedExtra[] = [
-  { id: "extra-maionese-barbecue", name: "Maionse Grill", price: 2, description: "Molho extra", image: "/EXTRAS/MaioneseBarbecue.jpg" },
-  { id: "extra-maionese-alho-frito", name: "Maionese Alho Frito", price: 2, description: "Molho extra", image: "/EXTRAS/MaionseAlhoFrito.jpg" },
+  { id: "extra-maionese-barbecue", name: "Maionse Grill", price: 2.5, description: "Molho extra", image: "/EXTRAS/MaioneseBarbecue.jpg" },
+  { id: "extra-maionese-alho-frito", name: "Maionese Alho Frito", price: 2.5, description: "Molho extra", image: "/EXTRAS/MaionseAlhoFrito.jpg" },
   { id: "extra-cheddar", name: "Adicional de cheddar", price: 6.9, description: "Cheddar extra", image: "/queijo.jpg" },
 ];
 
@@ -299,12 +299,12 @@ export function CartBagStepSection({
 function buildHeroSuggestions(cart: CartItem[]): SuggestedExtra[] {
   const cartIds = new Set(cart.map((item) => item.id));
   const nuggetsOnly = DEFAULT_SUGGESTIONS.filter((item) => item.id.includes("nuggets"));
-  const saucesOnly = EXTRA_SUGGESTIONS.filter((item) => item.id.includes("maionese"));
+  const garlicMayo = EXTRA_SUGGESTIONS.find((item) => item.id === "extra-maionese-alho-frito")!;
 
   // O hero tem sempre três páginas: nugget, molho e doce.
   return [
     pickAvailable(nuggetsOnly, cartIds) ?? nuggetsOnly[0],
-    pickAvailable(saucesOnly, cartIds) ?? saucesOnly[0],
+    garlicMayo,
     pickAvailable(SWEET_SUGGESTIONS, cartIds) ?? SWEET_SUGGESTIONS[0],
   ];
 }
