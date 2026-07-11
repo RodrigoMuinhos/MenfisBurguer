@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import {
   ArrowRight,
-  BeerOff,
   CakeSlice,
   Check,
   CupSoda,
@@ -21,7 +20,7 @@ import { BuffetAssistant } from "./BuffetAssistant";
 export const metadata: Metadata = {
   title: "Menfis Buffet | Mini burgers, salgados, doces e bebidas para festas",
   description:
-    "Menfis Buffet para aniversarios, eventos corporativos e celebracoes com mini hamburgueres artesanais, salgados, mini pizzas, doces, bebidas e drinks sem alcool.",
+    "Menfis Buffet para aniversarios, eventos corporativos e celebracoes com mini hamburgueres artesanais, salgados, mini pizzas, doces, bebidas e drinks tropicais.",
 };
 
 const VERDE = "#314A37";
@@ -56,15 +55,15 @@ const miniBurgers = [
 const salgados = [
   ["Coxinha de frango", "Classica, cremosa e crocante."],
   ["Bolinha de queijo", "Massa leve com recheio de queijo."],
-  ["Risole de presunto e queijo", "Tradicional para festas."],
+  ["Risole de presunto e queijo", "Massa crocante com recheio cremoso."],
   ["Kibe", "Temperado, crocante e bem sequinho."],
 ];
 
 const pizzas = [
   ["Mini Pizza Marguerita", "Molho de tomate, queijo, tomate e manjericao."],
   ["Mini Pizza Italiana", "Calabresa italiana com queijo e oregano."],
-  ["Quatro queijos", "Opcao mais premium para montar pacotes maiores."],
-  ["Frango com catupiry", "Mais brasileiro, familiar e facil de agradar."],
+  ["Quatro queijos", "Uma combinação cremosa e cheia de sabor."],
+  ["Frango com catupiry", "Frango temperado com catupiry cremoso."],
 ];
 
 const classicSweets = [
@@ -75,9 +74,9 @@ const classicSweets = [
 ];
 
 const specialSweets = [
-  ["Brigadeiro de pistache", "Opcao premium."],
-  ["Brigadeiro de Oreo", "Mais infantil e moderno."],
-  ["Ninho com Nutella", "Muito forte para festas."],
+  ["Brigadeiro de pistache", "Cremoso e delicadamente sofisticado."],
+  ["Brigadeiro de Oreo", "Chocolate cremoso com o sabor marcante de Oreo."],
+  ["Ninho com Nutella", "Leite Ninho com recheio cremoso de Nutella."],
   ["Brownie bite", "Mini brownie em pedacos individuais."],
 ];
 
@@ -89,9 +88,9 @@ const drinks = [
   ["Agua saborizada", "Limao, hortela e frutas."],
 ];
 
-const mocktails = [
+const tropicalDrinks = [
   ["Pink Lemonade Menfi's", "Limao, frutas vermelhas e gelo."],
-  ["Mojito sem alcool", "Limao, hortela, agua com gas e acucar."],
+  ["Mojito tropical", "Limao, hortela, agua com gas e acucar."],
   ["Soda italiana", "Xarope de fruta, gelo e agua com gas."],
   ["Tropical Kids", "Suco de laranja, abacaxi e gelo."],
   ["Menfi's Fresh", "Limao, hortela e agua gaseificada."],
@@ -99,8 +98,8 @@ const mocktails = [
 
 const packages = [
   {
-    name: "Combo Mini Festa",
-    ideal: "Aniversarios pequenos e reunioes familiares",
+    name: "Pequenas Reuniões",
+    ideal: "Para reunir quem você gosta com sabor, carinho e praticidade.",
     items: [
       "Mini hamburgueres Menfi's",
       "Salgadinhos classicos",
@@ -110,8 +109,8 @@ const packages = [
     ],
   },
   {
-    name: "Combo Festa Premium",
-    ideal: "Aniversarios maiores, eventos corporativos e saloes",
+    name: "Grandes Comemorações",
+    ideal: "Uma mesa completa e marcante para celebrar com todos os convidados.",
     featured: true,
     items: [
       "Mini hamburgueres variados",
@@ -120,20 +119,20 @@ const packages = [
       "4 docinhos classicos",
       "4 docinhos especiais",
       "Praca de bebidas infantis",
-      "Drinks sem alcool",
+      "Drinks tropicais",
       "Montagem de mesa Menfi's",
     ],
   },
   {
-    name: "Combo Evento Completo",
-    ideal: "Casamentos, festas adultas e confraternizacoes",
+    name: "Dias Marcantes",
+    ideal: "Para casamentos, conquistas e momentos que merecem ser inesquecíveis.",
     items: [
       "Estacao de mini burgers",
       "Salgados classicos",
       "Mini pizzas artesanais",
       "Doces classicos e especiais",
       "Praca de bebidas",
-      "Drinks sem alcool",
+      "Drinks tropicais",
       "Equipe de apoio",
       "Montagem visual personalizada",
       "Embalagens e identidade Menfi's",
@@ -146,7 +145,7 @@ const categoryHighlights = [
     title: "Mini burgers",
     href: "#acervo-mini-burgers",
     image: buffetImage("83f021109f03ee421aad67a7972f97a4.jpg"),
-    copy: "Estacao principal com burgers artesanais e montagem para servir bem.",
+    copy: "Mini burgers artesanais preparados para encantar seus convidados.",
   },
   {
     title: "Mini pizzas",
@@ -158,7 +157,7 @@ const categoryHighlights = [
     title: "Salgados",
     href: "#acervo-salgados",
     image: buffetImage("179bbadd456feddb6033fdae4f7466e8.jpg"),
-    copy: "Coxinhas, bolinhas, kibes, empadas e opcoes de apoio para festa.",
+    copy: "Coxinhas, bolinhas, kibes e empadas douradas e crocantes.",
   },
   {
     title: "Montagens",
@@ -274,7 +273,7 @@ export default function MenfisBuffetPage() {
             </p>
             <h1 className="text-5xl font-black leading-none sm:text-6xl lg:text-7xl">Menfi's Buffet</h1>
             <p className="mt-5 max-w-2xl text-base font-semibold leading-relaxed text-white/88 sm:text-lg">
-              Levamos a experiencia do hambúrguer artesanal Menfi's para festas, aniversarios, eventos corporativos e celebracoes especiais.
+              Levamos a experiência completa Menfi's para festas e eventos, com mini burgers artesanais, salgados, mini pizzas, doces, bebidas e drinks tropicais.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a
@@ -312,7 +311,7 @@ export default function MenfisBuffetPage() {
             <h2 className="mt-3 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">Mais completo para festas maiores, sem perder a alma Menfi's.</h2>
           </div>
           <p className="text-base font-semibold leading-relaxed text-[#314A37]/72">
-            Nosso cardapio conta com mini hamburgueres artesanais, salgadinhos classicos, mini pizzas, docinhos especiais, praca de bebidas infantis e drinks sem alcool. Montamos uma experiencia completa, visual e saborosa para deixar seu evento mais pratico, bonito e inesquecivel.
+            Nosso cardápio conta com mini hambúrgueres artesanais, salgadinhos clássicos, mini pizzas, docinhos especiais, praça de bebidas e drinks tropicais. Montamos uma experiência completa, visual e saborosa para deixar seu evento mais prático, bonito e inesquecível.
           </p>
         </div>
         <div className="mx-auto mt-10 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -339,8 +338,8 @@ export default function MenfisBuffetPage() {
         <div className="mx-auto max-w-7xl">
           <SectionTitle
             eyebrow="Cardapio Menfi's Buffet"
-            title="Mini hamburguer como protagonista, com complementos para evento completo."
-            copy="Mini burgers, salgadinhos, mini pizzas, doces, bebidas, mocktails e pacotes para diferentes tipos de evento."
+            title="Sabores variados para uma celebração completa."
+            copy="Mini burgers, salgadinhos, mini pizzas, doces, bebidas, drinks tropicais e pacotes para diferentes tipos de evento."
           />
 
           <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
@@ -375,12 +374,12 @@ export default function MenfisBuffetPage() {
         <div className="mx-auto max-w-7xl">
           <SectionTitle
             eyebrow="Praca de bebidas"
-            title="Bebidas infantis e drinks sem alcool para deixar o buffet mais premium."
-            copy="Sucos, refrigerantes, agua saborizada e mocktails infantis para acompanhar a experiencia completa do buffet."
+            title="Bebidas e drinks tropicais para deixar o buffet ainda mais completo."
+            copy="Sucos, refrigerantes, água saborizada e drinks tropicais para acompanhar a experiência do buffet."
           />
           <div className="grid gap-5 lg:grid-cols-2">
             <MenuBlock icon={<CupSoda size={22} />} title="Bebidas infantis" items={drinks} />
-            <MenuBlock icon={<Martini size={22} />} title="Drinks sem alcool" items={mocktails} dark />
+            <MenuBlock icon={<Martini size={22} />} title="Drinks tropicais" items={tropicalDrinks} dark />
           </div>
         </div>
       </section>
@@ -438,9 +437,9 @@ export default function MenfisBuffetPage() {
       <section id="galeria" className="px-4 py-14 md:px-6 lg:py-20" style={{ background: CREME }}>
         <div className="mx-auto max-w-7xl">
           <SectionTitle
-            eyebrow="Visual de festa"
-            title="Montagem bonita, mesa cheia e identidade Menfi's."
-            copy="Fotos de referencia do buffet para mostrar variedade, volume e acabamento de evento."
+            eyebrow="Nossas celebrações"
+            title="Mesas completas, apresentação impecável e identidade Menfi's."
+            copy="Conheça de perto os sabores e montagens que preparamos para tornar cada evento especial."
           />
           <div className="grid gap-8">
             {gallerySections.map((section) => (
@@ -473,7 +472,7 @@ export default function MenfisBuffetPage() {
       <section className="px-4 py-14 md:px-6 lg:py-20">
         <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[2rem] lg:grid-cols-[1fr_0.9fr]" style={{ background: VERDE }}>
           <div className="p-7 text-white sm:p-10 lg:p-14">
-            <BeerOff size={28} color={ROSA} />
+            <Sparkles size={28} color={ROSA} />
             <h2 className="mt-5 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">Quer levar o Menfi's para sua festa?</h2>
             <p className="mt-5 max-w-2xl text-base font-semibold leading-relaxed text-white/75">
               Monte seu pacote e solicite um orçamento personalizado pelo WhatsApp. A gente te ajuda a escolher quantidade, sabores, montagem e formato ideal para o seu evento.

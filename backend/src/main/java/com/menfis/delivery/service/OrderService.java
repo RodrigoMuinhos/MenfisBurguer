@@ -225,7 +225,7 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
       from orders where id = ?
       """,
       this::mapOrder,
@@ -238,7 +238,7 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
       from orders
       where test_mode = ?
       order by created_at desc
@@ -392,7 +392,7 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
       from orders
       where delivery_type = 'DELIVERY'
         and status = 'OUT_FOR_DELIVERY'
@@ -410,7 +410,7 @@ public class OrderService {
       """
       select o.id, o.number, o.items, o.channel, o.delivery_type, o.customer_name, o.customer_phone, o.customer_address,
         o.subtotal, o.delivery_fee, o.coupon_code, o.discount_total, o.total, o.payment_provider, o.payment_method, o.payment_status,
-        o.payment_id, o.timestamp, o.created_at, o.status, o.paid_at, o.confirmed_at
+        o.payment_id, o.timestamp, o.created_at, o.updated_at, o.status, o.paid_at, o.confirmed_at
       from orders o
       join customers c on c.id = ?
       where o.test_mode = ?
