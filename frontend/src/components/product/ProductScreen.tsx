@@ -149,7 +149,7 @@ function applyPricingToMenu(rows: Array<Record<string, unknown>>) {
         ...item,
         name: name || item.name,
         eyebrow: nextEyebrow,
-        desc: notes || `${name || item.name} cadastrado em Custos e Precificacao.`,
+        desc: notes || item.desc,
         price: Number.isFinite(salePrice) && salePrice > 0 ? salePrice : item.price,
         originalPrice:
           Number.isFinite(originalPrice) && originalPrice > salePrice
