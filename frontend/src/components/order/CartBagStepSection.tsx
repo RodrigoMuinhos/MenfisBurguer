@@ -1,9 +1,10 @@
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { CartItem } from "@/types/order";
 import { VERDE } from "@/utils/theme";
 import { fmt } from "./checkout";
-import { SuggestedCard } from "./SuggestedCard";
 
 type SuggestedExtra = {
   id: string;
@@ -181,21 +182,18 @@ export function CartBagStepSection({
 }) {
   const suggestions = buildUpsellSuggestions(cart);
   const [suggestionPage, setSuggestionPage] = useState(0);
-  const visibleSuggestions = useMemo(
-    () => rotatingWindow(suggestions, suggestionPage, 3),
-    [suggestionPage, suggestions],
-  );
-  const primaryMessage = visibleSuggestions.find((item) => item.message)?.message;
+  const activeSuggestion = suggestions[suggestionPage % Math.max(suggestions.length, 1)];
+  const primaryMessage = activeSuggestion?.message;
 
   useEffect(() => {
     setSuggestionPage(0);
   }, [suggestions.map((item) => item.id).join("|")]);
 
   useEffect(() => {
-    if (suggestions.length <= 3) return;
+    if (suggestions.length <= 1) return;
     const timer = window.setInterval(() => {
-      setSuggestionPage((page) => (page + 3) % suggestions.length);
-    }, 9000);
+      setSuggestionPage((page) => (page + 1) % suggestions.length);
+    }, 5000);
     return () => window.clearInterval(timer);
   }, [suggestions.length]);
 
@@ -255,20 +253,44 @@ export function CartBagStepSection({
             {primaryMessage}
           </p>
         )}
-        <div className="grid grid-cols-3 gap-3 overflow-hidden pb-2">
-          {visibleSuggestions.slice(0, 3).map((suggestion) => (
-            <SuggestedCard
-              key={suggestion.id}
-              id={suggestion.id}
-              name={suggestion.name}
-              price={suggestion.price}
-              description={suggestion.description}
-              image={suggestion.image}
-              qty={cart.find((item) => item.id === suggestion.id)?.qty ?? 0}
-              onAdd={addToCart}
-            />
-          ))}
-        </div>
+        {activeSuggestion && (
+          <div className="overflow-hidden rounded-[22px]">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.button
+                key={activeSuggestion.id}
+                type="button"
+                onClick={() => addToCart(activeSuggestion)}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="grid w-full grid-cols-[42%_1fr] overflow-hidden rounded-[22px] text-left sm:grid-cols-[48%_1fr]"
+                style={{ background: "#fff", border: `2px solid ${VERDE}10`, boxShadow: "0 10px 24px rgba(101,0,31,0.06)" }}
+              >
+                <div className="relative min-h-44 overflow-hidden sm:min-h-52" style={{ background: "#FCEFF2" }}>
+                  <Image src={activeSuggestion.image} alt={activeSuggestion.name} fill sizes="50vw" className="object-cover" />
+                </div>
+                <div className="relative flex min-w-0 flex-col justify-center p-5 sm:p-7">
+                  <p className="text-lg font-black sm:text-2xl" style={{ color: VERDE }}>{fmt(activeSuggestion.price)}</p>
+                  <p className="mt-2 text-base font-black leading-tight sm:text-xl" style={{ color: "#222" }}>{activeSuggestion.name}</p>
+                  <p className="mt-2 text-xs leading-relaxed sm:text-sm" style={{ color: VERDE, opacity: 0.58 }}>{activeSuggestion.description}</p>
+                  <span className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full" style={{ background: "#fff", color: VERDE, boxShadow: "0 8px 18px rgba(0,0,0,0.14)" }}>
+                    {(cart.find((item) => item.id === activeSuggestion.id)?.qty ?? 0) > 0
+                      ? <span className="text-sm font-black">{cart.find((item) => item.id === activeSuggestion.id)?.qty}</span>
+                      : <Plus size={22} strokeWidth={2.7} />}
+                  </span>
+                </div>
+              </motion.button>
+            </AnimatePresence>
+            {suggestions.length > 1 && (
+              <div className="mt-3 flex justify-center gap-1.5" aria-label="Ofertas disponíveis">
+                {suggestions.map((suggestion, index) => (
+                  <button key={suggestion.id} type="button" aria-label={`Ver ${suggestion.name}`} onClick={() => setSuggestionPage(index)} className="h-1.5 rounded-full transition-all duration-300" style={{ width: index === suggestionPage ? 24 : 6, background: VERDE, opacity: index === suggestionPage ? 1 : 0.22 }} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
@@ -432,9 +454,4 @@ function buildMixedOfferRotation(cartIds: Set<string>) {
       return true;
     }),
   );
-}
-
-function rotatingWindow<T>(items: T[], start: number, size: number) {
-  if (items.length <= size) return items;
-  return Array.from({ length: size }, (_, index) => items[(start + index) % items.length]);
 }
