@@ -177,6 +177,10 @@ export function normalizeBackendOrder(raw: any): Order {
         : raw.timestamp
           ? Number(raw.timestamp)
           : Date.now(),
+    completedAt:
+      status === "DELIVERED" || status === "CANCELLED"
+        ? new Date(raw.updatedAt ?? raw.updated_at ?? raw.createdAt ?? raw.created_at).getTime()
+        : undefined,
     status,
   };
 }

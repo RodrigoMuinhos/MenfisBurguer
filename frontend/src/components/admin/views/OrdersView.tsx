@@ -291,7 +291,7 @@ export function OrdersView({
             const createdAt = new Date(order.timestamp);
             const ageMinutes = Math.max(
               0,
-              Math.round((Date.now() - order.timestamp) / 60000),
+              Math.round(((order.completedAt ?? Date.now()) - order.timestamp) / 60000),
             );
             const itemsPreview = order.items
               .slice(0, 2)

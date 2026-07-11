@@ -6,13 +6,17 @@ import {
   Check,
   CupSoda,
   Gift,
+  Mail,
+  MapPin,
   Martini,
   MessageCircle,
+  Phone,
   Pizza,
   Sandwich,
   Sparkles,
   Utensils,
 } from "lucide-react";
+import { BuffetAssistant } from "./BuffetAssistant";
 
 export const metadata: Metadata = {
   title: "Menfis Buffet | Mini burgers, salgados, doces e bebidas para festas",
@@ -34,7 +38,13 @@ const buffetImage = (file: string) => `/menfisbuffet-static/${file}`;
 const heroImage = buffetImage("51249c626219f0979a899f7ac154adbb.jpg");
 const burgerImage = buffetImage("c399bea57b582447054409573018894e.jpg");
 const miniEventImage = buffetImage("4f5aa646709ea409a634e71aa72dee3e.jpg");
-const logoImage = "/menfisbuffet-static/assets/logonome-D-L_tmq8.jpeg";
+const logoImage = "/logo_buffet.jpeg";
+const sweetImages = [
+  "/buffetdoce/principal%20.png",
+  "/buffetdoce/0460c31aed356c18e164f87576e2c438.jpg",
+  "/buffetdoce/0c03983861d36937a7b80eb46ab65768.jpg",
+  "/buffetdoce/6f0caded864e41613220f4f5a2767877.jpg",
+];
 
 const miniBurgers = [
   ["Mini Menfi's Burger", "Blend bovino, cheddar e molho Menfi's."],
@@ -156,6 +166,12 @@ const categoryHighlights = [
     image: buffetImage("2866d06071e440916ea19a0bfbad0dd3.jpg"),
     copy: "Mesas completas com volume, variedade e apresentacao para evento.",
   },
+  {
+    title: "Doces",
+    href: "#acervo-doces",
+    image: sweetImages[0],
+    copy: "Docinhos classicos e especiais com acabamento caprichado para a mesa da festa.",
+  },
 ];
 
 const gallerySections = [
@@ -198,6 +214,12 @@ const gallerySections = [
       buffetImage("bc215ee2e6bfa96b8206541f75395849.jpg"),
       buffetImage("fcc9ef2182eb0eb26910f77225661259.jpg"),
     ],
+  },
+  {
+    id: "acervo-doces",
+    title: "Doces classicos e especiais",
+    copy: "Brigadeiros, beijinhos e sabores especiais preparados para completar a mesa do evento.",
+    images: sweetImages,
   },
   {
     id: "acervo-montagens",
@@ -293,7 +315,7 @@ export default function MenfisBuffetPage() {
             Nosso cardapio conta com mini hamburgueres artesanais, salgadinhos classicos, mini pizzas, docinhos especiais, praca de bebidas infantis e drinks sem alcool. Montamos uma experiencia completa, visual e saborosa para deixar seu evento mais pratico, bonito e inesquecivel.
           </p>
         </div>
-        <div className="mx-auto mt-10 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto mt-10 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {categoryHighlights.map((item) => (
             <a
               key={item.title}
@@ -335,6 +357,16 @@ export default function MenfisBuffetPage() {
           <div className="mt-5 grid gap-5 lg:grid-cols-2">
             <MenuBlock icon={<CakeSlice size={22} />} title="4 docinhos classicos" items={classicSweets} />
             <MenuBlock icon={<Sparkles size={22} />} title="4 docinhos especiais Menfi's" items={specialSweets} />
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-5">
+            {sweetImages.map((image, index) => (
+              <img
+                key={image}
+                src={image}
+                alt={`Doces Menfi's Buffet ${index + 1}`}
+                className={`h-52 w-full rounded-3xl object-cover sm:h-64 ${index === 0 ? "col-span-2 md:col-span-1" : ""}`}
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -461,12 +493,65 @@ export default function MenfisBuffetPage() {
         </div>
       </section>
 
-      <footer className="border-t border-[#314A37]/10 px-4 py-8 md:px-6">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm font-semibold text-[#314A37]/65 md:flex-row md:items-center md:justify-between">
-          <span>Menfi's Buffet — Fortaleza, Ceara</span>
-          <span>Mini burgers artesanais para eventos inesqueciveis.</span>
+      <footer className="px-4 pb-8 pt-14 text-white md:px-6 lg:pt-16" style={{ background: VERDE }}>
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 border-b border-white/15 pb-12 md:grid-cols-2 lg:grid-cols-[1.35fr_0.75fr_0.9fr]">
+            <div className="max-w-md">
+              <div className="flex items-center gap-3">
+                <img src={logoImage} alt="Menfi's Buffet" className="h-16 w-16 rounded-2xl object-cover ring-1 ring-white/20" />
+                <div>
+                  <p className="text-xl font-black">Menfi's Buffet</p>
+                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-white/55">Eventos em Fortaleza</p>
+                </div>
+              </div>
+              <p className="mt-5 text-sm font-semibold leading-relaxed text-white/68">
+                Mini burgers artesanais, salgados, pizzas, doces e bebidas para aniversarios, confraternizacoes e eventos especiais.
+              </p>
+              <a href={`${WHATSAPP}?text=${WHATSAPP_TEXT}`} target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-full px-5 text-sm font-black" style={{ background: ROSA, color: VERDE }}>
+                <MessageCircle size={18} /> Solicitar orçamento
+              </a>
+            </div>
+
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em]" style={{ color: ROSA }}>Navegação</p>
+              <nav className="mt-5 grid gap-3 text-sm font-bold text-white/70" aria-label="Links do rodapé">
+                <a className="transition hover:text-white" href="#cardapio">Cardápio</a>
+                <a className="transition hover:text-white" href="#bebidas">Bebidas</a>
+                <a className="transition hover:text-white" href="#pacotes">Pacotes para festas</a>
+                <a className="transition hover:text-white" href="#galeria">Galeria</a>
+                <a className="transition hover:text-white" href="/">Menfi's Burger</a>
+              </nav>
+            </div>
+
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em]" style={{ color: ROSA }}>Fale com a gente</p>
+              <div className="mt-5 grid gap-4 text-sm font-semibold text-white/70">
+                <a href={`${WHATSAPP}?text=${WHATSAPP_TEXT}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 transition hover:text-white">
+                  <Phone className="mt-0.5 shrink-0" size={18} color={ROSA} />
+                  <span><strong className="block text-white">WhatsApp</strong>(85) 99788-3764</span>
+                </a>
+                <a href="mailto:rodrigomuinhostattooist@gmail.com" className="flex items-start gap-3 break-all transition hover:text-white">
+                  <Mail className="mt-0.5 shrink-0" size={18} color={ROSA} />
+                  <span><strong className="block text-white">E-mail</strong>rodrigomuinhostattooist@gmail.com</span>
+                </a>
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 shrink-0" size={18} color={ROSA} />
+                  <span><strong className="block text-white">Atendimento</strong>Fortaleza, Ceará</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 py-6 text-xs font-semibold text-white/50 sm:flex-row sm:items-center sm:justify-between">
+            <p>© {new Date().getFullYear()} Menfi's Buffet. Todos os direitos reservados.</p>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              <a className="transition hover:text-white" href="/politica-de-privacidade">Política de privacidade</a>
+              <a className="transition hover:text-white" href="/termos-de-servico">Termos de serviço</a>
+            </div>
+          </div>
         </div>
       </footer>
+      <BuffetAssistant />
     </main>
   );
 }

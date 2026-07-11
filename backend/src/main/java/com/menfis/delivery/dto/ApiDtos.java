@@ -59,6 +59,7 @@ public class ApiDtos {
     String paymentId,
     long timestamp,
     OffsetDateTime createdAt,
+    OffsetDateTime updatedAt,
     String status,
     OffsetDateTime paidAt,
     OffsetDateTime confirmedAt

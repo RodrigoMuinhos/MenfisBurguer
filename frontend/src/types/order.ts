@@ -62,6 +62,7 @@ export interface Order {
   pixQrCodeBase64?: string;
   pixTicketUrl?: string;
   timestamp: number;
+  completedAt?: number;
   status: OrderStatus;
 }
 

@@ -882,6 +882,7 @@ public class OrderService {
       rs.getString("payment_id"),
       orderTimestamp(rs),
       offset(rs, "created_at"),
+      offset(rs, "updated_at"),
       rs.getString("status"),
       offset(rs, "paid_at"),
       offset(rs, "confirmed_at")
