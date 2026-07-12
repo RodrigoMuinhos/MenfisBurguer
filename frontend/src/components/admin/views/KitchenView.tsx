@@ -19,7 +19,9 @@ import {
   localDateKey,
   MENU_STOCK_MAP,
   orderReadyWhatsappUrl,
+  paymentMethodLabel,
   printOrderReceipts,
+  STAGE_LABEL,
 } from "../shared";
 import { Metric, OrderDetail } from "./kitchen/KitchenOrderDetail";
 import { KitchenStageColumn, primaryKind } from "./kitchen/KitchenKanban";
@@ -412,7 +414,95 @@ export function KitchenView({
           )}
         </div>
       </section>
+
+      <DailyReport orders={dayOrders} selectedDate={selectedDate} />
     </main>
+  );
+}
+
+function DailyReport({ orders, selectedDate }: { orders: Order[]; selectedDate: string }) {
+  const billable = orders.filter(isBillableOrder);
+  const itemCount = orders.reduce(
+    (total, order) => total + order.items.reduce((sum, item) => sum + item.qty, 0),
+    0,
+  );
+  const revenue = billable.reduce((total, order) => total + order.total, 0);
+  const delivery = orders.filter((order) => order.channel === "DELIVERY").length;
+  const kiosk = orders.filter((order) => order.channel === "KIOSK").length;
+  const cancelled = orders.filter((order) => order.status === "CANCELLED").length;
+
+  return (
+    <section style={{ padding: "20px 12px 32px", background: "#FFF8F2", borderTop: `1px solid ${ROSA}` }}>
+      <div style={{ maxWidth: 1500, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <p style={{ fontSize: 10, fontWeight: 950, textTransform: "uppercase", letterSpacing: "0.14em", color: "#9F4560" }}>Fechamento da operação</p>
+            <h2 style={{ marginTop: 4, fontFamily: "var(--menfis-font-display)", fontSize: "clamp(2rem,4vw,3.5rem)", lineHeight: 1, letterSpacing: "0.04em" }}>
+              RELATÓRIO DO DIA
+            </h2>
+            <p style={{ marginTop: 6, fontSize: 12, fontWeight: 800, opacity: 0.58 }}>{formatDate(selectedDate)} · histórico completo da data</p>
+          </div>
+          <strong style={{ fontSize: 13, background: VERDE, color: ROSA, borderRadius: 999, padding: "10px 15px" }}>
+            {orders.length} pedido{orders.length === 1 ? "" : "s"}
+          </strong>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginTop: 16 }}>
+          <ReportMetric label="Faturamento" value={fmt(revenue)} />
+          <ReportMetric label="Itens vendidos" value={String(itemCount)} />
+          <ReportMetric label="Delivery" value={String(delivery)} />
+          <ReportMetric label="Kiosk" value={String(kiosk)} />
+          <ReportMetric label="Cancelados" value={String(cancelled)} />
+        </div>
+
+        {orders.length === 0 ? (
+          <div style={{ marginTop: 14, padding: 34, border: `1px dashed ${ROSA}`, borderRadius: 16, textAlign: "center", fontSize: 12, fontWeight: 900, opacity: 0.5 }}>
+            Nenhum pedido registrado nesta data.
+          </div>
+        ) : (
+          <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+            {orders.map((order) => {
+              const finishedAt = order.completedAt ? new Date(order.completedAt) : null;
+              const duration = order.completedAt
+                ? Math.max(0, Math.round((order.completedAt - order.timestamp) / 60000))
+                : null;
+              return (
+                <article key={order.id} className="grid grid-cols-1 items-center gap-3 md:grid-cols-[minmax(120px,.55fr)_minmax(170px,.8fr)_minmax(240px,1.8fr)_minmax(120px,.55fr)]" style={{ padding: 14, background: "#fff", border: `1px solid ${ROSA}`, borderRadius: 14, overflow: "hidden" }}>
+                  <div>
+                    <strong style={{ fontFamily: "var(--menfis-font-display)", fontSize: 24, lineHeight: 1 }}>{order.id}</strong>
+                    <p style={{ marginTop: 4, fontSize: 10, fontWeight: 850, opacity: 0.58 }}>
+                      {new Date(order.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {finishedAt ? ` → ${finishedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}
+                      {duration !== null ? ` · ${duration} min` : ""}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 950 }}>{order.customerName || "Cliente"}</p>
+                    <p style={{ marginTop: 3, fontSize: 10, fontWeight: 800, opacity: 0.58 }}>{order.channel} · {paymentMethodLabel(order)}</p>
+                    <span style={{ display: "inline-block", marginTop: 5, borderRadius: 999, padding: "3px 7px", background: order.status === "CANCELLED" ? "#FEE2E2" : `${ROSA}55`, color: order.status === "CANCELLED" ? "#991B1B" : VERDE, fontSize: 9, fontWeight: 950, textTransform: "uppercase" }}>
+                      {STAGE_LABEL[order.status] ?? order.status}
+                    </span>
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 11, fontWeight: 900, lineHeight: 1.55 }}>{order.items.map((item) => `${item.qty}x ${item.name}`).join(" · ")}</p>
+                  </div>
+                  <strong className="md:text-right" style={{ fontFamily: "var(--menfis-font-display)", fontSize: 23, opacity: order.status === "CANCELLED" ? 0.4 : 1 }}>{fmt(order.total)}</strong>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ReportMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ padding: "12px 14px", background: "#fff", border: `1px solid ${ROSA}`, borderRadius: 14 }}>
+      <p style={{ fontSize: 9, fontWeight: 950, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.52 }}>{label}</p>
+      <p style={{ marginTop: 4, fontFamily: "var(--menfis-font-display)", fontSize: 25, lineHeight: 1 }}>{value}</p>
+    </div>
   );
 }
 
