@@ -49,13 +49,13 @@ import {
   uid,
 } from "./shared";
 import { CouponsView } from "./views/CouponsView";
-import { CouponResultsView } from "./views/CouponResultsView";
 import { ConfigView } from "./views/ConfigView";
 import { CustomersCrmView, CrmCustomer } from "./views/CustomersCrmView";
 import { DashboardView } from "./views/DashboardView";
 import { KitchenView } from "./views/KitchenView";
 import { KitchenNotesView } from "./views/KitchenNotesView";
 import { MonitoringView } from "./views/MonitoringView";
+import { IntelligenceReportsView } from "./views/IntelligenceReportsView";
 import { OrdersView } from "./views/OrdersView";
 import { PricingView } from "./views/PricingView";
 import { SupportView } from "./views/SupportView";
@@ -193,7 +193,7 @@ export function AdminPanel({
     { id: "clientes", label: "Clientes", Icon: Users },
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
     { id: "cupons", label: "Cupons", Icon: TicketPercent },
-    { id: "resultados", label: "Relatórios", Icon: BarChart3 },
+    { id: "resultados", label: "Relatórios e Indicadores", Icon: BarChart3 },
     { id: "monitoramento", label: "Monitoramento", Icon: Activity },
     { id: "config", label: "Configurações", Icon: Settings },
   ];
@@ -946,9 +946,11 @@ export function AdminPanel({
           />
         )}
         {tab === "resultados" && (
-          <CouponResultsView
+          <IntelligenceReportsView
             orders={visibleOrders}
-            coupons={mergeCoupons(customCoupons)}
+            stockItems={stockItems}
+            movements={stockMovements}
+            adminToken={adminToken}
           />
         )}
         {tab === "config" && (
