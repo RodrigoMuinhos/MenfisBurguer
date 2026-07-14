@@ -85,7 +85,7 @@ const DEFAULT_ROWS: PricingRow[] = [
   side("nuggets-grande", "NUGGETS-270G", "Menfi's Nuggets 270g", 8.45, 29.9, "Extras"),
   side("sweet-menfis-classic", "SWEET-CLASSIC", "Sweet Menfi's Classic", 3.1, 8.9, "Sweet / Classic"),
   side("sweet-menfis-plus", "SWEET-PLUS", "Sweet Menfi's Plus", 4.2, 12.9, "Sweet / Plus"),
-  side("smash-nutella-marshmallow", "SMASH-NUTELLA", "Smash de Nutella com Marshmallow", 0, 19.9, "Sweet"),
+  side("smash-nutella-marshmallow", "SMASH-NUTELLA", "Menfi's Nutella com Marshmallow", 0, 19.9, "Sweet"),
 ];
 
 export function PricingView({ adminToken = "" }: { adminToken?: string }) {
