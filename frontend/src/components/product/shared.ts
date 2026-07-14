@@ -205,7 +205,7 @@ export function sortCatalogItems<T extends MenuItem>(items: T[]) {
 }
 
 export function isSweetBoxProduct(item: MenuItem) {
-  return item.id === SWEET_CLASSIC_PRODUCT_ID || item.id === SWEET_PLUS_PRODUCT_ID || item.category === "sweet";
+  return item.id === SWEET_CLASSIC_PRODUCT_ID || item.id === SWEET_PLUS_PRODUCT_ID;
 }
 
 export function isSweetPlusProduct(item: MenuItem) {

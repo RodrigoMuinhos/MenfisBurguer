@@ -351,4 +351,14 @@ export const MENU_ITEMS: MenuItem[] = [
     tags: ["Premium"],
     category: "sweet",
   },
+  {
+    id: "smash-nutella-marshmallow",
+    name: "Smash de Nutella com Marshmallow",
+    eyebrow: "Sweet",
+    desc: "Pão brioche amanteigado, recheado com uma generosa camada de Nutella e marshmallows maçaricados, criando o equilíbrio perfeito entre cremosidade e crocância.",
+    price: 19.9,
+    image: "/buffetdoce/paonuella.jpeg",
+    tags: ["Nutella 50g", "Marshmallow", "Brioche"],
+    category: "sweet",
+  },
 ];

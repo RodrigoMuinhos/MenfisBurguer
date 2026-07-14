@@ -95,6 +95,7 @@ function productIngredients(item: MenuItem) {
     return "Bebida gelada selecionada.";
   }
   if (item.category === "sweet") {
+    if (!isSweetBoxProduct(item)) return item.desc;
     return item.id.includes("plus")
       ? "Caixinha com 4 doces premium escolhidos pelo cliente. Cada unidade premium soma acréscimo."
       : "Caixinha com 4 doces clássicos escolhidos pelo cliente, sem adicional.";
@@ -131,7 +132,7 @@ function productWeight(item: MenuItem) {
     if (item.id === "burger") return "1 carne de 130g.";
     return isBig ? "2 carnes de 100g (200g no total)." : "1 carne de 100g.";
   }
-  if (item.category === "sweet") return "4 doces por caixinha.";
+  if (item.category === "sweet") return isSweetBoxProduct(item) ? "4 doces por caixinha." : "1 unidade.";
   return "Porção conforme seleção.";
 }
 
