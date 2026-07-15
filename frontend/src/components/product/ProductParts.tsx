@@ -24,6 +24,7 @@ import {
   fmt,
   imageSrc,
   isChickenProduct,
+  isSuperProduct,
   isSweetBoxProduct,
   requiredCustomizerCount,
   sweetCardPriceLabel,
@@ -61,6 +62,7 @@ function productStory(item: MenuItem) {
 }
 
 function productIngredients(item: MenuItem) {
+  if (isSuperProduct(item)) return item.desc;
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
   if (name.includes("chicken")) {

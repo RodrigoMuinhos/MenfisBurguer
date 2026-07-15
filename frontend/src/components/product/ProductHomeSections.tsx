@@ -431,16 +431,17 @@ export function CategoryTabs({
       <div className="flex gap-2 overflow-x-auto pb-1">
         {CATEGORIES.map(({ id, label, Icon }) => {
           const active = category === id;
+          const featured = id === "super";
           return (
             <button
               key={id}
               onClick={() => setCategory(id)}
               className="flex shrink-0 items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider"
               style={{
-                background: active ? VERDE : "#fff",
-                color: active ? ROSA : VERDE,
-                border: `1px solid ${active ? VERDE : `${VERDE}14`}`,
-                boxShadow: active ? "0 12px 28px rgba(31,61,46,0.18)" : "none",
+                background: featured ? "#000" : active ? VERDE : "#fff",
+                color: featured || active ? ROSA : VERDE,
+                border: `1px solid ${featured ? "#000" : active ? VERDE : `${VERDE}14`}`,
+                boxShadow: active ? "0 12px 28px rgba(0,0,0,0.24)" : featured ? "0 8px 20px rgba(0,0,0,0.16)" : "none",
               }}
             >
               <Icon size={15} strokeWidth={2.2} />

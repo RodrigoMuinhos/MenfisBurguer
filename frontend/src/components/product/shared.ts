@@ -16,6 +16,7 @@ export type CustomizerState = {
   extras: Record<string, number>;
   qty: number;
   note: string;
+  spiceLevel?: number;
 };
 
 export type MemberProfile = {
@@ -40,6 +41,7 @@ export const CATEGORIES = [
   { id: "burger", label: "Burgers", Icon: Beef },
   { id: "chicken", label: "Chicken", Icon: Drumstick },
   { id: "bacon", label: "Bacon", Icon: Beef },
+  { id: "super", label: "SUPER", Icon: Candy },
   { id: "fries", label: "Fries", Icon: Utensils },
   { id: "sweet", label: "Sweet", Icon: Candy },
   { id: "extras", label: "Extras", Icon: Plus },
@@ -56,6 +58,19 @@ export const MEMBER_KEY = "menfis_member";
 export const MEMBER_TOKEN_KEY = "menfis_member_token";
 export const DELIVERY_STORAGE_KEY = "menfis_cliente";
 export const SPECIAL_OFFER_PRODUCT_ID = "triple-combo";
+export const SUPER_PRODUCT_IDS = new Set([
+  "tropikal-menfis",
+  "tropikal-barbecue",
+  "smash-nutella-marshmallow",
+]);
+
+export function isSuperProduct(item: MenuItem) {
+  return SUPER_PRODUCT_IDS.has(item.id);
+}
+
+export function requiresSpiceLevel(item: MenuItem) {
+  return item.id === "tropikal-barbecue";
+}
 
 export const MEAT_POINT_OPTIONS = [
   { label: "Ao ponto", copy: "Centro suculento" },

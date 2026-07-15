@@ -24,9 +24,11 @@ import {
   imageSrc,
   isChickenProduct,
   isNuggetsProduct,
+  isSuperProduct,
   isSweetPlusProduct,
   isSweetBoxProduct,
   requiredCustomizerCount,
+  requiresSpiceLevel,
 } from "./shared";
 
 export function ProductCustomizer({
@@ -42,11 +44,14 @@ export function ProductCustomizer({
     !isChickenProduct(state.item) &&
     (state.item.category === "burger" || state.item.category === "combo");
   const requiredCount = requiredCustomizerCount(state.item);
-  const needsSauce = state.item.category === "burger" || state.item.category === "combo";
+  const needsSauce =
+    (state.item.category === "burger" || state.item.category === "combo") &&
+    !isSuperProduct(state.item);
   const needsFreeMayo = isNuggetsProduct(state.item);
   const needsDrink = state.item.category === "combo";
   const isSweetBox = isSweetBoxProduct(state.item);
   const isSweetPlus = isSweetPlusProduct(state.item);
+  const needsSpiceLevel = requiresSpiceLevel(state.item);
   const sweetOptions = getSweetOptionsForItem(state.item);
   const sauceRequiredCount = needsFreeMayo ? 1 : requiredCount;
   const extraOptions = getExtraOptionsForItem(state.item);
@@ -70,6 +75,7 @@ export function ProductCustomizer({
     (!needsMeatPoint || state.meatPoints.length === requiredCount) &&
     (!(needsSauce || needsFreeMayo) || isSweetBox || state.sauces.length === sauceRequiredCount) &&
     (!needsDrink || state.drinks.length === requiredCount);
+  const spiceValid = !needsSpiceLevel || state.spiceLevel !== undefined;
 
   const toggleLimited = (
     field: "meatPoints" | "sauces" | "drinks",
@@ -492,6 +498,36 @@ export function ProductCustomizer({
           </OptionSection>
           )}
 
+          {needsSpiceLevel && (
+            <OptionSection
+              title="Nível de pimenta"
+              subtitle="Escolha a ardência antes de adicionar"
+              count={state.spiceLevel === undefined ? 0 : 1}
+              total={1}
+              required
+            >
+              {[0, 1, 2, 3, 4, 5].map((level) => {
+                const labels = ["Sem pimenta", "Muito suave", "Suave", "Média", "Forte", "Muito forte"];
+                const active = state.spiceLevel === level;
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setState((prev) => prev ? { ...prev, spiceLevel: level } : prev)}
+                    className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
+                    style={{ borderColor: `${VERDE}10`, background: active ? `${ROSA}18` : "#fff" }}
+                  >
+                    <span>
+                      <span className="block text-sm font-bold">{level === 0 ? "☆☆☆☆☆" : `${"🌶️".repeat(level)}${"☆".repeat(5 - level)}`}</span>
+                      <span className="text-xs text-black/50">{level} – {labels[level]}</span>
+                    </span>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-black" style={{ background: active ? VERDE : "#fff", border: `2px solid ${active ? VERDE : "#E9D9DF"}`, color: active ? ROSA : "transparent" }}>✓</span>
+                  </button>
+                );
+              })}
+            </OptionSection>
+          )}
+
           <div className="px-5 py-5">
             <p className="mb-2 text-xs font-black uppercase tracking-wider text-black/45">
               Alguma observação?
@@ -536,7 +572,7 @@ export function ProductCustomizer({
           </div>
           <button
             onClick={onConfirm}
-            disabled={!valid}
+                disabled={!valid || !spiceValid}
             className="h-12 rounded-2xl text-xs font-black uppercase tracking-wider disabled:opacity-35"
             style={{ background: VERDE, color: ROSA }}
           >

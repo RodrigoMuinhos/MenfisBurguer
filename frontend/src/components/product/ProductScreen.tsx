@@ -43,10 +43,12 @@ import {
   isChickenProduct,
   isNuggetsProduct,
   isSpecialOfferOnlyProduct,
+  isSuperProduct,
   isSweetBoxProduct,
   readMemberProfile,
   readSavedDelivery,
   requiredCustomizerCount,
+  requiresSpiceLevel,
   sortCatalogItems,
 } from "./shared";
 import {
@@ -353,11 +355,14 @@ export function ProductScreen({
         const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
         return item.category === "burger" && text.includes("bacon");
       });
+    } else if (category === "super") {
+      nextItems = visibleCatalogItems.filter(isSuperProduct);
     } else if (category === "burger") {
       nextItems = visibleCatalogItems.filter(
         (item) =>
           item.category === "burger" &&
           !isChickenProduct(item) &&
+          !isSuperProduct(item) &&
           !`${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase().includes("bacon"),
       );
     } else if (category === "extras") {
@@ -628,6 +633,7 @@ export function ProductScreen({
       extras: {},
       qty: 1,
       note: "",
+      spiceLevel: undefined,
     });
   };
 
@@ -636,6 +642,10 @@ export function ProductScreen({
   };
 
   const quickAddMenuItem = (item: MenuItem) => {
+    if (isSuperProduct(item)) {
+      openCustomizer(item);
+      return;
+    }
     const components =
       item.category === "combo" || item.category === "burger"
         ? [
@@ -705,18 +715,21 @@ export function ProductScreen({
         customizer.item.category === "combo");
     const requiredCount = requiredCustomizerCount(customizer.item);
     const requiresSauce =
-      customizer.item.category === "burger" || customizer.item.category === "combo";
+      (customizer.item.category === "burger" || customizer.item.category === "combo") &&
+      !isSuperProduct(customizer.item);
     const requiresFreeMayo = isNuggetsProduct(customizer.item);
     const requiresSweetBox = isSweetBoxProduct(customizer.item);
     const sweetCount = Object.values(customizer.extras).reduce((sum, quantity) => sum + quantity, 0);
     const sauceRequiredCount = requiresFreeMayo ? 1 : requiredCount;
     const requiresDrink = customizer.item.category === "combo";
+    const requiresSpice = requiresSpiceLevel(customizer.item);
     if (
       (requiresSweetBox && sweetCount !== SWEET_BOX_REQUIRED_COUNT) ||
       (meatRequired && customizer.meatPoints.length < requiredCount) ||
       (!requiresSweetBox && (requiresSauce || requiresFreeMayo) &&
         customizer.sauces.length < sauceRequiredCount) ||
       (requiresDrink && customizer.drinks.length < requiredCount)
+      || (requiresSpice && customizer.spiceLevel === undefined)
     ) {
       return;
     }
@@ -788,7 +801,12 @@ export function ProductScreen({
             .reduce((sum, { extra, quantity }) => sum + extra.price * quantity, 0),
         components,
         addonIds,
-        note: customizer.note.trim() || undefined,
+        note: [
+          requiresSpice
+            ? `Pimenta: ${"🌶️".repeat(customizer.spiceLevel ?? 0)}${"☆".repeat(5 - (customizer.spiceLevel ?? 0))}`
+            : "",
+          customizer.note.trim(),
+        ].filter(Boolean).join(" | ") || undefined,
       });
       customizer.drinks.forEach((drinkId) => {
         const drink = DRINK_OPTIONS.find((option) => option.id === drinkId);
@@ -1077,8 +1095,15 @@ export function ProductScreen({
           )}
 
           <CategoryTabs category={category} setCategory={setCategory} />
-          <section id="menfis-products" className="mt-6 px-4">
+          <section id="menfis-products" className={`mt-6 px-4 ${category === "super" ? "rounded-[28px] bg-black py-5 text-white shadow-2xl" : ""}`}>
             <div>
+              {category === "super" && (
+                <div className="mb-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: ROSA }}>Linha especial</p>
+                  <h2 className="mt-1 text-2xl font-black uppercase text-white">SUPER Menfi's</h2>
+                  <p className="mt-1 text-xs font-bold text-white/60">Três sabores exclusivos. Somente sanduíches.</p>
+                </div>
+              )}
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredItems.map((item) => (
                   <MenuCard

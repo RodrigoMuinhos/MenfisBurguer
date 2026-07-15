@@ -30,10 +30,10 @@ import {
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
 import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
-import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "./shared";
+import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
-type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "fries" | "extras" | "sweet";
+type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "super" | "fries" | "extras" | "sweet";
 
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
@@ -51,6 +51,7 @@ const MOBILE_CATEGORIES: Array<{
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "chicken", label: "Chicken", icon: Drumstick },
   { id: "bacon", label: "Bacon", icon: Utensils },
+  { id: "super", label: "SUPER", icon: Star },
   { id: "fries", label: "Fries", icon: Utensils },
   { id: "sweet", label: "Sweet", icon: Candy },
   { id: "extras", label: "Extras", icon: Plus },
@@ -75,11 +76,13 @@ function categoryMatches(item: MenuItem, category: MobileCategory) {
     return item.category === "burger" && text.includes("chicken");
   if (category === "bacon")
     return item.category === "burger" && text.includes("bacon");
+  if (category === "super") return isSuperProduct(item);
   if (category === "burger") {
     return (
       item.category === "burger" &&
       !text.includes("chicken") &&
-      !text.includes("bacon")
+      !text.includes("bacon") &&
+      !isSuperProduct(item)
     );
   }
   if (category === "combo") return item.category === "combo" && !item.highlight;
@@ -337,7 +340,15 @@ export function MobileMenuExperience({
           <h2 className="text-lg font-black uppercase tracking-wide">
             {categoryLabel}
           </h2>
-          <div className="mt-3 grid gap-3">
+          <div
+            className={`mt-3 grid gap-3 ${category === "super" ? "rounded-[26px] bg-black p-3 text-white shadow-2xl" : ""}`}
+          >
+            {category === "super" && (
+              <div className="px-1 pb-1 pt-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: ROSA }}>Linha especial</p>
+                <p className="mt-1 text-sm font-black uppercase text-white">Escolha seu SUPER Menfi's</p>
+              </div>
+            )}
             {friesGalleryItems.length > 0 && (
               <div className="grid gap-3 rounded-[22px] p-3" style={{ background: "#FFF8F2", border: `1px solid ${VINHO}12` }}>
                 <div>
@@ -566,6 +577,7 @@ function CategoryNav({
       {MOBILE_CATEGORIES.map((tab) => {
         const Icon = tab.icon;
         const active = category === tab.id;
+        const featured = tab.id === "super";
         return (
           <button
             key={tab.id}
@@ -573,9 +585,9 @@ function CategoryNav({
             onClick={() => setCategory(tab.id)}
             className="flex min-w-[92px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-3 text-[11px] font-black uppercase"
             style={{
-              background: active ? VINHO : "#fff",
-              color: active ? ROSA : VINHO,
-              border: `1px solid ${active ? VINHO : `${VINHO}12`}`,
+              background: active ? (featured ? "#000" : VINHO) : featured ? "#000" : "#fff",
+              color: active || featured ? ROSA : VINHO,
+              border: `1px solid ${featured ? "#000" : active ? VINHO : `${VINHO}12`}`,
               boxShadow: active
                 ? "0 12px 24px rgba(101,0,31,0.22)"
                 : "0 8px 20px rgba(101,0,31,0.06)",
