@@ -33,7 +33,7 @@ import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromo
 import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 
-type MobileCategory = "promo" | "combo" | "burger" | "chicken" | "bacon" | "super" | "fries" | "extras" | "sweet";
+type MobileCategory = "combo" | "burger" | "chicken" | "bacon" | "super" | "fries" | "extras" | "sweet";
 
 const VINHO = "#65001F";
 const MAGENTA = "#B20B47";
@@ -46,7 +46,6 @@ const MOBILE_CATEGORIES: Array<{
   label: string;
   icon: ElementType;
 }> = [
-  { id: "promo", label: "Promocoes", icon: Flame },
   { id: "combo", label: "Combos", icon: Package },
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "chicken", label: "Chicken", icon: Drumstick },
@@ -70,8 +69,6 @@ function itemSearchText(item: MenuItem) {
 
 function categoryMatches(item: MenuItem, category: MobileCategory) {
   const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
-  if (category === "promo")
-    return item.category === "combo" && Boolean(item.highlight);
   if (category === "chicken")
     return item.category === "burger" && text.includes("chicken");
   if (category === "bacon")
