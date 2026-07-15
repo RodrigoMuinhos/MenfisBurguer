@@ -354,7 +354,7 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     id: "smash-nutella-marshmallow",
     name: "Smoore",
-    eyebrow: "SUPER",
+    eyebrow: "Sweet",
     desc: "Pão brioche amanteigado com marshmallow, pedaços de chocolate e Nutella.",
     price: 19.9,
     image: "/buffetdoce/paonuella.jpeg",

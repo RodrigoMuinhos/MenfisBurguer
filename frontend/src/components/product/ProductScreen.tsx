@@ -1101,10 +1101,10 @@ export function ProductScreen({
                 <div className="mb-4">
                   <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: ROSA }}>Linha especial</p>
                   <h2 className="mt-1 text-2xl font-black uppercase text-white">SUPER Menfi's</h2>
-                  <p className="mt-1 text-xs font-bold text-white/60">Três sabores exclusivos. Somente sanduíches.</p>
+                  <p className="mt-1 text-xs font-bold text-white/60">Dois sabores exclusivos. Somente sanduíches.</p>
                 </div>
               )}
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className={`mt-3 grid gap-3 sm:grid-cols-2 ${category === "super" ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
                 {filteredItems.map((item) => (
                   <MenuCard
                     key={item.id}

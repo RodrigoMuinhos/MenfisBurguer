@@ -61,7 +61,6 @@ export const SPECIAL_OFFER_PRODUCT_ID = "triple-combo";
 export const SUPER_PRODUCT_IDS = new Set([
   "tropikal-menfis",
   "tropikal-barbecue",
-  "smash-nutella-marshmallow",
 ]);
 
 export function isSuperProduct(item: MenuItem) {
