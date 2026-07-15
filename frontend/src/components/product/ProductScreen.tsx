@@ -1054,6 +1054,32 @@ export function ProductScreen({
       )}
 
       <div className={!kioskMode ? "hidden md:block" : undefined}>
+        {category === "super" && (
+          <div className="fixed inset-0 z-[60] overflow-y-auto bg-black px-5 py-6 text-white">
+            <div className="mx-auto max-w-6xl">
+              <button
+                type="button"
+                onClick={() => setCategory("combo")}
+                className="mb-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 text-xs font-black uppercase tracking-wider text-black"
+              >
+                <X size={17} strokeWidth={2.8} />
+                Retornar ao menu normal
+              </button>
+              <div className="grid gap-5 md:grid-cols-2">
+                {filteredItems.map((item) => (
+                  <MenuCard
+                    key={item.id}
+                    item={item}
+                    qty={qty(item.id)}
+                    onAdd={() => addMenuItem(item)}
+                    onMinus={() => updateQty(item.id, -1)}
+                    onOpenDetails={() => setDetailItem(item)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         <ProductHeader
           kioskMode={kioskMode}
           cartCount={cartCount}
@@ -1095,16 +1121,9 @@ export function ProductScreen({
           )}
 
           <CategoryTabs category={category} setCategory={setCategory} />
-          <section id="menfis-products" className={`mt-6 px-4 ${category === "super" ? "rounded-[28px] bg-black py-5 text-white shadow-2xl" : ""}`}>
+          <section id="menfis-products" className="mt-6 px-4">
             <div>
-              {category === "super" && (
-                <div className="mb-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: ROSA }}>Linha especial</p>
-                  <h2 className="mt-1 text-2xl font-black uppercase text-white">SUPER Menfi's</h2>
-                  <p className="mt-1 text-xs font-bold text-white/60">Dois sabores exclusivos. Somente sanduíches.</p>
-                </div>
-              )}
-              <div className={`mt-3 grid gap-3 sm:grid-cols-2 ${category === "super" ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredItems.map((item) => (
                   <MenuCard
                     key={item.id}

@@ -214,6 +214,31 @@ export function MobileMenuExperience({
     return () => controller.abort();
   }, [soldOutEnabled]);
 
+  if (category === "super") {
+    return (
+      <div className="min-h-dvh bg-black px-3 py-4 text-white md:hidden min-[390px]:px-4">
+        <button
+          type="button"
+          onClick={() => setCategory("combo")}
+          className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white px-4 text-xs font-black uppercase tracking-wider text-black"
+        >
+          <ChevronLeft size={18} strokeWidth={2.8} />
+          Retornar ao menu normal
+        </button>
+        <div className="grid gap-4">
+          {regularVisibleItems.map((item) => (
+            <MobileListItem
+              key={item.id}
+              item={item}
+              onAdd={() => onQuickAdd(item)}
+              onOpen={() => onOpenDetails(item)}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="md:hidden bg-white" style={{ color: VINHO }}>
       <header className="relative overflow-hidden bg-white px-4 pb-5 pt-4">
@@ -337,15 +362,7 @@ export function MobileMenuExperience({
           <h2 className="text-lg font-black uppercase tracking-wide">
             {categoryLabel}
           </h2>
-          <div
-            className={`mt-3 grid gap-3 ${category === "super" ? "rounded-[26px] bg-black p-3 text-white shadow-2xl" : ""}`}
-          >
-            {category === "super" && (
-              <div className="px-1 pb-1 pt-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: ROSA }}>Linha especial</p>
-                <p className="mt-1 text-sm font-black uppercase text-white">Escolha seu SUPER Menfi's</p>
-              </div>
-            )}
+          <div className="mt-3 grid gap-3">
             {friesGalleryItems.length > 0 && (
               <div className="grid gap-3 rounded-[22px] p-3" style={{ background: "#FFF8F2", border: `1px solid ${VINHO}12` }}>
                 <div>
