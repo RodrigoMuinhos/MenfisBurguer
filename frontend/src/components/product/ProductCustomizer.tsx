@@ -52,6 +52,11 @@ export function ProductCustomizer({
   const isSweetBox = isSweetBoxProduct(state.item);
   const isSweetPlus = isSweetPlusProduct(state.item);
   const needsSpiceLevel = requiresSpiceLevel(state.item);
+  const superTheme = isSuperProduct(state.item);
+  const chilliTheme = state.item.id === "tropikal-barbecue";
+  const superBackground = chilliTheme ? "#21090F" : "#061C18";
+  const superSurface = chilliTheme ? "#351018" : "#08251F";
+  const superAccent = chilliTheme ? "#FF315C" : "#9CDD22";
   const sweetOptions = getSweetOptionsForItem(state.item);
   const sauceRequiredCount = needsFreeMayo ? 1 : requiredCount;
   const extraOptions = getExtraOptionsForItem(state.item);
@@ -150,27 +155,34 @@ export function ProductCustomizer({
         initial={{ y: 40, scale: 0.98 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 40, scale: 0.98 }}
-      className="max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-t-[22px] sm:rounded-[22px]"
-      style={{ background: "#fff", color: VERDE }}
+      className={`max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-t-[22px] sm:rounded-[22px] ${superTheme ? `super-customizer ${chilliTheme ? "chilli-theme" : "tropical-theme"}` : ""}`}
+      style={{ background: superTheme ? superBackground : "#fff", color: superTheme ? "#F4FFF8" : VERDE, border: superTheme ? `1px solid ${superAccent}66` : undefined }}
       >
         <div
           className="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-4"
-          style={{ background: "#fff", borderBottom: `1px solid ${VERDE}12` }}
+          style={{ background: superTheme ? superSurface : "#fff", borderBottom: `1px solid ${superTheme ? `${superAccent}3D` : `${VERDE}12`}` }}
         >
           <button
             onClick={() => setState(null)}
             className="flex h-10 w-10 items-center justify-center rounded-full"
-            style={{ background: `${VERDE}08`, color: VERDE }}
+            style={{ background: superTheme ? `${superAccent}18` : `${VERDE}08`, color: superTheme ? superAccent : VERDE }}
             aria-label="Fechar"
           >
             <X size={18} strokeWidth={2.4} />
           </button>
-          <p className="text-center text-sm font-black">{state.item.name}</p>
-          <div style={{ width: 40 }} />
+          <div className="min-w-0 flex-1 text-center">
+            <p className="truncate text-sm font-black uppercase">{state.item.name}</p>
+            <p className={`mt-0.5 text-[10px] font-black uppercase tracking-wider ${superTheme ? "text-white/55" : "text-black/40"}`}>
+              Personalizar pedido · {fmt(total)}
+            </p>
+          </div>
+          <span className="flex h-10 min-w-10 items-center justify-center rounded-full px-2 text-[10px] font-black" style={{ background: superTheme ? `${superAccent}18` : `${VERDE}08`, color: superTheme ? superAccent : VERDE }}>
+            {valid && spiceValid ? "OK" : "PENDENTE"}
+          </span>
         </div>
 
         <div className="max-h-[calc(92dvh-150px)] overflow-y-auto">
-          <div className="relative h-48 overflow-hidden bg-white">
+          <div className="relative h-48 overflow-hidden" style={{ background: superTheme ? superBackground : "#fff" }}>
             {state.item.image ? (
               <img
                 src={imageSrc(state.item.image)}
@@ -191,7 +203,7 @@ export function ProductCustomizer({
           </div>
 
           <div className="px-5 py-5">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/35">
+            <p className={`text-[10px] font-black uppercase tracking-[0.22em] ${superTheme ? "text-white/45" : "text-black/35"}`}>
               {state.item.eyebrow}
             </p>
             <h2
@@ -205,7 +217,7 @@ export function ProductCustomizer({
             >
               {state.item.name}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-black/58">
+            <p className={`mt-2 text-sm leading-relaxed ${superTheme ? "text-white/65" : "text-black/58"}`}>
               {state.item.desc}
             </p>
             <p
@@ -334,6 +346,33 @@ export function ProductCustomizer({
                 );
               })}
             </OptionSection>
+          )}
+
+          {needsSpiceLevel && (
+            <div className="border-t px-5 py-5" style={{ borderColor: superTheme ? `${superAccent}3D` : `${VERDE}10`, background: superTheme ? superSurface : "#fff" }}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black">Nível de pimenta</p>
+                  <p className={`mt-1 text-xs ${superTheme ? "text-white/55" : "text-black/50"}`}>Toque nas pimentas para graduar a ardência.</p>
+                </div>
+                <button type="button" onClick={() => setState((prev) => prev ? { ...prev, spiceLevel: 0 } : prev)} className="rounded-full px-3 py-2 text-[10px] font-black uppercase" style={{ background: state.spiceLevel === 0 ? ROSA : superTheme ? "#FFFFFF12" : `${VERDE}0D`, color: state.spiceLevel === 0 ? VERDE : superTheme ? "#fff" : VERDE }}>
+                  Sem pimenta
+                </button>
+              </div>
+              <div className="mt-5 grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map((level) => {
+                  const selected = (state.spiceLevel ?? 0) >= level;
+                  return (
+                    <button key={level} type="button" onClick={() => setState((prev) => prev ? { ...prev, spiceLevel: level } : prev)} className="flex aspect-square items-center justify-center rounded-2xl text-2xl transition-transform active:scale-95" style={{ background: selected ? "#7D0029" : superTheme ? "#FFFFFF0D" : "#F8F4F5", border: `1px solid ${selected ? ROSA : superTheme ? "#FFFFFF1F" : `${VERDE}12`}`, filter: selected ? "none" : "grayscale(1)", opacity: selected ? 1 : 0.45 }} aria-label={`Nível ${level} de pimenta`}>
+                      🌶️
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-4 text-center text-xs font-black uppercase tracking-wider" style={{ color: superTheme ? "#E8FFF4" : VERDE }}>
+                {state.spiceLevel === undefined ? "Selecione o nível" : `${state.spiceLevel} de 5 · ${["Sem pimenta", "Muito suave", "Suave", "Média", "Forte", "Muito forte"][state.spiceLevel]}`}
+              </p>
+            </div>
           )}
 
           {!isSweetBox && (needsSauce || needsFreeMayo) && (
@@ -498,38 +537,8 @@ export function ProductCustomizer({
           </OptionSection>
           )}
 
-          {needsSpiceLevel && (
-            <OptionSection
-              title="Nível de pimenta"
-              subtitle="Escolha a ardência antes de adicionar"
-              count={state.spiceLevel === undefined ? 0 : 1}
-              total={1}
-              required
-            >
-              {[0, 1, 2, 3, 4, 5].map((level) => {
-                const labels = ["Sem pimenta", "Muito suave", "Suave", "Média", "Forte", "Muito forte"];
-                const active = state.spiceLevel === level;
-                return (
-                  <button
-                    key={level}
-                    type="button"
-                    onClick={() => setState((prev) => prev ? { ...prev, spiceLevel: level } : prev)}
-                    className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
-                    style={{ borderColor: `${VERDE}10`, background: active ? `${ROSA}18` : "#fff" }}
-                  >
-                    <span>
-                      <span className="block text-sm font-bold">{level === 0 ? "☆☆☆☆☆" : `${"🌶️".repeat(level)}${"☆".repeat(5 - level)}`}</span>
-                      <span className="text-xs text-black/50">{level} – {labels[level]}</span>
-                    </span>
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-black" style={{ background: active ? VERDE : "#fff", border: `2px solid ${active ? VERDE : "#E9D9DF"}`, color: active ? ROSA : "transparent" }}>✓</span>
-                  </button>
-                );
-              })}
-            </OptionSection>
-          )}
-
           <div className="px-5 py-5">
-            <p className="mb-2 text-xs font-black uppercase tracking-wider text-black/45">
+            <p className={`mb-2 text-xs font-black uppercase tracking-wider ${superTheme ? "text-white/45" : "text-black/45"}`}>
               Alguma observação?
             </p>
             <textarea
@@ -539,23 +548,23 @@ export function ProductCustomizer({
               }
               placeholder="Ex: tirar cebola, molho à parte..."
               className="h-24 w-full resize-none rounded-2xl p-4 text-sm outline-none"
-              style={{ border: `1.5px solid ${VERDE}12`, color: VERDE }}
+              style={{ border: `1.5px solid ${superTheme ? `${superAccent}3D` : `${VERDE}12`}`, color: superTheme ? "#fff" : VERDE, background: superTheme ? superSurface : "#fff" }}
             />
           </div>
         </div>
 
         <div
-          className="grid grid-cols-[128px_1fr] gap-3 px-5 py-4"
-          style={{ background: "#fff", borderTop: `1px solid ${VERDE}12` }}
+          className="sticky bottom-0 z-20 grid grid-cols-[128px_1fr] gap-3 px-5 py-4 shadow-[0_-14px_30px_rgba(0,0,0,.22)]"
+          style={{ background: superTheme ? superSurface : "#fff", borderTop: `1px solid ${superTheme ? `${superAccent}3D` : `${VERDE}12`}` }}
         >
           <div
             className="grid h-12 grid-cols-3 overflow-hidden rounded-2xl"
-            style={{ border: `1.5px solid ${VERDE}12` }}
+            style={{ border: `1.5px solid ${superTheme ? `${superAccent}66` : `${VERDE}12`}` }}
           >
             <button
               onClick={() => setState((prev) => (prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : prev))}
               className="flex items-center justify-center"
-              style={{ color: VERDE }}
+              style={{ color: superTheme ? superAccent : VERDE }}
             >
               <Minus size={16} strokeWidth={2.6} />
             </button>
@@ -565,7 +574,7 @@ export function ProductCustomizer({
             <button
               onClick={() => setState((prev) => (prev ? { ...prev, qty: prev.qty + 1 } : prev))}
               className="flex items-center justify-center"
-              style={{ color: VERDE }}
+              style={{ color: superTheme ? superAccent : VERDE }}
             >
               <Plus size={16} strokeWidth={2.6} />
             </button>
@@ -574,10 +583,12 @@ export function ProductCustomizer({
             onClick={onConfirm}
                 disabled={!valid || !spiceValid}
             className="h-12 rounded-2xl text-xs font-black uppercase tracking-wider disabled:opacity-35"
-            style={{ background: VERDE, color: ROSA }}
+            style={{ background: superTheme ? superAccent : VERDE, color: superTheme ? "#07110D" : ROSA }}
           >
-            {valid
+            {valid && spiceValid
               ? `Adicionar — ${fmt(total)}`
+              : needsSpiceLevel && state.spiceLevel === undefined
+                ? "Selecione o nível de pimenta"
               : isSweetBox
                 ? `Escolha ${SWEET_BOX_REQUIRED_COUNT - sweetCount} doce${SWEET_BOX_REQUIRED_COUNT - sweetCount === 1 ? "" : "s"}`
                 : `Complete obrigatórios (${[

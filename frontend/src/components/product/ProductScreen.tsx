@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ElementType } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Bell,
+  CircleCheckBig,
+  ChevronLeft,
   ChefHat,
   Loader2,
   Mail,
@@ -65,6 +67,7 @@ import {
   MenuCard,
   ProductDetailModal,
   ProductCustomizer,
+  SuperLaunchCard,
 } from "./ProductParts";
 import { MemberModals } from "./MemberModals";
 import {
@@ -277,6 +280,7 @@ export function ProductScreen({
     sauce: false,
   });
   const [customizer, setCustomizer] = useState<CustomizerState | null>(null);
+  const [addedConfirmation, setAddedConfirmation] = useState<{ name: string; superTheme: boolean; chilli: boolean } | null>(null);
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
   const [loginOpen, setLoginOpen] = useState(() => {
     if (kioskMode || typeof window === "undefined") return false;
@@ -322,12 +326,7 @@ export function ProductScreen({
   const [memberNeighborhood, setMemberNeighborhood] = useState("");
   const [memberCity, setMemberCity] = useState("");
   const [memberReference, setMemberReference] = useState("");
-  const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(
-    () => {
-      if (kioskMode || typeof window === "undefined") return null;
-      return localStorage.getItem(MEMBER_TOKEN_KEY) ? readMemberProfile() : null;
-    },
-  );
+  const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
   const [memberError, setMemberError] = useState("");
   const [memberSaving, setMemberSaving] = useState(false);
   const [configurationUnavailable, setConfigurationUnavailable] = useState(false);
@@ -373,6 +372,11 @@ export function ProductScreen({
       nextItems = visibleCatalogItems.filter((item) => item.category === "sweet");
     } else {
       nextItems = visibleCatalogItems.filter((item) => item.category === category);
+    }
+    if (category === "super") {
+      return [...nextItems].sort((a, b) =>
+        a.id === "tropikal-menfis" ? -1 : b.id === "tropikal-menfis" ? 1 : 0,
+      );
     }
     return sortCatalogItems(nextItems);
   }, [catalogItems, category]);
@@ -641,6 +645,20 @@ export function ProductScreen({
     openCustomizer(item);
   };
 
+  const showAddedConfirmation = (item: MenuItem) => {
+    setAddedConfirmation({
+      name: item.name,
+      superTheme: isSuperProduct(item),
+      chilli: item.id === "tropikal-barbecue",
+    });
+  };
+
+  useEffect(() => {
+    if (!addedConfirmation) return;
+    const timeout = window.setTimeout(() => setAddedConfirmation(null), 2400);
+    return () => window.clearTimeout(timeout);
+  }, [addedConfirmation]);
+
   const quickAddMenuItem = (item: MenuItem) => {
     if (isSuperProduct(item)) {
       openCustomizer(item);
@@ -667,6 +685,7 @@ export function ProductScreen({
       price: item.price,
       components,
     });
+    showAddedConfirmation(item);
   };
 
   const handleGoToCart = () => {
@@ -831,6 +850,7 @@ export function ProductScreen({
         }
       });
     }
+    showAddedConfirmation(customizer.item);
     setCustomizer(null);
   };
 
@@ -1055,28 +1075,45 @@ export function ProductScreen({
 
       <div className={!kioskMode ? "hidden md:block" : undefined}>
         {category === "super" && (
-          <div className="fixed inset-0 z-[60] overflow-y-auto bg-black px-5 py-6 text-white">
-            <div className="mx-auto max-w-6xl">
-              <button
-                type="button"
-                onClick={() => setCategory("combo")}
-                className="mb-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 text-xs font-black uppercase tracking-wider text-black"
-              >
-                <X size={17} strokeWidth={2.8} />
-                Retornar ao menu normal
-              </button>
-              <div className="grid gap-5 md:grid-cols-2">
+          <div
+            className="fixed inset-0 z-[60] overflow-hidden bg-black text-white"
+            style={{ backgroundImage: "url('/super/bakcgourd%20super.png')", backgroundSize: "100% 100%", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}
+          >
+            <div className="h-full w-full pt-[132px] pb-[92px]">
+              <header className="absolute inset-x-0 top-0 z-30 h-[78px] border-b px-6" style={{ background: "rgba(2,20,18,.76)", borderColor: "rgba(156,221,34,.35)", backdropFilter: "blur(18px)" }}>
+                <div className="flex h-full items-center gap-5">
+                  <button type="button" onClick={() => setCategory("combo")} className="flex h-12 items-center gap-2 rounded-xl border px-5 text-xs font-black uppercase tracking-wider" style={{ borderColor: "#9CDD22", color: "#C8FF43", background: "rgba(0,0,0,.34)" }}>
+                    <ChevronLeft size={19} strokeWidth={2.8} /> Voltar
+                  </button>
+                  <img src="/super/logo%20super.png" alt="Menfi's Burger SUPER" className="h-14 w-auto object-contain" />
+                  <div className="ml-auto text-right">
+                    <p className="text-[10px] font-black uppercase tracking-[.18em] text-white/65">Total do pedido</p>
+                    <p className="text-3xl font-black" style={{ color: "#C8FF43", fontFamily: "var(--menfis-font-display)" }}>{fmt(cartTotal)}</p>
+                  </div>
+                  <button type="button" onClick={handleGoToCart} className="flex h-12 items-center gap-2 rounded-xl px-5 text-xs font-black uppercase text-black" style={{ background: "#9CDD22" }}><ShoppingBag size={17} /> Fechar pedido</button>
+                </div>
+              </header>
+              <nav className="absolute inset-x-0 top-[78px] z-30 flex h-[54px] items-center gap-2 overflow-x-auto border-b px-4" style={{ background: "rgba(3,27,24,.72)", borderColor: "rgba(255,255,255,.12)", backdropFilter: "blur(16px)" }}>
+                {CATEGORIES.map(({ id, label, Icon }) => {
+                  const active = id === "super";
+                  return <button key={id} type="button" onClick={() => setCategory(id)} className="flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-[11px] font-black uppercase tracking-wider" style={{ background: active ? "rgba(156,221,34,.18)" : "rgba(0,0,0,.32)", borderColor: active ? "#9CDD22" : "rgba(255,255,255,.22)", color: active ? "#C8FF43" : "#fff" }}><Icon size={15} />{label}</button>;
+                })}
+              </nav>
+              <div className="absolute bottom-[100px] left-[4.6%] right-[4.7%] top-[146px] grid grid-cols-2 gap-[4.6%]">
                 {filteredItems.map((item) => (
-                  <MenuCard
+                  <SuperLaunchCard
                     key={item.id}
                     item={item}
-                    qty={qty(item.id)}
                     onAdd={() => addMenuItem(item)}
-                    onMinus={() => updateQty(item.id, -1)}
                     onOpenDetails={() => setDetailItem(item)}
                   />
                 ))}
               </div>
+              <footer className="absolute inset-x-0 bottom-0 z-30 h-[82px] border-t px-5" style={{ background: "rgba(2,20,18,.82)", borderColor: "rgba(156,221,34,.35)", backdropFilter: "blur(18px)" }}>
+                <div className="grid h-full grid-cols-5 gap-2">
+                  {[{ Icon: PackageSearch, label: "Pedidos" }, { Icon: Clock3, label: "Histórico" }, { Icon: Home, label: "Início" }, { Icon: Bell, label: "Avisos" }, { Icon: UserRound, label: "Perfil" }].map(({ Icon, label }) => <button key={label} type="button" onClick={label === "Pedidos" ? handleGoToCart : label === "Início" ? () => window.scrollTo({ top: 0 }) : label === "Perfil" ? openMemberAccess : undefined} className="flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase text-white/75 hover:text-[#C8FF43]"><Icon size={20} /><span>{label}</span></button>)}
+                </div>
+              </footer>
             </div>
           </div>
         )}
@@ -1264,6 +1301,57 @@ export function ProductScreen({
         onOpenActiveOrder={onOpenActiveOrder}
         onRepeatOrder={onRepeatOrder}
       />
+
+      <AnimatePresence>
+        {addedConfirmation && (() => {
+          const accent = addedConfirmation.chilli ? "#FF315C" : addedConfirmation.superTheme ? "#9CDD22" : ROSA;
+          const surface = addedConfirmation.chilli
+            ? "rgba(52,6,16,.96)"
+            : addedConfirmation.superTheme
+              ? "rgba(2,35,27,.96)"
+              : "#fff";
+          const foreground = addedConfirmation.superTheme ? "#fff" : VERDE;
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 px-5 backdrop-blur-sm"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Item adicionado ao carrinho"
+              onClick={() => setAddedConfirmation(null)}
+            >
+              <motion.section
+                initial={{ opacity: 0, scale: 0.72, y: 28 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.88, y: 16 }}
+                transition={{ type: "spring", stiffness: 330, damping: 24 }}
+                className="w-full max-w-md overflow-hidden rounded-[32px] border p-6 text-center shadow-2xl"
+                style={{ background: surface, color: foreground, borderColor: `${accent}88`, boxShadow: `0 26px 90px ${accent}38` }}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <motion.div
+                  initial={{ scale: 0, rotate: -35 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.08, type: "spring", stiffness: 420, damping: 18 }}
+                  className="mx-auto grid h-24 w-24 place-items-center rounded-full border-2"
+                  style={{ color: accent, borderColor: accent, background: `${accent}18`, boxShadow: `0 0 38px ${accent}45` }}
+                >
+                  <CircleCheckBig size={52} strokeWidth={2.5} />
+                </motion.div>
+                <p className="mt-5 text-[11px] font-black uppercase tracking-[.22em]" style={{ color: accent }}>Concluído</p>
+                <h2 className="mt-2 text-3xl font-black uppercase leading-none" style={{ fontFamily: "var(--menfis-font-display)" }}>Item adicionado!</h2>
+                <p className="mt-3 text-sm font-bold opacity-75">{addedConfirmation.name} foi adicionado ao seu carrinho.</p>
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => setAddedConfirmation(null)} className="min-h-12 rounded-2xl border px-3 text-xs font-black uppercase" style={{ borderColor: `${accent}66`, color: foreground }}>Continuar</button>
+                  <button type="button" onClick={() => { setAddedConfirmation(null); handleGoToCart(); }} className="min-h-12 rounded-2xl px-3 text-xs font-black uppercase text-black" style={{ background: accent }}>Ver carrinho</button>
+                </div>
+              </motion.section>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
 
       {soldOutAlertOpen && (
         <SoldOutAlertModal

@@ -336,13 +336,6 @@ export function PaymentStepSection({
                                   Icon: CreditCard,
                                   show: true,
                                 },
-                                {
-                                  id: "pix" as PaymentMethod,
-                                  label: "QR Code Pix",
-                                  copy: "Pix direto Menfi's",
-                                  Icon: QrCode,
-                                  show: true,
-                                },
                               ] as {
                                 id: PaymentMethod;
                                 label: string;

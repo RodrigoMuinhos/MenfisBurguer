@@ -87,33 +87,13 @@ export default function App({ mode }: { mode?: AppMode }) {
   const kioskMode = appMode === "kiosk";
   const [started, setStarted] = useState(true);
   const [splashOpen, setSplashOpen] = useState(!adminOnlyMode);
-  const [screen, setScreen] = useState<Screen>(() => {
-    if (appMode === "admin" || appMode === "kds" || appMode === "notes") return "admin";
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
-      if (
-        stored &&
-        ["product", "cart", "tracking", "queue", "admin"].includes(stored)
-      ) {
-        return stored;
-      }
-    }
-    return "product";
-  });
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? "[]");
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
+  const [screen, setScreen] = useState<Screen>(
+    appMode === "admin" || appMode === "kds" || appMode === "notes" ? "admin" : "product",
+  );
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [clientStorageReady, setClientStorageReady] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string>("");
-  const [returnToPaymentStep, setReturnToPaymentStep] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(CHECKOUT_RETURN_STEP_KEY) === "payment";
-  });
+  const [returnToPaymentStep, setReturnToPaymentStep] = useState(false);
   const {
     adminToken,
     adminError,
@@ -148,29 +128,46 @@ export default function App({ mode }: { mode?: AppMode }) {
   }, [splashOpen]);
 
   useEffect(() => {
-    if (localStorage.getItem("menfis_cache_version") === CACHE_VERSION) return;
+    const cacheIsCurrent = localStorage.getItem("menfis_cache_version") === CACHE_VERSION;
     const memberToken = localStorage.getItem(MEMBER_TOKEN_KEY);
     const memberProfile = localStorage.getItem(MEMBER_KEY);
     const pendingOrderId = localStorage.getItem(PENDING_ORDER_KEY);
     const adminSession = localStorage.getItem("menfis_admin_session");
     const appScreen = localStorage.getItem(APP_SCREEN_KEY);
-    localStorage.clear();
-    if (memberToken) localStorage.setItem(MEMBER_TOKEN_KEY, memberToken);
-    if (memberProfile) localStorage.setItem(MEMBER_KEY, memberProfile);
-    if (pendingOrderId) localStorage.setItem(PENDING_ORDER_KEY, pendingOrderId);
-    if (adminSession) localStorage.setItem("menfis_admin_session", adminSession);
-    if (appScreen) localStorage.setItem(APP_SCREEN_KEY, appScreen);
-    localStorage.setItem("menfis_cache_version", CACHE_VERSION);
-    setCart([]);
-    if ("caches" in window) {
-      void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+    if (!cacheIsCurrent) {
+      localStorage.clear();
+      if (memberToken) localStorage.setItem(MEMBER_TOKEN_KEY, memberToken);
+      if (memberProfile) localStorage.setItem(MEMBER_KEY, memberProfile);
+      if (pendingOrderId) localStorage.setItem(PENDING_ORDER_KEY, pendingOrderId);
+      if (adminSession) localStorage.setItem("menfis_admin_session", adminSession);
+      if (appScreen) localStorage.setItem(APP_SCREEN_KEY, appScreen);
+      localStorage.setItem("menfis_cache_version", CACHE_VERSION);
+      if ("caches" in window) {
+        void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+      }
+    } else if (!kioskMode) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? "[]");
+        setCart(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setCart([]);
+      }
     }
-  }, []);
+
+    if (!adminOnlyMode) {
+      const storedScreen = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
+      if (storedScreen && ["product", "cart", "tracking", "queue"].includes(storedScreen)) {
+        setScreen(storedScreen);
+      }
+      setReturnToPaymentStep(localStorage.getItem(CHECKOUT_RETURN_STEP_KEY) === "payment");
+    }
+    setClientStorageReady(true);
+  }, [adminOnlyMode, kioskMode]);
 
   useEffect(() => {
-    if (adminOnlyMode) return;
+    if (adminOnlyMode || !clientStorageReady) return;
     localStorage.setItem(APP_SCREEN_KEY, screen);
-  }, [adminOnlyMode, screen]);
+  }, [adminOnlyMode, clientStorageReady, screen]);
 
   useEffect(() => {
     if (!API_URL) return;
@@ -189,9 +186,9 @@ export default function App({ mode }: { mode?: AppMode }) {
   }, []);
 
   useEffect(() => {
-    if (kioskMode) return;
+    if (kioskMode || !clientStorageReady) return;
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  }, [cart, kioskMode]);
+  }, [cart, clientStorageReady, kioskMode]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

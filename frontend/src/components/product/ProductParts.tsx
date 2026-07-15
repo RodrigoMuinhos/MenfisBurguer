@@ -35,6 +35,7 @@ function comboPotatoLabel(item: MenuItem) {
 }
 
 function productStory(item: MenuItem) {
+  if (isSuperProduct(item)) return item.desc;
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
   const isMenfis130 =
@@ -114,6 +115,7 @@ function productWeight(item: MenuItem) {
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
   const isSuper = name.includes("super");
+  if (isSuperProduct(item)) return "1 carne bovina de 130g.";
   if (name.includes("chicken")) {
     const chicken = isBig || isSuper ? "2 filés de 120g (240g no total)" : "1 filé de 120g";
     return item.category === "combo"
@@ -152,13 +154,13 @@ function visibleProductTags(item: MenuItem) {
   });
 }
 
-function DetailInfo({ title, copy }: { title: string; copy: string }) {
+function DetailInfo({ title, copy, dark = false, surface = "#0A2520", accent = "#E8FFF4" }: { title: string; copy: string; dark?: boolean; surface?: string; accent?: string }) {
   return (
-    <div className="rounded-2xl bg-white p-3" style={{ border: `1px solid ${VERDE}12` }}>
-      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${VERDE}59` }}>
+    <div className="rounded-2xl p-3" style={{ border: `1px solid ${dark ? `${accent}3D` : `${VERDE}12`}`, background: dark ? surface : "#fff" }}>
+      <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: dark ? accent : `${VERDE}59` }}>
         {title}
       </p>
-      <p className="mt-1 text-xs font-bold leading-relaxed" style={{ color: `${VERDE}AD` }}>{copy}</p>
+      <p className="mt-1 text-xs font-bold leading-relaxed" style={{ color: dark ? `${accent}DD` : `${VERDE}AD` }}>{copy}</p>
     </div>
   );
 }
@@ -256,6 +258,101 @@ export function BurgerBuilder({
 
 export { ProductCustomizer } from "./ProductCustomizer";
 
+export function SuperLaunchCard({
+  item,
+  onAdd,
+  onOpenDetails,
+}: {
+  item: MenuItem;
+  onAdd: () => void;
+  onOpenDetails: () => void;
+}) {
+  const tropical = item.id === "tropikal-menfis";
+  const accent = tropical ? "#9CDD22" : "#FF315C";
+  const glow = tropical ? "rgba(120,190,20,0.34)" : "rgba(255,35,70,0.34)";
+  const panelTone = tropical ? "rgba(4, 47, 34, 0.46)" : "rgba(69, 8, 20, 0.46)";
+  const features = tropical
+    ? ["Pão brioche 65g", "Blend bovino 130g", "Abacaxi temperado e grelhado", "Queijo coalho grelhado 50g", "Alface e cebola roxa", "Cebolinha picada"]
+    : ["Pão brioche 65g", "Blend bovino 130g", "Geleia de bacon", "Queijo cheddar", "Farofa crocante de Doritos", "Barbecue com alho frito", "Maionese Grill", "Pimenta graduável de 0 a 5"];
+  return (
+    <motion.article
+      whileHover={{ scale: 1.025, y: -8 }}
+      whileTap={{ scale: 1.012 }}
+      transition={{ type: "spring", stiffness: 260, damping: 22 }}
+      className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[36px] border border-white/15 text-white hover:z-20"
+      style={{
+        background: tropical
+          ? "radial-gradient(circle at 30% 15%, rgba(28,91,57,.46) 0%, rgba(4,47,34,.46) 48%, rgba(2,29,22,.46) 100%)"
+          : "radial-gradient(circle at 70% 15%, rgba(115,18,36,.46) 0%, rgba(69,8,20,.46) 52%, rgba(38,4,12,.46) 100%)",
+        boxShadow: `0 24px 70px ${glow}`,
+        borderColor: accent,
+        backdropFilter: "blur(2px)",
+      }}
+    >
+      <div className="px-5 pt-5 text-center">
+        <span className="inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em]" style={{ borderColor: accent, color: accent }}>
+          {tropical ? "Tropical" : "Chilli"}
+        </span>
+        <h2 className="mt-3 uppercase" style={{ color: accent, fontFamily: "var(--menfis-font-display)", fontSize: "clamp(2.6rem,6vw,4.8rem)", lineHeight: 0.85 }}>
+          {item.name}
+        </h2>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenDetails}
+        className="relative mt-1 block h-52 w-full flex-none overflow-hidden rounded-b-[28px] sm:h-[32%] sm:min-h-0"
+        style={{ background: panelTone, boxShadow: `inset 0 0 0 1px ${accent}22` }}
+        aria-label={`Ver detalhes de ${item.name}`}
+      >
+        {item.image && (
+          <Image
+            src={item.image}
+            alt={item.name}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            style={{ objectFit: "cover", objectPosition: "center center", filter: "saturate(1.04) contrast(1.04) brightness(.94)" }}
+          />
+        )}
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-16" style={{ background: `linear-gradient(to bottom, ${panelTone} 0%, transparent 100%)` }} />
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-28" style={{ background: `linear-gradient(to bottom, transparent 0%, ${panelTone} 100%)` }} />
+        <span className="pointer-events-none absolute inset-y-0 left-0 w-8" style={{ background: `linear-gradient(to right, ${panelTone}99 0%, transparent 100%)` }} />
+        <span className="pointer-events-none absolute inset-y-0 right-0 w-8" style={{ background: `linear-gradient(to left, ${panelTone}99 0%, transparent 100%)` }} />
+      </button>
+      <div className="relative -mt-5 flex flex-1 flex-col px-5 pb-5 pt-1" style={{ background: `linear-gradient(to bottom, transparent 0%, ${panelTone} 22px)` }}>
+        <div className="flex flex-1 flex-col justify-center py-5">
+          <p className="line-clamp-3 text-sm font-bold leading-relaxed text-white/80">{item.desc}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {features.map((tag, index) => (
+              <motion.div
+                key={tag}
+                whileHover={{ scale: 1.02 }}
+                className={`flex min-h-12 items-center gap-2.5 rounded-xl border bg-black/55 px-3 py-2 text-left text-[11px] font-black uppercase leading-tight text-white ${features.length % 2 !== 0 && index === features.length - 1 ? "col-span-2" : ""}`}
+                style={{ borderColor: `${accent}55`, textShadow: "0 1px 3px #000" }}
+              >
+                <CheckCircle2 size={16} strokeWidth={2.8} className="shrink-0" style={{ color: accent }} />
+                <span>{tag}</span>
+              </motion.div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center gap-3 rounded-2xl border px-4 py-3" style={{ borderColor: `${accent}66`, background: `${accent}12` }}>
+            <ChefHat size={21} strokeWidth={2.4} className="shrink-0" style={{ color: accent }} />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: accent }}>Personalize do seu jeito</p>
+              <p className="mt-0.5 text-xs font-bold text-white/70">{tropical ? "Escolha o ponto da carne e os adicionais." : "Escolha o ponto, a pimenta de 0 a 5 e os adicionais."}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center pt-4">
+          <strong className="min-w-[70%] rounded-2xl border px-6 py-3 text-center" style={{ color: accent, background: `${accent}18`, borderColor: `${accent}88`, boxShadow: `0 0 36px ${glow}`, fontFamily: "var(--menfis-font-display)", fontSize: "clamp(3.7rem,6vw,5.4rem)", lineHeight: 0.82, textShadow: `0 0 22px ${glow}` }}>{fmt(item.price)}</strong>
+        </div>
+        <button type="button" onClick={onAdd} className="mt-5 flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl text-sm font-black uppercase tracking-wider text-black" style={{ background: accent }}>
+          Adicionar <Plus size={21} strokeWidth={2.8} />
+        </button>
+      </div>
+    </motion.article>
+  );
+}
+
 export function MenuCard({
   item,
   qty,
@@ -271,6 +368,7 @@ export function MenuCard({
   onMinus: () => void;
   onOpenDetails: () => void;
 }) {
+  const isSmoore = item.id === "smash-nutella-marshmallow";
   const displayPrice = builder
     ? item.price + (builder.cheese ? CHEESE_PRICE : 0) + (builder.sauce ? SAUCE_PRICE : 0)
     : item.price;
@@ -305,7 +403,7 @@ export function MenuCard({
             sizes="(max-width: 768px) 100vw, 360px"
             style={{
               objectFit: "cover",
-              objectPosition: "center",
+              objectPosition: isSmoore ? "center 48%" : "center",
             }}
           />
         ) : (
@@ -373,6 +471,21 @@ export function MenuCard({
         <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5" style={{ color: `${VERDE}94` }}>
           {item.desc}
         </p>
+
+        {isSmoore && (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {["Brioche amanteigado", "Nutella", "Marshmallow maçaricado", "Pedaços de chocolate"].map((feature) => (
+              <div
+                key={feature}
+                className="flex min-h-10 items-center gap-2 rounded-xl px-2.5 py-2 text-[10px] font-black leading-tight"
+                style={{ background: `${VERDE}08`, color: `${VERDE}CC`, border: `1px solid ${VERDE}10` }}
+              >
+                <CheckCircle2 size={14} strokeWidth={2.7} className="shrink-0" style={{ color: "#16A34A" }} />
+                <span>{feature}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-3 flex flex-wrap gap-2">
           {visibleProductTags(item).map((tag) => (
@@ -456,22 +569,28 @@ export function ProductDetailModal({
   onClose: () => void;
   onAdd: () => void;
 }) {
+  const dark = isSuperProduct(item);
+  const chilli = item.id === "tropikal-barbecue";
+  const accent = chilli ? "#FF315C" : "#A2E61B";
+  const modalBg = chilli ? "#21090F" : "#061C18";
+  const surface = chilli ? "#351018" : "#0A2520";
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[90] flex items-end justify-center bg-[rgba(101,0,31,0.45)] p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[90] flex items-end justify-center bg-black/80 p-0 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <motion.div
         initial={{ y: 28, scale: 0.98 }}
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 18, scale: 0.98 }}
-        className="max-h-[92dvh] w-full overflow-auto rounded-t-[28px] bg-white sm:max-w-2xl sm:rounded-[28px]"
+        className="max-h-[92dvh] w-full overflow-auto rounded-t-[28px] sm:max-w-2xl sm:rounded-[28px]"
+        style={{ background: dark ? modalBg : "#fff", color: dark ? "#F4FFF8" : VERDE, border: dark ? `1px solid ${accent}66` : undefined }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative h-72 overflow-hidden bg-white">
+        <div className="relative h-72 overflow-hidden" style={{ background: dark ? modalBg : "#fff" }}>
           {item.image ? (
             <Image
               src={item.image}
@@ -489,21 +608,21 @@ export function ProductDetailModal({
             type="button"
             onClick={onClose}
             className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full"
-            style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}18` }}
+            style={{ background: dark ? surface : "#fff", color: dark ? accent : VERDE, border: `1px solid ${dark ? `${accent}66` : `${VERDE}18`}` }}
             aria-label="Fechar detalhes"
           >
             <X size={20} strokeWidth={2.5} />
           </button>
         </div>
         <div className="p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${VERDE}59` }}>
+          <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: dark ? accent : `${VERDE}59` }}>
             {item.eyebrow}
           </p>
           <div className="mt-1 flex items-start justify-between gap-4">
             <h2
               className="uppercase"
               style={{
-                color: VERDE,
+                color: dark ? accent : VERDE,
                 fontFamily: "'Bebas Neue','Arial Black',sans-serif",
                 fontSize: "2.5rem",
                 lineHeight: 0.95,
@@ -515,7 +634,7 @@ export function ProductDetailModal({
             <p
               className="shrink-0"
               style={{
-                color: VERDE,
+                color: dark ? accent : VERDE,
                 fontFamily: "'Bebas Neue','Arial Black',sans-serif",
                 fontSize: "2rem",
                 lineHeight: 1,
@@ -524,30 +643,35 @@ export function ProductDetailModal({
               {isSweetBoxProduct(item) ? sweetCardPriceLabel(item) : fmt(item.price)}
             </p>
           </div>
-          <p className="mt-3 text-sm leading-6" style={{ color: `${VERDE}AD` }}>{productStory(item)}</p>
+          <p className="mt-3 text-sm leading-6" style={{ color: dark ? "#E8FFF4B8" : `${VERDE}AD` }}>{productStory(item)}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {visibleProductTags(item).map((tag) => (
               <span
                 key={tag}
                 className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider"
-                style={{ background: `${VERDE}08`, color: `${VERDE}B8` }}
+                style={{ background: dark ? `${accent}18` : `${VERDE}08`, color: dark ? accent : `${VERDE}B8` }}
               >
                 {tag}
               </span>
             ))}
           </div>
           <div className="mt-5 grid gap-3">
-            <DetailInfo title="Ingredientes" copy={productIngredients(item)} />
+            <DetailInfo title="Ingredientes" copy={productIngredients(item)} dark={dark} surface={surface} accent={accent} />
             <div className="grid grid-cols-2 gap-3">
-              <DetailInfo title="Peso" copy={productWeight(item)} />
-              <DetailInfo title="Alérgenos" copy={productAllergens(item)} />
+              <DetailInfo title="Peso" copy={productWeight(item)} dark={dark} surface={surface} accent={accent} />
+              <DetailInfo title="Alérgenos" copy={productAllergens(item)} dark={dark} surface={surface} accent={accent} />
             </div>
             <DetailInfo
               title="Observações"
-              copy="Ponto da carne, molhos, bebidas, adicionais e quantidade são escolhidos antes de adicionar ao carrinho."
+              copy={item.id === "smash-nutella-marshmallow"
+                ? "Produto individual. Informe observações antes de adicionar ao carrinho."
+                : "Ponto da carne, molhos, bebidas, adicionais e quantidade são escolhidos antes de adicionar ao carrinho."}
+              dark={dark}
+              surface={surface}
+              accent={accent}
             />
           </div>
-          <div className="mt-5 rounded-2xl p-4" style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}10` }}>
+          {item.id !== "smash-nutella-marshmallow" && <div className="mt-5 rounded-2xl p-4" style={{ background: dark ? surface : "#fff", color: dark ? accent : VERDE, border: `1px solid ${dark ? `${accent}3D` : `${VERDE}10`}` }}>
             <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
               Opções disponíveis
             </p>
@@ -555,17 +679,21 @@ export function ProductDetailModal({
               {item.category === "combo"
                 ? "Escolha ponto, molho, bebida e adicionais antes de adicionar ao pedido."
                 : item.category === "burger"
-                  ? "Escolha ponto, molho e adicionais antes de adicionar ao pedido."
+                  ? isSuperProduct(item)
+                    ? item.id === "tropikal-barbecue"
+                      ? "Escolha o ponto da carne, o nível de pimenta e os adicionais antes de adicionar ao pedido."
+                      : "Escolha o ponto da carne e os adicionais antes de adicionar ao pedido."
+                    : "Escolha ponto, molho e adicionais antes de adicionar ao pedido."
                   : item.category === "sweet"
                     ? "Escolha 4 doces para montar a caixinha antes de adicionar ao pedido."
                   : "Adicione diretamente ao pedido ou personalize na próxima etapa quando disponível."}
             </p>
-          </div>
+          </div>}
           <button
             type="button"
             onClick={onAdd}
             className="mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-xs font-black uppercase tracking-wider"
-            style={{ background: VERDE, color: ROSA }}
+            style={{ background: dark ? accent : VERDE, color: dark ? "#07110D" : ROSA }}
           >
             Adicionar ao pedido
             <Plus size={16} strokeWidth={2.6} />

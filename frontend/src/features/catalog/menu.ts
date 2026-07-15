@@ -206,7 +206,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Batata Frita Grande",
     eyebrow: "Galeria de Fritas",
     desc: "Porção grande 270g de batata frita crocante, finalizada quente para compartilhar.",
-    price: 19.9,
+    price: 21.9,
     image: "/EXTRAS/batata.jpg",
     tags: ["Grande", "270g", "Crocante"],
     category: "fries",
@@ -353,7 +353,7 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "smash-nutella-marshmallow",
-    name: "Smoore",
+    name: "Smoore Menfi's",
     eyebrow: "Sweet",
     desc: "Pão brioche amanteigado com marshmallow, pedaços de chocolate e Nutella.",
     price: 19.9,
@@ -373,12 +373,12 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "tropikal-barbecue",
-    name: "Tropikal Barbecue",
+    name: "Chilli Menfi's",
     eyebrow: "SUPER",
-    desc: "Pão brioche, blend bovino 130g, geleia de bacon, cheddar, barbecue com alho frito e maionese Grill. Escolha a ardência de 0 a 5.",
+    desc: "Pão brioche, blend bovino 130g, geleia de bacon, cheddar, farofa de Doritos, barbecue com alho frito e maionese Grill. Escolha a ardência de 0 a 5.",
     price: 42.9,
     image: "/super/Chilli.jpeg",
-    tags: ["Carne 130g", "Geleia de bacon", "Pimenta 0–5"],
+    tags: ["Geleia de bacon", "Queijo cheddar", "Farofa de Doritos"],
     category: "burger",
   },
 ];

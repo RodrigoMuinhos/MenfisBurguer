@@ -26,12 +26,14 @@ import {
   X,
   CalendarClock,
   Candy,
+  CheckCircle2,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
 import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
 import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
+import { SuperLaunchCard } from "./ProductParts";
 
 type MobileCategory = "combo" | "burger" | "chicken" | "bacon" | "super" | "fries" | "extras" | "sweet";
 
@@ -147,13 +149,17 @@ export function MobileMenuExperience({
     [items],
   );
   const visibleItems = useMemo(
-    () =>
-      sortedItems.filter((item) => {
+    () => {
+      const matches = sortedItems.filter((item) => {
         if (isSpecialOfferOnlyProduct(item)) return false;
         const matchesSearch =
           !normalizedQuery || itemSearchText(item).includes(normalizedQuery);
         return matchesSearch && categoryMatches(item, category);
-      }),
+      });
+      return category === "super"
+        ? matches.sort((a, b) => a.id === "tropikal-menfis" ? -1 : b.id === "tropikal-menfis" ? 1 : 0)
+        : matches;
+    },
     [category, normalizedQuery, sortedItems],
   );
   const heroItem =
@@ -216,25 +222,35 @@ export function MobileMenuExperience({
 
   if (category === "super") {
     return (
-      <div className="min-h-dvh bg-black px-3 py-4 text-white md:hidden min-[390px]:px-4">
-        <button
-          type="button"
-          onClick={() => setCategory("combo")}
-          className="mb-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white px-4 text-xs font-black uppercase tracking-wider text-black"
-        >
-          <ChevronLeft size={18} strokeWidth={2.8} />
-          Retornar ao menu normal
-        </button>
-        <div className="grid gap-4">
+      <div
+        className="min-h-dvh bg-black pb-24 pt-[136px] text-white md:hidden"
+        style={{ backgroundImage: "linear-gradient(rgba(0,0,0,.48),rgba(0,0,0,.82)), url('/super/bakcgourd%20super.png')", backgroundSize: "cover", backgroundPosition: "center top", backgroundAttachment: "fixed" }}
+      >
+        <header className="fixed inset-x-0 top-0 z-50 h-[72px] border-b px-3" style={{ background: "rgba(2,20,18,.82)", borderColor: "rgba(156,221,34,.35)", backdropFilter: "blur(18px)" }}>
+          <div className="flex h-full items-center gap-3">
+            <button type="button" onClick={() => setCategory("combo")} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border" style={{ borderColor: "#9CDD22", color: "#C8FF43", background: "rgba(0,0,0,.35)" }} aria-label="Voltar"><ChevronLeft size={21} /></button>
+            <Image src="/super/logo%20super.png" alt="Menfi's Burger SUPER" width={180} height={70} className="h-12 w-auto min-w-0 object-contain" />
+            <button type="button" onClick={goToCart} className="relative ml-auto flex h-11 min-w-14 items-center justify-center gap-1 rounded-xl px-3 text-xs font-black text-black" style={{ background: "#9CDD22" }}><ShoppingCart size={17} />{cartCount}</button>
+          </div>
+        </header>
+        <nav className="fixed inset-x-0 top-[72px] z-50 flex h-[52px] items-center gap-2 overflow-x-auto border-b px-3" style={{ background: "rgba(3,27,24,.78)", borderColor: "rgba(255,255,255,.12)", backdropFilter: "blur(16px)" }}>
+          {MOBILE_CATEGORIES.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setCategory(id)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[10px] font-black uppercase" style={{ background: id === "super" ? "rgba(156,221,34,.18)" : "rgba(0,0,0,.32)", borderColor: id === "super" ? "#9CDD22" : "rgba(255,255,255,.22)", color: id === "super" ? "#C8FF43" : "#fff" }}><Icon size={13} />{label}</button>)}
+        </nav>
+        <div className="grid gap-5 px-2 pb-4">
           {regularVisibleItems.map((item) => (
-            <MobileListItem
+            <SuperLaunchCard
               key={item.id}
               item={item}
               onAdd={() => onQuickAdd(item)}
-              onOpen={() => onOpenDetails(item)}
+              onOpenDetails={() => onOpenDetails(item)}
             />
           ))}
         </div>
+        <footer className="fixed inset-x-0 bottom-0 z-50 h-[82px] border-t px-2" style={{ background: "rgba(2,20,18,.88)", borderColor: "rgba(156,221,34,.35)", backdropFilter: "blur(18px)" }}>
+          <div className="grid h-full grid-cols-5 gap-1">
+            {[{ Icon: ClipboardList, label: "Pedidos" }, { Icon: Clock, label: "Histórico" }, { Icon: Home, label: "Início" }, { Icon: Bell, label: "Avisos" }, { Icon: UserRound, label: "Perfil" }].map(({ Icon, label }) => <button key={label} type="button" onClick={label === "Pedidos" ? goToCart : label === "Início" ? () => window.scrollTo({ top: 0, behavior: "smooth" }) : label === "Perfil" ? onOpenMember : undefined} className="flex flex-col items-center justify-center gap-1 text-[9px] font-black uppercase text-white/70"><Icon size={19} style={{ color: label === "Início" ? "#C8FF43" : undefined }} /><span>{label}</span></button>)}
+          </div>
+        </footer>
       </div>
     );
   }
@@ -293,7 +309,7 @@ export function MobileMenuExperience({
                 fill
                 priority
                 loading="eager"
-                sizes="100vw"
+                sizes="(max-width: 767px) calc(100vw - 32px), 1px"
                 style={{
                   objectFit: "cover",
                   objectPosition: "center",
@@ -591,7 +607,6 @@ function CategoryNav({
       {MOBILE_CATEGORIES.map((tab) => {
         const Icon = tab.icon;
         const active = category === tab.id;
-        const featured = tab.id === "super";
         return (
           <button
             key={tab.id}
@@ -599,9 +614,9 @@ function CategoryNav({
             onClick={() => setCategory(tab.id)}
             className="flex min-w-[92px] flex-col items-center justify-center gap-1 rounded-2xl px-3 py-3 text-[11px] font-black uppercase"
             style={{
-              background: active ? (featured ? "#000" : VINHO) : featured ? "#000" : "#fff",
-              color: active || featured ? ROSA : VINHO,
-              border: `1px solid ${featured ? "#000" : active ? VINHO : `${VINHO}12`}`,
+              background: active ? VINHO : "#fff",
+              color: active ? ROSA : VINHO,
+              border: `1px solid ${active ? VINHO : `${VINHO}12`}`,
               boxShadow: active
                 ? "0 12px 24px rgba(101,0,31,0.22)"
                 : "0 8px 20px rgba(101,0,31,0.06)",
@@ -1058,6 +1073,7 @@ function MobileListItem({
   onAdd: () => void;
   onOpen: () => void;
 }) {
+  const isSmoore = item.id === "smash-nutella-marshmallow";
   return (
     <article className="grid grid-cols-[minmax(0,1fr)_112px] gap-3 overflow-hidden rounded-[18px] bg-white p-3 shadow-sm min-[390px]:grid-cols-[minmax(0,1fr)_132px]">
       <button type="button" onClick={onOpen} className="min-w-0 text-left">
@@ -1075,6 +1091,16 @@ function MobileListItem({
         <p className="mt-1 line-clamp-2 text-sm font-semibold opacity-70">
           {item.desc}
         </p>
+        {isSmoore && (
+          <div className="mt-2 grid gap-1">
+            {["Nutella", "Marshmallow", "Chocolate"].map((feature) => (
+              <span key={feature} className="flex items-center gap-1.5 text-[10px] font-black">
+                <CheckCircle2 size={12} strokeWidth={2.7} style={{ color: "#16A34A" }} />
+                {feature}
+              </span>
+            ))}
+          </div>
+        )}
         <p
           className="mt-2 w-fit rounded-full px-2.5 py-1 text-[11px] font-bold"
           style={{ background: `${ROSA}66` }}

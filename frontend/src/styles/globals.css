@@ -1,0 +1,31 @@
+/* SUPER customizer: keep every option surface inside the dark launch theme. */
+.super-customizer button.border-t,
+.super-customizer div.border-t {
+  background: #08251f !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f4fff8 !important;
+}
+
+.super-customizer button.border-t span,
+.super-customizer div.border-t span {
+  color: inherit;
+}
+
+.super-customizer section > div:first-child {
+  background: #0a2a23 !important;
+  color: #f4fff8 !important;
+}
+
+.super-customizer section > div:first-child p {
+  color: #f4fff8 !important;
+}
+
+.super-customizer.chilli-theme button.border-t,
+.super-customizer.chilli-theme div.border-t {
+  background: #351018 !important;
+  border-color: rgba(255, 49, 92, 0.28) !important;
+}
+
+.super-customizer.chilli-theme section > div:first-child {
+  background: #45121d !important;
+}
