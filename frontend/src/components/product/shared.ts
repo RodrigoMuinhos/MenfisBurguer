@@ -165,10 +165,25 @@ function productFamilyRank(item: MenuItem) {
 }
 
 function comboTierRank(item: MenuItem) {
-  const text = itemText(item);
-  if (text.includes("super") || text.includes("triple")) return 2;
-  if (item.id.startsWith("double-") || text.includes(" big ")) return 1;
+  const name = item.name.toLocaleUpperCase("pt-BR");
+  if (name.includes("SUPER")) return 2;
+  if (name.includes("BIG")) return 1;
   return 0;
+}
+
+function comboFamilyRank(item: MenuItem) {
+  const name = item.name.toLocaleUpperCase("pt-BR");
+  if (name.includes("CHICKEN")) return 1;
+  if (name.includes("BACON")) return 2;
+  return 0;
+}
+
+export function sortComboRows<T extends MenuItem>(items: T[]) {
+  return [...items].sort((a, b) =>
+    comboTierRank(a) - comboTierRank(b) ||
+    comboFamilyRank(a) - comboFamilyRank(b) ||
+    a.name.localeCompare(b.name),
+  );
 }
 
 function friesFamilyRank(item: MenuItem) {
@@ -199,8 +214,7 @@ export function sortCatalogItems<T extends MenuItem>(items: T[]) {
     if (a.category === "combo" && b.category === "combo") {
       return (
         comboTierRank(a) - comboTierRank(b) ||
-        productFamilyRank(a) - productFamilyRank(b) ||
-        a.price - b.price ||
+        comboFamilyRank(a) - comboFamilyRank(b) ||
         a.name.localeCompare(b.name)
       );
     }

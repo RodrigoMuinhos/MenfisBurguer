@@ -2,27 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import type { MenuItem } from "@/features/catalog/types";
 import { DEFAULT_SPECIAL_OFFER_SETTINGS, type PromoCard, type SpecialOfferSettings, normalizePresentationSettings, normalizePromoCards, normalizeSpecialOfferSettings } from "@/components/order/checkout";
-import { CATEGORIES, imageSrc, isChickenProduct, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems } from "../shared";
+import { CATEGORIES, imageSrc, isChickenProduct, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems, sortComboRows } from "../shared";
 import { SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { specialOfferSessionKey } from "./ProductScreenOverlays";
 import { API_URL, DEFAULT_FEATURED_PRODUCT_ID, PRICING_ROWS_CACHE_KEY, PUBLIC_SETTINGS_CACHE_KEY, applyPricingToMenu, freshApiUrl, preloadClientImages, readJsonCache, writeJsonCache } from "./productCatalog";
-
-const MAIN_COMBO_ORDER = new Map([
-  ["combo", 0],
-  ["chicken-combo", 1],
-  ["bacon-combo", 2],
-  ["double-combo", 3],
-  ["double-chicken-combo", 4],
-  ["double-bacon-combo", 5],
-]);
-
-function sortMainCombos(items: MenuItem[]) {
-  return [...items].sort((a, b) => {
-    const rankA = MAIN_COMBO_ORDER.get(a.id) ?? Number.MAX_SAFE_INTEGER;
-    const rankB = MAIN_COMBO_ORDER.get(b.id) ?? Number.MAX_SAFE_INTEGER;
-    return rankA - rankB || a.price - b.price || a.name.localeCompare(b.name);
-  });
-}
 
 export function useProductCatalog(kioskMode: boolean) {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>("combo");
@@ -54,7 +37,7 @@ export function useProductCatalog(kioskMode: boolean) {
     else if (category === "sweet") items = visible.filter((item) => item.category === "sweet");
     else items = visible.filter((item) => item.category === category);
     if (category === "super") return [...items].sort((a, b) => a.id === "tropikal-menfis" ? -1 : b.id === "tropikal-menfis" ? 1 : 0);
-    if (category === "combo") return sortMainCombos(items);
+    if (category === "combo") return sortComboRows(items);
     return sortCatalogItems(items);
   }, [catalogItems, category]);
 
