@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { useState } from "react";
 import { ROSA, VERDE } from "@/utils/theme";
 import { KioskKeyboardTarget } from "./checkout";
 
@@ -15,13 +16,17 @@ export function KioskVirtualKeyboard({
   onClear: () => void;
   onClose: () => void;
 }) {
+  const [uppercase, setUppercase] = useState(true);
+  const adminKeyboard = target === "adminLogin" || target === "adminPassword";
   const qwertyRows = [
     ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
     ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
     ["Z", "X", "C", "V", "B", "N", "M"],
   ];
   const alphaNumericRows =
-    target === "coupon" ? [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"], ...qwertyRows] : qwertyRows;
+    target === "coupon" || adminKeyboard
+      ? [["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"], ...qwertyRows]
+      : qwertyRows;
   const numericKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
   const buttonBase =
     "flex h-16 items-center justify-center rounded-2xl text-xl font-black uppercase shadow-sm active:scale-95";
@@ -52,7 +57,7 @@ export function KioskVirtualKeyboard({
           >
             {target === "phone"
               ? "Teclado numerico"
-              : target === "coupon"
+              : target === "coupon" || adminKeyboard
                 ? "Teclado alfanumerico"
                 : "Teclado QWERTY"}
           </p>
@@ -106,16 +111,35 @@ export function KioskVirtualKeyboard({
                 {row.map((key) => (
                   <button
                     key={key}
-                    onClick={() => onType(key)}
+                    onClick={() => onType(adminKeyboard && !uppercase ? key.toLowerCase() : key)}
                     className={`${buttonBase} w-16`}
                     style={{ background: ROSA, color: VERDE }}
                   >
-                    {key}
+                    {adminKeyboard && !uppercase ? key.toLowerCase() : key}
                   </button>
                 ))}
               </div>
             ))}
             <div className="flex justify-center gap-2">
+              {adminKeyboard && (
+                <button
+                  onClick={() => setUppercase((value) => !value)}
+                  className={`${buttonBase} w-24`}
+                  style={secondaryButton}
+                >
+                  {uppercase ? "ABC" : "abc"}
+                </button>
+              )}
+              {adminKeyboard && ["@", ".", "-", "_", "!", "#"].map((key) => (
+                <button
+                  key={key}
+                  onClick={() => onType(key)}
+                  className={`${buttonBase} w-16`}
+                  style={{ background: ROSA, color: VERDE }}
+                >
+                  {key}
+                </button>
+              ))}
               <button
                 onClick={onClear}
                 className={`${buttonBase} w-32`}

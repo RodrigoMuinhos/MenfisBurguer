@@ -302,6 +302,16 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "extra",
   },
   {
+    id: "coca-cola",
+    name: "Coca-Cola",
+    eyebrow: "Bebida",
+    desc: "Coca-Cola tradicional gelada para acompanhar o pedido.",
+    price: 8.9,
+    image: "/EXTRAS/cocacola.png",
+    tags: ["Tradicional", "Gelada"],
+    category: "bebida",
+  },
+  {
     id: "coca-zero",
     name: "Coca-Cola Zero",
     eyebrow: "Bebida",

@@ -37,6 +37,8 @@ import { deliveryConfirmationCode, normalizeBackendOrder } from "@/services/orde
 import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY, readMemberProfile } from "@/components/product/shared";
 import { MemberNotification } from "@/components/product/notifications";
 import { formatDeliveryAddress } from "@/utils/address";
+import { KioskVirtualKeyboard } from "@/components/order/KioskVirtualKeyboard";
+import type { KioskKeyboardTarget } from "@/components/order/checkout";
 
 const NOTIFIABLE_STATUSES = new Set([
   "PAYMENT_PENDING",
@@ -489,7 +491,7 @@ export default function App({ mode }: { mode?: AppMode }) {
 
   if (adminOnlyMode) {
     if (!adminToken) {
-      return <AdminLoginScreen error={adminError} onLogin={loginAdmin} />;
+      return <AdminLoginScreen error={adminError} onLogin={loginAdmin} kioskMode={false} />;
     }
     return (
       <div
@@ -576,7 +578,7 @@ export default function App({ mode }: { mode?: AppMode }) {
               kitchenOnly={false}
             />
           ) : (
-            <AdminLoginScreen error={adminError} onLogin={loginAdmin} />
+            <AdminLoginScreen error={adminError} onLogin={loginAdmin} kioskMode={kioskMode} />
           )
         )}
         {screen === "cart" && (
@@ -621,7 +623,7 @@ export default function App({ mode }: { mode?: AppMode }) {
               adminToken={adminToken}
             />
           ) : (
-            <AdminLoginScreen error={adminError} onLogin={loginAdmin} />
+            <AdminLoginScreen error={adminError} onLogin={loginAdmin} kioskMode={kioskMode} />
           )
         )}
       </div>
@@ -662,13 +664,29 @@ function OpeningSplash({ onDone }: { onDone: () => void }) {
 function AdminLoginScreen({
   error,
   onLogin,
+  kioskMode,
 }: {
   error: string;
   onLogin: (login: string, password: string) => Promise<boolean>;
+  kioskMode: boolean;
 }) {
   const [login, setLogin] = useState("menfisburguer@adm.com");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [keyboardTarget, setKeyboardTarget] = useState<KioskKeyboardTarget>(null);
+
+  const typeVirtualKey = (key: string) => {
+    if (keyboardTarget === "adminLogin") setLogin((value) => value + key);
+    if (keyboardTarget === "adminPassword") setPassword((value) => value + key);
+  };
+  const backspaceVirtualKey = () => {
+    if (keyboardTarget === "adminLogin") setLogin((value) => value.slice(0, -1));
+    if (keyboardTarget === "adminPassword") setPassword((value) => value.slice(0, -1));
+  };
+  const clearVirtualField = () => {
+    if (keyboardTarget === "adminLogin") setLogin("");
+    if (keyboardTarget === "adminPassword") setPassword("");
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -683,7 +701,7 @@ function AdminLoginScreen({
 
   return (
     <main className="grid min-h-dvh place-items-center px-4" style={{ background: "#fff", color: VERDE }}>
-      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl p-5" style={{ border: `1.5px solid ${VERDE}18`, background: "#FFF8F2" }}>
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl p-5" style={{ border: `1.5px solid ${VERDE}18`, background: "#FFF8F2", marginBottom: kioskMode && keyboardTarget ? 410 : 0 }}>
         <p className="text-xs font-black uppercase tracking-widest opacity-55">Admin Menfi's</p>
         <h1 className="mt-2 text-2xl font-black">Entrar no painel</h1>
         <label className="mt-5 grid gap-1 text-[10px] font-black uppercase tracking-wide opacity-70">
@@ -691,9 +709,12 @@ function AdminLoginScreen({
           <input
             value={login}
             onChange={(event) => setLogin(event.target.value)}
+            onFocus={() => kioskMode && setKeyboardTarget("adminLogin")}
+            onClick={() => kioskMode && setKeyboardTarget("adminLogin")}
             className="min-h-12 rounded-xl bg-white px-4 text-sm font-bold normal-case outline-none"
             style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
             autoComplete="username"
+            inputMode={kioskMode ? "none" : "email"}
           />
         </label>
         <label className="mt-3 grid gap-1 text-[10px] font-black uppercase tracking-wide opacity-70">
@@ -702,9 +723,12 @@ function AdminLoginScreen({
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
+            onFocus={() => kioskMode && setKeyboardTarget("adminPassword")}
+            onClick={() => kioskMode && setKeyboardTarget("adminPassword")}
             className="min-h-12 rounded-xl bg-white px-4 text-sm font-bold normal-case outline-none"
             style={{ border: `1.5px solid ${VERDE}18`, color: VERDE }}
             autoComplete="current-password"
+            inputMode={kioskMode ? "none" : "text"}
           />
         </label>
         {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">{error}</p>}
@@ -717,6 +741,15 @@ function AdminLoginScreen({
           {submitting ? "Entrando..." : "Entrar"}
         </button>
       </form>
+      {kioskMode && keyboardTarget && (
+        <KioskVirtualKeyboard
+          target={keyboardTarget}
+          onType={typeVirtualKey}
+          onBackspace={backspaceVirtualKey}
+          onClear={clearVirtualField}
+          onClose={() => setKeyboardTarget(null)}
+        />
+      )}
     </main>
   );
 }

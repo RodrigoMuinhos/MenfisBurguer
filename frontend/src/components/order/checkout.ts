@@ -11,7 +11,7 @@ export type PaymentMethod =
   | "pagar_na_entrega"
   | "whatsapp";
 export type CheckoutStep = "bag" | "delivery" | "customer" | "payment" | "review";
-export type KioskKeyboardTarget = "name" | "phone" | "coupon" | "counterName" | null;
+export type KioskKeyboardTarget = "name" | "phone" | "coupon" | "counterName" | "adminLogin" | "adminPassword" | null;
 export type OrderRuntimeMode = "counter" | "delivery";
 
 export type OperatingDay = {
