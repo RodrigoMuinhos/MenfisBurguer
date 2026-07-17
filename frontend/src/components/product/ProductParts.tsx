@@ -26,6 +26,7 @@ import {
   isChickenProduct,
   isSuperProduct,
   isSweetBoxProduct,
+  menuItemNameLines,
   requiredCustomizerCount,
   sweetCardPriceLabel,
 } from "./shared";
@@ -305,7 +306,11 @@ export function MenuCard({
                 letterSpacing: 0,
               }}
             >
-              {item.name}
+              {menuItemNameLines(item).map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
             </h2>
           </div>
           <div className="shrink-0 text-right">

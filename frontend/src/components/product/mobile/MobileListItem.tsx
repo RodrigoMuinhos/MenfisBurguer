@@ -31,7 +31,7 @@ import {
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
 import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
-import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "../shared";
+import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxProduct, menuItemNameLines, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "../shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { SuperLaunchCard } from "../ProductParts";
 import { PINK, VINHO, discountPercent } from "./mobileMenuConfig";
@@ -58,7 +58,11 @@ export function MobileListItem({
             letterSpacing: 0,
           }}
         >
-          {item.name}
+          {menuItemNameLines(item).map((line) => (
+            <span key={line} className="block">
+              {line}
+            </span>
+          ))}
         </h3>
         <p className="mt-1 line-clamp-2 text-sm font-semibold opacity-70">
           {item.desc}
@@ -158,4 +162,3 @@ export function PriceBlock({
     </div>
   );
 }
-

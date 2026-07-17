@@ -3,7 +3,7 @@ import { MenuItem } from "./types";
 export const MENU_ITEMS: MenuItem[] = [
   {
     id: "burger",
-    name: "Menfi's Burger",
+    name: "Menfi's Burger Classic",
     eyebrow: "Clássico da casa",
     desc: "Brioche dourado, carne Menfi's 130g, queijo derretido, cebola caramelizada e maionese Menfi's.",
     price: 25.9,
@@ -14,7 +14,7 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "double-burger",
-    name: "BIG Menfi's",
+    name: "BIG Menfi's Classic",
     eyebrow: "Mais carne",
     desc: "Um hambúrguer com duas carnes bovinas de 100g (200g no total), queijo derretido e cebola caramelizada no brioche dourado.",
     price: 29.9,
@@ -69,7 +69,7 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "combo",
-    name: "Combo Menfi's",
+    name: "Combo Menfi's Classic",
     eyebrow: "Pedido completo",
     desc: "Menfi's Burger com burger de 130g, batata 100g e bebida gelada.",
     price: 34.9,
@@ -80,7 +80,7 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "double-combo",
-    name: "Combo BIG Menfi's",
+    name: "Combo BIG Menfi's Classic",
     eyebrow: "Pedido completo",
     desc: "Um hambúrguer com duas carnes bovinas de 100g (200g no total), batata 100g e bebida.",
     price: 42.9,

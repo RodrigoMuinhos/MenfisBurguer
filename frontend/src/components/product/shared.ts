@@ -186,6 +186,13 @@ export function sortComboRows<T extends MenuItem>(items: T[]) {
   );
 }
 
+export function menuItemNameLines(item: MenuItem) {
+  if (item.category !== "combo") return [item.name];
+  const flavorMatch = item.name.match(/\s+(Chicken|Bacon)$/i);
+  if (!flavorMatch || flavorMatch.index === undefined) return [item.name];
+  return [item.name.slice(0, flavorMatch.index), flavorMatch[1]];
+}
+
 function friesFamilyRank(item: MenuItem) {
   const text = itemText(item);
   if (text.includes("nugget")) return 1;
