@@ -1,6 +1,12 @@
 import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState, type ElementType, type HTMLInputTypeAttribute, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  type ElementType,
+  type HTMLInputTypeAttribute,
+  type ReactNode,
+} from "react";
 import {
   Eye,
   EyeOff,
@@ -22,6 +28,19 @@ import { API_URL, SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { STATUS_COPY, fmt } from "@/components/order/tracking";
 import { normalizeBackendOrder } from "@/services/orders/normalize";
 import { MemberNotification } from "./notifications";
+import {
+  ActiveProfileOrderCard,
+  InfoLine,
+  OrderHistoryRow,
+  ProfileInput,
+  ProfileMenuButton,
+  ProfileMenuLink,
+  ProfileSection,
+  SidePanel,
+} from "./member/MemberUi";
+import { MemberActivityPanels } from "./member/MemberActivityPanels";
+import { MemberProfilePanel } from "./member/MemberProfilePanel";
+import { MemberAuthModal } from "./member/MemberAuthModal";
 
 const BRAND_M_LOGO = "/logo_M.jpeg";
 
@@ -132,7 +151,9 @@ export function MemberModals({
   savedDelivery: Record<string, string>;
   saveMember: () => void;
   loginMember: () => void;
-  requestPasswordRecovery: (login: string) => Promise<{ expiresInMinutes?: number; delivery?: string } | null>;
+  requestPasswordRecovery: (
+    login: string,
+  ) => Promise<{ expiresInMinutes?: number; delivery?: string } | null>;
   resetMemberPassword: (
     login: string,
     code: string,
@@ -163,8 +184,7 @@ export function MemberModals({
   const canCloseLogin = !loginRequired;
   const profileIncomplete = Boolean(
     memberProfile &&
-      (!memberProfile.phone?.trim() ||
-        memberProfile.hasPassword === false),
+    (!memberProfile.phone?.trim() || memberProfile.hasPassword === false),
   );
   const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -188,7 +208,9 @@ export function MemberModals({
   const visibleActiveOrder =
     activeOrder && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
       ? activeOrder
-      : customerOrders.find((order) => !["DELIVERED", "CANCELLED"].includes(order.status));
+      : customerOrders.find(
+          (order) => !["DELIVERED", "CANCELLED"].includes(order.status),
+        );
   const hasActiveOrder = Boolean(visibleActiveOrder);
 
   useEffect(() => {
@@ -197,7 +219,8 @@ export function MemberModals({
       !memberProfile ||
       !API_URL ||
       typeof window === "undefined"
-    ) return;
+    )
+      return;
     const token = localStorage.getItem(MEMBER_TOKEN_KEY);
     if (!token) return;
     const controller = new AbortController();
@@ -270,8 +293,13 @@ export function MemberModals({
       setProfileEditError("Digite sua senha atual de 6 dígitos para editar.");
       return;
     }
-    if ((newPassword || confirmPassword) && (newPassword.length !== 6 || newPassword !== confirmPassword)) {
-      setProfileEditError("A nova senha precisa ter 6 dígitos e conferir com a confirmação.");
+    if (
+      (newPassword || confirmPassword) &&
+      (newPassword.length !== 6 || newPassword !== confirmPassword)
+    ) {
+      setProfileEditError(
+        "A nova senha precisa ter 6 dígitos e conferir com a confirmação.",
+      );
       return;
     }
     setProfileEditSaving(true);
@@ -297,1006 +325,120 @@ export function MemberModals({
 
   return (
     <>
-            <AnimatePresence>
-              {loginOpen && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[75] flex items-end justify-center overflow-x-hidden bg-black/45 px-3 py-3 sm:items-center sm:p-4"
-                >
-                  <motion.div
-                    initial={{ y: 24, scale: 0.98 }}
-                    animate={{ y: 0, scale: 1 }}
-                    exit={{ y: 24, scale: 0.98 }}
-                    className="max-h-[calc(100dvh-24px)] w-full max-w-md overflow-y-auto overflow-x-hidden rounded-[22px] p-4 sm:rounded-[28px] sm:p-5"
-                    style={{
-                      background: "#fff",
-                      color: VERDE,
-                      maxWidth: "min(28rem, calc(100vw - 24px))",
-                      overscrollBehavior: "contain",
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-black/40">
-                          Perfil Menfi's
-                        </p>
-                        <h2
-                          className="mt-2 uppercase"
-                          style={{
-                            fontFamily: "'Bebas Neue','Arial Black',sans-serif",
-                            fontSize: "clamp(2rem, 8vw, 2.4rem)",
-                            lineHeight: 0.95,
-                          }}
-                        >
-                          {memberAuthMode === "login" ? "Entre no perfil Menfi's" : "Crie seu perfil Menfi's"}
-                        </h2>
-                        {loginRequired && (
-                          <p className="mt-2 text-xs font-bold leading-relaxed text-black/55">
-                            Para pedir, cadastre nome, WhatsApp e senha de 6 dígitos.
-                          </p>
-                        )}
-                      </div>
-                      {canCloseLogin && (
-                        <button
-                          onClick={() => closeLogin()}
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                          style={{ background: `${VERDE}08`, color: VERDE }}
-                        >
-                          <X size={18} strokeWidth={2.4} />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl p-1" style={{ background: "#fff" }}>
-                      <button
-                        onClick={() => setMemberAuthMode("register")}
-                        className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wider"
-                        style={{
-                          background: memberAuthMode === "register" ? VERDE : "transparent",
-                          color: memberAuthMode === "register" ? ROSA : VERDE,
-                        }}
-                      >
-                        Cadastrar
-                      </button>
-                      <button
-                        onClick={() => setMemberAuthMode("login")}
-                        className="rounded-xl px-3 py-3 text-xs font-black uppercase tracking-wider"
-                        style={{
-                          background: memberAuthMode === "login" ? VERDE : "transparent",
-                          color: memberAuthMode === "login" ? ROSA : VERDE,
-                        }}
-                      >
-                        Já tenho conta
-                      </button>
-                    </div>
-
-                    {memberAuthMode === "register" && (
-                      <div
-                        className="mt-4 rounded-3xl p-4"
-                        style={{
-                          background: "#FFF8E7",
-                          border: "1.5px solid #FACC15",
-                          color: VERDE,
-                        }}
-                      >
-                        <p className="text-sm font-black uppercase tracking-wider">
-                          Crie seu perfil Menfi's
-                        </p>
-                        <p className="mt-1 text-xs font-bold leading-snug text-black/60">
-                          Salve seus dados para pedir mais rápido e acompanhar seus pedidos.
-                        </p>
-                      </div>
-                    )}
-
-                    {memberAuthMode === "login" && recoveryOpen ? (
-                      <div className="mt-4 grid gap-3">
-                        <ProfileInput
-                          label="Telefone ou e-mail"
-                          value={recoveryLogin}
-                          onChange={setRecoveryLogin}
-                        />
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const data = await requestPasswordRecovery(recoveryLogin);
-                            if (data) {
-                              setRecoverySentMessage(
-                                `Código solicitado. Ele expira em ${data.expiresInMinutes ?? 10} minutos.`,
-                              );
-                            }
-                          }}
-                          disabled={memberSaving}
-                          className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-50"
-                          style={{ background: `${VERDE}10`, color: VERDE }}
-                        >
-                          Receber código
-                        </button>
-                        <ProfileInput
-                          label="Código de 6 dígitos"
-                          value={recoveryCode}
-                          onChange={(value) => setRecoveryCode(value.replace(/\D/g, "").slice(0, 6))}
-                          inputMode="numeric"
-                          maxLength={6}
-                        />
-                        <ProfileInput
-                          label="Nova senha"
-                          value={recoveryPassword}
-                          onChange={(value) => setRecoveryPassword(value.replace(/\D/g, "").slice(0, 6))}
-                          type="password"
-                          revealable
-                          inputMode="numeric"
-                          maxLength={6}
-                        />
-                        <ProfileInput
-                          label="Confirmar nova senha"
-                          value={recoveryPasswordConfirm}
-                          onChange={(value) => setRecoveryPasswordConfirm(value.replace(/\D/g, "").slice(0, 6))}
-                          type="password"
-                          revealable
-                          inputMode="numeric"
-                          maxLength={6}
-                        />
-                        {recoverySentMessage && (
-                          <p
-                            className="rounded-2xl px-4 py-3 text-xs font-black leading-relaxed"
-                            style={{ background: `${ROSA}70`, color: VERDE }}
-                          >
-                            {recoverySentMessage}
-                          </p>
-                        )}
-                        <a
-                          href={SUPPORT_WHATSAPP_URL}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-2xl px-4 py-3 text-center text-xs font-black uppercase tracking-wider"
-                          style={{ background: "#fff", color: VERDE }}
-                        >
-                          Falar com o suporte
-                        </a>
-                      </div>
-                    ) : memberAuthMode === "login" ? (
-                      <div className="mt-4 grid gap-3">
-                        <ProfileInput
-                          label="Telefone, e-mail ou CPF"
-                          value={memberLogin}
-                          onChange={setMemberLogin}
-                        />
-                        <ProfileInput
-                          label="Senha"
-                          value={loginPassword}
-                          onChange={(value) => setLoginPassword(value.replace(/\D/g, "").slice(0, 6))}
-                          type="password"
-                          revealable
-                          inputMode="numeric"
-                          maxLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRecoveryLogin(memberLogin);
-                            setRecoveryOpen(true);
-                          }}
-                          className="text-left text-xs font-black uppercase tracking-wider"
-                          style={{ color: VERDE }}
-                        >
-                          Esqueci minha senha
-                        </button>
-                      </div>
-                    ) : (
-                    <>
-                    <div className={registerStep === 1 ? "mt-4 grid gap-3" : "hidden"}>
-                      <label className="grid gap-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
-                          Nome
-                        </span>
-                        <input
-                          value={memberName}
-                          onChange={(e) => setMemberName(e.target.value)}
-                          className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
-                          style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
-                        />
-                      </label>
-                      <label className="grid gap-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
-                          Email
-                          {" "}
-                          <span className="normal-case tracking-normal">(opcional)</span>
-                        </span>
-                        <input
-                          value={memberEmail}
-                          onChange={(e) => setMemberEmail(e.target.value)}
-                          inputMode="email"
-                          className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
-                          style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
-                        />
-                      </label>
-                      <div className="hidden">
-                        <ProfileInput
-                          label="CPF"
-                          value={memberCpf}
-                          onChange={(value) => setMemberCpf(value.replace(/\D/g, "").slice(0, 11))}
-                          inputMode="numeric"
-                          maxLength={11}
-                        />
-                      </div>
-                      <label className="grid gap-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
-                          Telefone / WhatsApp
-                        </span>
-                        <input
-                          value={memberPhone}
-                          onChange={(e) => setMemberPhone(e.target.value.replace(/[^\d\s()+-]/g, ""))}
-                          inputMode="tel"
-                          className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
-                          style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
-                        />
-                      </label>
-                      <ProfileInput
-                        label="Senha"
-                        value={memberPassword}
-                        onChange={(value) => setMemberPassword(value.replace(/\D/g, "").slice(0, 6))}
-                        type="password"
-                        revealable
-                        inputMode="numeric"
-                        maxLength={6}
-                      />
-                      <ProfileInput
-                        label="Confirmar senha"
-                        value={memberPasswordConfirm}
-                        onChange={(value) => setMemberPasswordConfirm(value.replace(/\D/g, "").slice(0, 6))}
-                        type="password"
-                        revealable
-                        inputMode="numeric"
-                        maxLength={6}
-                      />
-                      <label className="hidden gap-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
-                          Aniversário
-                        </span>
-                        <input
-                          value={memberBirthday}
-                          onChange={(e) => setMemberBirthday(e.target.value)}
-                          type="date"
-                          className="min-w-0 rounded-2xl px-4 py-3 text-base outline-none"
-                          style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
-                        />
-                      </label>
-                      <div className="hidden grid-cols-1 gap-2 min-[390px]:grid-cols-2">
-                        <ProfileInput label="CEP" value={memberCep} onChange={setMemberCep} />
-                        <ProfileInput label="Bairro" value={memberNeighborhood} onChange={setMemberNeighborhood} />
-                      </div>
-                      <div className="hidden">
-                        <ProfileInput label="Rua" value={memberStreet} onChange={setMemberStreet} />
-                      </div>
-                      <div className="hidden grid-cols-1 gap-2 min-[390px]:grid-cols-2">
-                        <ProfileInput label="Número" value={memberNumber} onChange={setMemberNumber} />
-                        <ProfileInput label="Complemento" value={memberComplement} onChange={setMemberComplement} />
-                      </div>
-                      <div className="hidden grid-cols-1 gap-2 min-[390px]:grid-cols-2">
-                        <ProfileInput label="Cidade" value={memberCity} onChange={setMemberCity} />
-                        <ProfileInput label="Referência" value={memberReference} onChange={setMemberReference} />
-                      </div>
-                    </div>
-                    {registerStep === 2 && (
-                      <div className="mt-4 grid gap-3">
-                        <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
-                          <p className="font-black uppercase tracking-wider opacity-60">Confirmacao</p>
-                          <p className="mt-2">Telefone: {memberPhone || "pendente"}</p>
-                          <p>E-mail: {memberEmail || "não informado"}</p>
-                        </div>
-                        <label className="flex items-start gap-3 rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
-                          <input
-                            type="checkbox"
-                            checked={termsAccepted}
-                            onChange={(event) => setTermsAccepted(event.target.checked)}
-                            className="mt-0.5 h-4 w-4"
-                          />
-                          <span>Aceito os termos de uso e autorizo contato sobre meus pedidos por telefone, e-mail e WhatsApp.</span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setRegisterStep(1)}
-                          className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                          style={{ background: `${VERDE}08`, color: VERDE }}
-                        >
-                          Voltar aos dados
-                        </button>
-                      </div>
-                    )}
-                    </>
-                    )}
-      
-                    {memberError && (
-                      <p
-                        className="mt-3 rounded-2xl px-3 py-2 text-xs font-bold leading-relaxed"
-                        style={{ background: `${ROSA}70`, color: VERDE }}
-                      >
-                        {memberError}
-                      </p>
-                    )}
-
-                    {canCloseLogin && (
-                      <button
-                        type="button"
-                        onClick={closeLogin}
-                        className="mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                        style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}12` }}
-                      >
-                        Continuar sem cadastro
-                      </button>
-                    )}
-      
-                    <button
-                      onClick={
-                        memberAuthMode === "login" && recoveryOpen
-                          ? async () => {
-                              const ok = await resetMemberPassword(
-                                recoveryLogin,
-                                recoveryCode,
-                                recoveryPassword,
-                                recoveryPasswordConfirm,
-                              );
-                              if (ok) {
-                                setRecoveryOpen(false);
-                                closeLogin();
-                              }
-                            }
-                          : memberAuthMode === "login"
-                          ? loginMember
-                          : registerStep === 1
-                            ? () => setRegisterStep(2)
-                            : saveMember
-                      }
-                      disabled={memberSaving || (memberAuthMode === "register" && registerStep === 2 && !termsAccepted)}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-4 text-xs font-black uppercase tracking-wider"
-                      style={{
-                        background: VERDE,
-                        color: ROSA,
-                        opacity:
-                          memberSaving ||
-                          (memberAuthMode === "register" && registerStep === 2 && !termsAccepted)
-                            ? 0.56
-                            : 1,
-                      }}
-                    >
-                      {memberSaving
-                        ? memberAuthMode === "login"
-                          ? "Entrando"
-                          : "Cadastrando"
-                        : memberAuthMode === "login" && recoveryOpen
-                          ? "Criar nova senha"
-                          : memberAuthMode === "login"
-                          ? "Entrar"
-                          : registerStep === 1
-                            ? "Continuar"
-                            : "Cadastrar"}
-                      {memberSaving ? (
-                        <Loader2
-                          size={16}
-                          strokeWidth={2.4}
-                          style={{ animation: "spin 1s linear infinite" }}
-                        />
-                      ) : (
-                        <Gift size={16} strokeWidth={2.4} />
-                      )}
-                    </button>
-                  </motion.div>
-                </motion.div>
-              )}
-      
-              {profileOpen && memberProfile && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[75] flex justify-end bg-black/45"
-                  onClick={closeProfile}
-                >
-                  <motion.div
-                    initial={{ x: 420 }}
-                    animate={{ x: 0 }}
-                    exit={{ x: 420 }}
-                    transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                    className="h-full w-full max-w-[360px] overflow-y-auto overflow-x-hidden p-4"
-                    style={{
-                      background: "#fff",
-                      color: VERDE,
-                      boxShadow: "-24px 0 70px rgba(0,0,0,0.22)",
-                    }}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div
-                          className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full"
-                          style={{
-                            background: "#fff",
-                            border: `2px solid ${VERDE}`,
-                          }}
-                        >
-                          <Image src={BRAND_M_LOGO} alt="Menfi's" fill sizes="48px" style={{ objectFit: "cover" }} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-55">
-                            Perfil Menfi's
-                          </p>
-                          <h2 className="truncate text-lg font-black leading-tight">
-                            {memberProfile.name}
-                          </h2>
-                          <p className="truncate text-xs font-bold opacity-65">
-                            {memberProfile.phone}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => closeProfile()}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                        style={{ background: `${VERDE}08`, color: VERDE }}
-                      >
-                        <X size={18} strokeWidth={2.4} />
-                      </button>
-                    </div>
-
-                    <div className="mt-5 grid gap-3">
-                      {profileIncomplete && (
-                        <button
-                          type="button"
-                          onClick={editMember}
-                          className="grid gap-2 rounded-3xl p-4 text-left"
-                          style={{
-                            background: "#FFF8E7",
-                            border: "1.5px solid #FACC15",
-                            color: VERDE,
-                          }}
-                        >
-                          <span className="text-xs font-black uppercase tracking-wider">
-                            Complete seu cadastro
-                          </span>
-                            <span className="text-sm font-bold leading-snug text-black/60">
-                            Adicione telefone e senha para acompanhar pedidos e recuperar seu acesso.
-                          </span>
-                        </button>
-                      )}
-                      <ProfileSection title="Minha conta">
-                        <InfoLine label="Nome" value={memberProfile.name} />
-                        <InfoLine label="Telefone" value={memberProfile.phone || "Pendente"} />
-                        {memberProfile.email && <InfoLine label="E-mail" value={memberProfile.email} />}
-                      </ProfileSection>
-
-                      {profileEditOpen ? (
-                        <div
-                          className="grid gap-3 rounded-2xl p-4"
-                          style={{ background: "#fff", border: `1px solid ${VERDE}12` }}
-                        >
-                          <div>
-                            <p className="text-xs font-black uppercase tracking-wider">
-                              Editar dados da conta
-                            </p>
-                            <p className="mt-1 text-[11px] font-bold leading-relaxed opacity-60">
-                              Confirme sua senha atual antes de alterar o perfil.
-                            </p>
-                          </div>
-                          <ProfileInput label="Nome" value={profileEditName} onChange={setProfileEditName} />
-                          <ProfileInput
-                            label="Telefone / WhatsApp"
-                            value={profileEditPhone}
-                            onChange={(value) => setProfileEditPhone(value.replace(/[^\d\s()+-]/g, ""))}
-                            inputMode="tel"
-                          />
-                          <ProfileInput
-                            label="E-mail"
-                            value={profileEditEmail}
-                            onChange={setProfileEditEmail}
-                            inputMode="email"
-                          />
-                          <ProfileInput
-                            label="Senha atual"
-                            value={profileCurrentPassword}
-                            onChange={(value) => setProfileCurrentPassword(value.replace(/\D/g, "").slice(0, 6))}
-                            type="password"
-                            revealable
-                            inputMode="numeric"
-                            maxLength={6}
-                          />
-                          <ProfileInput
-                            label="Nova senha (opcional)"
-                            value={profileNewPassword}
-                            onChange={(value) => setProfileNewPassword(value.replace(/\D/g, "").slice(0, 6))}
-                            type="password"
-                            revealable
-                            inputMode="numeric"
-                            maxLength={6}
-                          />
-                          <ProfileInput
-                            label="Confirmar nova senha"
-                            value={profileConfirmPassword}
-                            onChange={(value) => setProfileConfirmPassword(value.replace(/\D/g, "").slice(0, 6))}
-                            type="password"
-                            revealable
-                            inputMode="numeric"
-                            maxLength={6}
-                          />
-                          {profileEditError && (
-                            <p
-                              className="rounded-2xl px-4 py-3 text-xs font-black leading-relaxed"
-                              style={{ background: `${ROSA}80`, color: VERDE }}
-                            >
-                              {profileEditError}
-                            </p>
-                          )}
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setProfileEditOpen(false)}
-                              className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                              style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}14` }}
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void submitProfileEdit()}
-                              disabled={profileEditSaving}
-                              className="rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-55"
-                              style={{ background: VERDE, color: ROSA }}
-                            >
-                              {profileEditSaving ? "Salvando" : "Salvar"}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <ProfileMenuButton icon={UserCog} label="Editar dados da conta" onClick={openProfileEdit} />
-                          <ProfileMenuButton icon={MapPin} label="Gerenciar endereços" onClick={openProfileEdit} />
-                          <ProfileMenuButton icon={KeyRound} label="Alterar senha / recuperar acesso" onClick={openProfileEdit} />
-                        </>
-                      )}
-                      {ordersLoading && !visibleActiveOrder && (
-                        <div
-                          className="flex items-center gap-3 rounded-2xl p-4 text-xs font-black uppercase tracking-wider"
-                          style={{ background: VERDE, color: ROSA }}
-                        >
-                          <Loader2 size={18} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />
-                          Buscando pedido ativo
-                        </div>
-                      )}
-                      {hasActiveOrder && visibleActiveOrder && (
-                        <ActiveProfileOrderCard
-                          order={visibleActiveOrder}
-                          onOpen={() => {
-                            closeProfile();
-                            onOpenActiveOrder?.(visibleActiveOrder.id);
-                          }}
-                        />
-                      )}
-                      <div className="rounded-2xl p-4 text-xs font-black uppercase tracking-wider" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
-                        Falar com o suporte
-                      </div>
-                      <ProfileMenuLink icon={Headphones} label="SAC" href={SUPPORT_WHATSAPP_URL} />
-                      <button
-                        onClick={logoutMember}
-                        className="flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-black uppercase tracking-wider"
-                        style={{
-                          background: "transparent",
-                          color: "#991B1B",
-                          border: "1.5px solid #FCA5A5",
-                        }}
-                      >
-                        <LogOut size={16} strokeWidth={2.4} />
-                        Sair
-                      </button>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-
-              {historyOpen && memberProfile && (
-                <SidePanel title="Histórico de pedidos" onClose={closeHistory}>
-                  <div className="grid gap-2">
-                    {ordersLoading && (
-                      <div className="flex justify-center py-8">
-                        <Loader2 size={22} strokeWidth={2.5} style={{ animation: "spin 1s linear infinite" }} />
-                      </div>
-                    )}
-                    {!ordersLoading && customerOrders.length === 0 && (
-                      <p className="rounded-2xl p-4 text-xs font-bold opacity-60" style={{ background: "#fff" }}>
-                        Nenhum pedido encontrado neste perfil.
-                      </p>
-                    )}
-                    {customerOrders.map((order) => (
-                      <OrderHistoryRow
-                        key={order.id}
-                        order={order}
-                        onOpen={() => {
-                          closeHistory();
-                          onOpenActiveOrder?.(order.id);
-                        }}
-                        onRepeat={() => {
-                          closeHistory();
-                          onRepeatOrder?.(order.items);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </SidePanel>
-              )}
-
-              {notificationsOpen && memberProfile && (
-                <SidePanel title="Notificações" onClose={closeNotifications}>
-                  <div className="grid gap-3">
-                    {notifications.length > 0 ? (
-                      notifications.map((notification) => (
-                        <button
-                          key={notification.id}
-                          type="button"
-                          onClick={() => {
-                            closeNotifications();
-                            onOpenActiveOrder?.(visibleActiveOrder?.id);
-                          }}
-                          className="rounded-2xl p-4 text-left"
-                          style={{
-                            background: notification.read ? "#fff" : VERDE,
-                            color: notification.read ? VERDE : ROSA,
-                            border: `1px solid ${notification.read ? `${VERDE}12` : VERDE}`,
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-black uppercase tracking-wider opacity-70">
-                                Pedido {notification.orderId}
-                              </p>
-                              <p className="mt-1 text-base font-black leading-tight">
-                                {notification.title}
-                              </p>
-                            </div>
-                            {!notification.read && (
-                              <span
-                                className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-                                style={{ background: ROSA, border: "1px solid #fff" }}
-                              />
-                            )}
-                          </div>
-                          <p className="mt-2 text-xs font-bold leading-relaxed opacity-75">
-                            {notification.message}
-                          </p>
-                          <p className="mt-3 text-[10px] font-black uppercase tracking-wider opacity-50">
-                            {new Date(notification.createdAt).toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="rounded-2xl p-4 text-xs font-bold" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
-                        Nenhuma notificação nova.
-                      </div>
-                    )}
-                    {hasActiveOrder && visibleActiveOrder && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          closeNotifications();
-                            onOpenActiveOrder?.(visibleActiveOrder.id);
-                        }}
-                        className="rounded-2xl p-4 text-left"
-                        style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
-                      >
-                        <p className="text-xs font-black uppercase tracking-wider">Acompanhar pedido</p>
-                        <p className="mt-1 text-lg font-black">{visibleActiveOrder.id} · {(STATUS_COPY[visibleActiveOrder.status] ?? STATUS_COPY.PAYMENT_PENDING).label}</p>
-                        <p className="mt-1 text-xs font-bold opacity-75">Toque para abrir a linha do tempo.</p>
-                      </button>
-                    )}
-                    <a
-                      href={SUPPORT_WHATSAPP_URL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-3 rounded-2xl p-4 text-xs font-black uppercase tracking-wider"
-                      style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
-                    >
-                      <Headphones size={18} strokeWidth={2.4} />
-                      Chat com atendimento
-                    </a>
-                    <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
-                      Aqui ficam os avisos que o sistema envia: pagamento, preparo, pedido pronto, entrega e conversas com atendimento.
-                    </div>
-                  </div>
-                </SidePanel>
-              )}
-
-              {favoritesOpen && (
-                <SidePanel title="Favoritos" onClose={closeFavorites}>
-                  <div className="rounded-2xl p-4 text-xs font-bold leading-relaxed" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
-                    Seus favoritos aparecerão aqui para pedir de novo mais rápido.
-                  </div>
-                </SidePanel>
-              )}
-            </AnimatePresence>
-    </>
-  );
-}
-
-function ProfileInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-  revealable = false,
-  inputMode,
-  maxLength,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  type?: HTMLInputTypeAttribute;
-  revealable?: boolean;
-  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
-  maxLength?: number;
-}) {
-  const [visible, setVisible] = useState(false);
-  const inputType = revealable && visible ? "text" : type;
-
-  return (
-    <label className="grid min-w-0 gap-1">
-      <span className="text-[10px] font-black uppercase tracking-wider text-black/40">
-        {label}
-      </span>
-      <span className="relative block">
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          type={inputType}
-          inputMode={inputMode}
-          maxLength={maxLength}
-          className="min-w-0 w-full rounded-2xl px-4 py-3 text-base outline-none"
-          style={{
-            border: `1.5px solid ${VERDE}16`,
-            color: VERDE,
-            paddingRight: revealable ? "3.25rem" : undefined,
-          }}
+      <AnimatePresence>
+        <MemberAuthModal
+          key="member-auth-modal"
+          loginOpen={loginOpen}
+          loginRequired={loginRequired}
+          canCloseLogin={canCloseLogin}
+          memberAuthMode={memberAuthMode}
+          setMemberAuthMode={setMemberAuthMode}
+          registerStep={registerStep}
+          setRegisterStep={setRegisterStep}
+          termsAccepted={termsAccepted}
+          setTermsAccepted={setTermsAccepted}
+          recoveryOpen={recoveryOpen}
+          setRecoveryOpen={setRecoveryOpen}
+          recoveryLogin={recoveryLogin}
+          setRecoveryLogin={setRecoveryLogin}
+          recoveryCode={recoveryCode}
+          setRecoveryCode={setRecoveryCode}
+          recoveryPassword={recoveryPassword}
+          setRecoveryPassword={setRecoveryPassword}
+          recoveryPasswordConfirm={recoveryPasswordConfirm}
+          setRecoveryPasswordConfirm={setRecoveryPasswordConfirm}
+          recoverySentMessage={recoverySentMessage}
+          setRecoverySentMessage={setRecoverySentMessage}
+          memberName={memberName}
+          setMemberName={setMemberName}
+          memberEmail={memberEmail}
+          setMemberEmail={setMemberEmail}
+          memberCpf={memberCpf}
+          setMemberCpf={setMemberCpf}
+          memberPhone={memberPhone}
+          setMemberPhone={setMemberPhone}
+          memberPassword={memberPassword}
+          setMemberPassword={setMemberPassword}
+          memberPasswordConfirm={memberPasswordConfirm}
+          setMemberPasswordConfirm={setMemberPasswordConfirm}
+          memberLogin={memberLogin}
+          setMemberLogin={setMemberLogin}
+          loginPassword={loginPassword}
+          setLoginPassword={setLoginPassword}
+          memberBirthday={memberBirthday}
+          setMemberBirthday={setMemberBirthday}
+          memberCep={memberCep}
+          setMemberCep={setMemberCep}
+          memberStreet={memberStreet}
+          setMemberStreet={setMemberStreet}
+          memberNumber={memberNumber}
+          setMemberNumber={setMemberNumber}
+          memberComplement={memberComplement}
+          setMemberComplement={setMemberComplement}
+          memberNeighborhood={memberNeighborhood}
+          setMemberNeighborhood={setMemberNeighborhood}
+          memberCity={memberCity}
+          setMemberCity={setMemberCity}
+          memberReference={memberReference}
+          setMemberReference={setMemberReference}
+          memberError={memberError}
+          memberSaving={memberSaving}
+          savedDelivery={savedDelivery}
+          saveMember={saveMember}
+          loginMember={loginMember}
+          requestPasswordRecovery={requestPasswordRecovery}
+          resetMemberPassword={resetMemberPassword}
+          closeLogin={closeLogin}
         />
-        {revealable && (
-          <button
-            type="button"
-            onClick={() => setVisible((current) => !current)}
-            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full"
-            style={{ background: `${VERDE}08`, color: VERDE }}
-            aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
-          >
-            {visible ? <EyeOff size={18} strokeWidth={2.4} /> : <Eye size={18} strokeWidth={2.4} />}
-          </button>
-        )}
-      </span>
-    </label>
-  );
-}
-
-function ActiveProfileOrderCard({
-  order,
-  onOpen,
-}: {
-  order: Order;
-  onOpen: () => void;
-}) {
-  const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
-  return (
-    <button
-      onClick={onOpen}
-      className="w-full rounded-2xl p-4 text-left"
-      style={{ background: VERDE, color: ROSA }}
-    >
-      <div className="flex items-start gap-3">
-        <PackageSearch size={20} strokeWidth={2.5} className="mt-0.5 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-wider opacity-70">
-            Acompanhe seu pedido
-          </p>
-          <p className="mt-1 text-lg font-black leading-none">
-            {order.id} · {status.label}
-          </p>
-          <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed opacity-75">
-            {order.items.map((item) => `${item.qty}x ${item.name}`).join(" · ")}
-          </p>
-          <p className="mt-2 text-sm font-black">{fmt(order.total)}</p>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function OrderHistoryRow({
-  order,
-  onOpen,
-  onRepeat,
-}: {
-  order: Order;
-  onOpen: () => void;
-  onRepeat: () => void;
-}) {
-  const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
-  const activeOrder = !["DELIVERED", "CANCELLED"].includes(order.status);
-  const canRepeat = order.status === "DELIVERED" && order.items.length > 0;
-  const date = new Date(order.timestamp).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return (
-    <div
-      className="rounded-xl p-3"
-      style={{ background: "#fff", border: `1px solid ${VERDE}12` }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-black leading-tight">
-            Pedido {order.id}
-          </p>
-          <p className="mt-1 text-[11px] font-bold uppercase tracking-wide opacity-55">
-            {status.label} · {date}
-          </p>
-          <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed opacity-70">
-            {order.items.map((item) => `${item.qty}x ${item.name}`).join(" · ")}
-          </p>
-        </div>
-        <p className="shrink-0 text-sm font-black">{fmt(order.total)}</p>
-      </div>
-      {activeOrder && (
-        <button
-          onClick={onOpen}
-          className="mt-3 w-full rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-wider"
-          style={{ background: VERDE, color: ROSA }}
-        >
-          Acompanhar pedido
-        </button>
-      )}
-      {canRepeat && (
-        <button
-          onClick={onRepeat}
-          className="mt-3 w-full rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-wider"
-          style={{ background: `${VERDE}10`, color: VERDE }}
-        >
-          Pedir novamente
-        </button>
-      )}
-    </div>
-  );
-}
-
-function SidePanel({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[75] flex justify-end bg-black/45"
-      onClick={onClose}
-      role="presentation"
-    >
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        exit={{ x: "100%" }}
-        transition={{ type: "spring", stiffness: 320, damping: 32 }}
-        className="flex h-full w-full max-w-[420px] flex-col overflow-hidden"
-        style={{
-          background: "#fff",
-          color: VERDE,
-          boxShadow: "-24px 0 70px rgba(0,0,0,0.22)",
-          paddingTop: "env(safe-area-inset-top)",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-      >
-        <div
-          className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b px-4 py-3"
-          style={{ background: "rgba(255,255,255,0.96)", borderColor: `${VERDE}12`, backdropFilter: "blur(16px)" }}
-        >
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-45">Menfi's</p>
-            <h2 className="truncate text-base font-black uppercase tracking-wide">{title}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-            style={{ background: `${VERDE}08`, color: VERDE }}
-            aria-label="Fechar painel"
-          >
-            <X size={18} strokeWidth={2.4} />
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">{children}</div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function ProfileSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${VERDE}12` }}>
-      <p className="text-xs font-black uppercase tracking-wider">{title}</p>
-      <div className="mt-3 grid gap-2">{children}</div>
-    </div>
-  );
-}
-
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-[10px] font-black uppercase tracking-wider opacity-45">{label}</p>
-      <p className="mt-0.5 text-sm font-bold">{value}</p>
-    </div>
-  );
-}
-
-function ProfileMenuButton({
-  icon: Icon,
-  label,
-  onClick,
-}: {
-  icon: ElementType;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-xs font-black uppercase tracking-wider"
-      style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${ROSA}55` }}>
-        <Icon size={18} strokeWidth={2.4} />
-      </span>
-      <span className="min-w-0 flex-1">{label}</span>
-      <ChevronRight size={17} strokeWidth={2.6} className="shrink-0 opacity-55" />
-    </button>
-  );
-}
-
-function ProfileMenuLink({
-  icon: Icon,
-  label,
-  href,
-}: {
-  icon: ElementType;
-  label: string;
-  href: string;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left text-xs font-black uppercase tracking-wider"
-      style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}12` }}
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${ROSA}55` }}>
-        <Icon size={18} strokeWidth={2.4} />
-      </span>
-      <span className="min-w-0 flex-1">{label}</span>
-      <ChevronRight size={17} strokeWidth={2.6} className="shrink-0 opacity-55" />
-    </a>
+        <MemberProfilePanel
+          key="member-profile-panel"
+          profileOpen={profileOpen}
+          memberProfile={memberProfile}
+          profileIncomplete={profileIncomplete}
+          profileEditOpen={profileEditOpen}
+          profileEditName={profileEditName}
+          profileEditPhone={profileEditPhone}
+          profileEditEmail={profileEditEmail}
+          profileCurrentPassword={profileCurrentPassword}
+          profileNewPassword={profileNewPassword}
+          profileConfirmPassword={profileConfirmPassword}
+          profileEditError={profileEditError}
+          profileEditSaving={profileEditSaving}
+          ordersLoading={ordersLoading}
+          visibleActiveOrder={visibleActiveOrder}
+          hasActiveOrder={hasActiveOrder}
+          closeProfile={closeProfile}
+          editMember={editMember}
+          setProfileEditOpen={setProfileEditOpen}
+          setProfileEditName={setProfileEditName}
+          setProfileEditPhone={setProfileEditPhone}
+          setProfileEditEmail={setProfileEditEmail}
+          setProfileCurrentPassword={setProfileCurrentPassword}
+          setProfileNewPassword={setProfileNewPassword}
+          setProfileConfirmPassword={setProfileConfirmPassword}
+          submitProfileEdit={submitProfileEdit}
+          openProfileEdit={openProfileEdit}
+          onOpenActiveOrder={onOpenActiveOrder}
+          logoutMember={logoutMember}
+        />
+        <MemberActivityPanels
+          key="member-activity-panels"
+          historyOpen={historyOpen}
+          notificationsOpen={notificationsOpen}
+          favoritesOpen={favoritesOpen}
+          memberProfile={memberProfile}
+          ordersLoading={ordersLoading}
+          customerOrders={customerOrders}
+          notifications={notifications}
+          visibleActiveOrder={visibleActiveOrder}
+          hasActiveOrder={hasActiveOrder}
+          closeHistory={closeHistory}
+          closeNotifications={closeNotifications}
+          closeFavorites={closeFavorites}
+          onOpenActiveOrder={onOpenActiveOrder}
+          onRepeatOrder={onRepeatOrder}
+        />
+      </AnimatePresence>
+    </>
   );
 }

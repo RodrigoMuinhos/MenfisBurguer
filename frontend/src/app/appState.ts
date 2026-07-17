@@ -1,4 +1,4 @@
-import { Order, OrderStatus } from "@/types/order";
+import { CartItem, Order, OrderStatus } from "@/types/order";
 
 export type Screen = "product" | "cart" | "tracking" | "queue" | "admin";
 export type AppMode = "kiosk" | "delivery" | "admin" | "kds" | "notes";
@@ -13,6 +13,25 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/
 export const KIOSK_IDLE_PROMPT_MS = 2.5 * 60 * 1000;
 export const KIOSK_IDLE_PROMPT_GRACE_MS = 15 * 1000;
 export const CACHE_VERSION = "2026-07-10-catalog-no-ghosts-1";
+
+export function normalizeStoredCart(value: unknown): CartItem[] {
+  if (!Array.isArray(value)) return [];
+  const usedIds = new Set<string>();
+
+  return value.flatMap((entry, index) => {
+    if (!entry || typeof entry !== "object") return [];
+    const item = entry as CartItem;
+    const baseId = String(item.id || item.productId || `item-${index + 1}`).trim();
+    let id = baseId || `item-${index + 1}`;
+    let suffix = 2;
+    while (usedIds.has(id)) {
+      id = `${baseId || `item-${index + 1}`}-${suffix}`;
+      suffix += 1;
+    }
+    usedIds.add(id);
+    return [{ ...item, id }];
+  });
+}
 
 const STATUS_RANK: Partial<Record<OrderStatus, number>> = {
   CREATED: 0,

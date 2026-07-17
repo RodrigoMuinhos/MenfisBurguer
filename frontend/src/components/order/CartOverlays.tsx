@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2, QrCode, Store } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -55,6 +55,7 @@ export function CartOverlays({
   onCloseKioskSuccess?: () => void;
 }) {
   const [counterPaymentMethod, setCounterPaymentMethod] = useState<"pix" | "atendente" | null>(null);
+  const [counterPixSeconds, setCounterPixSeconds] = useState(30);
   const successTotal = kioskSuccessOrder
     ? Number(kioskSuccessOrder.total || kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0))
     : 0;
@@ -62,6 +63,26 @@ export function CartOverlays({
   const canConfirmCounterName = counterCustomerNameDraft.trim().length >= 2;
   const formatMoney = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  useEffect(() => {
+    if (!counterPaymentPromptOpen) {
+      setCounterPaymentMethod(null);
+      setCounterPixSeconds(30);
+      return;
+    }
+    if (counterPaymentMethod !== "pix") return;
+    if (counterPixSeconds <= 0) {
+      setCounterPaymentMethod(null);
+      setCounterPixSeconds(30);
+      onConfirmCounterPayment?.("pix");
+      return;
+    }
+    const timer = window.setTimeout(
+      () => setCounterPixSeconds((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [counterPaymentMethod, counterPaymentPromptOpen, counterPixSeconds, onConfirmCounterPayment]);
 
   return (
     <>
@@ -372,7 +393,10 @@ export function CartOverlays({
                         <div className="mt-6 grid grid-cols-2 gap-3">
                           <button
                             type="button"
-                            onClick={() => setCounterPaymentMethod("pix")}
+                            onClick={() => {
+                              setCounterPixSeconds(30);
+                              setCounterPaymentMethod("pix");
+                            }}
                             className="flex h-16 items-center justify-center gap-2 rounded-2xl border text-sm font-black uppercase"
                             style={{ borderColor: ROSA, color: VERDE }}
                           >
@@ -401,6 +425,17 @@ export function CartOverlays({
                           <p className="text-4xl font-black" style={{ color: "#8A0030" }}>
                             {formatMoney(counterPaymentTotal)}
                           </p>
+                          <div className="mx-auto mt-3 max-w-[220px] rounded-2xl px-4 py-3" style={{ background: `${ROSA}40` }}>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                              Próxima etapa em
+                            </p>
+                            <p className="mt-1 text-3xl font-black tabular-nums" style={{ color: VERDE }}>
+                              00:{String(counterPixSeconds).padStart(2, "0")}
+                            </p>
+                            <p className="mt-1 text-[10px] font-bold opacity-65">
+                              Depois, informe o nome para concluir o pedido.
+                            </p>
+                          </div>
                           <p className="mt-3 break-all rounded-2xl px-3 py-2 text-[10px] font-bold leading-relaxed" style={{ background: `${ROSA}40` }}>
                             {pixCodeWithAmount(counterPaymentTotal) || KIOSK_PIX_CODE}
                           </p>
@@ -409,12 +444,13 @@ export function CartOverlays({
                           type="button"
                           onClick={() => {
                             setCounterPaymentMethod(null);
+                            setCounterPixSeconds(30);
                             onConfirmCounterPayment?.("pix");
                           }}
                           className="h-14 rounded-2xl text-sm font-black uppercase text-white"
                           style={{ background: VERDE }}
                         >
-                          Continuar pedido
+                          Continuar agora
                         </button>
                       </div>
                     )}

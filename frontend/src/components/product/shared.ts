@@ -164,6 +164,13 @@ function productFamilyRank(item: MenuItem) {
   return 0;
 }
 
+function comboTierRank(item: MenuItem) {
+  const text = itemText(item);
+  if (text.includes("super") || text.includes("triple")) return 2;
+  if (item.id.startsWith("double-") || text.includes(" big ")) return 1;
+  return 0;
+}
+
 function friesFamilyRank(item: MenuItem) {
   const text = itemText(item);
   if (text.includes("nugget")) return 1;
@@ -191,6 +198,7 @@ export function sortCatalogItems<T extends MenuItem>(items: T[]) {
   return [...items].sort((a, b) => {
     if (a.category === "combo" && b.category === "combo") {
       return (
+        comboTierRank(a) - comboTierRank(b) ||
         productFamilyRank(a) - productFamilyRank(b) ||
         a.price - b.price ||
         a.name.localeCompare(b.name)

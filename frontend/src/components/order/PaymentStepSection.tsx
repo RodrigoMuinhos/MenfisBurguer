@@ -104,7 +104,7 @@ export function PaymentStepSection({
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
 }) {
-  const [pixSeconds, setPixSeconds] = useState(40);
+  const [pixSeconds, setPixSeconds] = useState(30);
 
   useEffect(() => {
     if (!kioskMode || checkoutStep !== "payment" || !["pix", "pix_qrcode"].includes(payment)) return;
@@ -119,7 +119,7 @@ export function PaymentStepSection({
 
   const choosePayment = (id: Exclude<PaymentMethod, "">) => {
     setPayment(id);
-    if (id === "pix" || id === "pix_qrcode") setPixSeconds(40);
+    if (id === "pix" || id === "pix_qrcode") setPixSeconds(30);
     window.setTimeout(() => {
       document
         .querySelector("[data-checkout-submit]")

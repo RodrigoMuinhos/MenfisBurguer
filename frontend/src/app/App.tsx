@@ -17,6 +17,7 @@ import {
   CHECKOUT_RETURN_STEP_KEY,
   PENDING_ORDER_KEY,
   Screen,
+  normalizeStoredCart,
   registerMemberOrder,
   resolveAppMode,
 } from "./appState";
@@ -148,7 +149,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     } else if (!kioskMode) {
       try {
         const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? "[]");
-        setCart(Array.isArray(parsed) ? parsed : []);
+        setCart(normalizeStoredCart(parsed));
       } catch {
         setCart([]);
       }

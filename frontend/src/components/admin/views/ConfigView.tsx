@@ -1,4 +1,4 @@
-import { Beef, CalendarClock, Clock, Flame, FlaskConical, Gift, GripVertical, Heart, ImagePlus, KeyRound, PackageX, Percent, Plus, Save, Star, Table2, Tag, Ticket, Trash2, Utensils, RotateCcw } from "lucide-react";
+import { Beef, CalendarClock, Clock, Flame, FlaskConical, Gift, GripVertical, Heart, ImagePlus, KeyRound, LockKeyhole, PackageX, Percent, Plus, Save, Star, Table2, Tag, Ticket, Trash2, Utensils, RotateCcw } from "lucide-react";
 import { useEffect, useState, type ElementType } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -15,6 +15,7 @@ import {
   normalizeSpecialOfferSettings,
 } from "@/components/order/checkout";
 import { PayOnDeliverySettings } from "../AdminChrome";
+import { API_URL } from "@/components/order/checkout";
 
 export function ConfigView({
   payOnDeliveryEnabled,
@@ -91,10 +92,41 @@ export function ConfigView({
   const [adminCredentialsSaved, setAdminCredentialsSaved] = useState(false);
   const [adminCredentialsError, setAdminCredentialsError] = useState("");
   const [adminCredentialsOpen, setAdminCredentialsOpen] = useState(false);
+  const [protectedToolsUnlocked, setProtectedToolsUnlocked] = useState(false);
+  const [protectedToolsPassword, setProtectedToolsPassword] = useState("");
+  const [protectedToolsError, setProtectedToolsError] = useState("");
+  const [protectedToolsLoading, setProtectedToolsLoading] = useState(false);
 
   useEffect(() => {
     if (adminLogin) setAdminLoginDraft(adminLogin);
   }, [adminLogin]);
+
+  const unlockProtectedTools = async () => {
+    if (!protectedToolsPassword.trim()) {
+      setProtectedToolsError("Informe a senha administrativa.");
+      return;
+    }
+    setProtectedToolsLoading(true);
+    setProtectedToolsError("");
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login: adminLogin || adminLoginDraft, password: protectedToolsPassword }),
+      });
+      const session = response.ok ? await response.json() : null;
+      if (!session?.token || session.role !== "ADMIN") {
+        setProtectedToolsError("Senha administrativa inválida.");
+        return;
+      }
+      setProtectedToolsPassword("");
+      setProtectedToolsUnlocked(true);
+    } catch {
+      setProtectedToolsError("Não foi possível validar a senha.");
+    } finally {
+      setProtectedToolsLoading(false);
+    }
+  };
 
   const saveAdminCredentials = async () => {
     setAdminCredentialsSaved(false);
@@ -998,6 +1030,29 @@ export function ConfigView({
         </div>
       </section>
 
+      {!protectedToolsUnlocked ? (
+        <section className="rounded-2xl p-5" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ background: `${ROSA}66`, color: VERDE }}>
+              <LockKeyhole size={20} strokeWidth={2.5} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Ferramentas protegidas</p>
+              <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
+                Modo teste, tabela demonstrativa e limpeza da operação ficam ocultos. Digite a senha administrativa para acessar.
+              </p>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <input type="password" value={protectedToolsPassword} onChange={(event) => { setProtectedToolsPassword(event.target.value); setProtectedToolsError(""); }} onKeyDown={(event) => { if (event.key === "Enter") void unlockProtectedTools(); }} placeholder="Senha administrativa" autoComplete="current-password" className="min-h-12 min-w-0 flex-1 rounded-xl px-4 text-sm font-bold outline-none" style={{ border: `1.5px solid ${VERDE}22`, color: VERDE, background: "#fff" }} />
+                <button type="button" onClick={() => void unlockProtectedTools()} disabled={protectedToolsLoading || disabled} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase" style={{ background: VERDE, color: ROSA, opacity: protectedToolsLoading ? .6 : 1 }}><KeyRound size={16} /> {protectedToolsLoading ? "Validando..." : "Desbloquear"}</button>
+              </div>
+              {protectedToolsError && <p className="mt-2 text-xs font-black" style={{ color: "#B91C1C" }}>{protectedToolsError}</p>}
+            </div>
+          </div>
+        </section>
+      ) : <>
+      <div className="flex justify-end">
+        <button type="button" onClick={() => setProtectedToolsUnlocked(false)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 text-xs font-black uppercase" style={{ borderColor: `${VERDE}24`, color: VERDE, background: "#fff" }}><LockKeyhole size={15} /> Ocultar ferramentas</button>
+      </div>
       <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-start gap-3">
@@ -1073,6 +1128,7 @@ export function ConfigView({
           </button>
         </div>
       </section>
+      </>}
     </div>
   );
 }

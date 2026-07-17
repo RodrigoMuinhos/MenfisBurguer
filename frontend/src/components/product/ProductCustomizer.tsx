@@ -1,35 +1,18 @@
 import Image from "next/image";
 import { motion } from "motion/react";
-import {
-  ChefHat,
-  CheckCircle2,
-  Minus,
-  Plus,
-  ShoppingBag,
-  X,
-} from "lucide-react";
-import { CartItem } from "@/types/order";
+import { ChefHat, CheckCircle2, Minus, Plus, X } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
-import { MenuItem } from "@/features/catalog/types";
 import {
-  COMBO_DRINK_SURCHARGE_PRODUCT_ID,
   CustomizerState,
   DRINK_OPTIONS,
   MEAT_POINT_OPTIONS,
   SAUCE_OPTIONS,
   SWEET_BOX_REQUIRED_COUNT,
   fmt,
-  getSweetOptionsForItem,
-  getExtraOptionsForItem,
   imageSrc,
-  isChickenProduct,
-  isNuggetsProduct,
-  isSuperProduct,
-  isSweetPlusProduct,
-  isSweetBoxProduct,
-  requiredCustomizerCount,
-  requiresSpiceLevel,
 } from "./shared";
+import { useProductCustomizerModel } from "./customizer/useProductCustomizerModel";
+import { OptionSection, OptionThumb } from "./customizer/CustomizerOptionSection";
 
 export function ProductCustomizer({
   state,
@@ -40,109 +23,10 @@ export function ProductCustomizer({
   setState: React.Dispatch<React.SetStateAction<CustomizerState | null>>;
   onConfirm: () => void;
 }) {
-  const needsMeatPoint =
-    !isChickenProduct(state.item) &&
-    (state.item.category === "burger" || state.item.category === "combo");
-  const requiredCount = requiredCustomizerCount(state.item);
-  const needsSauce =
-    (state.item.category === "burger" || state.item.category === "combo") &&
-    !isSuperProduct(state.item);
-  const needsFreeMayo = isNuggetsProduct(state.item);
-  const needsDrink = state.item.category === "combo";
-  const isSweetBox = isSweetBoxProduct(state.item);
-  const isSweetPlus = isSweetPlusProduct(state.item);
-  const needsSpiceLevel = requiresSpiceLevel(state.item);
-  const superTheme = isSuperProduct(state.item);
-  const chilliTheme = state.item.id === "tropikal-barbecue";
-  const superBackground = chilliTheme ? "#21090F" : "#061C18";
-  const superSurface = chilliTheme ? "#351018" : "#08251F";
-  const superAccent = chilliTheme ? "#FF315C" : "#9CDD22";
-  const sweetOptions = getSweetOptionsForItem(state.item);
-  const sauceRequiredCount = needsFreeMayo ? 1 : requiredCount;
-  const extraOptions = getExtraOptionsForItem(state.item);
-  const sweetCount = Object.values(state.extras).reduce((sum, quantity) => sum + quantity, 0);
-  const sweetTotal = sweetOptions.reduce(
-    (sum, option) => sum + (state.extras[option.id] ?? 0) * option.price,
-    0,
-  );
-  const extrasTotal = Object.entries(state.extras).reduce((sum, [extraId, quantity]) => {
-    const extra = extraOptions.find((option) => option.id === extraId);
-    return sum + (extra?.price ?? 0) * quantity;
-  }, 0);
-  const drinkSurchargeTotal = state.drinks.reduce((sum, drinkId) => {
-    const drink = DRINK_OPTIONS.find((option) => option.id === drinkId);
-    const hasSurchargeProduct = Boolean(COMBO_DRINK_SURCHARGE_PRODUCT_ID[drinkId]);
-    return sum + (hasSurchargeProduct ? drink?.comboPrice ?? 0 : 0);
-  }, 0);
-  const total = (state.item.price + drinkSurchargeTotal + (isSweetBox ? sweetTotal : extrasTotal)) * state.qty;
-  const valid =
-    (!isSweetBox || sweetCount === SWEET_BOX_REQUIRED_COUNT) &&
-    (!needsMeatPoint || state.meatPoints.length === requiredCount) &&
-    (!(needsSauce || needsFreeMayo) || isSweetBox || state.sauces.length === sauceRequiredCount) &&
-    (!needsDrink || state.drinks.length === requiredCount);
-  const spiceValid = !needsSpiceLevel || state.spiceLevel !== undefined;
-
-  const toggleLimited = (
-    field: "meatPoints" | "sauces" | "drinks",
-    value: string,
-    max: number,
-  ) => {
-    setState((prev) => {
-      if (!prev) return prev;
-      const current = prev[field];
-      if (max === 1) {
-        return { ...prev, [field]: current[0] === value ? [] : [value] };
-      }
-      const selectedCount = current.filter((item) => item === value).length;
-      if (selectedCount >= max) {
-        return { ...prev, [field]: current.filter((item) => item !== value) };
-      }
-      if (current.length < max) {
-        return { ...prev, [field]: [...current, value] };
-      }
-      if (selectedCount === 0) {
-        return { ...prev, [field]: [...current.slice(0, max - 1), value] };
-      }
-      return { ...prev, [field]: Array.from({ length: max }, () => value) };
-    });
-  };
-
-  const countSelected = (
-    field: "meatPoints" | "sauces" | "drinks",
-    value: string,
-  ) => state[field].filter((item) => item === value).length;
-
-  const updateExtraQty = (extraId: string, delta: number) => {
-    setState((prev) => {
-      if (!prev) return prev;
-      const current = prev.extras[extraId] ?? 0;
-      const nextQty = Math.min(3, Math.max(0, current + delta));
-      const nextExtras = { ...prev.extras };
-      if (nextQty === 0) {
-        delete nextExtras[extraId];
-      } else {
-        nextExtras[extraId] = nextQty;
-      }
-      return { ...prev, extras: nextExtras };
-    });
-  };
-
-  const updateSweetQty = (sweetId: string, delta: number) => {
-    setState((prev) => {
-      if (!prev) return prev;
-      const currentTotal = Object.values(prev.extras).reduce((sum, quantity) => sum + quantity, 0);
-      const current = prev.extras[sweetId] ?? 0;
-      const nextQty = Math.max(0, current + delta);
-      if (delta > 0 && currentTotal >= SWEET_BOX_REQUIRED_COUNT) return prev;
-      const nextExtras = { ...prev.extras };
-      if (nextQty === 0) {
-        delete nextExtras[sweetId];
-      } else {
-        nextExtras[sweetId] = nextQty;
-      }
-      return { ...prev, extras: nextExtras };
-    });
-  };
+  const { needsMeatPoint, requiredCount, needsSauce, needsFreeMayo, needsDrink, isSweetBox,
+    isSweetPlus, needsSpiceLevel, superTheme, chilliTheme, superBackground, superSurface, superAccent,
+    sweetOptions, sauceRequiredCount, extraOptions, sweetCount, total, valid, spiceValid,
+    toggleLimited, countSelected, updateExtraQty, updateSweetQty } = useProductCustomizerModel(state, setState);
 
   return (
     <motion.div
@@ -602,72 +486,3 @@ export function ProductCustomizer({
     </motion.div>
   );
 }
-
-function OptionSection({
-  title,
-  subtitle,
-  count,
-  total,
-  required,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  count?: number;
-  total?: number;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  const showCounter = typeof count === "number" && typeof total === "number";
-  return (
-    <section>
-      <div className="flex items-center justify-between gap-3 px-5 py-4" style={{ background: "#F5F5F5" }}>
-        <div>
-          <p className="text-lg font-black text-black/62">{title}</p>
-          <p className="text-sm text-black/50">{subtitle}</p>
-        </div>
-        {required && (
-          <div className="flex items-center gap-2">
-            {showCounter && (
-              <span
-                className="rounded-full px-3 py-1 text-[11px] font-black"
-                style={{
-                  background: count >= total ? VERDE : ROSA,
-                  color: count >= total ? ROSA : VERDE,
-                }}
-              >
-                {count}/{total}
-              </span>
-            )}
-            <span className="rounded-lg bg-black px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white">
-              Obrigatório
-            </span>
-          </div>
-        )}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function OptionThumb({ src, alt }: { src: string; alt: string }) {
-  return (
-    <span
-      className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl"
-      style={{ background: "#F4F4F4" }}
-    >
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        style={{
-          display: "block",
-          height: "100%",
-          width: "100%",
-          objectFit: "cover",
-        }}
-      />
-    </span>
-  );
-}
-
