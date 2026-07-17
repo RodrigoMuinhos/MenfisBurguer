@@ -2,7 +2,7 @@ import { RefObject } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertCircle, CalendarClock, CheckCircle2, Loader2 } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
-import { CheckoutStep, maskCEP, maskPhone } from "./checkout";
+import { CheckoutStep, PICKUP_ADDRESS, maskCEP, maskPhone } from "./checkout";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -298,7 +298,7 @@ export function DeliveryFormSection({
                           Endereco para retirada
                         </p>
                         <p className="mt-1 text-sm font-bold">
-                          Rua Tiburcio Cavalcanti, 1952 - Meireles
+                          {PICKUP_ADDRESS}
                         </p>
                         <p className="mt-1 text-[11px] opacity-60">
                           Nao ha taxa de entrega para retirada.
