@@ -233,6 +233,8 @@ public class CustomerService {
           c.internal_notes,
           c.created_at,
           c.birthday,
+          c.marketing_opt_in,
+          c.marketing_opt_in_at,
           c.last_login_at,
           c.updated_at,
           case when c.club_expires_at > now() then c.club_level else null end as club_level,
@@ -269,6 +271,8 @@ public class CustomerService {
         p.internal_notes,
         p.created_at,
         p.birthday,
+        p.marketing_opt_in,
+        p.marketing_opt_in_at,
         p.last_login_at,
         p.club_level,
         p.club_expires_at,
@@ -292,7 +296,7 @@ public class CustomerService {
       left join order_stats os on os.phone_digits = p.phone_digits
       left join addresses a on a.customer_id = p.id and a.is_default = true
       left join last_order_address loa on loa.phone_digits = p.phone_digits
-      group by p.id, p.phone_digits, p.name, p.phone, p.email, p.cpf, p.internal_notes, p.created_at, p.birthday, p.last_login_at, p.updated_at, p.club_level, p.club_expires_at, os.order_count, os.total_spent, os.last_order_at
+      group by p.id, p.phone_digits, p.name, p.phone, p.email, p.cpf, p.internal_notes, p.created_at, p.birthday, p.marketing_opt_in, p.marketing_opt_in_at, p.last_login_at, p.updated_at, p.club_level, p.club_expires_at, os.order_count, os.total_spent, os.last_order_at
       order by os.last_order_at desc nulls last, p.updated_at desc
       limit 500
       """
@@ -307,9 +311,12 @@ public class CustomerService {
     String email = clean(stringValue(request.get("email")));
     String cpf = digits(stringValue(request.get("cpf")));
     String notes = clean(stringValue(request.get("internalNotes")));
+    String birthday = clean(stringValue(request.get("birthday")));
+    boolean marketingOptIn = booleanValue(request.get("marketingOptIn"));
     if (phoneDigits.length() < 10) throw new IllegalArgumentException("customer_phone_required");
     if (isBlank(name)) name = "Cliente " + phone;
     if (!cpf.isBlank() && cpf.length() != 11) throw new IllegalArgumentException("customer_cpf_invalid");
+    if (!birthday.isBlank() && !birthday.matches("\\d{4}-\\d{2}-\\d{2}")) throw new IllegalArgumentException("customer_birthday_invalid");
 
     Long existing = findCustomerId(cpf, email, phoneDigits);
     if (existing != null) {
@@ -320,8 +327,8 @@ public class CustomerService {
     String tempPassword = temporaryPassword();
     Long id = jdbc.queryForObject(
       """
-      insert into customers (name, phone, phone_digits, email, cpf, internal_notes, password_hash, updated_at)
-      values (?, ?, ?, ?, ?, ?, ?, now())
+      insert into customers (name, phone, phone_digits, email, cpf, internal_notes, birthday, marketing_opt_in, marketing_opt_in_at, password_hash, updated_at)
+      values (?, ?, ?, ?, ?, ?, nullif(?, '')::date, ?, case when ? then now() else null end, ?, now())
       returning id
       """,
       Long.class,
@@ -331,6 +338,9 @@ public class CustomerService {
       email,
       cpf.isBlank() ? null : cpf,
       notes,
+      birthday,
+      marketingOptIn,
+      marketingOptIn,
       encoder.encode(tempPassword)
     );
     return adminCustomerResponse(id, tempPassword);
@@ -344,12 +354,23 @@ public class CustomerService {
     String email = clean(stringValue(request.get("email")));
     String cpf = digits(stringValue(request.get("cpf")));
     String notes = clean(stringValue(request.get("internalNotes")));
+    String birthday = clean(stringValue(request.get("birthday")));
+    boolean marketingOptIn = booleanValue(request.get("marketingOptIn"));
     if (phoneDigits.length() < 10) throw new IllegalArgumentException("customer_phone_required");
     if (isBlank(name)) throw new IllegalArgumentException("customer_name_required");
     if (!cpf.isBlank() && cpf.length() != 11) throw new IllegalArgumentException("customer_cpf_invalid");
+    if (!birthday.isBlank() && !birthday.matches("\\d{4}-\\d{2}-\\d{2}")) throw new IllegalArgumentException("customer_birthday_invalid");
     jdbc.update(
       """
-      update customers set name = ?, phone = ?, phone_digits = ?, email = ?, cpf = ?, internal_notes = ?, updated_at = now()
+      update customers set name = ?, phone = ?, phone_digits = ?, email = ?, cpf = ?, internal_notes = ?,
+        birthday = nullif(?, '')::date,
+        marketing_opt_in = ?,
+        marketing_opt_in_at = case
+          when ? and not marketing_opt_in then now()
+          when not ? then null
+          else marketing_opt_in_at
+        end,
+        updated_at = now()
       where id = ?
       """,
       name,
@@ -358,6 +379,10 @@ public class CustomerService {
       email,
       cpf.isBlank() ? null : cpf,
       notes,
+      birthday,
+      marketingOptIn,
+      marketingOptIn,
+      marketingOptIn,
       id
     );
     return adminCustomerResponse(id, null);
@@ -579,6 +604,7 @@ public class CustomerService {
     Map<String, Object> row = jdbc.queryForMap(
       """
       select c.id, c.name, c.phone, c.email, c.cpf, c.internal_notes, c.created_at,
+        c.birthday, c.last_login_at, c.marketing_opt_in, c.marketing_opt_in_at,
         (select count(*) from orders o where o.customer_id = c.id) as order_count,
         (select coalesce(sum(o.total), 0) from orders o where o.status <> 'CANCELLED' and o.customer_id = c.id) as total_spent,
         (select max(o.created_at) from orders o where o.customer_id = c.id) as last_order_at,
@@ -599,6 +625,10 @@ public class CustomerService {
 
   private String temporaryPassword() {
     return String.format("%06d", random.nextInt(1_000_000));
+  }
+
+  private boolean booleanValue(Object value) {
+    return value instanceof Boolean bool ? bool : Boolean.parseBoolean(String.valueOf(value));
   }
 
   private String recoveryCode() {

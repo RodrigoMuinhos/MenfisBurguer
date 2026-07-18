@@ -42,7 +42,7 @@ public class SettingsService {
     ]}
     """;
   private static final String DEFAULT_PRESENTATION = """
-    {"enabled":true,"intervalSeconds":6,"imageCount":1,"images":["/descanso.png"]}
+    {"enabled":true,"intervalSeconds":6,"imageCount":1,"images":["/descanso.png"],"carouselProductIds":["triple-combo","tropikal-menfis","tropikal-barbecue","smash-nutella-marshmallow"],"carouselIntervalSeconds":3}
     """;
   private static final String DEFAULT_PROMO_CARDS = """
     [
@@ -101,7 +101,7 @@ public class SettingsService {
       try {
         return objectMapper.readValue(DEFAULT_PRESENTATION, new TypeReference<>() {});
       } catch (Exception fallbackError) {
-        return Map.of("enabled", true, "intervalSeconds", 6, "imageCount", 1, "images", List.of("/descanso.png"));
+        return Map.of("enabled", true, "intervalSeconds", 6, "imageCount", 1, "images", List.of("/descanso.png"), "carouselProductIds", List.of("triple-combo", "tropikal-menfis", "tropikal-barbecue", "smash-nutella-marshmallow"), "carouselIntervalSeconds", 3);
       }
     }
   }

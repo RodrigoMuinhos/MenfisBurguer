@@ -34,6 +34,19 @@ export type PresentationSettings = {
   images: string[];
   featuredImage?: string;
   featuredTitle?: string;
+  carouselIntervalSeconds: number;
+  carouselCards: CarouselCardSettings[];
+};
+
+export type CarouselCardSettings = {
+  id: string;
+  enabled: boolean;
+  productId: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  actionLabel: string;
 };
 
 export type SpecialOfferSettings = {
@@ -238,6 +251,13 @@ export const DEFAULT_PRESENTATION_SETTINGS: PresentationSettings = {
   images: ["/descanso.png"],
   featuredImage: "",
   featuredTitle: "",
+  carouselIntervalSeconds: 3,
+  carouselCards: [
+    { id: "most-sold", enabled: true, productId: "triple-combo", eyebrow: "O mais vendido", title: "Combo Triple Menfi's", subtitle: "O favorito da galera", image: "/carrosel/omaisvendido.png", actionLabel: "Ver combo" },
+    { id: "super-tropikal", enabled: true, productId: "tropikal-menfis", eyebrow: "Linha Super", title: "Tropikal Menfi's", subtitle: "Uma novidade tropical", image: "/super/tropikal.jpeg", actionLabel: "Ver Super" },
+    { id: "super-chilli", enabled: true, productId: "tropikal-barbecue", eyebrow: "Linha Super", title: "Chilli Menfi's", subtitle: "Escolha sua ardência", image: "/super/Chilli.jpeg", actionLabel: "Personalizar" },
+    { id: "sweet-smoore", enabled: true, productId: "smash-nutella-marshmallow", eyebrow: "Sweet", title: "Smoore Menfi's", subtitle: "Nutella e marshmallow maçaricado", image: "/buffetdoce/paonuella.jpeg", actionLabel: "Quero meu Sweet" },
+  ],
 };
 
 export const DEFAULT_SPECIAL_OFFER_SETTINGS: SpecialOfferSettings = {
@@ -309,6 +329,22 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
     typeof data.featuredImage === "string" ? data.featuredImage.trim() : "";
   const featuredTitle =
     typeof data.featuredTitle === "string" ? data.featuredTitle.slice(0, 80) : "";
+  const carouselIntervalSeconds = Number(data.carouselIntervalSeconds);
+  const carouselCards = Array.isArray(data.carouselCards)
+    ? data.carouselCards.slice(0, 12).map((entry, index) => {
+        const card = entry && typeof entry === "object" ? entry as Partial<CarouselCardSettings> : {};
+        return {
+          id: String(card.id || `carousel-${index + 1}`),
+          enabled: card.enabled !== false,
+          productId: String(card.productId || ""),
+          eyebrow: String(card.eyebrow || "Destaque").slice(0, 40),
+          title: String(card.title || "Novo destaque").slice(0, 80),
+          subtitle: String(card.subtitle || "").slice(0, 140),
+          image: String(card.image || ""),
+          actionLabel: String(card.actionLabel || "Ver produto").slice(0, 40),
+        };
+      })
+    : DEFAULT_PRESENTATION_SETTINGS.carouselCards;
   return {
     enabled:
       typeof data.enabled === "boolean"
@@ -325,6 +361,11 @@ export function normalizePresentationSettings(value: unknown): PresentationSetti
     images: images.length ? images : DEFAULT_PRESENTATION_SETTINGS.images,
     featuredImage,
     featuredTitle,
+    carouselIntervalSeconds:
+      Number.isFinite(carouselIntervalSeconds) && carouselIntervalSeconds >= 2
+        ? Math.min(30, Math.round(carouselIntervalSeconds))
+        : DEFAULT_PRESENTATION_SETTINGS.carouselIntervalSeconds,
+    carouselCards: carouselCards.length ? carouselCards : DEFAULT_PRESENTATION_SETTINGS.carouselCards,
   };
 }
 

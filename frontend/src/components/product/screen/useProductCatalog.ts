@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import type { MenuItem } from "@/features/catalog/types";
-import { DEFAULT_SPECIAL_OFFER_SETTINGS, type PromoCard, type SpecialOfferSettings, normalizePresentationSettings, normalizePromoCards, normalizeSpecialOfferSettings } from "@/components/order/checkout";
+import { DEFAULT_PRESENTATION_SETTINGS, DEFAULT_SPECIAL_OFFER_SETTINGS, type CarouselCardSettings, type PromoCard, type SpecialOfferSettings, normalizePresentationSettings, normalizePromoCards, normalizeSpecialOfferSettings } from "@/components/order/checkout";
 import { CATEGORIES, imageSrc, isChickenProduct, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems, sortComboRows } from "../shared";
 import { SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { specialOfferSessionKey } from "./ProductScreenOverlays";
@@ -12,6 +12,8 @@ export function useProductCatalog(kioskMode: boolean) {
   const [featuredProductId, setFeaturedProductId] = useState("");
   const [featuredImage, setFeaturedImage] = useState("");
   const [featuredTitle, setFeaturedTitle] = useState("");
+  const [carouselIntervalSeconds, setCarouselIntervalSeconds] = useState(3);
+  const [carouselCards, setCarouselCards] = useState<CarouselCardSettings[]>(DEFAULT_PRESENTATION_SETTINGS.carouselCards);
   const [heroSettingsLoaded, setHeroSettingsLoaded] = useState(!API_URL);
   const [promoCards, setPromoCards] = useState<PromoCard[]>([]);
   const [specialOffer, setSpecialOffer] = useState<SpecialOfferSettings>(() => normalizeSpecialOfferSettings(null));
@@ -50,6 +52,8 @@ export function useProductCatalog(kioskMode: boolean) {
     const presentation = normalizePresentationSettings(settings?.presentation);
     const offer = normalizeSpecialOfferSettings(settings?.specialOffer);
     setFeaturedImage(presentation.featuredImage ?? ""); setFeaturedTitle(presentation.featuredTitle ?? "");
+    setCarouselIntervalSeconds(presentation.carouselIntervalSeconds);
+    setCarouselCards(presentation.carouselCards);
     setPromoCards(normalizePromoCards(settings?.promoCards)); setSpecialOffer(offer);
     preloadClientImages([presentation.featuredImage, featuredItem?.image ? imageSrc(featuredItem.image) : undefined, offer.image]);
     setOperatingNow(settings?.operatingNow !== false); setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
@@ -87,5 +91,5 @@ export function useProductCatalog(kioskMode: boolean) {
       .catch(() => { if (!cached.length) setCatalogItems([]); }).finally(() => setCatalogLoaded(true));
   }, []);
 
-  return { category,setCategory,featuredImage,featuredTitle,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem };
+  return { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem };
 }

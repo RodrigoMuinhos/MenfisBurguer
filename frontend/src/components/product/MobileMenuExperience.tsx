@@ -30,13 +30,14 @@ import {
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
-import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
+import { API_URL, type CarouselCardSettings, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
 import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "./shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
 import { SuperLaunchCard } from "./ProductParts";
 
 import { BRAND_M_LOGO, CLOSED_HOURS_ALERT_KEY, MAGENTA, MOBILE_CATEGORIES, PINK, REVIEWS_STORAGE_KEY, VINHO, categoryMatches, discountPercent, itemSearchText, type MobileCategory } from "./mobile/mobileMenuConfig";
 import { BrandMenuButton, CategoryNav, ClosedHoursModal, IconButton, OfferCarousel } from "./mobile/MobileMenuChrome";
+import { ProductCarousel } from "./carousel/ProductCarousel";
 import { MobileBottomNav, ReviewsPanel } from "./mobile/MobileMenuPanels";
 import { MobileListItem } from "./mobile/MobileListItem";
 export function MobileMenuExperience({
@@ -47,6 +48,8 @@ export function MobileMenuExperience({
   featuredImage,
   featuredTitle,
   heroReady = true,
+  carouselCards,
+  carouselIntervalSeconds = 3,
   promoCards = [],
   memberProfile,
   notificationCount,
@@ -65,6 +68,8 @@ export function MobileMenuExperience({
   featuredImage?: string;
   featuredTitle?: string;
   heroReady?: boolean;
+  carouselCards: CarouselCardSettings[];
+  carouselIntervalSeconds?: number;
   promoCards?: PromoCard[];
   memberProfile: MemberProfile | null;
   notificationCount: number;
@@ -238,42 +243,17 @@ export function MobileMenuExperience({
           </button>
         </div>
 
-        <div className="relative z-10 mt-4 overflow-hidden rounded-[26px] bg-white shadow-[0_18px_42px_rgba(101,0,31,0.08)]">
-          <button
-            type="button"
-            onClick={() => heroItem && onOpenDetails(heroItem)}
-            className="relative block aspect-[1.08/1] w-full overflow-hidden bg-white min-[420px]:aspect-[1.18/1]"
-            aria-label={`Ver ${heroItem?.name ?? "produto"}`}
-          >
-            {heroItem && (featuredImage || heroItem.image) ? (
-              <Image
-                src={featuredImage || imageSrc(heroItem.image)}
-                alt={heroItem.name}
-                fill
-                priority
-                loading="eager"
-                sizes="(max-width: 767px) calc(100vw - 32px), 1px"
-                style={{
-                  objectFit: "cover",
-                  objectPosition: "center",
-                }}
-              />
-            ) : null}
-          </button>
-          <div className="grid gap-2 px-4 pb-4 pt-3">
-            <Image
-              src="/logonome.jpeg"
-              alt="Menfi's Burger"
-              width={210}
-              height={96}
-              className="h-16 w-auto max-w-full object-contain object-left"
-              priority
+        {heroItem && (
+          <div className="relative z-10 -mx-4 mt-4">
+            <ProductCarousel
+              products={items}
+              cards={carouselCards}
+              intervalSeconds={carouselIntervalSeconds}
+              onOpenProduct={onOpenDetails}
+              onAddProduct={onQuickAdd}
             />
-            <p className="text-[15px] font-black uppercase leading-tight">
-              {heroTitle}
-            </p>
           </div>
-        </div>
+        )}
 
         <OfferCarousel
           offers={promoCards}

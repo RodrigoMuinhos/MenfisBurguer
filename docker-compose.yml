@@ -45,9 +45,9 @@ services:
     environment:
       MENFIS_ENVIRONMENT: local
       PORT: 8080
-      FRONTEND_URL: ${FRONTEND_URL:?configure FRONTEND_URL}
-      BACKEND_URL: ${BACKEND_URL:?configure BACKEND_URL}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://menfis:menfis@postgres:5432/menfis}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      DATABASE_URL: postgresql://menfis:menfis@postgres:5432/menfis
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-menfis}
@@ -63,6 +63,12 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     restart: unless-stopped
 
   frontend:
@@ -70,22 +76,30 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?configure NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_URL: /backend
         NEXT_PUBLIC_MP_PUBLIC_KEY: ${NEXT_PUBLIC_MP_PUBLIC_KEY:-}
         NEXT_PUBLIC_ORDER_RUNTIME_MODE: ${NEXT_PUBLIC_ORDER_RUNTIME_MODE:-delivery}
     container_name: menfis-frontend
     env_file:
-      - ./frontend/.env.local
+      - ./.env.local
     environment:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?configure NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_URL: /backend
+      BACKEND_URL: http://backend:8080
       NEXT_PUBLIC_ORDER_RUNTIME_MODE: ${NEXT_PUBLIC_ORDER_RUNTIME_MODE:-delivery}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
     restart: unless-stopped
 
 volumes:

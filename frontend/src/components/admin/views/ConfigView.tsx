@@ -4,6 +4,7 @@ import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
   PresentationSettings,
+  CarouselCardSettings,
   PromoCard,
   PromoCardIcon,
   PROMO_CARD_ICON_OPTIONS,
@@ -22,7 +23,6 @@ export function ConfigView({
   testModeEnabled,
   demoTableEnabled,
   soldOutEnabled,
-  featuredProductId,
   adminLogin,
   operatingHours,
   presentation,
@@ -38,7 +38,6 @@ export function ConfigView({
   onToggleTestMode,
   onToggleDemoTable,
   onToggleSoldOut,
-  onFeaturedProductChange,
   onSaveAdminCredentials,
   onOperatingHoursChange,
   onPresentationChange,
@@ -54,7 +53,6 @@ export function ConfigView({
   testModeEnabled: boolean;
   demoTableEnabled: boolean;
   soldOutEnabled: boolean;
-  featuredProductId: string;
   adminLogin: string;
   operatingHours: OperatingHoursConfig;
   presentation: PresentationSettings;
@@ -70,7 +68,6 @@ export function ConfigView({
   onToggleTestMode: () => void;
   onToggleDemoTable: () => void;
   onToggleSoldOut: () => void;
-  onFeaturedProductChange: (productId: string) => void;
   onSaveAdminCredentials: (login: string, password: string) => Promise<boolean>;
   onOperatingHoursChange: (config: OperatingHoursConfig) => void;
   onPresentationChange: (config: PresentationSettings) => void;
@@ -157,6 +154,37 @@ export function ConfigView({
   const updatePresentation = (patch: Partial<PresentationSettings>) => {
     onPresentationChange(normalizePresentationSettings({ ...normalizedPresentation, ...patch }));
   };
+  const updateCarouselCard = (id: string, patch: Partial<CarouselCardSettings>) => {
+    updatePresentation({ carouselCards: normalizedPresentation.carouselCards.map((card) => card.id === id ? { ...card, ...patch } : card) });
+  };
+  const addCarouselCard = () => {
+    updatePresentation({ carouselCards: [...normalizedPresentation.carouselCards, {
+      id: `carousel-${Date.now()}`,
+      enabled: true,
+      productId: "",
+      eyebrow: "Novo destaque",
+      title: "Novo card",
+      subtitle: "Edite as informações deste destaque.",
+      image: "/carrosel/omaisvendido.png",
+      actionLabel: "Ver produto",
+    }].slice(0, 12) });
+  };
+  const removeCarouselCard = (id: string) => {
+    if (normalizedPresentation.carouselCards.length <= 1) return;
+    updatePresentation({ carouselCards: normalizedPresentation.carouselCards.filter((card) => card.id !== id) });
+  };
+  const moveCarouselCard = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= normalizedPresentation.carouselCards.length) return;
+    const cards = [...normalizedPresentation.carouselCards];
+    [cards[index], cards[target]] = [cards[target], cards[index]];
+    updatePresentation({ carouselCards: cards });
+  };
+  const setCarouselCardImage = async (id: string, files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    updateCarouselCard(id, { image: await encodePresentationImage(file) });
+  };
   const addPresentationImages = async (files: FileList | null) => {
     if (!files?.length) return;
     const encoded = await Promise.all([...files].map((file) => encodePresentationImage(file)));
@@ -178,12 +206,6 @@ export function ConfigView({
     const [moved] = images.splice(fromIndex, 1);
     images.splice(toIndex, 0, moved);
     updatePresentation({ images });
-  };
-  const setFeaturedImageFromFiles = async (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    const featuredImage = await encodePresentationImage(file);
-    updatePresentation({ featuredImage });
   };
   const updatePromoCard = (id: string, patch: Partial<PromoCard>) => {
     onPromoCardsChange(
@@ -219,11 +241,6 @@ export function ConfigView({
   const removePromoCard = (id: string) => {
     onPromoCardsChange(normalizedPromoCards.filter((card) => card.id !== id));
   };
-  const selectedProduct = MENU_ITEMS.find((item) => item.id === featuredProductId) ?? MENU_ITEMS[0];
-  const selectedProductImage =
-    typeof selectedProduct.image === "string"
-      ? selectedProduct.image
-      : selectedProduct.image?.src;
   const maskedAdminLogin = adminLoginDraft.replace(
     /^(.{2}).*(@.*)$/,
     "$1***$2",
@@ -347,83 +364,86 @@ export function ConfigView({
       </section>
 
       <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
-        <div className="grid gap-4 lg:grid-cols-[1fr_320px] lg:items-start">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Destaque do cardápio</p>
+            <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Carrossel de destaques</p>
             <p className="mt-1 text-xs font-bold opacity-60">
-              Escolha o produto principal e, se quiser, envie uma imagem exclusiva para o banner inicial do cliente.
+              Escolha os produtos exibidos no início do cardápio e controle a velocidade da troca automática.
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase" style={{ background: `${ROSA}35`, color: VERDE, border: `1.5px solid ${ROSA}` }}>
-                <ImagePlus size={15} />
-                Upload destaque
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={saving || disabled}
-                  onChange={(event) => {
-                    void setFeaturedImageFromFiles(event.target.files);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </label>
-              {normalizedPresentation.featuredImage && (
-                <button
-                  type="button"
-                  onClick={() => updatePresentation({ featuredImage: "" })}
-                  disabled={saving || disabled}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
-                  style={{ background: "#FEF2F2", color: "#991B1B", border: "1px solid #FCA5A5" }}
-                >
-                  <Trash2 size={14} />
-                  Usar foto do produto
-                </button>
-              )}
-            </div>
           </div>
-          <div className="grid gap-3">
-            <select
-              value={featuredProductId}
-              onChange={(event) => onFeaturedProductChange(event.target.value)}
-              disabled={saving || disabled}
-              className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
-              style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-            >
-              {MENU_ITEMS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-              Nome no destaque
+          <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide lg:w-52" style={{ color: `${VERDE}99` }}>
+            Tempo de cada destaque
+            <div className="relative">
               <input
-                value={normalizedPresentation.featuredTitle ?? ""}
-                onChange={(event) => updatePresentation({ featuredTitle: event.target.value })}
+                type="number"
+                min={2}
+                max={30}
+                value={normalizedPresentation.carouselIntervalSeconds}
+                onChange={(event) => updatePresentation({ carouselIntervalSeconds: Number(event.target.value) })}
                 disabled={saving || disabled}
-                placeholder={selectedProduct.name}
-                maxLength={80}
-                className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
+                className="min-h-12 w-full rounded-2xl px-4 pr-20 text-sm font-black outline-none"
                 style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
               />
-            </label>
-            <div className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2" }}>
-              <div className="relative aspect-video bg-black">
-                <img
-                  src={normalizedPresentation.featuredImage || selectedProductImage}
-                  alt="Prévia do destaque"
-                  className="h-full w-full object-cover"
-                />
-                <span className="absolute left-2 top-2 rounded-full px-2 py-1 text-[10px] font-black" style={{ background: "#fff", color: VERDE }}>
-                  {normalizedPresentation.featuredImage ? "Upload" : "Produto"}
-                </span>
-                <span className="absolute inset-x-2 bottom-2 truncate rounded-xl px-3 py-2 text-xs font-black uppercase" style={{ background: "rgba(255,255,255,0.92)", color: VERDE }}>
-                  {normalizedPresentation.featuredTitle || selectedProduct.name}
-                </span>
-              </div>
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase">segundos</span>
             </div>
-          </div>
+          </label>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button type="button" onClick={addCarouselCard} disabled={saving || disabled || normalizedPresentation.carouselCards.length >= 12} className="inline-flex min-h-11 items-center gap-2 rounded-xl px-4 text-xs font-black uppercase" style={{ background: ROSA, color: VERDE }}>
+            <Plus size={15} /> Adicionar card
+          </button>
+        </div>
+        <div className="mt-3 grid gap-4 lg:grid-cols-2">
+          {normalizedPresentation.carouselCards.map((card, index) => (
+            <article key={card.id} className="overflow-hidden rounded-2xl" style={{ border: `2px solid ${card.enabled ? ROSA : `${VERDE}16`}`, background: "#FFF8F2" }}>
+              <div className="relative h-44 bg-black">
+                <img src={card.image} alt={`Prévia de ${card.title}`} className="h-full w-full object-cover" />
+                <label className="absolute bottom-3 left-3 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl px-3 text-[10px] font-black uppercase shadow" style={{ background: "#fff", color: VERDE }}>
+                  <ImagePlus size={14} /> Trocar imagem
+                  <input type="file" accept="image/*" className="hidden" disabled={saving || disabled} onChange={(event) => { void setCarouselCardImage(card.id, event.target.files); event.currentTarget.value = ""; }} />
+                </label>
+                <button type="button" onClick={() => updateCarouselCard(card.id, { enabled: !card.enabled })} className="absolute right-3 top-3 rounded-full px-3 py-2 text-[10px] font-black uppercase" style={{ background: card.enabled ? VERDE : "#E5E7EB", color: card.enabled ? ROSA : "#4B5563" }}>
+                  {card.enabled ? "Visível" : "Oculto"}
+                </button>
+              </div>
+              <div className="grid gap-3 p-4">
+                <label className="grid gap-1 text-[10px] font-black uppercase" style={{ color: `${VERDE}99` }}>Produto vinculado
+                  <select value={card.productId} onChange={(event) => { const product = MENU_ITEMS.find((item) => item.id === event.target.value); updateCarouselCard(card.id, { productId: event.target.value, title: product?.name || card.title }); }} className="min-h-11 rounded-xl px-3 text-sm font-bold" style={{ border: `1px solid ${VERDE}18`, color: VERDE, background: "#fff" }}>
+                    <option value="">Somente informativo</option>
+                    {MENU_ITEMS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-[10px] font-black uppercase" style={{ color: `${VERDE}99` }}>Selo
+                    <input value={card.eyebrow} onChange={(event) => updateCarouselCard(card.id, { eyebrow: event.target.value })} className="min-h-11 rounded-xl px-3 text-sm font-bold" style={{ border: `1px solid ${VERDE}18`, color: VERDE, background: "#fff" }} />
+                  </label>
+                  <label className="grid gap-1 text-[10px] font-black uppercase" style={{ color: `${VERDE}99` }}>Botão
+                    <input value={card.actionLabel} onChange={(event) => updateCarouselCard(card.id, { actionLabel: event.target.value })} className="min-h-11 rounded-xl px-3 text-sm font-bold" style={{ border: `1px solid ${VERDE}18`, color: VERDE, background: "#fff" }} />
+                  </label>
+                </div>
+                <label className="grid gap-1 text-[10px] font-black uppercase" style={{ color: `${VERDE}99` }}>Título
+                  <input value={card.title} onChange={(event) => updateCarouselCard(card.id, { title: event.target.value })} className="min-h-11 rounded-xl px-3 text-sm font-bold" style={{ border: `1px solid ${VERDE}18`, color: VERDE, background: "#fff" }} />
+                </label>
+                <label className="grid gap-1 text-[10px] font-black uppercase" style={{ color: `${VERDE}99` }}>Descrição
+                  <textarea value={card.subtitle} onChange={(event) => updateCarouselCard(card.id, { subtitle: event.target.value })} className="min-h-20 resize-none rounded-xl px-3 py-2 text-sm font-bold" style={{ border: `1px solid ${VERDE}18`, color: VERDE, background: "#fff" }} />
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button type="button" onClick={() => moveCarouselCard(index, -1)} disabled={index === 0} className="min-h-10 rounded-xl text-[10px] font-black uppercase disabled:opacity-35" style={{ border: `1px solid ${VERDE}18`, color: VERDE }}>Subir</button>
+                  <button type="button" onClick={() => moveCarouselCard(index, 1)} disabled={index === normalizedPresentation.carouselCards.length - 1} className="min-h-10 rounded-xl text-[10px] font-black uppercase disabled:opacity-35" style={{ border: `1px solid ${VERDE}18`, color: VERDE }}>Descer</button>
+                  <button type="button" onClick={() => removeCarouselCard(card.id)} disabled={normalizedPresentation.carouselCards.length <= 1} className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl text-[10px] font-black uppercase disabled:opacity-35" style={{ border: "1px solid #FCA5A5", color: "#991B1B" }}><Trash2 size={13} /> Remover</button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4" style={{ borderColor: `${VERDE}12` }}>
+          <p className="text-xs font-bold" style={{ color: hasUnsavedPresentation ? "#B45309" : `${VERDE}99` }}>
+            {hasUnsavedPresentation ? "Há alterações no carrossel que ainda não foram salvas." : "Carrossel salvo e ativo no cardápio."}
+          </p>
+          <button type="button" onClick={onSavePresentation} disabled={saving || disabled || !hasUnsavedPresentation} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black uppercase" style={{ background: hasUnsavedPresentation ? VERDE : "#E5E7EB", color: hasUnsavedPresentation ? ROSA : "#6B7280" }}>
+            <Save size={15} />
+            {saving ? "Salvando..." : "Salvar carrossel"}
+          </button>
         </div>
       </section>
 

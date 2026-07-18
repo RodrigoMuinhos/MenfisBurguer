@@ -125,7 +125,6 @@ export function AdminPanel({
   const [testModeEnabled, setTestModeEnabled] = useState(false);
   const [demoTableEnabled, setDemoTableEnabled] = useState(false);
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
-  const [featuredProductId, setFeaturedProductId] = useState("chicken-super-combo");
   const [adminLogin, setAdminLogin] = useState("");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
@@ -347,7 +346,6 @@ export function AdminPanel({
     setTestModeEnabled(settings.testModeEnabled === true);
     setDemoTableEnabled(settings.demoTableEnabled === true);
     setSoldOutEnabled(settings.soldOutEnabled === true);
-    setFeaturedProductId(String(settings.featuredProductId ?? "chicken-super-combo"));
     const normalizedHours = normalizeOperatingHours(settings.operatingHours);
     setOperatingHours(normalizedHours);
     setSavedOperatingHours(normalizedHours);
@@ -418,24 +416,6 @@ export function AdminPanel({
 
   const toggleSoldOut = () =>
     updateSetting("/settings/sold-out", !soldOutEnabled);
-
-  const updateFeaturedProduct = async (productId: string) => {
-    setFeaturedProductId(productId);
-    if (!API_URL || savingPayOnDelivery) return;
-    setSavingPayOnDelivery(true);
-    try {
-      const response = await fetch(`${API_URL}/settings/featured-product`, {
-        method: "PATCH",
-        headers: adminHeaders(adminToken, true),
-        body: JSON.stringify({ productId }),
-      });
-      if (!response.ok) return;
-      const settings = await response.json();
-      applyPublicSettings(settings);
-    } finally {
-      setSavingPayOnDelivery(false);
-    }
-  };
 
   const updateOperatingHours = (next: OperatingHoursConfig) => {
     const normalized = normalizeOperatingHours(next);
@@ -959,7 +939,6 @@ export function AdminPanel({
             testModeEnabled={testModeEnabled}
             demoTableEnabled={demoTableEnabled}
             soldOutEnabled={soldOutEnabled}
-            featuredProductId={featuredProductId}
             adminLogin={adminLogin}
             operatingHours={operatingHours}
             presentation={presentation}
@@ -987,7 +966,6 @@ export function AdminPanel({
             onToggleTestMode={toggleTestMode}
             onToggleDemoTable={toggleDemoTable}
             onToggleSoldOut={toggleSoldOut}
-            onFeaturedProductChange={updateFeaturedProduct}
             onSaveAdminCredentials={saveAdminCredentials}
             onOperatingHoursChange={updateOperatingHours}
             onPresentationChange={setPresentation}

@@ -1,0 +1,16 @@
+.section { position: relative; width: 100%; overflow: hidden; background: #12070b; }
+.track { display: flex; width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
+.track::-webkit-scrollbar { display: none; }
+.card { position: relative; flex: 0 0 100%; width: 100%; min-width: 100%; height: clamp(430px, 62vw, 720px); overflow: hidden; scroll-snap-align: start; scroll-snap-stop: always; }
+.image { object-fit: cover; }
+.indicators { position: absolute; z-index: 5; right: 24px; bottom: 20px; display: flex; justify-content: center; gap: 8px; }
+.indicator { height: 8px; width: 8px; border: 1px solid rgba(255,255,255,.75); border-radius: 999px; background: rgba(255,255,255,.28); transition: width .2s ease, background .2s ease; }
+.indicatorActive { width: 30px; background: #ff3f87; border-color: #ff3f87; }
+@media (max-width: 767px) {
+  .card { height: min(142vw, 690px); }
+  .indicators { right: 50%; bottom: 14px; transform: translateX(50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .track { scroll-behavior: auto; }
+  .indicator { transition: none; }
+}

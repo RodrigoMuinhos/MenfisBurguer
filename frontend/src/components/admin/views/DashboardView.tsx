@@ -141,8 +141,9 @@ export function DashboardView({
   const vipCustomers = [...customers]
     .sort((a, b) => Number(b.total_spent ?? 0) - Number(a.total_spent ?? 0))
     .slice(0, 4);
-  const crmAudience = customers.filter((customer) => Number(customer.order_count ?? 0) > 0);
-  const inactiveCustomers = customers.filter((customer) => isInactive(customer.last_order_at));
+  const crmAudience = customers.filter((customer) => Number(customer.order_count ?? 0) > 0 && customer.marketing_opt_in);
+  const inactiveCustomers = crmAudience.filter((customer) => isInactive(customer.last_order_at));
+  const upcomingBirthdays = customers.filter((customer) => hasUpcomingBirthday(customer.birthday));
 
   return (
     <div className="mx-auto grid max-w-[1600px] gap-5 text-[#65001F]">
@@ -246,6 +247,7 @@ export function DashboardView({
           <div className="grid gap-3">
             <MiniMetric label="Base para disparo" value={String(crmAudience.length)} />
             <MiniMetric label="Inativos 30+ dias" value={String(inactiveCustomers.length)} />
+            <MiniMetric label="Aniversários 30 dias" value={String(upcomingBirthdays.length)} />
             <a
               href={buildCampaignWhatsappUrl(inactiveCustomers)}
               target="_blank"
@@ -409,6 +411,16 @@ function isInactive(lastOrderAt?: string) {
   if (!lastOrderAt) return false;
   const days = (Date.now() - new Date(lastOrderAt).getTime()) / 86400000;
   return days >= 30;
+}
+
+function hasUpcomingBirthday(value?: string) {
+  if (!value) return false;
+  const birthday = new Date(`${value.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(birthday.getTime())) return false;
+  const today = new Date();
+  let next = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate(), 12);
+  if (next.getTime() < today.getTime()) next = new Date(today.getFullYear() + 1, birthday.getMonth(), birthday.getDate(), 12);
+  return (next.getTime() - today.getTime()) / 86_400_000 <= 30;
 }
 
 function buildCampaignWhatsappUrl(customers: CrmCustomer[]) {

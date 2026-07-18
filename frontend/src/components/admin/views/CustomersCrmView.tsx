@@ -1,4 +1,4 @@
-import { KeyRound, MapPin, MessageCircle, Plus, Save, Search, Trash2, UserRound, X } from "lucide-react";
+import { Eye, EyeOff, KeyRound, MapPin, MessageCircle, Plus, Save, Search, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ROSA, VERDE } from "@/utils/theme";
 import { formatAddressForReceipt, formatDeliveryAddress } from "@/utils/address";
@@ -17,6 +17,10 @@ export type CrmCustomer = {
   average_ticket?: number;
   delivered_count?: number;
   last_order_at?: string;
+  last_login_at?: string;
+  birthday?: string;
+  marketing_opt_in?: boolean;
+  marketing_opt_in_at?: string;
   club_level?: "Silver" | "Gold";
   club_expires_at?: string;
   cep?: string;
@@ -34,6 +38,8 @@ type FormState = {
   email: string;
   cpf: string;
   internalNotes: string;
+  birthday: string;
+  marketingOptIn: boolean;
 };
 
 const emptyForm: FormState = {
@@ -42,6 +48,8 @@ const emptyForm: FormState = {
   email: "",
   cpf: "",
   internalNotes: "",
+  birthday: "",
+  marketingOptIn: false,
 };
 
 const DEFAULT_WHATSAPP_MESSAGE =
@@ -69,6 +77,10 @@ export function CustomersCrmView({
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [whatsappModalOpen, setWhatsappModalOpen] = useState(false);
   const [whatsappMessage, setWhatsappMessage] = useState(DEFAULT_WHATSAPP_MESSAGE);
+  const [showSensitiveData, setShowSensitiveData] = useState(false);
+
+  const inactiveCustomers = customers.filter((customer) => customer.last_order_at && daysSince(customer.last_order_at) >= 30);
+  const birthdayCustomers = customers.filter((customer) => birthdayWithinDays(customer.birthday, 30));
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -87,6 +99,7 @@ export function CustomersCrmView({
     setTemporaryPassword("");
     setWhatsappModalOpen(false);
     setFeedback("");
+    setShowSensitiveData(false);
     setForm({
       id: customer.id,
       name: customer.name ?? "",
@@ -94,6 +107,8 @@ export function CustomersCrmView({
       email: customer.email ?? "",
       cpf: customer.cpf ?? "",
       internalNotes: customer.internal_notes ?? "",
+      birthday: customer.birthday?.slice(0, 10) ?? "",
+      marketingOptIn: Boolean(customer.marketing_opt_in),
     });
   };
 
@@ -102,6 +117,7 @@ export function CustomersCrmView({
     setTemporaryPassword("");
     setWhatsappModalOpen(false);
     setFeedback("");
+    setShowSensitiveData(false);
     setForm(emptyForm);
   };
 
@@ -201,11 +217,13 @@ export function CustomersCrmView({
 
   return (
     <div className="grid gap-4">
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <CrmMetric label="Clientes" value={String(customers.length)} />
         <CrmMetric label="Pedidos" value={String(total(customers, "order_count"))} />
         <CrmMetric label="Total gasto" value={fmt(total(customers, "total_spent"))} />
         <CrmMetric label="Entregas" value={String(total(customers, "delivered_count"))} />
+        <CrmMetric label="Aniversários 30 dias" value={String(birthdayCustomers.length)} />
+        <CrmMetric label="Inativos 30+ dias" value={String(inactiveCustomers.length)} />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(280px,0.9fr)_minmax(360px,1.1fr)]">
@@ -245,6 +263,11 @@ export function CustomersCrmView({
                   <p className="text-base font-black leading-tight">{customer.name || "Cliente sem nome"}</p>
                   <p className="mt-1 text-sm font-black opacity-70">{customer.phone || "Sem telefone"}</p>
                   <p className="mt-1 text-xs font-bold opacity-50">{customer.email || "Sem e-mail"}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {birthdayWithinDays(customer.birthday, 30) && <CustomerBadge label="Aniversário próximo" />}
+                    {daysSince(customer.last_order_at) >= 30 && <CustomerBadge label={`${daysSince(customer.last_order_at)} dias sem comprar`} warning />}
+                    {customer.marketing_opt_in && <CustomerBadge label="Contato autorizado" />}
+                  </div>
                   <p className="mt-2 flex items-start gap-1.5 text-xs font-black leading-snug" style={{ color: VERDE }}>
                     <MapPin className="mt-0.5 shrink-0" size={13} />
                     <span className="whitespace-pre-line">{address || "Sem endereço cadastrado"}</span>
@@ -275,6 +298,21 @@ export function CustomersCrmView({
             <Field label="Telefone obrigatório" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} inputMode="tel" />
             <Field label="E-mail opcional" value={form.email} onChange={(email) => setForm({ ...form, email })} inputMode="email" />
             <Field label="CPF opcional" value={form.cpf} onChange={(cpf) => setForm({ ...form, cpf })} inputMode="numeric" />
+            <Field label="Data de nascimento" value={form.birthday} onChange={(birthday) => setForm({ ...form, birthday })} type="date" />
+            <div className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3" style={{ border: `1.5px solid ${VERDE}16` }}>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider opacity-45">Dados sensíveis</p>
+                <p className="mt-1 text-xs font-bold">CPF: {showSensitiveData ? form.cpf || "Não informado" : maskCpf(form.cpf)}</p>
+              </div>
+              <button type="button" onClick={() => setShowSensitiveData((value) => !value)} className="rounded-xl p-3" style={{ background: `${ROSA}33` }} aria-label={showSensitiveData ? "Ocultar CPF" : "Exibir CPF"}>
+                {showSensitiveData ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
+            <label className="flex items-center gap-3 rounded-2xl px-4 py-3 md:col-span-2" style={{ background: `${ROSA}22`, border: `1px solid ${VERDE}16` }}>
+              <input type="checkbox" checked={form.marketingOptIn} onChange={(event) => setForm({ ...form, marketingOptIn: event.target.checked })} className="h-5 w-5" />
+              <ShieldCheck size={19} />
+              <span><strong className="block text-xs uppercase">Consentimento para relacionamento</strong><span className="text-[11px] font-semibold opacity-60">Autoriza mensagens de aniversário, novidades e reativação.</span></span>
+            </label>
             <div className="rounded-2xl p-4 md:col-span-2" style={{ background: `${ROSA}33`, border: `1px solid ${VERDE}18` }}>
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: VERDE, color: ROSA }}>
@@ -327,6 +365,10 @@ export function CustomersCrmView({
               <Info label="Valor total gasto" value={fmt(Number(active.total_spent ?? 0))} />
               <Info label="Ticket médio" value={fmt(Number(active.average_ticket ?? 0))} />
               <Info label="Último pedido" value={active.last_order_at ? formatDate(active.last_order_at) : "-"} />
+              <Info label="Dias sem comprar" value={active.last_order_at ? String(daysSince(active.last_order_at)) : "Sem compras"} />
+              <Info label="Aniversário" value={active.birthday ? formatBirthday(active.birthday) : "Não informado"} />
+              <Info label="Último acesso" value={active.last_login_at ? formatDate(active.last_login_at) : "Nunca acessou"} />
+              <Info label="Relacionamento" value={active.marketing_opt_in ? "Contato autorizado" : "Sem autorização"} />
               <Info label="Data de cadastro" value={active.created_at ? formatDate(active.created_at) : "-"} />
               <Info label="Entregas realizadas" value={String(Number(active.delivered_count ?? 0))} />
               <Info label="Perfil" value="Cliente cadastrado" />
@@ -384,11 +426,13 @@ function Field({
   value,
   onChange,
   inputMode,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   inputMode?: "text" | "tel" | "email" | "numeric";
+  type?: "text" | "date";
 }) {
   return (
     <label className="grid gap-1">
@@ -397,11 +441,16 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         inputMode={inputMode}
+        type={type}
         className="rounded-2xl px-4 py-3 text-sm font-bold outline-none"
         style={{ border: `1.5px solid ${VERDE}16`, color: VERDE }}
       />
     </label>
   );
+}
+
+function CustomerBadge({ label, warning = false }: { label: string; warning?: boolean }) {
+  return <span className="rounded-full px-2 py-1 text-[9px] font-black uppercase" style={{ background: warning ? "#FEF2F2" : `${ROSA}33`, color: warning ? "#991B1B" : VERDE }}>{label}</span>;
 }
 
 function CrmMetric({ label, value }: { label: string; value: string }) {
@@ -439,4 +488,29 @@ function formatCustomerAddress(customer: CrmCustomer) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("pt-BR");
+}
+
+function daysSince(value?: string) {
+  if (!value) return Number.POSITIVE_INFINITY;
+  return Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000));
+}
+
+function birthdayWithinDays(value: string | undefined, windowDays: number) {
+  if (!value) return false;
+  const birthday = new Date(`${value.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(birthday.getTime())) return false;
+  const today = new Date();
+  let next = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate(), 12);
+  if (next.getTime() < today.getTime()) next = new Date(today.getFullYear() + 1, birthday.getMonth(), birthday.getDate(), 12);
+  return (next.getTime() - today.getTime()) / 86_400_000 <= windowDays;
+}
+
+function formatBirthday(value: string) {
+  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+}
+
+function maskCpf(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "Não informado";
+  return `***.***.***-${digits.slice(-2).padStart(2, "*")}`;
 }

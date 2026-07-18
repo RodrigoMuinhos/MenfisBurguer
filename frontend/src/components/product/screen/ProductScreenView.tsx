@@ -15,6 +15,7 @@ import type { MemberNotification } from "../notifications";
 import type { useProductCatalog } from "./useProductCatalog";
 import type { useProductMember } from "./useProductMember";
 import type { SpecialOfferSettings } from "@/components/order/checkout";
+import { ProductCarousel } from "../carousel/ProductCarousel";
 
 type ScreenState = {
  cart: CartItem[]; updateQty: (id:string,delta:number)=>void; kioskMode:boolean; activeOrder?:Order|null; notifications:MemberNotification[]; unreadNotificationCount:number; onOpenActiveOrder?: (orderId?:string)=>void; onRepeatOrder?: (items:CartItem[])=>void;
@@ -24,10 +25,10 @@ type ScreenState = {
 };
 
 export function ProductScreenView({ catalog, member, screen }: { catalog: ReturnType<typeof useProductCatalog>; member: ReturnType<typeof useProductMember>; screen: ScreenState }) {
- const { category,setCategory,featuredImage,featuredTitle,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem } = catalog;
+ const { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem } = catalog;
  const { loginOpen,setLoginOpen,profileOpen,setProfileOpen,historyOpen,setHistoryOpen,notificationsOpen,setNotificationsOpen,favoritesOpen,setFavoritesOpen,memberName,setMemberName,memberEmail,setMemberEmail,memberCpf,setMemberCpf,memberPhone,setMemberPhone,memberPassword,setMemberPassword,memberPasswordConfirm,setMemberPasswordConfirm,memberLogin,setMemberLogin,loginPassword,setLoginPassword,memberAuthMode,setMemberAuthMode,memberBirthday,setMemberBirthday,memberCep,setMemberCep,memberStreet,setMemberStreet,memberNumber,setMemberNumber,memberComplement,setMemberComplement,memberNeighborhood,setMemberNeighborhood,memberCity,setMemberCity,memberReference,setMemberReference,memberProfile,memberError,memberSaving,openMemberAccess,editMember,openHistory,openNotifications,saveMember,loginMember,requestPasswordRecovery,resetMemberPassword,logoutMember,updateMemberProfile } = member;
  const { cart,updateQty,kioskMode,activeOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu } = screen;
-  return (
+ return (
     <div
       style={{
         minHeight: "100dvh",
@@ -45,6 +46,8 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
           featuredImage={featuredImage}
           featuredTitle={featuredTitle}
           heroReady={heroSettingsLoaded}
+          carouselCards={carouselCards}
+          carouselIntervalSeconds={carouselIntervalSeconds}
           promoCards={promoCards}
           memberProfile={memberProfile}
           notificationCount={unreadNotificationCount}
@@ -115,18 +118,22 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
         />
 
         <main className="w-full px-0 pb-36 pt-0">
-          <ProductHero
-            kioskMode={kioskMode}
-            featuredItem={featuredItem}
-            featuredImage={featuredImage}
-            featuredTitle={featuredTitle}
-            heroReady={heroSettingsLoaded}
-            onIdleShortcutTap={handleIdleShortcutTap}
-            onAddFeatured={() => addMenuItem(featuredItem)}
-            operatingNow={operatingNow}
-            operatingHoursSummary={operatingHoursSummary}
-            operatingHoursMessage={operatingHoursMessage}
-          />
+          {kioskMode ? (
+            <ProductHero
+              kioskMode
+              featuredItem={featuredItem}
+              featuredImage={featuredImage}
+              featuredTitle={featuredTitle}
+              heroReady={heroSettingsLoaded}
+              onIdleShortcutTap={handleIdleShortcutTap}
+              onAddFeatured={() => addMenuItem(featuredItem)}
+              operatingNow={operatingNow}
+              operatingHoursSummary={operatingHoursSummary}
+              operatingHoursMessage={operatingHoursMessage}
+            />
+          ) : (
+            <ProductCarousel products={catalogItems} cards={carouselCards} intervalSeconds={carouselIntervalSeconds} onOpenProduct={setDetailItem} onAddProduct={addMenuItem} />
+          )}
 
           {!kioskMode && soldOutEnabled && (
             <SoldOutBanner
