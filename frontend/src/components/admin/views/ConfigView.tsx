@@ -241,6 +241,10 @@ export function ConfigView({
   );
   const specialOfferProduct = MENU_ITEMS.find((item) => item.id === normalizedSpecialOffer.productId) ?? MENU_ITEMS[0];
   const specialOfferProductImage = typeof specialOfferProduct.image === "string" ? specialOfferProduct.image : specialOfferProduct.image?.src;
+  const specialOfferProducts = [
+    ...MENU_ITEMS.filter((item) => item.id === "smash-nutella-marshmallow"),
+    ...MENU_ITEMS.filter((item) => item.id !== "smash-nutella-marshmallow").sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -482,7 +486,7 @@ export function ConfigView({
                 className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
                 style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
               >
-                {MENU_ITEMS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {specialOfferProducts.map((item) => <option key={item.id} value={item.id}>{item.id === "smash-nutella-marshmallow" ? "Smoore Menfi's — Sweet" : item.name}</option>)}
               </select>
             </label>
             <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}14` }}>
@@ -521,14 +525,15 @@ export function ConfigView({
               </button>
             </div>
           </div>
-          <div className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2" }}>
-            <div className="relative aspect-[4/3] bg-white">
-              <img src={specialOfferProductImage} alt="Prévia do pop-up" className="h-full w-full object-cover" />
-            </div>
-            <div className="p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55" style={{ color: VERDE }}>Destaque especial do mês</p>
-              <p className="mt-1 text-lg font-black uppercase leading-tight" style={{ color: VERDE }}>{specialOfferProduct.name}</p>
-              <p className="mt-2 text-sm font-black" style={{ color: VERDE }}>R$ {specialOfferProduct.price.toFixed(2).replace(".", ",")}</p>
+          <div className="overflow-hidden rounded-[28px] border" style={{ borderColor: `${ROSA}88`, background: "radial-gradient(circle at 50% 25%,#750020,#220810 68%)", boxShadow: `0 22px 48px ${ROSA}22` }}>
+            <div className="relative aspect-[4/5]">
+              <span className="absolute left-4 top-4 z-10 rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-[.15em]" style={{ background: ROSA, color: "#2a0713" }}>Produto em destaque</span>
+              <img src={specialOfferProductImage} alt="Prévia do pop-up" className="h-full w-full object-contain p-5 pt-14 drop-shadow-2xl" />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#16070c] via-[#16070ce8] to-transparent px-5 pb-5 pt-20 text-white">
+                <p className="text-2xl font-black uppercase leading-none" style={{ fontFamily: "var(--menfis-font-display)" }}>{specialOfferProduct.name}</p>
+                <p className="mt-3 text-3xl font-black" style={{ color: ROSA }}>R$ {specialOfferProduct.price.toFixed(2).replace(".", ",")}</p>
+                <div className="mt-4 rounded-xl py-3 text-center text-[10px] font-black uppercase" style={{ background: ROSA, color: "#2a0713" }}>Adicionar ao pedido +</div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
-.section { position: relative; width: 100%; overflow: hidden; background: #12070b; }
-.track { display: flex; width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
+.section { position: relative; width: 100%; overflow: hidden; overflow-anchor: none; background: #12070b; }
+.track { display: flex; width: 100%; overflow-x: auto; overflow-anchor: none; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
 .track::-webkit-scrollbar { display: none; }
 .card { position: relative; flex: 0 0 100%; width: 100%; min-width: 100%; height: clamp(430px, 62vw, 720px); overflow: hidden; scroll-snap-align: start; scroll-snap-stop: always; }
 .image { object-fit: cover; }

@@ -169,27 +169,28 @@ export function SpecialOfferModal({
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 16, scale: 0.96 }}
         transition={{ type: "spring", stiffness: 260, damping: 24 }}
-        className="relative max-h-[86dvh] w-full max-w-[390px] overflow-hidden rounded-[26px] bg-white shadow-[0_28px_80px_rgba(0,0,0,0.35)] sm:max-w-lg"
-        style={{ color: VERDE }}
+        className="relative max-h-[92dvh] w-full max-w-[720px] overflow-hidden rounded-[32px] border shadow-[0_36px_110px_rgba(0,0,0,0.62)]"
+        style={{ color: "#fff", borderColor: "rgba(255,63,135,.4)", background: "radial-gradient(circle at 30% 20%,#750020 0%,#2a0713 48%,#12070b 100%)" }}
         onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           className="absolute right-3 top-3 z-10 grid h-11 w-11 place-items-center rounded-full"
-          style={{ background: "rgba(255,255,255,0.92)", color: VERDE, border: `1px solid ${VERDE}14` }}
+          style={{ background: "rgba(18,7,11,.82)", color: "#fff", border: "1px solid rgba(255,255,255,.25)", backdropFilter: "blur(10px)" }}
           aria-label="Fechar promoção"
         >
           <X size={19} strokeWidth={2.7} />
         </button>
 
-        <div className="max-h-[86dvh] overflow-y-auto">
-          <div className="relative aspect-[1.18/1] bg-white sm:aspect-[1.45/1]">
+        <div className="grid max-h-[92dvh] overflow-y-auto md:grid-cols-[1.25fr_.85fr]">
+          <div className="relative min-h-[46dvh] overflow-hidden md:min-h-[660px]">
+            <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(circle at center,rgba(255,63,135,.24),transparent 62%)" }} />
             {offer.image ? (
               <img
                 src={offer.image}
                 alt={offer.title}
-                className="h-full w-full object-cover"
+                className="relative z-[1] h-full w-full object-contain p-5 pt-16 drop-shadow-[0_28px_30px_rgba(0,0,0,.55)] md:p-8 md:pt-20"
                 loading="eager"
               />
             ) : (
@@ -198,38 +199,40 @@ export function SpecialOfferModal({
               </div>
             )}
             <span
-              className="absolute left-4 top-4 rounded-full px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em]"
-              style={{ background: VERDE, color: ROSA }}
+              className="absolute left-5 top-5 z-[2] rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em]"
+              style={{ background: ROSA, color: "#330810", boxShadow: "0 10px 28px rgba(255,63,135,.3)" }}
             >
-              Destaque especial do mês
+              Produto em destaque
             </span>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-40 bg-gradient-to-t from-[#210810] to-transparent md:hidden" />
           </div>
 
-          <div className="p-5 sm:p-6">
+          <div className="relative z-[3] flex flex-col justify-center border-t border-white/10 p-6 md:border-l md:border-t-0 md:p-8">
+            <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ff8fb7]">Menfi's seleciona</p>
             <h2
-              className="uppercase"
+              className="mt-3 uppercase text-white"
               style={{
                 fontFamily: "var(--menfis-font-display)",
-                fontSize: "clamp(2.1rem, 9vw, 3.25rem)",
-                lineHeight: 0.9,
+                fontSize: "clamp(2.5rem, 9vw, 4.2rem)",
+                lineHeight: 0.86,
                 letterSpacing: 0,
               }}
             >
               {offer.title}
             </h2>
-            <p className="mt-3 text-sm font-semibold leading-relaxed opacity-75 sm:text-base">
+            <p className="mt-5 text-sm font-semibold leading-relaxed text-white/72">
               {offer.description}
             </p>
-            <div className="mt-5 flex items-end justify-between gap-4">
+            <div className="mt-7 flex items-end justify-between gap-4 border-y border-white/10 py-5">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-45">
-                  Preço especial
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
+                  Peça agora por
                 </p>
                 <p
-                  className="mt-1"
+                  className="mt-1 text-[#ff3f87]"
                   style={{
                     fontFamily: "var(--menfis-font-display)",
-                    fontSize: "2.6rem",
+                    fontSize: "3.2rem",
                     lineHeight: 0.9,
                   }}
                 >
@@ -237,20 +240,20 @@ export function SpecialOfferModal({
                 </p>
               </div>
             </div>
-            <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <div className="mt-6 grid gap-3">
               <button
                 type="button"
                 onClick={onAdd}
-                className="min-h-13 rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-wide"
-                style={{ background: VERDE, color: ROSA }}
+                className="flex min-h-14 items-center justify-center gap-2 rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-wide transition-transform hover:scale-[1.02]"
+                style={{ background: "linear-gradient(135deg,#ff3f87,#ff668f)", color: "#25070f", boxShadow: "0 16px 36px rgba(255,63,135,.3)" }}
               >
-                {offer.primaryButton}
+                {offer.primaryButton} <Plus size={18} />
               </button>
               <button
                 type="button"
                 onClick={onViewMenu}
-                className="min-h-13 rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-wide"
-                style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}18` }}
+                className="min-h-12 rounded-2xl px-5 py-3 text-[10px] font-black uppercase tracking-wide text-white/75"
+                style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.14)" }}
               >
                 {offer.secondaryButton}
               </button>

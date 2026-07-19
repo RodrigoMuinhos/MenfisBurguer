@@ -10,11 +10,13 @@ import type { CarouselAction, CarouselSlide as SlideData } from "./product-carou
 import styles from "./product-carousel.module.css";
 
 export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenProduct, onAddProduct }: { products: MenuItem[]; cards: CarouselCardSettings[]; intervalSeconds?: number; onOpenProduct: (product: MenuItem) => void; onAddProduct: (product: MenuItem) => void }) {
+  const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [adding, setAdding] = useState(false);
   const [paused, setPaused] = useState(false);
-  const slides: SlideData[] = cards.filter((card) => card.enabled).map((card, index) => {
+  const [inView, setInView] = useState(true);
+  const slides: SlideData[] = cards.filter((card) => card.enabled && (!card.productId || products.some((product) => product.id === card.productId))).map((card, index) => {
     const product = products.find((item) => item.id === card.productId);
     return {
       id: index + 1,
@@ -32,10 +34,18 @@ export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenPr
   });
 
   useEffect(() => {
-    if (paused || slides.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const section = sectionRef.current;
+    if (!section || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting && entry.intersectionRatio >= 0.25), { threshold: [0, 0.25] });
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (paused || !inView || slides.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const timer = window.setInterval(() => goTo((active + 1) % slides.length), Math.max(2, intervalSeconds) * 1000);
     return () => window.clearInterval(timer);
-  }, [active, paused, slides.length, intervalSeconds]);
+  }, [active, paused, inView, slides.length, intervalSeconds]);
 
   const goTo = (index: number) => {
     const next = Math.max(0, Math.min(slides.length - 1, index));
@@ -70,7 +80,7 @@ export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenPr
   };
 
   return (
-    <section className={styles.section} aria-roledescription="carrossel" aria-label="Destaques do cardápio Menfi's" onKeyDown={handleKeyDown} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} tabIndex={0}>
+    <section ref={sectionRef} className={styles.section} aria-roledescription="carrossel" aria-label="Destaques do cardápio Menfi's" onKeyDown={handleKeyDown} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} tabIndex={0}>
       <div ref={trackRef} className={styles.track} onScroll={handleScroll}>
         {slides.map((slide, index) => <CarouselSlide key={slide.id} slide={slide} product={slide.productId ? products.find((product) => product.id === slide.productId) : undefined} priority={index === 0} adding={adding} total={slides.length} onAction={handleAction} />)}
       </div>
