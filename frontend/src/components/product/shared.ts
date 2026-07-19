@@ -91,6 +91,7 @@ export const DRINK_OPTIONS = [
 export const EXTRA_OPTIONS = [
   { id: "extra-queijo", label: "Extra queijo", price: 2, image: "/EXTRAS/queijo.jpg" },
   { id: "extra-ovo", label: "Ovo", price: 2.5, image: "/EXTRAS/ovo.jpg" },
+  { id: "extra-picles", label: "Picles", price: 1.49, image: "/EXTRAS/picles.jpg" },
   { id: "extra-bacon", label: "Adicional de bacon", price: 5.9, image: "/EXTRAS/bacon.jpg" },
   { id: "extra-cheddar", label: "Adicional de cheddar", price: 6.9, image: "/queijo.jpg" },
   { id: "extra-maionese-barbecue", label: "Maionse Grill", price: 2.5, image: "/EXTRAS/MaioneseBarbecue.jpg" },

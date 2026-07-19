@@ -156,6 +156,7 @@ export const ITEM_DESC: Record<string, string> = {
   "extra-cheddar": "Cheddar adicional 30g",
   "extra-queijo": "Queijo extra derretido",
   "extra-ovo": "Ovo adicional no burger",
+  "extra-picles": "Porção extra de picles",
   "extra-molho": "Porção extra do molho Menfi's",
   "extra-maionese-barbecue": "Porção extra de Maionse Grill",
   "extra-maionese-alho-frito": "Porção extra de maionese alho frito",

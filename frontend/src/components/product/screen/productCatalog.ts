@@ -14,6 +14,7 @@ export const CUSTOMIZER_ADDON_IDS = new Set([
   "extra-frango",
   "extra-queijo",
   "extra-ovo",
+  "extra-picles",
   "extra-bacon",
   "extra-cheddar",
   "extra-maionese-barbecue",
@@ -154,5 +155,4 @@ export function preloadClientImages(srcs: Array<string | undefined>) {
       image.src = src;
     });
 }
-
 

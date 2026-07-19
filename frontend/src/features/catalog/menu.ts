@@ -282,6 +282,16 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "extra",
   },
   {
+    id: "extra-picles",
+    name: "Picles",
+    eyebrow: "Adicional",
+    desc: "Porção extra de picles para completar o burger.",
+    price: 1.49,
+    image: "/EXTRAS/picles.jpg",
+    tags: ["Picles", "Adicional"],
+    category: "extra",
+  },
+  {
     id: "extra-maionese-barbecue",
     name: "Maionse Grill",
     eyebrow: "Adicional",
