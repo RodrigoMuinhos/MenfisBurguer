@@ -39,7 +39,10 @@ export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenPr
 
   const goTo = (index: number) => {
     const next = Math.max(0, Math.min(slides.length - 1, index));
-    trackRef.current?.children[next]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    const track = trackRef.current;
+    if (track?.children[next]) {
+      track.scrollTo({ left: next * track.clientWidth, behavior: "smooth" });
+    }
     setActive(next);
   };
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {

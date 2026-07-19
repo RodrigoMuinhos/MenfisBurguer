@@ -217,12 +217,6 @@ export function ConfigView({
   const updateSpecialOffer = (patch: Partial<SpecialOfferSettings>) => {
     onSpecialOfferChange(normalizeSpecialOfferSettings({ ...normalizedSpecialOffer, ...patch }));
   };
-  const setSpecialOfferImageFromFiles = async (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    const image = await encodePresentationImage(file);
-    updateSpecialOffer({ image });
-  };
   const addPromoCard = () => {
     onPromoCardsChange([
       ...normalizedPromoCards,
@@ -245,6 +239,8 @@ export function ConfigView({
     /^(.{2}).*(@.*)$/,
     "$1***$2",
   );
+  const specialOfferProduct = MENU_ITEMS.find((item) => item.id === normalizedSpecialOffer.productId) ?? MENU_ITEMS[0];
+  const specialOfferProductImage = typeof specialOfferProduct.image === "string" ? specialOfferProduct.image : specialOfferProduct.image?.src;
 
   return (
     <div className="flex flex-col gap-4">
@@ -456,7 +452,7 @@ export function ConfigView({
             <div>
               <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Pop-up promocional</p>
               <p className="mt-1 text-xs font-bold opacity-55" style={{ color: VERDE }}>
-                Aparece no cardápio 5 segundos depois que o cliente abre o menu.
+                Usa automaticamente nome, imagem, descrição, preço e disponibilidade definidos na gestão de produtos.
               </p>
             </div>
           </div>
@@ -475,77 +471,28 @@ export function ConfigView({
           </button>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-          <div className="grid gap-3">
-            <div className="grid gap-3 md:grid-cols-[1fr_150px]">
-              <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-                Produto/combo destacado
-                <select
-                  value={normalizedSpecialOffer.productId}
-                  onChange={(event) => updateSpecialOffer({ productId: event.target.value })}
-                  disabled={saving || disabled}
-                  className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
-                  style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-                >
-                  {MENU_ITEMS.filter((item) => item.category === "combo" || item.category === "burger").map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-                Preço
-                <input
-                  value={String(normalizedSpecialOffer.price).replace(".", ",")}
-                  onChange={(event) => updateSpecialOffer({ price: Number(event.target.value.replace(",", ".")) })}
-                  disabled={saving || disabled}
-                  className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
-                  style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-                />
-              </label>
-            </div>
+        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+          <div className="grid content-start gap-4">
             <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-              Título
-              <input
-                value={normalizedSpecialOffer.title}
-                onChange={(event) => updateSpecialOffer({ title: event.target.value })}
+              Produto do pop-up
+              <select
+                value={normalizedSpecialOffer.productId}
+                onChange={(event) => updateSpecialOffer({ productId: event.target.value })}
                 disabled={saving || disabled}
                 className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
                 style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-              />
+              >
+                {MENU_ITEMS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
             </label>
-            <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-              Descrição
-              <textarea
-                value={normalizedSpecialOffer.description}
-                onChange={(event) => updateSpecialOffer({ description: event.target.value })}
-                disabled={saving || disabled}
-                className="min-h-24 resize-none rounded-2xl px-4 py-3 text-sm font-bold outline-none"
-                style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-              />
-            </label>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-                Botão principal
-                <input
-                  value={normalizedSpecialOffer.primaryButton}
-                  onChange={(event) => updateSpecialOffer({ primaryButton: event.target.value })}
-                  disabled={saving || disabled}
-                  className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
-                  style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-                />
-              </label>
-              <label className="grid gap-1 text-[10px] font-black uppercase tracking-wide" style={{ color: `${VERDE}99` }}>
-                Botão secundário
-                <input
-                  value={normalizedSpecialOffer.secondaryButton}
-                  onChange={(event) => updateSpecialOffer({ secondaryButton: event.target.value })}
-                  disabled={saving || disabled}
-                  className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
-                  style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
-                />
-              </label>
+            <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}14` }}>
+              <p className="text-[10px] font-black uppercase tracking-[.16em] opacity-55">Dados sincronizados da gestão de produtos</p>
+              <div className="mt-3 grid gap-2 text-xs font-bold">
+                <p><strong>Nome:</strong> {specialOfferProduct.name}</p>
+                <p><strong>Preço:</strong> R$ {specialOfferProduct.price.toFixed(2).replace(".", ",")}</p>
+                <p><strong>Descrição:</strong> {specialOfferProduct.desc}</p>
+                <p className="opacity-65">Imagem, preço, nome e descrição são atualizados automaticamente quando o produto for alterado na gestão.</p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -572,30 +519,16 @@ export function ConfigView({
               >
                 Toda vez que abrir
               </button>
-              <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase" style={{ background: `${ROSA}35`, color: VERDE, border: `1.5px solid ${ROSA}` }}>
-                <ImagePlus size={15} />
-                Upload imagem
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  disabled={saving || disabled}
-                  onChange={(event) => {
-                    void setSpecialOfferImageFromFiles(event.target.files);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </label>
             </div>
           </div>
           <div className="overflow-hidden rounded-2xl" style={{ border: `1px solid ${VERDE}14`, background: "#FFF8F2" }}>
             <div className="relative aspect-[4/3] bg-white">
-              <img src={normalizedSpecialOffer.image} alt="Prévia do pop-up" className="h-full w-full object-cover" />
+              <img src={specialOfferProductImage} alt="Prévia do pop-up" className="h-full w-full object-cover" />
             </div>
             <div className="p-4">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55" style={{ color: VERDE }}>Destaque especial do mês</p>
-              <p className="mt-1 text-lg font-black uppercase leading-tight" style={{ color: VERDE }}>{normalizedSpecialOffer.title}</p>
-              <p className="mt-2 text-sm font-black" style={{ color: VERDE }}>R$ {normalizedSpecialOffer.price.toFixed(2).replace(".", ",")}</p>
+              <p className="mt-1 text-lg font-black uppercase leading-tight" style={{ color: VERDE }}>{specialOfferProduct.name}</p>
+              <p className="mt-2 text-sm font-black" style={{ color: VERDE }}>R$ {specialOfferProduct.price.toFixed(2).replace(".", ",")}</p>
             </div>
           </div>
         </div>

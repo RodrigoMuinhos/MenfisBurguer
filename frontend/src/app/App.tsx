@@ -88,7 +88,6 @@ export default function App({ mode }: { mode?: AppMode }) {
   const appMode = resolveAppMode(mode);
   const adminOnlyMode = appMode === "admin" || appMode === "kds" || appMode === "notes";
   const kioskMode = appMode === "kiosk";
-  const [started, setStarted] = useState(true);
   const [screen, setScreen] = useState<Screen>(
     appMode === "admin" || appMode === "kds" || appMode === "notes" ? "admin" : "product",
   );
@@ -107,7 +106,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     adminToken,
     lastOrderId,
     screen,
-    started,
+    started: true,
   });
   const [memberNotifications, setMemberNotifications] = useState<MemberNotification[]>([]);
   const [paymentTimeoutOrder, setPaymentTimeoutOrder] = useState<Order | null>(null);
@@ -121,7 +120,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     showIdleScreen,
     resetKioskActivity,
     openKioskIdleScreen,
-  } = useKioskIdle({ kioskMode, screen, started, setCart, setScreen });
+  } = useKioskIdle({ kioskMode, screen, started: true, setCart, setScreen });
 
   useEffect(() => {
     const cacheIsCurrent = localStorage.getItem("menfis_cache_version") === CACHE_VERSION;
@@ -189,7 +188,6 @@ export default function App({ mode }: { mode?: AppMode }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (adminOnlyMode) {
-      setStarted(true);
       if (appMode === "kds" || appMode === "notes") setScreen("admin");
       return;
     }
@@ -198,7 +196,6 @@ export default function App({ mode }: { mode?: AppMode }) {
     if (!orderId) return;
 
     const paymentReturn = params.get("payment");
-    setStarted(true);
     setLastOrderId(orderId);
     if (paymentReturn === "failure" || paymentReturn === "pending") {
       localStorage.setItem(CHECKOUT_RETURN_STEP_KEY, "payment");
@@ -317,7 +314,7 @@ export default function App({ mode }: { mode?: AppMode }) {
   }, [kioskMobQueue.map((order) => order.id).join("|"), loadOrderById, screen]);
 
   useEffect(() => {
-    if (adminOnlyMode || kioskMode || !started || typeof window === "undefined") return;
+    if (adminOnlyMode || kioskMode || typeof window === "undefined") return;
     const token = localStorage.getItem(MEMBER_TOKEN_KEY);
     if (!token || !API_URL) return;
 
@@ -352,7 +349,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [adminOnlyMode, kioskMode, started]);
+  }, [adminOnlyMode, kioskMode]);
 
   const openInstalledAdmin = async () => {
     const desktopWindow = window as typeof window & {

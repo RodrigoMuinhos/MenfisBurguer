@@ -28,6 +28,17 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
  const { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem } = catalog;
  const { loginOpen,setLoginOpen,profileOpen,setProfileOpen,historyOpen,setHistoryOpen,notificationsOpen,setNotificationsOpen,favoritesOpen,setFavoritesOpen,memberName,setMemberName,memberEmail,setMemberEmail,memberCpf,setMemberCpf,memberPhone,setMemberPhone,memberPassword,setMemberPassword,memberPasswordConfirm,setMemberPasswordConfirm,memberLogin,setMemberLogin,loginPassword,setLoginPassword,memberAuthMode,setMemberAuthMode,memberBirthday,setMemberBirthday,memberCep,setMemberCep,memberStreet,setMemberStreet,memberNumber,setMemberNumber,memberComplement,setMemberComplement,memberNeighborhood,setMemberNeighborhood,memberCity,setMemberCity,memberReference,setMemberReference,memberProfile,memberError,memberSaving,openMemberAccess,editMember,openHistory,openNotifications,saveMember,loginMember,requestPasswordRecovery,resetMemberPassword,logoutMember,updateMemberProfile } = member;
  const { cart,updateQty,kioskMode,activeOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu } = screen;
+ const specialOfferProduct = catalogItems.find((item) => item.id === specialOffer.productId) ?? featuredItem;
+ const managedSpecialOffer: SpecialOfferSettings = {
+   ...specialOffer,
+   productId: specialOfferProduct.id,
+   title: specialOfferProduct.name,
+   description: specialOfferProduct.desc,
+   price: specialOfferProduct.price,
+   image: typeof specialOfferProduct.image === "string" ? specialOfferProduct.image : specialOfferProduct.image?.src ?? "",
+   primaryButton: "Adicionar ao pedido",
+   secondaryButton: "Ver cardápio",
+ };
  return (
     <div
       style={{
@@ -351,7 +362,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
       <AnimatePresence>
         {specialOfferOpen && (
           <SpecialOfferModal
-            offer={specialOffer}
+            offer={managedSpecialOffer}
             onClose={closeSpecialOffer}
             onAdd={addSpecialOffer}
             onViewMenu={viewSpecialOfferMenu}

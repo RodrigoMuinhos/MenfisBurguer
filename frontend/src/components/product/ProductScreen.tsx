@@ -321,17 +321,7 @@ export function ProductScreen({
       catalogItems.find((item) => item.id === specialOffer.productId) ??
       featuredItem;
     closeSpecialOffer();
-    openCustomizer({
-      ...baseItem,
-      name: specialOffer.title || baseItem.name,
-      desc: specialOffer.description || baseItem.desc,
-      price: specialOffer.price || baseItem.price,
-      image: specialOffer.image || baseItem.image,
-      originalPrice:
-        baseItem.originalPrice && baseItem.originalPrice > specialOffer.price
-          ? baseItem.originalPrice
-          : undefined,
-    });
+    openCustomizer(baseItem);
   };
 
   const viewSpecialOfferMenu = () => {
@@ -472,4 +462,3 @@ export function ProductScreen({
   };
   return <ProductScreenView catalog={catalog} member={member} screen={{ cart,updateQty,kioskMode,activeOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu }} />;
 }
-

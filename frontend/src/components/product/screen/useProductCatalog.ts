@@ -46,6 +46,7 @@ export function useProductCatalog(kioskMode: boolean) {
   const featuredItem = (featuredProductId ? catalogItems.find((item) => item.id === featuredProductId) : undefined)
     ?? (heroSettingsLoaded ? catalogItems.find((item) => item.id === DEFAULT_FEATURED_PRODUCT_ID) : undefined)
     ?? catalogItems[0] ?? MENU_ITEMS.find((item) => item.id === DEFAULT_FEATURED_PRODUCT_ID) ?? MENU_ITEMS[0];
+  const specialOfferProductAvailable = catalogItems.some((item) => item.id === specialOffer.productId);
 
   const applyPublicSettings = (settings: Record<string, unknown> | null | undefined) => {
     setFeaturedProductId(settings?.featuredProductId ? String(settings.featuredProductId) : DEFAULT_FEATURED_PRODUCT_ID);
@@ -75,12 +76,12 @@ export function useProductCatalog(kioskMode: boolean) {
 
   useEffect(() => { preloadClientImages([featuredImage, featuredItem?.image ? imageSrc(featuredItem.image) : undefined]); }, [featuredImage, featuredItem?.id, featuredItem?.image]);
   useEffect(() => {
-    if (typeof window === "undefined" || !heroSettingsLoaded || !specialOffer.enabled) return;
+    if (typeof window === "undefined" || !heroSettingsLoaded || !specialOffer.enabled || !specialOfferProductAvailable) return;
     preloadClientImages([specialOffer.image]); const key = specialOfferSessionKey(specialOffer, kioskMode);
     if (specialOffer.oncePerSession && sessionStorage.getItem(key) === "1") return;
     const timer = window.setTimeout(() => { if (specialOffer.oncePerSession) sessionStorage.setItem(key, "1"); setSpecialOfferOpen(true); }, 120);
     return () => window.clearTimeout(timer);
-  }, [heroSettingsLoaded, kioskMode, specialOffer.enabled, specialOffer.oncePerSession, specialOffer.productId, specialOffer.image, specialOffer.title]);
+  }, [heroSettingsLoaded, kioskMode, specialOffer.enabled, specialOffer.oncePerSession, specialOffer.productId, specialOffer.image, specialOffer.title, specialOfferProductAvailable]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !API_URL) return;
