@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, BarChart3, CalendarRange, Download, Package, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, CalendarRange, ChevronLeft, ChevronRight, Download, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -15,10 +15,11 @@ export function IntelligenceReportsView({ orders, stockItems, movements, adminTo
   const [preset, setPreset] = useState<Preset>("month");
   const [customStart, setCustomStart] = useState(localDateKey(Date.now() - 29 * 86400000));
   const [customEnd, setCustomEnd] = useState(localDateKey(Date.now()));
+  const [periodOffset, setPeriodOffset] = useState(0);
   const [pricing, setPricing] = useState<PricingRow[]>([]);
 
   useEffect(() => { void fetchPricingProducts("/backend", adminToken).then(setPricing).catch(() => setPricing([])); }, [adminToken]);
-  const range = useMemo(() => dateRange(preset, customStart, customEnd), [preset, customStart, customEnd]);
+  const range = useMemo(() => dateRange(preset, customStart, customEnd, periodOffset), [preset, customStart, customEnd, periodOffset]);
   const filtered = useMemo(() => orders.filter((order) => { const key = localDateKey(order.timestamp); return key >= range.start && key <= range.end; }), [orders, range]);
   const billable = filtered.filter(isBillableOrder);
   const previous = useMemo(() => previousPeriodOrders(orders, range), [orders, range]);
@@ -49,9 +50,13 @@ export function IntelligenceReportsView({ orders, stockItems, movements, adminTo
           <button onClick={() => exportCsv(filtered)} className="flex min-h-11 items-center gap-2 rounded-xl px-4 text-xs font-black text-white" style={{ background: VERDE }}><Download size={16}/> Exportar CSV</button>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
-          {([['today','Hoje'],['week','Semana'],['month','Mês'],['quarter','Trimestre'],['year','Ano'],['custom','Personalizado']] as [Preset,string][]).map(([id,label]) => <button key={id} onClick={() => setPreset(id)} className="rounded-full px-4 py-2 text-xs font-black" style={{ background: preset === id ? VERDE : '#fff', color: preset === id ? ROSA : VERDE, border: `1px solid ${VERDE}22` }}>{label}</button>)}
-          {preset === "custom" && <><input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="rounded-xl border px-3 text-xs font-bold"/><input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="rounded-xl border px-3 text-xs font-bold"/></>}
-          <span className="ml-auto flex items-center gap-2 text-xs font-bold opacity-60"><CalendarRange size={15}/>{formatDate(range.start)} até {formatDate(range.end)}</span>
+          {([['today','Hoje'],['week','Semana'],['month','Mês'],['quarter','Trimestre'],['year','Ano'],['custom','Personalizado']] as [Preset,string][]).map(([id,label]) => <button key={id} onClick={() => { setPreset(id); setPeriodOffset(0); }} className="rounded-full px-4 py-2 text-xs font-black" style={{ background: preset === id ? VERDE : '#fff', color: preset === id ? ROSA : VERDE, border: `1px solid ${VERDE}22` }}>{label}</button>)}
+          {preset === "custom" && <><input type="date" value={customStart} onChange={(e) => { setCustomStart(e.target.value); setPeriodOffset(0); }} className="rounded-xl border px-3 text-xs font-bold"/><input type="date" value={customEnd} onChange={(e) => { setCustomEnd(e.target.value); setPeriodOffset(0); }} className="rounded-xl border px-3 text-xs font-bold"/></>}
+          <div className="ml-auto flex items-center gap-2">
+            <button type="button" onClick={() => setPeriodOffset((value) => value - 1)} aria-label="Ver período anterior" title="Período anterior" className="grid h-10 w-10 place-items-center rounded-full border bg-white shadow-sm transition hover:-translate-x-0.5" style={{ borderColor: `${VERDE}30` }}><ChevronLeft size={19}/></button>
+            <span className="flex min-w-[190px] items-center justify-center gap-2 text-xs font-bold"><CalendarRange size={15}/>{formatDate(range.start)} até {formatDate(range.end)}</span>
+            <button type="button" onClick={() => setPeriodOffset((value) => Math.min(0, value + 1))} disabled={periodOffset === 0} aria-label="Ver período seguinte" title="Período seguinte" className="grid h-10 w-10 place-items-center rounded-full border bg-white shadow-sm transition enabled:hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-30" style={{ borderColor: `${VERDE}30` }}><ChevronRight size={19}/></button>
+          </div>
         </div>
       </header>
 
@@ -88,7 +93,34 @@ function Insight({icon,label,value}:{icon:React.ReactNode;label:string;value:str
 function Mini({label,value,warning}:{label:string;value:string;warning?:boolean}){return <div className="rounded-xl p-3" style={{background:warning?'#FEF2F2':'#FFF8F2'}}><p className="text-[9px] font-black uppercase opacity-45">{label}</p><p className="mt-1 text-lg font-black">{value}</p></div>}
 function Donut({data}:{data:{name:string;value:number}[]}){return <><ResponsiveContainer width="100%" height={220}><PieChart><Pie data={data} dataKey="value" nameKey="name" innerRadius={58} outerRadius={88} paddingAngle={3}>{data.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}</Pie><Tooltip formatter={(v)=>fmt(Number(v))}/></PieChart></ResponsiveContainer><div className="flex flex-wrap justify-center gap-3">{data.map((d,i)=><span key={d.name} className="flex items-center gap-1 text-[10px] font-bold"><i className="h-2 w-2 rounded-full" style={{background:COLORS[i%COLORS.length]}}/>{d.name}</span>)}</div></>}
 function sum(values:number[]){return values.reduce((a,b)=>a+b,0)}
-function dateRange(p:Preset,start:string,end:string){const now=new Date();now.setHours(12,0,0,0);let from=new Date(now);if(p==='week')from.setDate(now.getDate()-6);if(p==='month')from=new Date(now.getFullYear(),now.getMonth(),1,12);if(p==='quarter')from=new Date(now.getFullYear(),Math.floor(now.getMonth()/3)*3,1,12);if(p==='year')from=new Date(now.getFullYear(),0,1,12);return p==='custom'?{start,end}:{start:localDateKey(from.getTime()),end:localDateKey(now.getTime())}}
+function dateRange(p:Preset,start:string,end:string,offset=0){
+  if(p==='custom'){
+    const from=new Date(`${start}T12:00:00`),to=new Date(`${end}T12:00:00`),days=Math.round((to.getTime()-from.getTime())/86400000)+1;
+    from.setDate(from.getDate()+offset*days);to.setDate(to.getDate()+offset*days);
+    return {start:localDateKey(from.getTime()),end:localDateKey(to.getTime())};
+  }
+  const now=new Date();now.setHours(12,0,0,0);
+  if(p==='today'){now.setDate(now.getDate()+offset);return {start:localDateKey(now.getTime()),end:localDateKey(now.getTime())};}
+  if(p==='week'){
+    const to=new Date(now);to.setDate(to.getDate()+offset*7);
+    const from=new Date(to);from.setDate(from.getDate()-6);
+    return {start:localDateKey(from.getTime()),end:localDateKey(to.getTime())};
+  }
+  if(p==='month'){
+    const from=new Date(now.getFullYear(),now.getMonth()+offset,1,12);
+    const to=offset===0?new Date(now):new Date(now.getFullYear(),now.getMonth()+offset+1,0,12);
+    return {start:localDateKey(from.getTime()),end:localDateKey(to.getTime())};
+  }
+  if(p==='quarter'){
+    const quarterStart=Math.floor(now.getMonth()/3)*3+offset*3;
+    const from=new Date(now.getFullYear(),quarterStart,1,12);
+    const to=offset===0?new Date(now):new Date(now.getFullYear(),quarterStart+3,0,12);
+    return {start:localDateKey(from.getTime()),end:localDateKey(to.getTime())};
+  }
+  const from=new Date(now.getFullYear()+offset,0,1,12);
+  const to=offset===0?new Date(now):new Date(now.getFullYear()+offset,11,31,12);
+  return {start:localDateKey(from.getTime()),end:localDateKey(to.getTime())};
+}
 function previousPeriodOrders(orders:Order[],range:{start:string;end:string}){const a=new Date(`${range.start}T12:00:00`),b=new Date(`${range.end}T12:00:00`),days=Math.round((b.getTime()-a.getTime())/86400000)+1;const end=new Date(a);end.setDate(end.getDate()-1);const start=new Date(end);start.setDate(start.getDate()-days+1);return orders.filter(o=>{const k=localDateKey(o.timestamp);return k>=localDateKey(start.getTime())&&k<=localDateKey(end.getTime())})}
 function dailySeries(orders:Order[],range:{start:string;end:string}){const map=new Map<string,{value:number;orders:number}>();orders.forEach(o=>{const k=localDateKey(o.timestamp),v=map.get(k)??{value:0,orders:0};v.value+=o.total;v.orders++;map.set(k,v)});const out=[];for(let d=new Date(`${range.start}T12:00:00`),end=new Date(`${range.end}T12:00:00`);d<=end;d.setDate(d.getDate()+1)){const k=localDateKey(d.getTime()),v=map.get(k)??{value:0,orders:0};out.push({date:k,label:d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}),...v})}return out}
 function productSeries(orders:Order[]){const map=new Map<string,{qty:number;orders:Set<string>;revenue:number}>();orders.forEach(o=>o.items.forEach(i=>{const v=map.get(i.name)??{qty:0,orders:new Set<string>(),revenue:0};v.qty+=i.qty;v.orders.add(o.id);v.revenue+=i.price*i.qty;map.set(i.name,v)}));return [...map].map(([name,v])=>({name,qty:v.qty,orders:v.orders.size,revenue:v.revenue})).sort((a,b)=>b.qty-a.qty)}

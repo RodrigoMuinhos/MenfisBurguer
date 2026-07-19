@@ -15,7 +15,8 @@ export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenPr
   const [active, setActive] = useState(0);
   const [adding, setAdding] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [inView, setInView] = useState(true);
+  const [inView, setInView] = useState(false);
+  const [pageFocused, setPageFocused] = useState(true);
   const slides: SlideData[] = cards.filter((card) => card.enabled && (!card.productId || products.some((product) => product.id === card.productId))).map((card, index) => {
     const product = products.find((item) => item.id === card.productId);
     return {
@@ -36,16 +37,29 @@ export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenPr
   useEffect(() => {
     const section = sectionRef.current;
     if (!section || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting && entry.intersectionRatio >= 0.25), { threshold: [0, 0.25] });
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting && entry.intersectionRatio >= 0.65), { threshold: [0, 0.65] });
     observer.observe(section);
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    if (paused || !inView || slides.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const syncFocus = () => setPageFocused(document.visibilityState === "visible" && document.hasFocus());
+    syncFocus();
+    document.addEventListener("visibilitychange", syncFocus);
+    window.addEventListener("focus", syncFocus);
+    window.addEventListener("blur", syncFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", syncFocus);
+      window.removeEventListener("focus", syncFocus);
+      window.removeEventListener("blur", syncFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (paused || !inView || !pageFocused || slides.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const timer = window.setInterval(() => goTo((active + 1) % slides.length), Math.max(2, intervalSeconds) * 1000);
     return () => window.clearInterval(timer);
-  }, [active, paused, inView, slides.length, intervalSeconds]);
+  }, [active, paused, inView, pageFocused, slides.length, intervalSeconds]);
 
   const goTo = (index: number) => {
     const next = Math.max(0, Math.min(slides.length - 1, index));

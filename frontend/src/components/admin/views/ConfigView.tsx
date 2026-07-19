@@ -17,6 +17,7 @@ import {
 } from "@/components/order/checkout";
 import { PayOnDeliverySettings } from "../AdminChrome";
 import { API_URL } from "@/components/order/checkout";
+import { applyPricingToMenu } from "@/components/product/screen/productCatalog";
 
 export function ConfigView({
   payOnDeliveryEnabled,
@@ -93,10 +94,19 @@ export function ConfigView({
   const [protectedToolsPassword, setProtectedToolsPassword] = useState("");
   const [protectedToolsError, setProtectedToolsError] = useState("");
   const [protectedToolsLoading, setProtectedToolsLoading] = useState(false);
+  const [managedMenuItems, setManagedMenuItems] = useState(MENU_ITEMS);
 
   useEffect(() => {
     if (adminLogin) setAdminLoginDraft(adminLogin);
   }, [adminLogin]);
+
+  useEffect(() => {
+    if (!API_URL) return;
+    fetch(`${API_URL}/pricing?_=${Date.now()}`, { cache: "no-store", headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } })
+      .then((response) => response.ok ? response.json() : [])
+      .then((rows) => { if (Array.isArray(rows)) setManagedMenuItems(applyPricingToMenu(rows)); })
+      .catch(() => undefined);
+  }, []);
 
   const unlockProtectedTools = async () => {
     if (!protectedToolsPassword.trim()) {
@@ -239,11 +249,11 @@ export function ConfigView({
     /^(.{2}).*(@.*)$/,
     "$1***$2",
   );
-  const specialOfferProduct = MENU_ITEMS.find((item) => item.id === normalizedSpecialOffer.productId) ?? MENU_ITEMS[0];
+  const specialOfferProduct = managedMenuItems.find((item) => item.id === normalizedSpecialOffer.productId) ?? managedMenuItems[0] ?? MENU_ITEMS[0];
   const specialOfferProductImage = typeof specialOfferProduct.image === "string" ? specialOfferProduct.image : specialOfferProduct.image?.src;
   const specialOfferProducts = [
-    ...MENU_ITEMS.filter((item) => item.id === "smash-nutella-marshmallow"),
-    ...MENU_ITEMS.filter((item) => item.id !== "smash-nutella-marshmallow").sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+    ...managedMenuItems.filter((item) => item.id === "smash-nutella-marshmallow"),
+    ...managedMenuItems.filter((item) => item.id !== "smash-nutella-marshmallow").sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
   ];
 
   return (
