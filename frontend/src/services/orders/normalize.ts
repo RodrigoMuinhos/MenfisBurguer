@@ -1,6 +1,6 @@
 import { Order, OrderStatus, PaymentMethod } from "@/types/order";
 
-const GUARANA_ZERO_PRICE = 6.9;
+const GUARANA_ZERO_PRICE = 9.9;
 
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;

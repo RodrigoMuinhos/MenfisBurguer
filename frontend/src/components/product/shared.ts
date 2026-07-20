@@ -98,9 +98,10 @@ export const EXTRA_OPTIONS = [
   { id: "extra-cheddar", label: "Adicional de cheddar", price: 6.9, image: "/queijo.jpg" },
   { id: "extra-maionese-barbecue", label: "Maionse Grill", price: 2.5, image: "/EXTRAS/MaioneseBarbecue.jpg" },
   { id: "extra-maionese-alho-frito", label: "Maionese Alho Frito", price: 2.5, image: "/EXTRAS/MaionseAlhoFrito.jpg" },
+  { id: "coca-cola", label: "Coca-Cola", price: 9.9, image: "/EXTRAS/cocacola.png" },
   { id: "coca-zero", label: "Coca-Cola Zero", price: 9.9, image: "/EXTRAS/cocazero.jpg" },
-  { id: "guarana", label: "Guaraná", price: 6.9, image: "/EXTRAS/Gurarana.jpg" },
-  { id: "guarana-zero", label: "Guaraná Zero", price: 6.9, image: "/EXTRAS/Gurarana%20zero.jpg" },
+  { id: "guarana", label: "Guaraná", price: 9.9, image: "/EXTRAS/Gurarana.jpg" },
+  { id: "guarana-zero", label: "Guaraná Zero", price: 9.9, image: "/EXTRAS/Gurarana%20zero.jpg" },
   { id: "agua-com-gas", label: "Água com gás", price: 5.9, image: "/EXTRAS/aguaComGas.png" },
 ];
 
