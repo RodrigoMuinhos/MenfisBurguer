@@ -84,7 +84,7 @@ export const SAUCE_OPTIONS = [
 
 export const DRINK_OPTIONS = [
   { id: "guarana", label: "Guaraná", comboPrice: 0, image: "/EXTRAS/Gurarana.jpg" },
-  { id: "guarana-zero", label: "Guaraná Zero", comboPrice: 0, image: "/EXTRAS/Gurarana%20zero.jpg" },
+  { id: "guarana-zero", label: "Guaraná Zero", comboPrice: 0, image: "/EXTRAS/GuraranaZero.jpg" },
   { id: "coca-cola", label: "Coca-Cola", comboPrice: 2, image: "/EXTRAS/cocacola.png" },
   { id: "coca-zero", label: "Coca-Cola Zero", comboPrice: 2, image: "/EXTRAS/cocazero.jpg" },
   { id: "agua-com-gas", label: "Água com gás", comboPrice: 0, image: "/EXTRAS/aguaComGas.png" },
@@ -101,7 +101,7 @@ export const EXTRA_OPTIONS = [
   { id: "coca-cola", label: "Coca-Cola", price: 9.9, image: "/EXTRAS/cocacola.png" },
   { id: "coca-zero", label: "Coca-Cola Zero", price: 9.9, image: "/EXTRAS/cocazero.jpg" },
   { id: "guarana", label: "Guaraná", price: 9.9, image: "/EXTRAS/Gurarana.jpg" },
-  { id: "guarana-zero", label: "Guaraná Zero", price: 9.9, image: "/EXTRAS/Gurarana%20zero.jpg" },
+  { id: "guarana-zero", label: "Guaraná Zero", price: 9.9, image: "/EXTRAS/GuraranaZero.jpg" },
   { id: "agua-com-gas", label: "Água com gás", price: 5.9, image: "/EXTRAS/aguaComGas.png" },
 ];
 

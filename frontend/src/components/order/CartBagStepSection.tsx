@@ -90,7 +90,7 @@ const DEFAULT_SUGGESTIONS: SuggestedExtra[] = [
   },
   { id: "coca-zero", name: "Coca-Cola Zero", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
   { id: "guarana", name: "Guaraná", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana.jpg" },
-  { id: "guarana-zero", name: "Guaraná Zero", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana%20zero.jpg" },
+  { id: "guarana-zero", name: "Guaraná Zero", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/GuraranaZero.jpg" },
   { id: "agua-com-gas", name: "Água com gás", price: 5.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
 ];
 
@@ -142,7 +142,7 @@ const COMBO_OFFER_BUNDLES: SuggestedExtra[][] = [
       message: "Seu combo já vem com batata e refri. Quer completar com uma fritura, um doce e uma bebida?",
     },
     SWEET_SUGGESTIONS[0],
-    { id: "guarana-zero", name: "Guaraná Zero", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana%20zero.jpg" },
+    { id: "guarana-zero", name: "Guaraná Zero", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/GuraranaZero.jpg" },
   ],
   [
     {
@@ -398,7 +398,7 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
         name: "Guaraná Zero",
         price: 9.9,
         description: "Falta só o refrigerante",
-        image: "/EXTRAS/Gurarana%20zero.jpg",
+        image: "/EXTRAS/GuraranaZero.jpg",
         message: "Falta só o refrigerante para completar seu combo.",
       },
       ids,
