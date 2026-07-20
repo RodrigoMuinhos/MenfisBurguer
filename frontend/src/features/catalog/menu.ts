@@ -356,7 +356,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Água com gás",
     eyebrow: "Bebida",
     desc: "Água com gás gelada.",
-    price: 5.9,
+    price: 6.9,
     image: "/EXTRAS/aguaComGas.png",
     tags: ["Com gás", "Gelada"],
     category: "bebida",

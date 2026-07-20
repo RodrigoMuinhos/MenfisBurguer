@@ -91,7 +91,7 @@ const DEFAULT_SUGGESTIONS: SuggestedExtra[] = [
   { id: "coca-zero", name: "Coca-Cola Zero", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
   { id: "guarana", name: "Guaraná", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana.jpg" },
   { id: "guarana-zero", name: "Guaraná Zero", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/GuraranaZero.jpg" },
-  { id: "agua-com-gas", name: "Água com gás", price: 5.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
+  { id: "agua-com-gas", name: "Água com gás", price: 6.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
 ];
 
 const FRY_SUGGESTIONS = DEFAULT_SUGGESTIONS.filter((item) =>
@@ -166,7 +166,7 @@ const COMBO_OFFER_BUNDLES: SuggestedExtra[][] = [
       message: "Quer variar? Fritura, doce e bebida sempre aparecem como opção.",
     },
     SWEET_SUGGESTIONS[1],
-    { id: "agua-com-gas", name: "Água com gás", price: 5.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
+    { id: "agua-com-gas", name: "Água com gás", price: 6.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
   ],
 ];
 
@@ -315,7 +315,7 @@ function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
   const hasCombo = cart.some((item) => item.id.includes("combo"));
   const hasNuggets = cart.some((item) => item.id.includes("nuggets"));
   const hasFries = cart.some((item) => item.id === "batata" || item.id.startsWith("batata-") || item.id.includes("combo"));
-  const hasDrink = cart.some((item) => ["coca-zero", "guarana-zero", "agua-com-gas"].includes(item.id) || item.id.includes("combo"));
+  const hasDrink = cart.some((item) => ["coca-cola", "coca-zero", "guarana", "guarana-zero", "agua-com-gas"].includes(item.id) || item.id.includes("combo"));
   const sandwich = cart.find((item) => SANDWICH_TO_COMBO[item.id]);
   const hasSmallFries = cart.some((item) => item.id === FRIES_PRODUCTS.small.id);
   const hasMediumFries = cart.some((item) => item.id === FRIES_PRODUCTS.medium.id);
