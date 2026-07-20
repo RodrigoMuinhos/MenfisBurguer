@@ -286,7 +286,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: "Picles",
     eyebrow: "Adicional",
     desc: "Porção extra de picles para completar o burger.",
-    price: 1.49,
+    price: 1.99,
     image: "/EXTRAS/picles.jpg",
     tags: ["Picles", "Adicional"],
     category: "extra",
