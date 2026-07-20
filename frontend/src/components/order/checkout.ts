@@ -171,6 +171,7 @@ export const ITEM_DESC: Record<string, string> = {
   cola: "Coca-Cola 350ml gelada",
   "coca-zero": "Coca-Cola Zero gelada",
   "guarana-zero": "Guaraná Zero gelado",
+  guarana: "Guaraná tradicional gelado",
   "agua-com-gas": "Água com gás gelada",
 };
 
