@@ -87,7 +87,7 @@ export const DRINK_OPTIONS = [
   { id: "guarana", label: "Guaraná", comboPrice: 2, image: "/EXTRAS/Gurarana.jpg" },
   { id: "coca-zero", label: "Coca-Cola Zero", comboPrice: 2, image: "/EXTRAS/cocazero.jpg" },
   { id: "guarana-zero", label: "Guaraná Zero", comboPrice: 0, image: "/EXTRAS/GuraranaZero.jpg" },
-  { id: "agua-com-gas", label: "Água com gás", comboPrice: 2, image: "/EXTRAS/aguaComGas.png" },
+  { id: "agua-com-gas", label: "Água com gás", comboPrice: 0, image: "/EXTRAS/aguaComGas.png" },
 ];
 
 export const EXTRA_OPTIONS = [
@@ -141,7 +141,6 @@ export const COMBO_DRINK_SURCHARGE_PRODUCT_ID: Record<string, string> = {
   "coca-cola": "combo-coca-adicional",
   guarana: "combo-coca-adicional",
   "coca-zero": "combo-coca-adicional",
-  "agua-com-gas": "combo-coca-adicional",
 };
 
 export function imageSrc(image?: StaticImageData | string) {
