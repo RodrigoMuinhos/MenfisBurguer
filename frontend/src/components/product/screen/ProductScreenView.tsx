@@ -64,7 +64,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
           notificationCount={unreadNotificationCount}
           onOpenMember={openMemberAccess}
           onOpenNotifications={openNotifications}
-          onQuickAdd={quickAddMenuItem}
+          onQuickAdd={addMenuItem}
           onOpenDetails={setDetailItem}
           goToCart={handleGoToCart}
           soldOutEnabled={soldOutEnabled}
