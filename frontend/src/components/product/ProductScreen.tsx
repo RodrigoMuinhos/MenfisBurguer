@@ -277,30 +277,20 @@ export function ProductScreen({
   }, [addedConfirmation]);
 
   const quickAddMenuItem = (item: MenuItem) => {
-    if (isSuperProduct(item)) {
+    if (
+      item.category === "burger" ||
+      item.category === "combo" ||
+      isNuggetsProduct(item) ||
+      isSweetBoxProduct(item)
+    ) {
       openCustomizer(item);
       return;
     }
-    const components =
-      item.category === "combo" || item.category === "burger"
-        ? [
-            item.name,
-            ...(item.category === "combo"
-              ? ["Guaraná Zero", comboPotatoComponent(item)]
-              : []),
-            "Maionese Alho Frito",
-          ]
-        : undefined;
-
     addToCart({
-      id:
-        item.category === "combo" || item.category === "burger"
-          ? `quick-${item.id}`
-          : item.id,
+      id: item.id,
       productId: item.id,
       name: item.name.toUpperCase(),
       price: item.price,
-      components,
     });
     showAddedConfirmation(item);
   };

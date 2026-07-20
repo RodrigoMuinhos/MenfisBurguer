@@ -84,6 +84,7 @@ export const SAUCE_OPTIONS = [
 
 export const DRINK_OPTIONS = [
   { id: "guarana-zero", label: "Guaraná Zero", comboPrice: 0, image: "/EXTRAS/Gurarana.jpg" },
+  { id: "coca-cola", label: "Coca-Cola", comboPrice: 2, image: "/EXTRAS/cocacola.png" },
   { id: "coca-zero", label: "Coca-Cola Zero", comboPrice: 2, image: "/EXTRAS/cocazero.jpg" },
   { id: "agua-com-gas", label: "Água com gás", comboPrice: 0, image: "/EXTRAS/aguaComGas.png" },
 ];
@@ -96,7 +97,7 @@ export const EXTRA_OPTIONS = [
   { id: "extra-cheddar", label: "Adicional de cheddar", price: 6.9, image: "/queijo.jpg" },
   { id: "extra-maionese-barbecue", label: "Maionse Grill", price: 2.5, image: "/EXTRAS/MaioneseBarbecue.jpg" },
   { id: "extra-maionese-alho-frito", label: "Maionese Alho Frito", price: 2.5, image: "/EXTRAS/MaionseAlhoFrito.jpg" },
-  { id: "coca-zero", label: "Coca-Cola Zero", price: 8.9, image: "/EXTRAS/cocazero.jpg" },
+  { id: "coca-zero", label: "Coca-Cola Zero", price: 9.9, image: "/EXTRAS/cocazero.jpg" },
   { id: "guarana-zero", label: "Guaraná Zero", price: 6.9, image: "/EXTRAS/Gurarana.jpg" },
   { id: "agua-com-gas", label: "Água com gás", price: 5.9, image: "/EXTRAS/aguaComGas.png" },
 ];
@@ -134,6 +135,7 @@ const EXTRA_FRANGO_OPTION = {
 };
 
 export const COMBO_DRINK_SURCHARGE_PRODUCT_ID: Record<string, string> = {
+  "coca-cola": "combo-coca-adicional",
   "coca-zero": "combo-coca-adicional",
 };
 

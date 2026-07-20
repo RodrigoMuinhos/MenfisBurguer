@@ -66,7 +66,7 @@ const DEFAULT_ROWS: PricingRow[] = [
   simple("menfis-bacon", "BACON", "Menfi's Bacon", "Burgers", 9.8, 27.9),
   simple("double-menfis-bacon", "BIG-BACON", "Big Menfi's Bacon", "Burgers", 14.7, 35.9),
   drink("guarana-zero", "GUARANA", "Guarana Zero", 2.89, 6.9),
-  drink("coca-zero", "COCA", "Coca-Cola Zero", 3.89, 8.9, 2),
+  drink("coca-zero", "COCA", "Coca-Cola Zero", 3.89, 9.9, 2),
   combo("combo", "COMBO-MENFIS", "Combo Menfi's", 8.85, 34.9),
   combo("double-combo", "COMBO-BIG", "Combo Big Menfi's", 12, 42.9),
   combo("triple-combo", "TRIPLE-MENFIS", "Combo Triple Menfi's", 17.7, 65.9),

@@ -88,7 +88,7 @@ const DEFAULT_SUGGESTIONS: SuggestedExtra[] = [
     description: "270g para compartilhar",
     image: "/nuggetfries.jpg",
   },
-  { id: "coca-zero", name: "Coca-Cola Zero", price: 8.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
+  { id: "coca-zero", name: "Coca-Cola Zero", price: 9.9, description: "Lata 350ml gelada", image: "/EXTRAS/cocazero.jpg" },
   { id: "guarana-zero", name: "Guaraná Zero", price: 6.9, description: "Lata 350ml gelada", image: "/EXTRAS/Gurarana.jpg" },
   { id: "agua-com-gas", name: "Água com gás", price: 5.9, description: "Garrafa gelada", image: "/EXTRAS/aguaComGas.png" },
 ];
