@@ -121,7 +121,12 @@ export function LemonadeShowcase({
                 </div>
                 <div className="p-5 md:p-6">
                   <h3 className="text-xl font-black uppercase" style={{ color: theme.color }}>{item.name}</h3>
-                  <p className="mt-2 min-h-12 text-sm font-semibold leading-relaxed text-[#704053]">{item.desc}</p>
+                  <p
+                    className="mt-2 min-h-10 overflow-hidden text-sm font-semibold leading-5 text-[#704053]"
+                    style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2 }}
+                  >
+                    {item.desc}
+                  </p>
                   <div className="mt-6 flex items-end justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: theme.color }}>Copo 500ml</p>

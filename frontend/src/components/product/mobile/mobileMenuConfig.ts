@@ -26,7 +26,6 @@ import {
   CalendarClock,
   Candy,
   CheckCircle2,
-  CupSoda,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
@@ -52,7 +51,6 @@ export const MOBILE_CATEGORIES: Array<{
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "fries", label: "Fries", icon: Utensils },
   { id: "sweet", label: "Sweet", icon: Candy },
-  { id: "lemonade", label: "Lemonade", icon: CupSoda },
   { id: "super", label: "SUPER", icon: Star },
   { id: "extras", label: "Extras", icon: Plus },
 ];
@@ -76,7 +74,9 @@ export function categoryMatches(item: MenuItem, category: MobileCategory) {
   }
   if (category === "combo") return item.category === "combo" && !item.highlight;
   if (category === "fries") return item.category === "fries";
-  if (category === "extras") return item.category === "extra" || item.category === "bebida";
+  if (category === "extras") {
+    return (item.category === "extra" || item.category === "bebida") && !item.id.endsWith("-lemonade");
+  }
   if (category === "sweet") return item.category === "sweet";
   return false;
 }

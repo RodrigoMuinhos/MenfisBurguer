@@ -422,14 +422,16 @@ export function MemberAccessBanner({
 export function CategoryTabs({
   category,
   setCategory,
+  showKioskOnly = false,
 }: {
   category: (typeof CATEGORIES)[number]["id"];
   setCategory: (category: (typeof CATEGORIES)[number]["id"]) => void;
+  showKioskOnly?: boolean;
 }) {
   return (
     <section className="mt-5 px-4">
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {CATEGORIES.map(({ id, label, Icon }) => {
+        {CATEGORIES.filter(({ id }) => showKioskOnly || id !== "lemonade").map(({ id, label, Icon }) => {
           const active = category === id;
           return (
             <button

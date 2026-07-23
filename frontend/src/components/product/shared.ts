@@ -104,6 +104,11 @@ export const EXTRA_OPTIONS = [
   { id: "agua-com-gas", label: "Água com gás", price: 6.9, image: "/EXTRAS/aguaComGas.png" },
 ];
 
+export const LEMONADE_TOPPING_OPTIONS = [
+  { id: "topping-chantilly", label: "Chantilly", price: 3, image: "/logo_M.jpeg" },
+  { id: "topping-espuma-ginger", label: "Espuma Ginger", price: 3, image: "/logo_M.jpeg" },
+];
+
 export const SWEET_BOX_REQUIRED_COUNT = 4;
 export const SWEET_PREMIUM_PRICE = 0;
 export const SWEET_CLASSIC_PRODUCT_ID = "sweet-menfis-classic";
@@ -275,6 +280,9 @@ export function sweetCardPriceLabel(item: MenuItem) {
 }
 
 export function getExtraOptionsForItem(item: MenuItem) {
+  if (isLemonadeProduct(item)) {
+    return LEMONADE_TOPPING_OPTIONS;
+  }
   if (item.category !== "burger" && item.category !== "combo") {
     return EXTRA_OPTIONS;
   }
@@ -282,6 +290,10 @@ export function getExtraOptionsForItem(item: MenuItem) {
     isChickenProduct(item) ? EXTRA_FRANGO_OPTION : EXTRA_CARNE_OPTION,
     ...EXTRA_OPTIONS,
   ];
+}
+
+export function isLemonadeProduct(item: MenuItem) {
+  return item.id.endsWith("-lemonade");
 }
 
 export function requiredCustomizerCount(item: MenuItem) {

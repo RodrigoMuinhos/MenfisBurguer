@@ -23,7 +23,7 @@ export function ProductCustomizer({
   setState: React.Dispatch<React.SetStateAction<CustomizerState | null>>;
   onConfirm: () => void;
 }) {
-  const { needsMeatPoint, requiredCount, needsSauce, needsFreeMayo, needsDrink, isSweetBox,
+  const { needsMeatPoint, requiredCount, needsSauce, needsFreeMayo, needsDrink, isSweetBox, isLemonade,
     isSweetPlus, needsSpiceLevel, superTheme, chilliTheme, superBackground, superSurface, superAccent,
     sweetOptions, sauceRequiredCount, extraOptions, sweetCount, total, valid, spiceValid,
     toggleLimited, countSelected, updateExtraQty, updateSweetQty } = useProductCustomizerModel(state, setState);
@@ -356,7 +356,10 @@ export function ProductCustomizer({
           )}
 
           {!isSweetBox && (
-          <OptionSection title="Extras" subtitle="Escolha até 3 de cada opção">
+          <OptionSection
+            title={isLemonade ? "Topping" : "Extras"}
+            subtitle={isLemonade ? "Escolha Chantilly ou Espuma Ginger" : "Escolha até 3 de cada opção"}
+          >
             {extraOptions.map((extra) => {
               const quantity = state.extras[extra.id] ?? 0;
               const active = quantity > 0;
@@ -396,7 +399,7 @@ export function ProductCustomizer({
                       <button
                         type="button"
                         onClick={() => updateExtraQty(extra.id, 1)}
-                        disabled={quantity >= 3}
+                        disabled={isLemonade || quantity >= 3}
                         className="flex items-center justify-center disabled:opacity-35"
                         style={{ color: VERDE }}
                         aria-label={`Adicionar ${extra.label}`}

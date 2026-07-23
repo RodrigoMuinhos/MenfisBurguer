@@ -19,6 +19,8 @@ export const CUSTOMIZER_ADDON_IDS = new Set([
   "extra-cheddar",
   "extra-maionese-barbecue",
   "extra-maionese-alho-frito",
+  "topping-chantilly",
+  "topping-espuma-ginger",
 ]);
 
 export function hasRequiredCustomerProfile(profile: MemberProfile | null) {

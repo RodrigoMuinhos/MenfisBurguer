@@ -90,6 +90,10 @@ public class OrderService {
     String customerName = kioskLocalCustomer
       ? "KIOSK-MOB"
       : request.customerName() == null ? null : request.customerName().trim();
+    if (channel != OrderChannel.KIOSK && request.items().stream().anyMatch(this::isKioskOnlyItem)) {
+      throw new IllegalArgumentException("kiosk_only_product");
+    }
+    request.items().forEach(this::validateProductAddons);
     if (!settings.testModeEnabled() && channel != OrderChannel.KIOSK && settings.isSoldOutNow()) {
       throw new IllegalStateException("store_sold_out");
     }
@@ -969,6 +973,20 @@ public class OrderService {
 
   private String cleanIdempotency(String value) {
     return value == null || value.isBlank() ? UUID.randomUUID().toString() : value.trim();
+  }
+
+  private boolean isKioskOnlyItem(OrderItemRequest item) {
+    return item != null && item.productId() != null && item.productId().endsWith("-lemonade");
+  }
+
+  private void validateProductAddons(OrderItemRequest item) {
+    if (item == null || item.addonIds() == null) return;
+    boolean lemonade = isKioskOnlyItem(item);
+    boolean invalid = item.addonIds().stream().anyMatch(addonId -> {
+      boolean lemonadeTopping = "topping-chantilly".equals(addonId) || "topping-espuma-ginger".equals(addonId);
+      return lemonade != lemonadeTopping;
+    });
+    if (invalid) throw new IllegalArgumentException("invalid_product_addon");
   }
 
   private boolean isBlank(String value) {

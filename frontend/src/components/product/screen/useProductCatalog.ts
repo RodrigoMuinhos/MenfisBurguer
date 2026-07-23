@@ -33,7 +33,9 @@ export function useProductCatalog(kioskMode: boolean) {
     if (category === "lemonade") items = visible.filter((item) => item.id.endsWith("-lemonade"));
     else if (category === "super") items = visible.filter(isSuperProduct);
     else if (category === "burger") items = visible.filter((item) => item.category === "burger" && !isSuperProduct(item));
-    else if (category === "extras") items = visible.filter((item) => item.category === "extra" || item.category === "bebida");
+    else if (category === "extras") items = visible.filter(
+      (item) => (item.category === "extra" || item.category === "bebida") && !item.id.endsWith("-lemonade"),
+    );
     else if (category === "fries") items = visible.filter((item) => item.category === "fries");
     else if (category === "sweet") items = visible.filter((item) => item.category === "sweet");
     else items = visible.filter((item) => item.category === category);
