@@ -26,6 +26,7 @@ import {
   CalendarClock,
   Candy,
   CheckCircle2,
+  CupSoda,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
@@ -51,6 +52,7 @@ export const MOBILE_CATEGORIES: Array<{
   { id: "burger", label: "Burgers", icon: Beef },
   { id: "fries", label: "Fries", icon: Utensils },
   { id: "sweet", label: "Sweet", icon: Candy },
+  { id: "lemonade", label: "Lemonade", icon: CupSoda },
   { id: "super", label: "SUPER", icon: Star },
   { id: "extras", label: "Extras", icon: Plus },
 ];

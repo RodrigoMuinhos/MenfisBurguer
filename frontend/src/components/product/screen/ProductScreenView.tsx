@@ -94,7 +94,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
                 </div>
               </header>
               <nav className="absolute inset-x-0 top-[78px] z-30 flex h-[54px] items-center gap-2 overflow-x-auto border-b px-4" style={{ background: "rgba(3,27,24,.72)", borderColor: "rgba(255,255,255,.12)", backdropFilter: "blur(16px)" }}>
-                {CATEGORIES.filter(({ id }) => kioskMode || id !== "lemonade").map(({ id, label, Icon }) => {
+                {CATEGORIES.filter(({ id }) => kioskMode || kioskMobLoggedIn || id !== "lemonade").map(({ id, label, Icon }) => {
                   const active = id === "super";
                   return <button key={id} type="button" onClick={() => setCategory(id)} className="flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-[11px] font-black uppercase tracking-wider" style={{ background: active ? "rgba(156,221,34,.18)" : "rgba(0,0,0,.32)", borderColor: active ? "#9CDD22" : "rgba(255,255,255,.22)", color: active ? "#C8FF43" : "#fff" }}><Icon size={15} />{label}</button>;
                 })}
@@ -161,7 +161,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
             />
           )}
 
-          <CategoryTabs category={category} setCategory={setCategory} showKioskOnly={kioskMode} />
+          <CategoryTabs category={category} setCategory={setCategory} showKioskOnly={kioskMode || kioskMobLoggedIn} />
           {category === "lemonade" ? (
             <LemonadeShowcase items={filteredItems} onAdd={addMenuItem} />
           ) : (

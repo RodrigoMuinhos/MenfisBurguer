@@ -169,16 +169,18 @@ export function IconButton({
 export function CategoryNav({
   category,
   setCategory,
+  showKioskOnly = false,
 }: {
   category: MobileCategory;
   setCategory: (value: MobileCategory) => void;
+  showKioskOnly?: boolean;
 }) {
   return (
     <nav
       className="sticky top-0 z-40 flex gap-3 overflow-x-auto border-y bg-white px-4 py-3 shadow-[0_12px_26px_rgba(101,0,31,0.08)]"
       style={{ borderColor: `${VINHO}10` }}
     >
-      {MOBILE_CATEGORIES.map((tab) => {
+      {MOBILE_CATEGORIES.filter((tab) => showKioskOnly || tab.id !== "lemonade").map((tab) => {
         const Icon = tab.icon;
         const active = category === tab.id;
         return (
@@ -348,5 +350,4 @@ function promoCardIcon(icon: PromoCardIcon): ElementType {
       return Gift;
   }
 }
-
 

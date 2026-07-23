@@ -90,6 +90,12 @@ export function MobileMenuExperience({
   const [closedHoursOpen, setClosedHoursOpen] = useState(false);
   const [closedHoursMessage, setClosedHoursMessage] = useState("");
   const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
+  const kioskMobLoggedIn =
+    String(memberProfile?.name ?? "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "-")
+      .replace(/-+/g, "-") === "KIOSK-MOB";
   const searchRef = useRef<HTMLInputElement>(null);
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -147,6 +153,10 @@ export function MobileMenuExperience({
   };
 
   useEffect(() => {
+    if (!kioskMobLoggedIn && category === "lemonade") setCategory("combo");
+  }, [category, kioskMobLoggedIn]);
+
+  useEffect(() => {
     if (!API_URL) return;
     const controller = new AbortController();
     fetch(`${API_URL}/settings/public?_=${Date.now()}`, {
@@ -183,7 +193,7 @@ export function MobileMenuExperience({
           </div>
         </header>
         <nav className="fixed inset-x-0 top-[72px] z-50 flex h-[52px] items-center gap-2 overflow-x-auto border-b px-3" style={{ background: "rgba(3,27,24,.78)", borderColor: "rgba(255,255,255,.12)", backdropFilter: "blur(16px)" }}>
-          {MOBILE_CATEGORIES.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setCategory(id)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[10px] font-black uppercase" style={{ background: id === "super" ? "rgba(156,221,34,.18)" : "rgba(0,0,0,.32)", borderColor: id === "super" ? "#9CDD22" : "rgba(255,255,255,.22)", color: id === "super" ? "#C8FF43" : "#fff" }}><Icon size={13} />{label}</button>)}
+          {MOBILE_CATEGORIES.filter(({ id }) => kioskMobLoggedIn || id !== "lemonade").map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setCategory(id)} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[10px] font-black uppercase" style={{ background: id === "super" ? "rgba(156,221,34,.18)" : "rgba(0,0,0,.32)", borderColor: id === "super" ? "#9CDD22" : "rgba(255,255,255,.22)", color: id === "super" ? "#C8FF43" : "#fff" }}><Icon size={13} />{label}</button>)}
         </nav>
         <div className="grid gap-5 px-2 pb-4">
           {regularVisibleItems.map((item) => (
@@ -292,7 +302,7 @@ export function MobileMenuExperience({
         </label>}
       </header>
 
-      <CategoryNav category={category} setCategory={setCategory} />
+      <CategoryNav category={category} setCategory={setCategory} showKioskOnly={kioskMobLoggedIn} />
 
       <main className={category === "lemonade" ? "pb-44" : "px-3 pb-44 min-[390px]:px-4"}>
         {category === "lemonade" ? (
