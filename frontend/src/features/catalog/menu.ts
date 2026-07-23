@@ -375,7 +375,7 @@ export const MENU_ITEMS: MenuItem[] = [
     id: "purple-lemonade",
     name: "Purple Lemonade",
     eyebrow: "Lemonade",
-    desc: "Uva e amora em uma combinação refrescante.",
+    desc: "Uva e amora. Copo 500ml.",
     price: 14.9,
     image: "/Lemonade/purple.jpeg",
     tags: ["Lemonade", "Uva", "Amora", "500ml"],
