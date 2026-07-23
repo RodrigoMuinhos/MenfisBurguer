@@ -7,7 +7,6 @@ import {
   ChevronRight,
   ClipboardList,
   Clock,
-  Drumstick,
   Flame,
   Gift,
   Heart,
@@ -35,7 +34,7 @@ import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxPro
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { SuperLaunchCard } from "../ProductParts";
 
-export type MobileCategory = "combo" | "burger" | "chicken" | "bacon" | "super" | "fries" | "extras" | "sweet";
+export type MobileCategory = "combo" | "burger" | "super" | "fries" | "extras" | "sweet";
 
 export const VINHO = "#65001F";
 export const MAGENTA = "#B20B47";
@@ -50,8 +49,6 @@ export const MOBILE_CATEGORIES: Array<{
 }> = [
   { id: "combo", label: "Combos", icon: Package },
   { id: "burger", label: "Burgers", icon: Beef },
-  { id: "chicken", label: "Chicken", icon: Drumstick },
-  { id: "bacon", label: "Bacon", icon: Utensils },
   { id: "super", label: "SUPER", icon: Star },
   { id: "fries", label: "Fries", icon: Utensils },
   { id: "sweet", label: "Sweet", icon: Candy },
@@ -70,19 +67,9 @@ export function itemSearchText(item: MenuItem) {
 }
 
 export function categoryMatches(item: MenuItem, category: MobileCategory) {
-  const text = `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase();
-  if (category === "chicken")
-    return item.category === "burger" && text.includes("chicken");
-  if (category === "bacon")
-    return item.category === "burger" && text.includes("bacon");
   if (category === "super") return isSuperProduct(item);
   if (category === "burger") {
-    return (
-      item.category === "burger" &&
-      !text.includes("chicken") &&
-      !text.includes("bacon") &&
-      !isSuperProduct(item)
-    );
+    return item.category === "burger" && !isSuperProduct(item);
   }
   if (category === "combo") return item.category === "combo" && !item.highlight;
   if (category === "fries") return item.category === "fries";
@@ -95,4 +82,3 @@ export function discountPercent(item: MenuItem) {
   if (!item.originalPrice || item.originalPrice <= item.price) return 0;
   return Math.round((1 - item.price / item.originalPrice) * 100);
 }
-

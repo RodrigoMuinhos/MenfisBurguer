@@ -1,5 +1,5 @@
 import type { StaticImageData } from "next/image";
-import { Beef, Candy, Drumstick, Package, Plus, Utensils } from "lucide-react";
+import { Beef, Candy, Package, Plus, Utensils } from "lucide-react";
 import { CartItem } from "@/types/order";
 import { MenuItem } from "@/features/catalog/types";
 
@@ -39,8 +39,6 @@ export type MemberProfile = {
 export const CATEGORIES = [
   { id: "combo", label: "Combos", Icon: Package },
   { id: "burger", label: "Burgers", Icon: Beef },
-  { id: "chicken", label: "Chicken", Icon: Drumstick },
-  { id: "bacon", label: "Bacon", Icon: Beef },
   { id: "super", label: "SUPER", Icon: Candy },
   { id: "fries", label: "Fries", Icon: Utensils },
   { id: "sweet", label: "Sweet", Icon: Candy },
@@ -171,6 +169,10 @@ function productFamilyRank(item: MenuItem) {
   return 0;
 }
 
+function burgerTierRank(item: MenuItem) {
+  return item.name.toLocaleUpperCase("pt-BR").includes("BIG") ? 1 : 0;
+}
+
 function comboTierRank(item: MenuItem) {
   const name = item.name.toLocaleUpperCase("pt-BR");
   if (name.includes("SUPER")) return 2;
@@ -234,6 +236,7 @@ export function sortCatalogItems<T extends MenuItem>(items: T[]) {
     }
     if (a.category === "burger" && b.category === "burger") {
       return (
+        burgerTierRank(a) - burgerTierRank(b) ||
         productFamilyRank(a) - productFamilyRank(b) ||
         a.price - b.price ||
         a.name.localeCompare(b.name)

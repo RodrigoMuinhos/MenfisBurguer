@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Users,
   BarChart3,
+  Crown,
 } from "lucide-react";
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import {
@@ -59,6 +60,7 @@ import { IntelligenceReportsView } from "./views/IntelligenceReportsView";
 import { OrdersView } from "./views/OrdersView";
 import { PricingView } from "./views/PricingView";
 import { SupportView } from "./views/SupportView";
+import { LoyaltyView } from "./views/LoyaltyView";
 import {
   deleteAdminCoupon,
   saveAdminCoupon,
@@ -67,7 +69,7 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "suporte" | "cupons" | "resultados" | "monitoramento" | "config";
+export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "suporte" | "cupons" | "resultados" | "monitoramento" | "config";
 
 function adminHeaders(adminToken: string, json = false) {
   return {
@@ -190,6 +192,7 @@ export function AdminPanel({
     { id: "estoque", label: "Estoque", Icon: Package },
     { id: "custos", label: "Custos e Precificação", Icon: Calculator },
     { id: "clientes", label: "Clientes", Icon: Users },
+    { id: "fidelidade", label: "Fidelidade", Icon: Crown },
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
     { id: "cupons", label: "Cupons", Icon: TicketPercent },
     { id: "resultados", label: "Relatórios e Indicadores", Icon: BarChart3 },
@@ -291,6 +294,7 @@ export function AdminPanel({
     ).length,
     estoque: stockItems.filter((item) => item.qty <= item.minQty).length,
     clientes: crmCustomers.length,
+    fidelidade: crmCustomers.filter((customer) => Number(customer.order_count ?? 0) > 0).length,
     suporte: supportTickets.filter((ticket) => ticket.status !== "RESOLVED")
       .length,
     cupons: mergeCoupons(customCoupons).filter(
@@ -592,7 +596,7 @@ export function AdminPanel({
   };
 
   useEffect(() => {
-    if (tab !== "clientes") return;
+    if (tab !== "clientes" && tab !== "fidelidade" && tab !== "dashboard") return;
     syncCrmCustomers();
   }, [tab, adminToken]);
 
@@ -888,6 +892,7 @@ export function AdminPanel({
             onChanged={syncCrmCustomers}
           />
         )}
+        {tab === "fidelidade" && <LoyaltyView customers={crmCustomers} />}
         {tab === "suporte" && (
           <SupportView
             tickets={supportTickets}

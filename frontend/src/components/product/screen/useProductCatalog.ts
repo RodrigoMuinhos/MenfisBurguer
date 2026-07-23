@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import type { MenuItem } from "@/features/catalog/types";
 import { DEFAULT_PRESENTATION_SETTINGS, DEFAULT_SPECIAL_OFFER_SETTINGS, type CarouselCardSettings, type PromoCard, type SpecialOfferSettings, normalizePresentationSettings, normalizePromoCards, normalizeSpecialOfferSettings } from "@/components/order/checkout";
-import { CATEGORIES, imageSrc, isChickenProduct, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems, sortComboRows } from "../shared";
+import { CATEGORIES, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems, sortComboRows } from "../shared";
 import { SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { specialOfferSessionKey } from "./ProductScreenOverlays";
 import { API_URL, DEFAULT_FEATURED_PRODUCT_ID, PRICING_ROWS_CACHE_KEY, PUBLIC_SETTINGS_CACHE_KEY, applyPricingToMenu, freshApiUrl, preloadClientImages, readJsonCache, writeJsonCache } from "./productCatalog";
@@ -30,10 +30,8 @@ export function useProductCatalog(kioskMode: boolean) {
   const filteredItems = useMemo(() => {
     const visible = catalogItems.filter((item) => !isSpecialOfferOnlyProduct(item));
     let items: MenuItem[];
-    if (category === "chicken") items = visible.filter((item) => item.category === "burger" && isChickenProduct(item));
-    else if (category === "bacon") items = visible.filter((item) => item.category === "burger" && `${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase().includes("bacon"));
-    else if (category === "super") items = visible.filter(isSuperProduct);
-    else if (category === "burger") items = visible.filter((item) => item.category === "burger" && !isChickenProduct(item) && !isSuperProduct(item) && !`${item.id} ${item.name} ${item.tags.join(" ")}`.toLowerCase().includes("bacon"));
+    if (category === "super") items = visible.filter(isSuperProduct);
+    else if (category === "burger") items = visible.filter((item) => item.category === "burger" && !isSuperProduct(item));
     else if (category === "extras") items = visible.filter((item) => item.category === "extra" || item.category === "bebida");
     else if (category === "fries") items = visible.filter((item) => item.category === "fries");
     else if (category === "sweet") items = visible.filter((item) => item.category === "sweet");

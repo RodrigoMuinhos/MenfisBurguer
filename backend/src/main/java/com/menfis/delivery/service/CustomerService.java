@@ -246,9 +246,9 @@ public class CustomerService {
       order_stats as (
         select
           coalesce(c.phone_digits, regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g')) as phone_digits,
-          count(o.id) as order_count,
+          count(o.id) filter (where o.status <> 'CANCELLED') as order_count,
           coalesce(sum(case when o.status <> 'CANCELLED' then o.total else 0 end), 0) as total_spent,
-          max(o.created_at) as last_order_at
+          max(o.created_at) filter (where o.status <> 'CANCELLED') as last_order_at
         from orders o
         left join customers c on c.id = o.customer_id
         group by coalesce(c.phone_digits, regexp_replace(coalesce(o.customer_phone, ''), '\\D', '', 'g'))
