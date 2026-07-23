@@ -40,6 +40,7 @@ import { BrandMenuButton, CategoryNav, ClosedHoursModal, IconButton, OfferCarous
 import { ProductCarousel } from "./carousel/ProductCarousel";
 import { MobileBottomNav, ReviewsPanel } from "./mobile/MobileMenuPanels";
 import { MobileListItem } from "./mobile/MobileListItem";
+import { LemonadeShowcase } from "./LemonadeShowcase";
 export function MobileMenuExperience({
   items,
   cartCount,
@@ -243,7 +244,7 @@ export function MobileMenuExperience({
           </button>
         </div>
 
-        {heroItem && (
+        {category !== "lemonade" && heroItem && (
           <div className="relative z-10 -mx-4 mt-4">
             <ProductCarousel
               products={items}
@@ -255,12 +256,9 @@ export function MobileMenuExperience({
           </div>
         )}
 
-        <OfferCarousel
-          offers={promoCards}
-          onOpenReviews={() => setPanel("reviews")}
-        />
+        {category !== "lemonade" && <OfferCarousel offers={promoCards} onOpenReviews={() => setPanel("reviews")} />}
 
-        {soldOutEnabled && (
+        {category !== "lemonade" && soldOutEnabled && (
           <div className="-mx-4">
             <SoldOutBanner
               message={soldOutMessage}
@@ -269,16 +267,16 @@ export function MobileMenuExperience({
           </div>
         )}
 
-        <button
+        {category !== "lemonade" && <button
           type="button"
           onClick={soldOutEnabled ? () => setSoldOutAlertOpen(true) : scrollToProducts}
           className="relative z-10 mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase tracking-wide"
           style={{ background: PINK, color: "#fff" }}
         >
           {soldOutEnabled ? "Quero ser avisado" : "Fazer pedido agora"} <ChevronRight size={20} strokeWidth={2.8} />
-        </button>
+        </button>}
 
-        <label
+        {category !== "lemonade" && <label
           className="relative z-10 mt-4 flex h-12 items-center gap-2 rounded-2xl bg-white px-4 shadow-sm"
           style={{ border: `1px solid ${VINHO}12` }}
         >
@@ -291,12 +289,15 @@ export function MobileMenuExperience({
             className="h-full min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:font-bold"
             style={{ color: VINHO }}
           />
-        </label>
+        </label>}
       </header>
 
       <CategoryNav category={category} setCategory={setCategory} />
 
-      <main className="px-3 pb-44 min-[390px]:px-4">
+      <main className={category === "lemonade" ? "pb-44" : "px-3 pb-44 min-[390px]:px-4"}>
+        {category === "lemonade" ? (
+          <LemonadeShowcase items={visibleItems} onAdd={onQuickAdd} />
+        ) : (
         <section id="menfis-products" className="pt-5">
           <h2 className="text-lg font-black uppercase tracking-wide">
             {categoryLabel}
@@ -340,6 +341,7 @@ export function MobileMenuExperience({
             )}
           </div>
         </section>
+        )}
 
       </main>
 

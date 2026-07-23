@@ -16,6 +16,7 @@ import type { useProductCatalog } from "./useProductCatalog";
 import type { useProductMember } from "./useProductMember";
 import type { SpecialOfferSettings } from "@/components/order/checkout";
 import { ProductCarousel } from "../carousel/ProductCarousel";
+import { LemonadeShowcase } from "../LemonadeShowcase";
 
 type ScreenState = {
  cart: CartItem[]; updateQty: (id:string,delta:number)=>void; kioskMode:boolean; activeOrder?:Order|null; notifications:MemberNotification[]; unreadNotificationCount:number; onOpenActiveOrder?: (orderId?:string)=>void; onRepeatOrder?: (items:CartItem[])=>void;
@@ -129,7 +130,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
         />
 
         <main className="w-full px-0 pb-36 pt-0">
-          {kioskMode ? (
+          {category !== "lemonade" && (kioskMode ? (
             <ProductHero
               kioskMode
               featuredItem={featuredItem}
@@ -144,16 +145,16 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
             />
           ) : (
             <ProductCarousel products={catalogItems} cards={carouselCards} intervalSeconds={carouselIntervalSeconds} onOpenProduct={setDetailItem} onAddProduct={addMenuItem} />
-          )}
+          ))}
 
-          {!kioskMode && soldOutEnabled && (
+          {category !== "lemonade" && !kioskMode && soldOutEnabled && (
             <SoldOutBanner
               message={soldOutMessage}
               onNotify={() => setSoldOutAlertOpen(true)}
             />
           )}
 
-          {!kioskMode && (
+          {category !== "lemonade" && !kioskMode && (
             <MemberAccessBanner
               memberProfile={memberProfile}
               onOpen={openMemberAccess}
@@ -161,6 +162,9 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
           )}
 
           <CategoryTabs category={category} setCategory={setCategory} />
+          {category === "lemonade" ? (
+            <LemonadeShowcase items={filteredItems} onAdd={addMenuItem} />
+          ) : (
           <section id="menfis-products" className="mt-6 px-4">
             <div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -178,6 +182,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
               </div>
             </div>
           </section>
+          )}
         </main>
 
         <div

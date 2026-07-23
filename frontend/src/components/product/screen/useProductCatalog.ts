@@ -30,7 +30,8 @@ export function useProductCatalog(kioskMode: boolean) {
   const filteredItems = useMemo(() => {
     const visible = catalogItems.filter((item) => !isSpecialOfferOnlyProduct(item));
     let items: MenuItem[];
-    if (category === "super") items = visible.filter(isSuperProduct);
+    if (category === "lemonade") items = visible.filter((item) => item.id.endsWith("-lemonade"));
+    else if (category === "super") items = visible.filter(isSuperProduct);
     else if (category === "burger") items = visible.filter((item) => item.category === "burger" && !isSuperProduct(item));
     else if (category === "extras") items = visible.filter((item) => item.category === "extra" || item.category === "bebida");
     else if (category === "fries") items = visible.filter((item) => item.category === "fries");

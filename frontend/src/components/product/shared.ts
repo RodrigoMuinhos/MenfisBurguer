@@ -1,5 +1,5 @@
 import type { StaticImageData } from "next/image";
-import { Beef, Candy, Package, Plus, Utensils } from "lucide-react";
+import { Beef, Candy, CupSoda, Package, Plus, Utensils } from "lucide-react";
 import { CartItem } from "@/types/order";
 import { MenuItem } from "@/features/catalog/types";
 
@@ -39,9 +39,10 @@ export type MemberProfile = {
 export const CATEGORIES = [
   { id: "combo", label: "Combos", Icon: Package },
   { id: "burger", label: "Burgers", Icon: Beef },
-  { id: "super", label: "SUPER", Icon: Candy },
   { id: "fries", label: "Fries", Icon: Utensils },
   { id: "sweet", label: "Sweet", Icon: Candy },
+  { id: "lemonade", label: "Lemonade", Icon: CupSoda },
+  { id: "super", label: "SUPER", Icon: Candy },
   { id: "extras", label: "Extras", Icon: Plus },
 ] as const;
 
