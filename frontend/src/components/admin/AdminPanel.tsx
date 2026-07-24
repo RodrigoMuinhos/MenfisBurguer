@@ -77,7 +77,7 @@ export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega"
 function adminHeaders(adminToken: string, json = false) {
   return {
     ...(json ? { "Content-Type": "application/json" } : {}),
-    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+    ...(adminToken && adminToken !== "cookie" ? { Authorization: `Bearer ${adminToken}` } : {}),
   };
 }
 

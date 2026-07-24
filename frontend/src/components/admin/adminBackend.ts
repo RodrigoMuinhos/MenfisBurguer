@@ -6,7 +6,7 @@ type ApiRow = Record<string, unknown>;
 
 const requestHeaders = (adminToken: string, json = false) => ({
   ...(json ? { "Content-Type": "application/json" } : {}),
-  ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+  ...(adminToken && adminToken !== "cookie" ? { Authorization: `Bearer ${adminToken}` } : {}),
 });
 
 const asNumber = (value: unknown) => Number(value ?? 0);

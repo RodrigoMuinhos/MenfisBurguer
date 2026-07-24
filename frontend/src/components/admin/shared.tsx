@@ -11,7 +11,7 @@ import {
 import { Order, OrderStatus } from "@/types/order";
 import { VERDE } from "@/utils/theme";
 import { formatAddressForReceipt } from "@/utils/address";
-export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
+export const API_URL = "/backend";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
 const PRINT_BRIDGE_URL_KEY = "menfis_print_bridge_url";
 const PRINT_BRIDGE_LAUNCH_URL_KEY = "menfis_print_bridge_launch_url";

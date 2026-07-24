@@ -81,8 +81,14 @@ public class OrderController {
   }
 
   @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter allEvents(@RequestParam(name = "token", required = false) String token) {
-    auth.requireAdmin(token == null || token.isBlank() ? null : "Bearer " + token);
+  public SseEmitter allEvents(
+      @RequestParam(name = "token", required = false) String token,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(
+      authorization != null && !authorization.isBlank()
+        ? authorization
+        : (token == null || token.isBlank() ? null : "Bearer " + token)
+    );
     return events.subscribeAll(orders.listRecent());
   }
 

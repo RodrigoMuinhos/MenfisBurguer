@@ -3,7 +3,8 @@ import { normalizeBackendOrder, normalizeOrderStatus } from "@/services/orders/n
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import { DELIVERY_FEE } from "@/components/order/checkout";
 import {
-  API_URL,
+  ADMIN_API_URL,
+  API_URL as PUBLIC_API_URL,
   PENDING_ORDER_KEY,
   Screen,
   keepHighestVisibleStatus,
@@ -43,7 +44,7 @@ function paymentConfirmationReason(paymentMethod?: string | null) {
 function authHeaders(adminToken: string, json = false) {
   return {
     ...(json ? { "Content-Type": "application/json" } : {}),
-    ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+    ...(adminToken && adminToken !== "cookie" ? { Authorization: `Bearer ${adminToken}` } : {}),
   };
 }
 
@@ -58,6 +59,7 @@ export function useOrderSync({
   screen: Screen;
   started: boolean;
 }) {
+  const API_URL = adminToken === "cookie" ? ADMIN_API_URL : PUBLIC_API_URL;
   const [orders, setOrders] = useState<Order[]>([]);
   const pendingStatusUpdatesRef = useRef(new Map<string, OrderStatus>());
   const adminEventsConnectedRef = useRef(false);
@@ -151,7 +153,7 @@ export function useOrderSync({
 
     let source: EventSource;
     try {
-      const streamUrl = adminToken
+      const streamUrl = adminToken && adminToken !== "cookie"
         ? `${API_URL}/orders/events?token=${encodeURIComponent(adminToken)}`
         : `${API_URL}/orders/events`;
       source = new EventSource(streamUrl);

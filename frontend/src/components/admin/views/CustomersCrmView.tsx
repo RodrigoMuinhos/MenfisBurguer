@@ -57,7 +57,7 @@ const DEFAULT_WHATSAPP_MESSAGE =
 
 const adminHeaders = (adminToken: string, json = false) => ({
   ...(json ? { "Content-Type": "application/json" } : {}),
-  ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+  ...(adminToken && adminToken !== "cookie" ? { Authorization: `Bearer ${adminToken}` } : {}),
 });
 
 export function CustomersCrmView({

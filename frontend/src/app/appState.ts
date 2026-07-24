@@ -10,6 +10,7 @@ export const ADMIN_SESSION_KEY = "menfis_admin_session";
 export const APP_SCREEN_KEY = "menfis_app_screen";
 export const CART_STORAGE_KEY = "menfis_cart";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
+export const ADMIN_API_URL = "/backend";
 export const KIOSK_IDLE_PROMPT_MS = 2.5 * 60 * 1000;
 export const KIOSK_IDLE_PROMPT_GRACE_MS = 15 * 1000;
 export const CACHE_VERSION = "2026-07-10-catalog-no-ghosts-1";

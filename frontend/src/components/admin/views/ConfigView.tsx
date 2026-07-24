@@ -16,7 +16,7 @@ import {
   normalizeSpecialOfferSettings,
 } from "@/components/order/checkout";
 import { PayOnDeliverySettings } from "../AdminChrome";
-import { API_URL } from "@/components/order/checkout";
+import { ADMIN_API_URL as API_URL } from "@/app/appState";
 import { applyPricingToMenu } from "@/components/product/screen/productCatalog";
 
 export function ConfigView({
@@ -119,10 +119,11 @@ export function ConfigView({
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ login: adminLogin || adminLoginDraft, password: protectedToolsPassword }),
       });
       const session = response.ok ? await response.json() : null;
-      if (!session?.token || session.role !== "ADMIN") {
+      if (session?.role !== "ADMIN") {
         setProtectedToolsError("Senha administrativa inválida.");
         return;
       }
