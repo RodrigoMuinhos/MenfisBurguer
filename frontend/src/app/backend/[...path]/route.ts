@@ -46,14 +46,28 @@ async function proxyBackend(
 
   const responseHeaders = new Headers(response.headers);
   HOP_BY_HOP_HEADERS.forEach((header) => responseHeaders.delete(header));
+  const getSetCookie = (response.headers as Headers & {
+    getSetCookie?: () => string[];
+  }).getSetCookie;
+  const setCookieHeaders =
+    typeof getSetCookie === "function"
+      ? getSetCookie.call(response.headers)
+      : response.headers.get("set-cookie")
+        ? [response.headers.get("set-cookie") as string]
+        : [];
+  responseHeaders.delete("set-cookie");
   responseHeaders.set("Cache-Control", "no-store, no-cache, must-revalidate");
   responseHeaders.set("Pragma", "no-cache");
 
-  return new NextResponse(response.body, {
+  const proxyResponse = new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: responseHeaders,
   });
+  for (const setCookie of setCookieHeaders) {
+    proxyResponse.headers.append("Set-Cookie", setCookie);
+  }
+  return proxyResponse;
 }
 
 export const GET = proxyBackend;
