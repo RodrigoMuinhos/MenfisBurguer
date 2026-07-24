@@ -113,7 +113,7 @@ export function LemonadeShowcase({
                 <div className="relative aspect-[3/4] overflow-hidden" style={{ background: theme.soft }}>
                   <img src={String(item.image)} alt={item.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]" />
                   <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-[10px] font-black uppercase tracking-widest" style={{ color: theme.color }}>
-                    Novo
+                    Em breve
                   </span>
                   <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90" style={{ color: theme.color }}>
                     <Heart size={19} />
