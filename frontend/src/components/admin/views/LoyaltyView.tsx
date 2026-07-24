@@ -112,7 +112,9 @@ export function isLoyaltyCustomer(customer: CrmCustomer) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9]/g, "")
     .toUpperCase();
-  return normalizedName !== "KIOSKMOB" && normalizedName !== "MENFISDELIVERY";
+  return normalizedName !== "KIOSKMOB"
+    && normalizedName !== "MENFISDELIVERY"
+    && normalizedName !== "CLIENTERABBITMQ";
 }
 
 function Metric({ icon: Icon, label, value, compact = false }: { icon: typeof Users; label: string; value: string; compact?: boolean }) {
