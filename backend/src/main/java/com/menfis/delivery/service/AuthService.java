@@ -7,6 +7,8 @@ import java.util.Locale;
 
 import javax.crypto.SecretKey;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -14,8 +16,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.menfis.delivery.dto.ApiDtos.LoginResponse;
+import com.menfis.delivery.web.AuthController;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -197,7 +202,7 @@ public class AuthService {
   }
 
   public Claims requireAdmin(String authorization) {
-    return requireRole(authorization, "ADMIN");
+    return requireRole(resolveAuthorization(authorization), "ADMIN");
   }
 
   public Claims requireDelivery(String authorization) {
@@ -205,7 +210,7 @@ public class AuthService {
   }
 
   public Claims requireDeliveryOrAdmin(String authorization) {
-    return requireAnyRole(authorization, "DELIVERY", "ADMIN");
+    return requireAnyRole(resolveAuthorization(authorization), "DELIVERY", "ADMIN");
   }
 
   public long requireCustomer(String authorization) {
@@ -219,6 +224,24 @@ public class AuthService {
     } catch (NumberFormatException ex) {
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_customer_token");
     }
+  }
+
+  private String resolveAuthorization(String authorization) {
+    if (authorization != null && !authorization.isBlank()) return authorization;
+    if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) {
+      return authorization;
+    }
+    HttpServletRequest request = attributes.getRequest();
+    Cookie[] cookies = request.getCookies();
+    if (cookies == null) return authorization;
+    for (Cookie cookie : cookies) {
+      if (AuthController.ADMIN_SESSION_COOKIE.equals(cookie.getName())
+          && cookie.getValue() != null
+          && !cookie.getValue().isBlank()) {
+        return "Bearer " + cookie.getValue();
+      }
+    }
+    return authorization;
   }
 
   public Long optionalCustomer(String authorization) {
