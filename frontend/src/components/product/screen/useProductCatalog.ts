@@ -5,6 +5,7 @@ import { DEFAULT_PRESENTATION_SETTINGS, DEFAULT_SPECIAL_OFFER_SETTINGS, type Car
 import { CATEGORIES, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems, sortComboRows } from "../shared";
 import { SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { specialOfferSessionKey } from "./ProductScreenOverlays";
+import { DEFAULT_LEMONADE_SETTINGS, normalizeLemonadeSettings } from "../LemonadeShowcase";
 import { API_URL, DEFAULT_FEATURED_PRODUCT_ID, PRICING_ROWS_CACHE_KEY, PUBLIC_SETTINGS_CACHE_KEY, applyPricingToMenu, freshApiUrl, preloadClientImages, readJsonCache, writeJsonCache } from "./productCatalog";
 
 export function useProductCatalog(kioskMode: boolean) {
@@ -26,6 +27,7 @@ export function useProductCatalog(kioskMode: boolean) {
   const [catalogItems, setCatalogItems] = useState<MenuItem[]>(() => API_URL ? [] : MENU_ITEMS);
   const [catalogLoaded, setCatalogLoaded] = useState(!API_URL);
   const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
+  const [lemonadeSettings, setLemonadeSettings] = useState(DEFAULT_LEMONADE_SETTINGS);
 
   const filteredItems = useMemo(() => {
     const visible = catalogItems.filter((item) => !isSpecialOfferOnlyProduct(item));
@@ -57,6 +59,7 @@ export function useProductCatalog(kioskMode: boolean) {
     setCarouselIntervalSeconds(presentation.carouselIntervalSeconds);
     setCarouselCards(presentation.carouselCards);
     setPromoCards(normalizePromoCards(settings?.promoCards)); setSpecialOffer(offer);
+    setLemonadeSettings(normalizeLemonadeSettings(settings?.lemonade));
     preloadClientImages([presentation.featuredImage, featuredItem?.image ? imageSrc(featuredItem.image) : undefined, offer.image]);
     setOperatingNow(settings?.operatingNow !== false); setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
     setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? "")); setSoldOutEnabled(settings?.soldOutActive === true);
@@ -93,5 +96,5 @@ export function useProductCatalog(kioskMode: boolean) {
       .catch(() => { if (!cached.length) setCatalogItems([]); }).finally(() => setCatalogLoaded(true));
   }, []);
 
-  return { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem };
+  return { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem,lemonadeSettings };
 }

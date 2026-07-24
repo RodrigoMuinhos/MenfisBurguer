@@ -10,6 +10,41 @@ const LEMONADE_HEROS = [
   { src: "/Lemonade/hero3.png", alt: "Purple Lemonade Menfi's" },
 ] as const;
 
+export type LemonadeSettings = {
+  badgeLabels: Record<string, string>;
+  enabledFlavors: string[];
+  flavorOrder: string[];
+  heroOrder: string[];
+};
+
+export const DEFAULT_LEMONADE_SETTINGS: LemonadeSettings = {
+  badgeLabels: {
+    "pink-lemonade": "",
+    "purple-lemonade": "",
+    "sunset-lemonade": "Em breve",
+  },
+  enabledFlavors: [...LEMONADE_IDS],
+  flavorOrder: [...LEMONADE_IDS],
+  heroOrder: ["hero.png", "hero2.png", "hero3.png"],
+};
+
+export function normalizeLemonadeSettings(value: unknown): LemonadeSettings {
+  const row = value && typeof value === "object" ? value as Partial<LemonadeSettings> & { badgeLabel?: string } : {};
+  const enabled = Array.isArray(row.enabledFlavors) ? row.enabledFlavors.filter((id) => LEMONADE_IDS.includes(id as never)) : [...LEMONADE_IDS];
+  const flavorOrder = Array.isArray(row.flavorOrder) ? row.flavorOrder.filter((id) => LEMONADE_IDS.includes(id as never)) : [...LEMONADE_IDS];
+  const heroOrder = Array.isArray(row.heroOrder) ? row.heroOrder.filter((name) => ["hero.png", "hero2.png", "hero3.png"].includes(name)) : DEFAULT_LEMONADE_SETTINGS.heroOrder;
+  return {
+    badgeLabels: {
+      "pink-lemonade": String(row.badgeLabels?.["pink-lemonade"] ?? "").trim(),
+      "purple-lemonade": String(row.badgeLabels?.["purple-lemonade"] ?? "").trim(),
+      "sunset-lemonade": String(row.badgeLabels?.["sunset-lemonade"] ?? row.badgeLabel ?? "Em breve").trim(),
+    },
+    enabledFlavors: enabled,
+    flavorOrder: [...flavorOrder, ...LEMONADE_IDS.filter((id) => !flavorOrder.includes(id))],
+    heroOrder: [...heroOrder, ...DEFAULT_LEMONADE_SETTINGS.heroOrder.filter((name) => !heroOrder.includes(name))],
+  };
+}
+
 const FLAVOR_THEME: Record<string, { color: string; soft: string }> = {
   "pink-lemonade": { color: "#C80B50", soft: "#FFF0F5" },
   "purple-lemonade": { color: "#7B367D", soft: "#F7EDFA" },
@@ -23,31 +58,38 @@ export function isLemonade(item: MenuItem) {
 export function LemonadeShowcase({
   items,
   onAdd,
+  settings = DEFAULT_LEMONADE_SETTINGS,
 }: {
   items: MenuItem[];
   onAdd: (item: MenuItem) => void;
+  settings?: LemonadeSettings;
 }) {
+  const normalizedSettings = normalizeLemonadeSettings(settings);
+  const heroes = normalizedSettings.heroOrder.map((name) =>
+    LEMONADE_HEROS.find((hero) => hero.src.endsWith(`/${name}`)),
+  ).filter((hero): hero is (typeof LEMONADE_HEROS)[number] => Boolean(hero));
   const [activeHero, setActiveHero] = useState(0);
-  const lemonades = LEMONADE_IDS
+  const lemonades = normalizedSettings.flavorOrder
+    .filter((id) => normalizedSettings.enabledFlavors.includes(id))
     .map((id) => items.find((item) => item.id === id))
     .filter((item): item is MenuItem => Boolean(item));
 
   useEffect(() => {
     const timer = window.setInterval(
-      () => setActiveHero((current) => (current + 1) % LEMONADE_HEROS.length),
+      () => setActiveHero((current) => (current + 1) % heroes.length),
       5000,
     );
     return () => window.clearInterval(timer);
   }, []);
 
   const changeHero = (direction: number) => {
-    setActiveHero((current) => (current + direction + LEMONADE_HEROS.length) % LEMONADE_HEROS.length);
+    setActiveHero((current) => (current + direction + heroes.length) % heroes.length);
   };
 
   return (
     <div className="overflow-hidden bg-white text-[#5B1230]">
       <section className="relative aspect-[1672/941] overflow-hidden bg-[#FFE7EF]" aria-roledescription="carrossel">
-        {LEMONADE_HEROS.map((hero, index) => (
+        {heroes.map((hero, index) => (
           <button
             key={hero.src}
             type="button"
@@ -73,7 +115,7 @@ export function LemonadeShowcase({
           aria-label="Próximo hero"
         ><ChevronRight size={24} strokeWidth={2.8} /></button>
         <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-2 rounded-full bg-white/75 px-3 py-2 shadow-md backdrop-blur-sm md:bottom-5">
-          {LEMONADE_HEROS.map((hero, index) => (
+          {heroes.map((hero, index) => (
             <button
               key={hero.src}
               type="button"
@@ -112,9 +154,11 @@ export function LemonadeShowcase({
               >
                 <div className="relative aspect-[3/4] overflow-hidden" style={{ background: theme.soft }}>
                   <img src={String(item.image)} alt={item.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]" />
-                  <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-[10px] font-black uppercase tracking-widest" style={{ color: theme.color }}>
-                    Em breve
-                  </span>
+                  {normalizedSettings.badgeLabels[item.id] && (
+                    <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-[10px] font-black uppercase tracking-widest" style={{ color: theme.color }}>
+                      {normalizedSettings.badgeLabels[item.id]}
+                    </span>
+                  )}
                   <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90" style={{ color: theme.color }}>
                     <Heart size={19} />
                   </span>

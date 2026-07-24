@@ -14,6 +14,7 @@ import {
   Users,
   BarChart3,
   Crown,
+  CupSoda,
 } from "lucide-react";
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import {
@@ -61,6 +62,8 @@ import { OrdersView } from "./views/OrdersView";
 import { PricingView } from "./views/PricingView";
 import { SupportView } from "./views/SupportView";
 import { LoyaltyView } from "./views/LoyaltyView";
+import { LemonadeAdminView } from "./views/LemonadeAdminView";
+import { DEFAULT_LEMONADE_SETTINGS, normalizeLemonadeSettings, type LemonadeSettings } from "@/components/product/LemonadeShowcase";
 import {
   deleteAdminCoupon,
   saveAdminCoupon,
@@ -69,7 +72,7 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "suporte" | "cupons" | "resultados" | "monitoramento" | "config";
+export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "lemonade" | "suporte" | "cupons" | "resultados" | "monitoramento" | "config";
 
 function adminHeaders(adminToken: string, json = false) {
   return {
@@ -138,6 +141,7 @@ export function AdminPanel({
   const [savedSpecialOffer, setSavedSpecialOffer] = useState<SpecialOfferSettings>(DEFAULT_SPECIAL_OFFER_SETTINGS);
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
   const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
+  const [lemonadeSettings, setLemonadeSettings] = useState<LemonadeSettings>(DEFAULT_LEMONADE_SETTINGS);
 
   const [stockItems, setStockItems] = useState<StockItem[]>(INITIAL_ITEMS);
   const [stockMovements, setStockMovements] = useState<Movement[]>([]);
@@ -193,6 +197,7 @@ export function AdminPanel({
     { id: "custos", label: "Custos e Precificação", Icon: Calculator },
     { id: "clientes", label: "Clientes", Icon: Users },
     { id: "fidelidade", label: "Fidelidade", Icon: Crown },
+    { id: "lemonade", label: "Lemonade", Icon: CupSoda },
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
     { id: "cupons", label: "Cupons", Icon: TicketPercent },
     { id: "resultados", label: "Relatórios e Indicadores", Icon: BarChart3 },
@@ -362,6 +367,7 @@ export function AdminPanel({
     const normalizedSpecialOffer = normalizeSpecialOfferSettings(settings.specialOffer);
     setSpecialOffer(normalizedSpecialOffer);
     setSavedSpecialOffer(normalizedSpecialOffer);
+    setLemonadeSettings(normalizeLemonadeSettings(settings.lemonade));
   };
 
   useEffect(() => {
@@ -513,6 +519,25 @@ export function AdminPanel({
       setAdminDataError("");
     } catch {
       setAdminDataError("Não foi possível salvar o pop-up promocional.");
+    } finally {
+      setSavingPayOnDelivery(false);
+    }
+  };
+
+  const saveLemonadeSettings = async () => {
+    if (!API_URL || savingPayOnDelivery) return;
+    setSavingPayOnDelivery(true);
+    try {
+      const response = await fetch(`${API_URL}/settings/lemonade`, {
+        method: "PATCH",
+        headers: adminHeaders(adminToken, true),
+        body: JSON.stringify({ lemonade: normalizeLemonadeSettings(lemonadeSettings) }),
+      });
+      if (!response.ok) throw new Error("lemonade_save_failed");
+      applyPublicSettings(await response.json());
+      setAdminDataError("");
+    } catch {
+      setAdminDataError("Não foi possível salvar as configurações da Lemonade.");
     } finally {
       setSavingPayOnDelivery(false);
     }
@@ -893,6 +918,14 @@ export function AdminPanel({
           />
         )}
         {tab === "fidelidade" && <LoyaltyView customers={crmCustomers} />}
+        {tab === "lemonade" && (
+          <LemonadeAdminView
+            settings={lemonadeSettings}
+            onChange={setLemonadeSettings}
+            onSave={saveLemonadeSettings}
+            saving={savingPayOnDelivery}
+          />
+        )}
         {tab === "suporte" && (
           <SupportView
             tickets={supportTickets}

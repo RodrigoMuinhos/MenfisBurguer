@@ -40,7 +40,7 @@ import { BrandMenuButton, CategoryNav, ClosedHoursModal, IconButton, OfferCarous
 import { ProductCarousel } from "./carousel/ProductCarousel";
 import { MobileBottomNav, ReviewsPanel } from "./mobile/MobileMenuPanels";
 import { MobileListItem } from "./mobile/MobileListItem";
-import { LemonadeShowcase } from "./LemonadeShowcase";
+import { DEFAULT_LEMONADE_SETTINGS, LemonadeShowcase, type LemonadeSettings } from "./LemonadeShowcase";
 export function MobileMenuExperience({
   items,
   cartCount,
@@ -61,6 +61,7 @@ export function MobileMenuExperience({
   goToCart,
   soldOutEnabled = false,
   soldOutMessage = SOLD_OUT_MESSAGE,
+  lemonadeSettings = DEFAULT_LEMONADE_SETTINGS,
 }: {
   items: MenuItem[];
   cartCount: number;
@@ -81,6 +82,7 @@ export function MobileMenuExperience({
   goToCart: () => void;
   soldOutEnabled?: boolean;
   soldOutMessage?: string;
+  lemonadeSettings?: LemonadeSettings;
 }) {
   const [category, setCategory] = useState<MobileCategory>("combo");
   const [query, setQuery] = useState("");
@@ -306,7 +308,7 @@ export function MobileMenuExperience({
 
       <main className={category === "lemonade" ? "pb-44" : "px-3 pb-44 min-[390px]:px-4"}>
         {category === "lemonade" ? (
-          <LemonadeShowcase items={visibleItems} onAdd={onQuickAdd} />
+          <LemonadeShowcase items={visibleItems} onAdd={onQuickAdd} settings={lemonadeSettings} />
         ) : (
         <section id="menfis-products" className="pt-5">
           <h2 className="text-lg font-black uppercase tracking-wide">

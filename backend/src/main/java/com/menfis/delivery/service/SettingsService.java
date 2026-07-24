@@ -21,6 +21,10 @@ public class SettingsService {
   public static final String PRESENTATION = "presentation_settings";
   public static final String PROMO_CARDS = "promo_cards";
   public static final String SPECIAL_OFFER = "special_offer_settings";
+  public static final String LEMONADE_SETTINGS = "lemonade_settings";
+  private static final String DEFAULT_LEMONADE_SETTINGS = """
+    {"badgeLabels":{"pink-lemonade":"","purple-lemonade":"","sunset-lemonade":"Em breve"},"enabledFlavors":["pink-lemonade","purple-lemonade","sunset-lemonade"],"flavorOrder":["pink-lemonade","purple-lemonade","sunset-lemonade"],"heroOrder":["hero.png","hero2.png","hero3.png"]}
+    """;
   public static final String SOLD_OUT_MESSAGE = """
     FELIZMENTE, HOJE ESGOTAMOS TUDO!
 
@@ -130,6 +134,18 @@ public class SettingsService {
     }
   }
 
+  public Map<String, Object> lemonadeSettings() {
+    try {
+      return objectMapper.readValue(value(LEMONADE_SETTINGS, DEFAULT_LEMONADE_SETTINGS), new TypeReference<>() {});
+    } catch (Exception ignored) {
+      try {
+        return objectMapper.readValue(DEFAULT_LEMONADE_SETTINGS, new TypeReference<>() {});
+      } catch (Exception fallbackError) {
+        return Map.of();
+      }
+    }
+  }
+
   public Map<String, Object> publicSettings() {
     OperatingStatus operatingStatus = operatingStatus();
     boolean soldOut = soldOutEnabled();
@@ -143,6 +159,7 @@ public class SettingsService {
     response.put("presentation", presentationSettings());
     response.put("promoCards", promoCards());
     response.put("specialOffer", specialOfferSettings());
+    response.put("lemonade", lemonadeSettings());
     response.put("soldOutEnabled", soldOut);
     response.put("soldOutActive", soldOutActive);
     response.put("soldOutMessage", SOLD_OUT_MESSAGE);
@@ -325,6 +342,23 @@ public class SettingsService {
       );
     } catch (Exception e) {
       throw new IllegalArgumentException("Apresentação inválida.");
+    }
+    return publicSettings();
+  }
+
+  public Map<String, Object> setLemonadeSettings(Map<String, Object> lemonade) {
+    try {
+      jdbc.update(
+        """
+        insert into app_settings(key, value, updated_at)
+        values (?, ?, now())
+        on conflict (key) do update set value = excluded.value, updated_at = now()
+        """,
+        LEMONADE_SETTINGS,
+        objectMapper.writeValueAsString(lemonade == null ? Map.of() : lemonade)
+      );
+    } catch (Exception error) {
+      throw new IllegalArgumentException("invalid_lemonade_settings", error);
     }
     return publicSettings();
   }

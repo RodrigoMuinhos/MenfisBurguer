@@ -26,7 +26,7 @@ type ScreenState = {
 };
 
 export function ProductScreenView({ catalog, member, screen }: { catalog: ReturnType<typeof useProductCatalog>; member: ReturnType<typeof useProductMember>; screen: ScreenState }) {
- const { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem } = catalog;
+ const { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem,lemonadeSettings } = catalog;
  const { loginOpen,setLoginOpen,profileOpen,setProfileOpen,historyOpen,setHistoryOpen,notificationsOpen,setNotificationsOpen,favoritesOpen,setFavoritesOpen,memberName,setMemberName,memberEmail,setMemberEmail,memberCpf,setMemberCpf,memberPhone,setMemberPhone,memberPassword,setMemberPassword,memberPasswordConfirm,setMemberPasswordConfirm,memberLogin,setMemberLogin,loginPassword,setLoginPassword,memberAuthMode,setMemberAuthMode,memberBirthday,setMemberBirthday,memberCep,setMemberCep,memberStreet,setMemberStreet,memberNumber,setMemberNumber,memberComplement,setMemberComplement,memberNeighborhood,setMemberNeighborhood,memberCity,setMemberCity,memberReference,setMemberReference,memberProfile,memberError,memberSaving,openMemberAccess,editMember,openHistory,openNotifications,saveMember,loginMember,requestPasswordRecovery,resetMemberPassword,logoutMember,updateMemberProfile } = member;
  const { cart,updateQty,kioskMode,activeOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu } = screen;
  const specialOfferProduct = catalogItems.find((item) => item.id === specialOffer.productId) ?? featuredItem;
@@ -70,6 +70,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
           goToCart={handleGoToCart}
           soldOutEnabled={soldOutEnabled}
           soldOutMessage={soldOutMessage}
+          lemonadeSettings={lemonadeSettings}
         />
       )}
 
@@ -163,7 +164,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
 
           <CategoryTabs category={category} setCategory={setCategory} showKioskOnly={kioskMode || kioskMobLoggedIn} />
           {category === "lemonade" ? (
-            <LemonadeShowcase items={filteredItems} onAdd={addMenuItem} />
+            <LemonadeShowcase items={filteredItems} onAdd={addMenuItem} settings={lemonadeSettings} />
           ) : (
           <section id="menfis-products" className="mt-6 px-4">
             <div>
