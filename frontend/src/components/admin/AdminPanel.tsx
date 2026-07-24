@@ -61,7 +61,7 @@ import { IntelligenceReportsView } from "./views/IntelligenceReportsView";
 import { OrdersView } from "./views/OrdersView";
 import { PricingView } from "./views/PricingView";
 import { SupportView } from "./views/SupportView";
-import { LoyaltyView } from "./views/LoyaltyView";
+import { isLoyaltyCustomer, LoyaltyView } from "./views/LoyaltyView";
 import { LemonadeAdminView } from "./views/LemonadeAdminView";
 import { DEFAULT_LEMONADE_SETTINGS, normalizeLemonadeSettings, type LemonadeSettings } from "@/components/product/LemonadeShowcase";
 import {
@@ -299,7 +299,9 @@ export function AdminPanel({
     ).length,
     estoque: stockItems.filter((item) => item.qty <= item.minQty).length,
     clientes: crmCustomers.length,
-    fidelidade: crmCustomers.filter((customer) => Number(customer.order_count ?? 0) > 0).length,
+    fidelidade: crmCustomers.filter(
+      (customer) => isLoyaltyCustomer(customer) && Number(customer.order_count ?? 0) > 0,
+    ).length,
     suporte: supportTickets.filter((ticket) => ticket.status !== "RESOLVED")
       .length,
     cupons: mergeCoupons(customCoupons).filter(

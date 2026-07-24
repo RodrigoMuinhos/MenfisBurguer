@@ -6,9 +6,13 @@ import type { CrmCustomer } from "./CustomersCrmView";
 
 export function LoyaltyView({ customers }: { customers: CrmCustomer[] }) {
   const [query, setQuery] = useState("");
+  const loyaltyCustomers = useMemo(
+    () => customers.filter(isLoyaltyCustomer),
+    [customers],
+  );
   const ranking = useMemo(
     () =>
-      [...customers]
+      [...loyaltyCustomers]
         .filter((customer) => Number(customer.order_count ?? 0) > 0)
         .sort(
           (a, b) =>
@@ -16,7 +20,7 @@ export function LoyaltyView({ customers }: { customers: CrmCustomer[] }) {
             Number(b.total_spent ?? 0) - Number(a.total_spent ?? 0) ||
             String(a.name ?? "").localeCompare(String(b.name ?? ""), "pt-BR"),
         ),
-    [customers],
+    [loyaltyCustomers],
   );
   const filtered = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
@@ -58,7 +62,7 @@ export function LoyaltyView({ customers }: { customers: CrmCustomer[] }) {
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric icon={Users} label="Cadastrados" value={String(customers.length)} />
+        <Metric icon={Users} label="Cadastrados" value={String(loyaltyCustomers.length)} />
         <Metric icon={ShoppingBag} label="Pedidos no programa" value={String(totalOrders)} />
         <Metric icon={Medal} label="Clientes recorrentes" value={String(repeatCustomers)} />
         <Metric icon={Trophy} label="Líder" value={ranking[0]?.name || "—"} compact />
@@ -100,6 +104,15 @@ export function LoyaltyView({ customers }: { customers: CrmCustomer[] }) {
       </div>
     </section>
   );
+}
+
+export function isLoyaltyCustomer(customer: CrmCustomer) {
+  const normalizedName = String(customer.name ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toUpperCase();
+  return normalizedName !== "KIOSKMOB" && normalizedName !== "MENFISDELIVERY";
 }
 
 function Metric({ icon: Icon, label, value, compact = false }: { icon: typeof Users; label: string; value: string; compact?: boolean }) {
