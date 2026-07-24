@@ -358,7 +358,7 @@ export function ProductCustomizer({
           {!isSweetBox && (
           <OptionSection
             title={isLemonade ? "Topping" : "Extras"}
-            subtitle={isLemonade ? "Escolha Chantilly ou Espuma Ginger" : "Escolha até 3 de cada opção"}
+            subtitle={isLemonade ? "Escolha Chantilly ou Espuma Ginger e, se quiser, adicione Vodka" : "Escolha até 3 de cada opção"}
           >
             {extraOptions.map((extra) => {
               const quantity = state.extras[extra.id] ?? 0;

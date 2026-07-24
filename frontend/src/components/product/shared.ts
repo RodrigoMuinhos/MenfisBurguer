@@ -107,6 +107,7 @@ export const EXTRA_OPTIONS = [
 export const LEMONADE_TOPPING_OPTIONS = [
   { id: "topping-chantilly", label: "Chantilly", price: 3, image: "/logo_M.jpeg" },
   { id: "topping-espuma-ginger", label: "Espuma Ginger", price: 3, image: "/logo_M.jpeg" },
+  { id: "adicional-vodka", label: "Adicional de Vodka", price: 6.5, image: "/logo_M.jpeg" },
 ];
 
 export const SWEET_BOX_REQUIRED_COUNT = 4;

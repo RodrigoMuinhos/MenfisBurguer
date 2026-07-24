@@ -77,8 +77,15 @@ export function useProductCustomizerModel(
     }
     setState((prev) => {
       if (!prev) return prev;
-      if (delta < 0) return { ...prev, extras: {} };
-      return { ...prev, extras: { [id]: 1 } };
+      const extras = { ...prev.extras };
+      if (delta < 0) {
+        delete extras[id];
+        return { ...prev, extras };
+      }
+      if (id === "topping-chantilly") delete extras["topping-espuma-ginger"];
+      if (id === "topping-espuma-ginger") delete extras["topping-chantilly"];
+      extras[id] = 1;
+      return { ...prev, extras };
     });
   };
   const updateSweetQty = (id: string, delta: number) => updateOptionQty(id, delta, SWEET_BOX_REQUIRED_COUNT);

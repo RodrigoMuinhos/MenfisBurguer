@@ -983,7 +983,9 @@ public class OrderService {
     if (item == null || item.addonIds() == null) return;
     boolean lemonade = isKioskOnlyItem(item);
     boolean invalid = item.addonIds().stream().anyMatch(addonId -> {
-      boolean lemonadeTopping = "topping-chantilly".equals(addonId) || "topping-espuma-ginger".equals(addonId);
+      boolean lemonadeTopping = "topping-chantilly".equals(addonId)
+        || "topping-espuma-ginger".equals(addonId)
+        || "adicional-vodka".equals(addonId);
       return lemonade != lemonadeTopping;
     });
     if (invalid) throw new IllegalArgumentException("invalid_product_addon");
