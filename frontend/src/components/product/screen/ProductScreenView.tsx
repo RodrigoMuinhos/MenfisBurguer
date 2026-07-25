@@ -145,7 +145,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
               operatingHoursMessage={operatingHoursMessage}
             />
           ) : (
-            <ProductCarousel products={catalogItems} cards={carouselCards} intervalSeconds={carouselIntervalSeconds} onOpenProduct={setDetailItem} onAddProduct={addMenuItem} />
+            <ProductCarousel products={catalogItems} cards={carouselCards} intervalSeconds={carouselIntervalSeconds} onOpenProduct={setDetailItem} onAddProduct={addMenuItem} onMostSoldTap={handleIdleShortcutTap} />
           ))}
 
           {category !== "lemonade" && !kioskMode && soldOutEnabled && (
