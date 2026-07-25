@@ -11,6 +11,7 @@ import { ROSA, VERDE } from "@/utils/theme";
 import {
   CheckoutStep,
   KIOSK_PIX_CODE,
+  KIOSK_PIX_TIMEOUT_SECONDS,
   KioskKeyboardTarget,
   PaymentMethod,
   fmt,
@@ -104,7 +105,7 @@ export function PaymentStepSection({
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
 }) {
-  const [pixSeconds, setPixSeconds] = useState(30);
+  const [pixSeconds, setPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
 
   useEffect(() => {
     if (!kioskMode || checkoutStep !== "payment" || !["pix", "pix_qrcode"].includes(payment)) return;
@@ -119,7 +120,7 @@ export function PaymentStepSection({
 
   const choosePayment = (id: Exclude<PaymentMethod, "">) => {
     setPayment(id);
-    if (id === "pix" || id === "pix_qrcode") setPixSeconds(30);
+    if (id === "pix" || id === "pix_qrcode") setPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
     window.setTimeout(() => {
       document
         .querySelector("[data-checkout-submit]")

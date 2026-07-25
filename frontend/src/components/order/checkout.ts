@@ -181,6 +181,7 @@ export const DELIVERY_FEE = 7.1;
 export const SERVICE_FEE = 0.99;
 export const KIOSK_PIX_CODE =
   "00020126330014br.gov.bcb.pix0111044117503175204000053039865802BR5922RODRIGO ARAUJO MUINHOS6009FORTALEZA62070503***63044AEB";
+export const KIOSK_PIX_TIMEOUT_SECONDS = 60;
 
 /** Gera um payload Pix copia-e-cola com o valor do pedido embutido (campo 54). */
 export function pixCodeWithAmount(amount: number) {
