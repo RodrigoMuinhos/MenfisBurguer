@@ -7,11 +7,13 @@ import { Movement, StockItem } from "../EstoqueView";
 import { fetchPricingProducts } from "../adminBackend";
 import { fmt, isBillableOrder, localDateKey, paymentMethodLabel } from "../shared";
 import type { PricingRow } from "./PricingView";
+import { SalesPlanningView } from "./SalesPlanningView";
 
 type Preset = "today" | "week" | "month" | "quarter" | "year" | "custom";
 const COLORS = [VERDE, "#F8B7C8", "#C2410C", "#8B5CF6", "#0EA5E9"];
 
 export function IntelligenceReportsView({ orders, stockItems, movements, adminToken }: { orders: Order[]; stockItems: StockItem[]; movements: Movement[]; adminToken: string }) {
+  const [module, setModule] = useState<"indicators" | "planning">(() => typeof window !== "undefined" && window.location.pathname === "/relatorios/planejamento-vendas" ? "planning" : "indicators");
   const [preset, setPreset] = useState<Preset>("month");
   const [customStart, setCustomStart] = useState(localDateKey(Date.now() - 29 * 86400000));
   const [customEnd, setCustomEnd] = useState(localDateKey(Date.now()));
@@ -42,8 +44,18 @@ export function IntelligenceReportsView({ orders, stockItems, movements, adminTo
   const stockValue = sum(stockItems.map((item) => item.qty * item.unitCost));
   const periodMovements = movements.filter((movement) => { const key = localDateKey(movement.timestamp); return key >= range.start && key <= range.end; });
 
+  const changeModule = (next: "indicators" | "planning") => {
+    setModule(next);
+    window.history.replaceState({}, "", next === "planning" ? "/relatorios/planejamento-vendas" : "/adm");
+  };
+
   return (
     <div className="min-h-screen bg-[#FFF8F2] text-[#314A37]">
+      <nav className="flex gap-2 border-b border-[#314A37]/10 bg-white px-4 pt-4 lg:px-6">
+        <button onClick={() => changeModule("indicators")} className="rounded-t-xl px-4 py-3 text-xs font-black" style={{ background: module === "indicators" ? "#314A37" : "#FFF8F2", color: module === "indicators" ? "#F8B7C8" : "#314A37" }}>Visão de Indicadores</button>
+        <button onClick={() => changeModule("planning")} className="rounded-t-xl px-4 py-3 text-xs font-black" style={{ background: module === "planning" ? "#750020" : "#FFF8F2", color: module === "planning" ? "white" : "#750020" }}>Planejamento de Vendas</button>
+      </nav>
+      {module === "planning" ? <main className="p-4 lg:p-6"><SalesPlanningView adminToken={adminToken}/></main> : <>
       <header className="border-b border-[#314A37]/10 bg-white px-4 py-5 lg:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div><p className="text-[10px] font-black uppercase tracking-[.18em] text-[#9F4560]">Inteligência operacional</p><h1 className="mt-1 text-3xl font-black lg:text-4xl">Relatórios e Indicadores</h1><p className="mt-1 text-sm font-semibold opacity-55">Visão financeira, comercial, operacional e de estoque.</p></div>
@@ -83,6 +95,7 @@ export function IntelligenceReportsView({ orders, stockItems, movements, adminTo
 
         <Panel title="Desempenho dos produtos" subtitle="Ranking completo de quantidade e faturamento"><div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-xs"><thead><tr className="border-b"><th className="p-3">Produto</th><th>Quantidade</th><th>Pedidos</th><th>Faturamento</th><th>Participação</th></tr></thead><tbody>{products.map(p=><tr key={p.name} className="border-b border-[#314A37]/8"><td className="p-3 font-black">{p.name}</td><td>{p.qty}</td><td>{p.orders}</td><td>{fmt(p.revenue)}</td><td>{revenue ? (p.revenue/revenue*100).toFixed(1) : 0}%</td></tr>)}</tbody></table></div></Panel>
       </main>
+      </>}
     </div>
   );
 }
