@@ -40,6 +40,7 @@ export function useProductCatalog(kioskMode: boolean) {
     );
     else if (category === "fries") items = visible.filter((item) => item.category === "fries");
     else if (category === "sweet") items = visible.filter((item) => item.category === "sweet");
+    else if (category === "salad") items = visible.filter((item) => item.category === "salad");
     else items = visible.filter((item) => item.category === category);
     if (category === "super") return [...items].sort((a, b) => a.id === "tropikal-menfis" ? -1 : b.id === "tropikal-menfis" ? 1 : 0);
     if (category === "combo") return sortComboRows(items);

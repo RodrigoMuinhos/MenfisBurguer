@@ -117,6 +117,7 @@ export function canonicalProductImage(id: string, imageUrl: string) {
 export function pricingKindToMenuCategory(kind: string, categoryLabel = ""): ProductCategory {
   if (kind === "combo") return "combo";
   if (kind === "drink") return "bebida";
+  if (categoryLabel.toLowerCase().includes("salad")) return "salad";
   if (categoryLabel.toLowerCase().includes("sweet")) return "sweet";
   if (
     categoryLabel.toLowerCase().includes("galeria de fritas") ||
@@ -133,6 +134,7 @@ export function labelCategory(category: ProductCategory) {
   if (category === "extra") return "Extra";
   if (category === "fries") return "Galeria de Fritas";
   if (category === "sweet") return "Sweet";
+  if (category === "salad") return "Salad";
   return "Burger";
 }
 

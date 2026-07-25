@@ -27,6 +27,7 @@ import {
   Candy,
   CheckCircle2,
   CupSoda,
+  Salad,
 } from "lucide-react";
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
@@ -35,7 +36,7 @@ import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxPro
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { SuperLaunchCard } from "../ProductParts";
 
-export type MobileCategory = "combo" | "burger" | "lemonade" | "super" | "fries" | "extras" | "sweet";
+export type MobileCategory = "combo" | "burger" | "lemonade" | "super" | "fries" | "extras" | "sweet" | "salad";
 
 export const VINHO = "#65001F";
 export const MAGENTA = "#B20B47";
@@ -50,6 +51,7 @@ export const MOBILE_CATEGORIES: Array<{
 }> = [
   { id: "combo", label: "Combos", icon: Package },
   { id: "burger", label: "Burgers", icon: Beef },
+  { id: "salad", label: "Salad", icon: Salad },
   { id: "fries", label: "Fries", icon: Utensils },
   { id: "sweet", label: "Sweet", icon: Candy },
   { id: "lemonade", label: "Lemonade", icon: CupSoda },
@@ -76,6 +78,7 @@ export function categoryMatches(item: MenuItem, category: MobileCategory) {
   }
   if (category === "combo") return item.category === "combo" && !item.highlight;
   if (category === "fries") return item.category === "fries";
+  if (category === "salad") return item.category === "salad";
   if (category === "extras") {
     return (item.category === "extra" || item.category === "bebida") && !item.id.endsWith("-lemonade");
   }
