@@ -120,6 +120,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
         )}
         <ProductHeader
           kioskMode={kioskMode}
+          idleShortcutEnabled={kioskMobLoggedIn}
           cartCount={cartCount}
           onAdminTap={handleAdminTap}
           onIdleShortcutTap={handleIdleShortcutTap}

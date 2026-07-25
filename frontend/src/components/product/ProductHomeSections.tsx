@@ -18,6 +18,7 @@ import burgerPhoto from "@/imports/image-9.png";
 
 export function ProductHeader({
   kioskMode,
+  idleShortcutEnabled,
   cartCount,
   onAdminTap,
   onIdleShortcutTap,
@@ -29,6 +30,7 @@ export function ProductHeader({
   onLogoutMember,
 }: {
   kioskMode: boolean;
+  idleShortcutEnabled: boolean;
   cartCount: number;
   onAdminTap: () => void;
   onIdleShortcutTap: () => void;
@@ -74,10 +76,10 @@ export function ProductHeader({
 
         <div
           className="min-w-0 flex-1"
-          onClick={kioskMode ? onIdleShortcutTap : undefined}
-          role={kioskMode ? "button" : undefined}
-          aria-label={kioskMode ? "Menfi's Burger. Toque três vezes para abrir a tela de descanso." : undefined}
-          style={{ cursor: kioskMode ? "pointer" : "default", userSelect: "none" }}
+          onClick={idleShortcutEnabled ? onIdleShortcutTap : undefined}
+          role={idleShortcutEnabled ? "button" : undefined}
+          aria-label={idleShortcutEnabled ? "Menfi's Burger. Toque três vezes para abrir a tela de descanso." : undefined}
+          style={{ cursor: idleShortcutEnabled ? "pointer" : "default", userSelect: "none" }}
         >
           <img
             src="/logo%20hor.png"
