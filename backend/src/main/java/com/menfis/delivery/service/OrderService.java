@@ -976,12 +976,17 @@ public class OrderService {
   }
 
   private boolean isKioskOnlyItem(OrderItemRequest item) {
+    return isLemonadeItem(item)
+      || (item != null && "chicken-menfis-salad".equals(item.productId()));
+  }
+
+  private boolean isLemonadeItem(OrderItemRequest item) {
     return item != null && item.productId() != null && item.productId().endsWith("-lemonade");
   }
 
   private void validateProductAddons(OrderItemRequest item) {
     if (item == null || item.addonIds() == null) return;
-    boolean lemonade = isKioskOnlyItem(item);
+    boolean lemonade = isLemonadeItem(item);
     boolean invalid = item.addonIds().stream().anyMatch(addonId -> {
       boolean lemonadeTopping = "topping-chantilly".equals(addonId)
         || "topping-espuma-ginger".equals(addonId)

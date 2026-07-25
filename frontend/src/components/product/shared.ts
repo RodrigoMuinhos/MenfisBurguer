@@ -39,11 +39,11 @@ export type MemberProfile = {
 export const CATEGORIES = [
   { id: "combo", label: "Combos", Icon: Package },
   { id: "burger", label: "Burgers", Icon: Beef },
-  { id: "salad", label: "Salad", Icon: Salad },
   { id: "fries", label: "Fries", Icon: Utensils },
   { id: "sweet", label: "Sweet", Icon: Candy },
   { id: "lemonade", label: "Lemonade", Icon: CupSoda },
   { id: "super", label: "SUPER", Icon: Candy },
+  { id: "salad", label: "Salad", Icon: Salad },
   { id: "extras", label: "Extras", Icon: Plus },
 ] as const;
 

@@ -51,11 +51,11 @@ export const MOBILE_CATEGORIES: Array<{
 }> = [
   { id: "combo", label: "Combos", icon: Package },
   { id: "burger", label: "Burgers", icon: Beef },
-  { id: "salad", label: "Salad", icon: Salad },
   { id: "fries", label: "Fries", icon: Utensils },
   { id: "sweet", label: "Sweet", icon: Candy },
   { id: "lemonade", label: "Lemonade", icon: CupSoda },
   { id: "super", label: "SUPER", icon: Star },
+  { id: "salad", label: "Salad", icon: Salad },
   { id: "extras", label: "Extras", icon: Plus },
 ];
 
