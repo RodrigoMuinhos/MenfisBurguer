@@ -497,7 +497,7 @@ export function ConfigView({
                 className="min-h-12 rounded-2xl px-4 text-sm font-black outline-none"
                 style={{ border: `1.5px solid ${VERDE}18`, color: VERDE, background: "#FFF8F2" }}
               >
-                {specialOfferProducts.map((item) => <option key={item.id} value={item.id}>{item.id === "smash-nutella-marshmallow" ? "Smoore Menfi's — Sweet" : item.name}</option>)}
+                {specialOfferProducts.map((item) => <option key={item.id} value={item.id}>{item.id === "smash-nutella-marshmallow" ? "Menfi's Nutella — Sweet" : item.name}</option>)}
               </select>
             </label>
             <div className="rounded-2xl p-4" style={{ background: "#FFF8F2", border: `1px solid ${VERDE}14` }}>

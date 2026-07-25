@@ -237,6 +237,7 @@ export function MenuCard({
   onOpenDetails: () => void;
 }) {
   const isSmoore = item.id === "smash-nutella-marshmallow";
+  const isSweetBrioche = isSmoore || item.id === "menfis-doce-de-leite";
   const displayPrice = builder
     ? item.price + (builder.cheese ? CHEESE_PRICE : 0) + (builder.sauce ? SAUCE_PRICE : 0)
     : item.price;
@@ -271,7 +272,7 @@ export function MenuCard({
             sizes="(max-width: 768px) 100vw, 360px"
             style={{
               objectFit: "cover",
-              objectPosition: isSmoore ? "center 48%" : "center",
+              objectPosition: isSweetBrioche ? "center 48%" : "center",
             }}
           />
         ) : (
@@ -344,9 +345,12 @@ export function MenuCard({
           {item.desc}
         </p>
 
-        {isSmoore && (
+        {isSweetBrioche && (
           <div className="mt-3 grid grid-cols-2 gap-2">
-            {["Brioche amanteigado", "Nutella", "Marshmallow maçaricado", "Pedaços de chocolate"].map((feature) => (
+            {(isSmoore
+              ? ["Brioche amanteigado", "Nutella", "Marshmallow maçaricado", "Pedaços de chocolate"]
+              : ["Brioche amanteigado", "Doce de leite", "Marshmallow maçaricado", "Recheio cremoso"]
+            ).map((feature) => (
               <div
                 key={feature}
                 className="flex min-h-10 items-center gap-2 rounded-xl px-2.5 py-2 text-[10px] font-black leading-tight"

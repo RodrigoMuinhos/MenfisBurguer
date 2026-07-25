@@ -176,6 +176,8 @@ export function ProductDetailModal({
 }) {
   const dark = isSuperProduct(item);
   const chilli = item.id === "tropikal-barbecue";
+  const isSweetBrioche =
+    item.id === "smash-nutella-marshmallow" || item.id === "menfis-doce-de-leite";
   const accent = chilli ? "#FF315C" : "#A2E61B";
   const modalBg = chilli ? "#21090F" : "#061C18";
   const surface = chilli ? "#351018" : "#0A2520";
@@ -268,7 +270,7 @@ export function ProductDetailModal({
             </div>
             <DetailInfo
               title="Observações"
-              copy={item.id === "smash-nutella-marshmallow"
+              copy={isSweetBrioche
                 ? "Produto individual. Informe observações antes de adicionar ao carrinho."
                 : "Ponto da carne, molhos, bebidas, adicionais e quantidade são escolhidos antes de adicionar ao carrinho."}
               dark={dark}
@@ -276,7 +278,7 @@ export function ProductDetailModal({
               accent={accent}
             />
           </div>
-          {item.id !== "smash-nutella-marshmallow" && <div className="mt-5 rounded-2xl p-4" style={{ background: dark ? surface : "#fff", color: dark ? accent : VERDE, border: `1px solid ${dark ? `${accent}3D` : `${VERDE}10`}` }}>
+          {!isSweetBrioche && <div className="mt-5 rounded-2xl p-4" style={{ background: dark ? surface : "#fff", color: dark ? accent : VERDE, border: `1px solid ${dark ? `${accent}3D` : `${VERDE}10`}` }}>
             <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
               Opções disponíveis
             </p>
@@ -308,4 +310,3 @@ export function ProductDetailModal({
     </motion.div>
   );
 }
-

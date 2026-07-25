@@ -259,7 +259,7 @@ export const DEFAULT_PRESENTATION_SETTINGS: PresentationSettings = {
     { id: "most-sold", enabled: true, productId: "triple-combo", eyebrow: "O mais vendido", title: "Combo Triple Menfi's", subtitle: "O favorito da galera", image: "/carrosel/omaisvendido.png", actionLabel: "Ver combo" },
     { id: "super-tropikal", enabled: true, productId: "tropikal-menfis", eyebrow: "Linha Super", title: "Tropikal Menfi's", subtitle: "Uma novidade tropical", image: "/super/tropikal.jpeg", actionLabel: "Ver Super" },
     { id: "super-chilli", enabled: true, productId: "tropikal-barbecue", eyebrow: "Linha Super", title: "Chilli Menfi's", subtitle: "Escolha sua ardência", image: "/super/Chilli.jpeg", actionLabel: "Personalizar" },
-    { id: "sweet-smoore", enabled: true, productId: "smash-nutella-marshmallow", eyebrow: "Sweet", title: "Smoore Menfi's", subtitle: "Nutella e marshmallow maçaricado", image: "/buffetdoce/paonuella.jpeg", actionLabel: "Quero meu Sweet" },
+    { id: "sweet-smoore", enabled: true, productId: "smash-nutella-marshmallow", eyebrow: "Sweet", title: "Menfi's Nutella", subtitle: "Nutella e marshmallow maçaricado", image: "/buffetdoce/paonuella.jpeg", actionLabel: "Quero meu Sweet" },
   ],
 };
 

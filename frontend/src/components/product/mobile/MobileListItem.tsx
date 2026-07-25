@@ -46,6 +46,7 @@ export function MobileListItem({
   onOpen: () => void;
 }) {
   const isSmoore = item.id === "smash-nutella-marshmallow";
+  const isSweetBrioche = isSmoore || item.id === "menfis-doce-de-leite";
   return (
     <article className="grid grid-cols-[minmax(0,1fr)_112px] gap-3 overflow-hidden rounded-[18px] bg-white p-3 shadow-sm min-[390px]:grid-cols-[minmax(0,1fr)_132px]">
       <button type="button" onClick={onOpen} className="min-w-0 text-left">
@@ -67,9 +68,12 @@ export function MobileListItem({
         <p className="mt-1 line-clamp-2 text-sm font-semibold opacity-70">
           {item.desc}
         </p>
-        {isSmoore && (
+        {isSweetBrioche && (
           <div className="mt-2 grid gap-1">
-            {["Nutella", "Marshmallow", "Chocolate"].map((feature) => (
+            {(isSmoore
+              ? ["Nutella", "Marshmallow", "Chocolate"]
+              : ["Doce de leite", "Marshmallow", "Brioche"]
+            ).map((feature) => (
               <span key={feature} className="flex items-center gap-1.5 text-[10px] font-black">
                 <CheckCircle2 size={12} strokeWidth={2.7} style={{ color: "#16A34A" }} />
                 {feature}
