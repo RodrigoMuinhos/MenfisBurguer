@@ -984,14 +984,24 @@ public class OrderService {
     return item != null && item.productId() != null && item.productId().endsWith("-lemonade");
   }
 
+  private boolean isSaladItem(OrderItemRequest item) {
+    return item != null && "chicken-menfis-salad".equals(item.productId());
+  }
+
   private void validateProductAddons(OrderItemRequest item) {
     if (item == null || item.addonIds() == null) return;
     boolean lemonade = isLemonadeItem(item);
+    boolean salad = isSaladItem(item);
     boolean invalid = item.addonIds().stream().anyMatch(addonId -> {
       boolean lemonadeTopping = "topping-chantilly".equals(addonId)
         || "topping-espuma-ginger".equals(addonId)
         || "adicional-vodka".equals(addonId);
-      return lemonade != lemonadeTopping;
+      boolean saladLemonade = "salad-pink-lemonade".equals(addonId)
+        || "salad-purple-lemonade".equals(addonId)
+        || "salad-sunset-lemonade".equals(addonId);
+      if (lemonade) return !lemonadeTopping;
+      if (salad) return !saladLemonade;
+      return lemonadeTopping || saladLemonade;
     });
     if (invalid) throw new IllegalArgumentException("invalid_product_addon");
   }

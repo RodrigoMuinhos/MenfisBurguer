@@ -111,6 +111,12 @@ export const LEMONADE_TOPPING_OPTIONS = [
   { id: "adicional-vodka", label: "Adicional de Vodka", price: 6.5, image: "/logo_M.jpeg" },
 ];
 
+export const SALAD_LEMONADE_OPTIONS = [
+  { id: "salad-pink-lemonade", label: "Pink Lemonade", price: 14.9, image: "/Lemonade/pink.jpeg" },
+  { id: "salad-purple-lemonade", label: "Purple Lemonade", price: 14.9, image: "/Lemonade/purple.jpeg" },
+  { id: "salad-sunset-lemonade", label: "Sunset Lemonade", price: 14.9, image: "/Lemonade/sunset.jpeg" },
+];
+
 export const SWEET_BOX_REQUIRED_COUNT = 4;
 export const SWEET_PREMIUM_PRICE = 0;
 export const SWEET_CLASSIC_PRODUCT_ID = "sweet-menfis-classic";
@@ -284,6 +290,9 @@ export function sweetCardPriceLabel(item: MenuItem) {
 export function getExtraOptionsForItem(item: MenuItem) {
   if (isLemonadeProduct(item)) {
     return LEMONADE_TOPPING_OPTIONS;
+  }
+  if (item.id === "chicken-menfis-salad") {
+    return SALAD_LEMONADE_OPTIONS;
   }
   if (item.category !== "burger" && item.category !== "combo") {
     return EXTRA_OPTIONS;

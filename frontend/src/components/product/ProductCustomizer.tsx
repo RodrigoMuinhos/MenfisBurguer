@@ -357,8 +357,14 @@ export function ProductCustomizer({
 
           {!isSweetBox && (
           <OptionSection
-            title={isLemonade ? "Topping" : "Extras"}
-            subtitle={isLemonade ? "Escolha Chantilly ou Espuma Ginger e, se quiser, adicione Vodka" : "Escolha até 3 de cada opção"}
+            title={isLemonade ? "Topping" : state.item.id === "chicken-menfis-salad" ? "Lemonades" : "Extras"}
+            subtitle={
+              isLemonade
+                ? "Escolha Chantilly ou Espuma Ginger e, se quiser, adicione Vodka"
+                : state.item.id === "chicken-menfis-salad"
+                  ? "Escolha sua Lemonade"
+                  : "Escolha até 3 de cada opção"
+            }
           >
             {extraOptions.map((extra) => {
               const quantity = state.extras[extra.id] ?? 0;
