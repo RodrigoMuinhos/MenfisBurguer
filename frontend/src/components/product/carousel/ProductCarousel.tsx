@@ -108,6 +108,7 @@ export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenPr
 function CarouselSlide({ slide, product, priority, adding, total, onAction, onMostSoldTap }: { slide: SlideData; product?: MenuItem; priority: boolean; adding: boolean; total: number; onAction: (action: CarouselAction, product?: MenuItem) => void; onMostSoldTap?: () => void }) {
   const dark = slide.variant !== "cta";
   const isMostSold = slide.eyebrow?.trim().toLocaleLowerCase("pt-BR") === "o mais vendido";
+  const hasIdleShortcut = isMostSold && Boolean(onMostSoldTap);
   return (
     <article className={`${styles.card} group`} style={{ background: dark ? "#16070c" : "#fffafa", color: dark ? "#fffafa" : "#750020" }} aria-label={`${product?.name || slide.title}. Slide de ${total}`}>
       <div className={`absolute inset-0 ${slide.variant === "ingredients" ? "left-[38%]" : ""}`}>
@@ -116,7 +117,7 @@ function CarouselSlide({ slide, product, priority, adding, total, onAction, onMo
       {slide.variant !== "cta" && <div className="absolute inset-0" style={{ background: slide.variant === "closeup" ? "linear-gradient(to top,rgba(22,7,12,.96),transparent 70%)" : "linear-gradient(to bottom,rgba(22,7,12,.9),transparent 38%,rgba(22,7,12,.93))" }} />}
       <div className="relative flex h-full flex-col justify-between p-6 md:p-10">
         <div>
-          {slide.eyebrow && (isMostSold ? (
+          {slide.eyebrow && (hasIdleShortcut ? (
             <button type="button" onClick={onMostSoldTap} aria-label="O mais vendido. Toque três vezes para abrir a tela de descanso." className="inline-flex items-center gap-2 rounded-full bg-[#ff3f87] px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#16070c]">
               {slide.id === 1 && <Crown size={13} />}{slide.eyebrow}
             </button>
