@@ -9,7 +9,7 @@ import { fmt } from "../shared";
 import type { CarouselAction, CarouselSlide as SlideData } from "./product-carousel.types";
 import styles from "./product-carousel.module.css";
 
-export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenProduct, onAddProduct, onMostSoldTap }: { products: MenuItem[]; cards: CarouselCardSettings[]; intervalSeconds?: number; onOpenProduct: (product: MenuItem) => void; onAddProduct: (product: MenuItem) => void; onMostSoldTap?: () => void }) {
+export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenProduct, onAddProduct }: { products: MenuItem[]; cards: CarouselCardSettings[]; intervalSeconds?: number; onOpenProduct: (product: MenuItem) => void; onAddProduct: (product: MenuItem) => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
@@ -96,7 +96,7 @@ export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenPr
   return (
     <section ref={sectionRef} className={styles.section} aria-roledescription="carrossel" aria-label="Destaques do cardápio Menfi's" onKeyDown={handleKeyDown} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} tabIndex={0}>
       <div ref={trackRef} className={styles.track} onScroll={handleScroll}>
-        {slides.map((slide, index) => <CarouselSlide key={slide.id} slide={slide} product={slide.productId ? products.find((product) => product.id === slide.productId) : undefined} priority={index === 0} adding={adding} total={slides.length} onAction={handleAction} onMostSoldTap={onMostSoldTap} />)}
+        {slides.map((slide, index) => <CarouselSlide key={slide.id} slide={slide} product={slide.productId ? products.find((product) => product.id === slide.productId) : undefined} priority={index === 0} adding={adding} total={slides.length} onAction={handleAction} />)}
       </div>
       <div className={styles.indicators} aria-label="Selecionar slide">
         {slides.map((slide, index) => <button key={slide.id} type="button" aria-label={`Ir para slide ${index + 1}`} aria-current={active === index} onClick={() => goTo(index)} className={`${styles.indicator} ${active === index ? styles.indicatorActive : ""}`} />)}
@@ -105,10 +105,8 @@ export function ProductCarousel({ products, cards, intervalSeconds = 3, onOpenPr
   );
 }
 
-function CarouselSlide({ slide, product, priority, adding, total, onAction, onMostSoldTap }: { slide: SlideData; product?: MenuItem; priority: boolean; adding: boolean; total: number; onAction: (action: CarouselAction, product?: MenuItem) => void; onMostSoldTap?: () => void }) {
+function CarouselSlide({ slide, product, priority, adding, total, onAction }: { slide: SlideData; product?: MenuItem; priority: boolean; adding: boolean; total: number; onAction: (action: CarouselAction, product?: MenuItem) => void }) {
   const dark = slide.variant !== "cta";
-  const isMostSold = slide.eyebrow?.trim().toLocaleLowerCase("pt-BR") === "o mais vendido";
-  const hasIdleShortcut = isMostSold && Boolean(onMostSoldTap);
   return (
     <article className={`${styles.card} group`} style={{ background: dark ? "#16070c" : "#fffafa", color: dark ? "#fffafa" : "#750020" }} aria-label={`${product?.name || slide.title}. Slide de ${total}`}>
       <div className={`absolute inset-0 ${slide.variant === "ingredients" ? "left-[38%]" : ""}`}>
@@ -117,13 +115,7 @@ function CarouselSlide({ slide, product, priority, adding, total, onAction, onMo
       {slide.variant !== "cta" && <div className="absolute inset-0" style={{ background: slide.variant === "closeup" ? "linear-gradient(to top,rgba(22,7,12,.96),transparent 70%)" : "linear-gradient(to bottom,rgba(22,7,12,.9),transparent 38%,rgba(22,7,12,.93))" }} />}
       <div className="relative flex h-full flex-col justify-between p-6 md:p-10">
         <div>
-          {slide.eyebrow && (hasIdleShortcut ? (
-            <button type="button" onClick={onMostSoldTap} aria-label="O mais vendido. Toque três vezes para abrir a tela de descanso." className="inline-flex items-center gap-2 rounded-full bg-[#ff3f87] px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#16070c]">
-              {slide.id === 1 && <Crown size={13} />}{slide.eyebrow}
-            </button>
-          ) : (
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#ff3f87] px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#16070c]">{slide.id === 1 && <Crown size={13} />}{slide.eyebrow}</span>
-          ))}
+          {slide.eyebrow && <span className="inline-flex items-center gap-2 rounded-full bg-[#ff3f87] px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#16070c]">{slide.id === 1 && <Crown size={13} />}{slide.eyebrow}</span>}
           <h2 className="mt-3 uppercase" style={{ fontFamily: "var(--menfis-font-display)", fontSize: "clamp(2.7rem,5vw,4rem)", lineHeight: .88 }}>{product?.name || slide.title}</h2>
           {slide.variant === "closeup" && <div className="mt-3 flex gap-1 text-[#ff3f87]">{[1,2,3,4,5].map((star) => <Star key={star} size={18} fill="currentColor" />)}</div>}
         </div>

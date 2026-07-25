@@ -122,6 +122,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
           kioskMode={kioskMode}
           cartCount={cartCount}
           onAdminTap={handleAdminTap}
+          onIdleShortcutTap={handleIdleShortcutTap}
           goToCart={handleGoToCart}
           memberProfile={memberProfile}
           notificationCount={unreadNotificationCount}
@@ -145,7 +146,7 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
               operatingHoursMessage={operatingHoursMessage}
             />
           ) : (
-            <ProductCarousel products={catalogItems} cards={carouselCards} intervalSeconds={carouselIntervalSeconds} onOpenProduct={setDetailItem} onAddProduct={addMenuItem} onMostSoldTap={kioskMobLoggedIn ? handleIdleShortcutTap : undefined} />
+            <ProductCarousel products={catalogItems} cards={carouselCards} intervalSeconds={carouselIntervalSeconds} onOpenProduct={setDetailItem} onAddProduct={addMenuItem} />
           ))}
 
           {category !== "lemonade" && !kioskMode && soldOutEnabled && (

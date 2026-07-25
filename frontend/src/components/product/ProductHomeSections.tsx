@@ -20,6 +20,7 @@ export function ProductHeader({
   kioskMode,
   cartCount,
   onAdminTap,
+  onIdleShortcutTap,
   goToCart,
   memberProfile,
   notificationCount = 0,
@@ -30,6 +31,7 @@ export function ProductHeader({
   kioskMode: boolean;
   cartCount: number;
   onAdminTap: () => void;
+  onIdleShortcutTap: () => void;
   goToCart: () => void;
   memberProfile?: MemberProfile | null;
   notificationCount?: number;
@@ -70,7 +72,13 @@ export function ProductHeader({
           />
         </button>
 
-        <div className="min-w-0 flex-1">
+        <div
+          className="min-w-0 flex-1"
+          onClick={kioskMode ? onIdleShortcutTap : undefined}
+          role={kioskMode ? "button" : undefined}
+          aria-label={kioskMode ? "Menfi's Burger. Toque três vezes para abrir a tela de descanso." : undefined}
+          style={{ cursor: kioskMode ? "pointer" : "default", userSelect: "none" }}
+        >
           <img
             src="/logo%20hor.png"
             alt="Menfi's Burger"

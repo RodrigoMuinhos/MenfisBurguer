@@ -228,7 +228,7 @@ export function ProductScreen({
 
   const handleIdleShortcutTap = () => {
     if (!onOpenIdleScreen) return;
-    if (kioskMode && !kioskMobLoggedIn) return;
+    if (!kioskMode) return;
     idleShortcutTapCountRef.current += 1;
     if (idleShortcutTimerRef.current) clearTimeout(idleShortcutTimerRef.current);
 
