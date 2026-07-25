@@ -5,8 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 class SalesPlanningCalculatorTest {
+  @Test
+  void exposesAnExplicitProductionConstructorForSpring() throws Exception {
+    var constructor = SalesPlanningService.class.getConstructor(
+      org.springframework.jdbc.core.JdbcTemplate.class,
+      SettingsService.class
+    );
+    assertEquals(true, constructor.isAnnotationPresent(Autowired.class));
+  }
+
   @Test
   void calculatesRequiredOrdersWithFinancialRounding() {
     assertEquals(2, SalesPlanningCalculator.requiredOrders(
