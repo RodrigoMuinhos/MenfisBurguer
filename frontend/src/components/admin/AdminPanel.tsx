@@ -15,6 +15,7 @@ import {
   BarChart3,
   Crown,
   CupSoda,
+  Megaphone,
 } from "lucide-react";
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import {
@@ -63,6 +64,7 @@ import { PricingView } from "./views/PricingView";
 import { SupportView } from "./views/SupportView";
 import { isLoyaltyCustomer, LoyaltyView } from "./views/LoyaltyView";
 import { LemonadeAdminView } from "./views/LemonadeAdminView";
+import { MetaMetricsView } from "./views/MetaMetricsView";
 import { DEFAULT_LEMONADE_SETTINGS, normalizeLemonadeSettings, type LemonadeSettings } from "@/components/product/LemonadeShowcase";
 import {
   deleteAdminCoupon,
@@ -72,7 +74,7 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "lemonade" | "suporte" | "cupons" | "resultados" | "monitoramento" | "config";
+export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "lemonade" | "suporte" | "cupons" | "resultados" | "meta" | "monitoramento" | "config";
 
 function adminHeaders(adminToken: string, json = false) {
   return {
@@ -201,6 +203,7 @@ export function AdminPanel({
     { id: "suporte", label: "Suporte", Icon: MessageCircle },
     { id: "cupons", label: "Cupons", Icon: TicketPercent },
     { id: "resultados", label: "Relatórios e Indicadores", Icon: BarChart3 },
+    { id: "meta", label: "Meta / Facebook", Icon: Megaphone },
     { id: "monitoramento", label: "Monitoramento", Icon: Activity },
     { id: "config", label: "Configurações", Icon: Settings },
   ];
@@ -973,6 +976,7 @@ export function AdminPanel({
             adminToken={adminToken}
           />
         )}
+        {tab === "meta" && <MetaMetricsView />}
         {tab === "config" && (
           <ConfigView
             payOnDeliveryEnabled={payOnDeliveryEnabled}
