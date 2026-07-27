@@ -71,10 +71,10 @@ export const MENU_ITEMS: MenuItem[] = [
     id: "chicken-menfis-salad",
     name: "Chicken Menfi's Salad",
     eyebrow: "Salad",
-    desc: "Frango grelhado 120g, cebola roxa, alface, tomate-cereja, manga, alho frito, molho Caesar e pepino.",
+    desc: "Frango grelhado 120g, cebola roxa, alface, alho frito, molho Caesar e cenoura ralada.",
     price: 39.9,
     image: "/menu/chicken-menfis-salad.png",
-    tags: ["Frango 120g", "Manga", "Molho Caesar"],
+    tags: ["Frango 120g", "Cenoura ralada", "Molho Caesar"],
     category: "salad",
   },
   {

@@ -115,6 +115,9 @@ export const SALAD_LEMONADE_OPTIONS = [
   { id: "salad-pink-lemonade", label: "Pink Lemonade", price: 14.9, image: "/Lemonade/pink.jpeg" },
   { id: "salad-purple-lemonade", label: "Purple Lemonade", price: 14.9, image: "/Lemonade/purple.jpeg" },
   { id: "salad-sunset-lemonade", label: "Sunset Lemonade", price: 14.9, image: "/Lemonade/sunset.jpeg" },
+  { id: "salad-coca-zero", label: "Coca-Cola Zero", price: 4, image: "/EXTRAS/cocazero.jpg" },
+  { id: "salad-guarana-zero", label: "Guaraná Zero", price: 2, image: "/EXTRAS/GuraranaZero.jpg" },
+  { id: "salad-agua-com-gas", label: "Água com gás", price: 4, image: "/EXTRAS/aguaComGas.png" },
 ];
 
 export const SWEET_BOX_REQUIRED_COUNT = 4;

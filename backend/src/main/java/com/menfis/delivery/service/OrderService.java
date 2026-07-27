@@ -998,7 +998,10 @@ public class OrderService {
         || "adicional-vodka".equals(addonId);
       boolean saladLemonade = "salad-pink-lemonade".equals(addonId)
         || "salad-purple-lemonade".equals(addonId)
-        || "salad-sunset-lemonade".equals(addonId);
+        || "salad-sunset-lemonade".equals(addonId)
+        || "salad-coca-zero".equals(addonId)
+        || "salad-guarana-zero".equals(addonId)
+        || "salad-agua-com-gas".equals(addonId);
       if (lemonade) return !lemonadeTopping;
       if (salad) return !saladLemonade;
       return lemonadeTopping || saladLemonade;

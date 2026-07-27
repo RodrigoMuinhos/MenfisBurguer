@@ -36,6 +36,7 @@ function comboPotatoLabel(item: MenuItem) {
 
 function productStory(item: MenuItem) {
   if (isSuperProduct(item)) return item.desc;
+  if (item.id === "chicken-menfis-salad") return item.desc;
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
   const isMenfis130 =
@@ -64,6 +65,7 @@ function productStory(item: MenuItem) {
 
 function productIngredients(item: MenuItem) {
   if (isSuperProduct(item)) return item.desc;
+  if (item.id === "chicken-menfis-salad") return item.desc;
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
   if (name.includes("chicken")) {
@@ -116,6 +118,7 @@ function productWeight(item: MenuItem) {
   const isBig = item.id.includes("double");
   const isSuper = name.includes("super");
   if (isSuperProduct(item)) return "1 carne bovina de 130g.";
+  if (item.id === "chicken-menfis-salad") return "1 filé de frango grelhado de 120g.";
   if (name.includes("chicken")) {
     const chicken = isBig || isSuper ? "2 filés de 120g (240g no total)" : "1 filé de 120g";
     return item.category === "combo"
