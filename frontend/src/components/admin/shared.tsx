@@ -1081,7 +1081,7 @@ export const MENU_STOCK_MAP: Record<
   cola: [{ stockId: "5", qty: 1 }],
   "extra-carne": [{ stockId: "2", qty: 0.1 }],
   "extra-frango": [{ stockId: "8", qty: 1 }],
-  "extra-bacon": [{ stockId: "9", qty: 40 }],
+  "extra-bacon": [{ stockId: "9", qty: 20 }],
   "extra-cheddar": [{ stockId: "10", qty: 30 }],
   "extra-queijo": [{ stockId: "4", qty: 1 }],
   "extra-bebida": [{ stockId: "5", qty: 1 }],

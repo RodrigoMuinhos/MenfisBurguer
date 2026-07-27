@@ -152,7 +152,7 @@ export const ITEM_DESC: Record<string, string> = {
   "chicken-super-combo": "2 Menfi's Chicken · 2 bebidas · Batata Frita 200g",
   "extra-carne": "Burger 100g adicional",
   "extra-frango": "Filé de frango adicional",
-  "extra-bacon": "Bacon adicional 40g",
+  "extra-bacon": "Bacon adicional 20g",
   "extra-cheddar": "Cheddar adicional 30g",
   "extra-queijo": "Queijo extra derretido",
   "extra-ovo": "Ovo adicional no burger",
