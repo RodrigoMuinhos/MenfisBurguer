@@ -595,10 +595,6 @@ export default function App({ mode }: { mode?: AppMode }) {
           <KioskMobQueueScreen
             orders={kioskMobQueue}
             onBack={goHome}
-            onSelect={(order) => {
-              setLastOrderId(order.id);
-              setScreen("tracking");
-            }}
           />
         )}
         {screen === "admin" && (
@@ -839,65 +835,145 @@ function normalizeOrderId(value?: string | null) {
 function KioskMobQueueScreen({
   orders,
   onBack,
-  onSelect,
 }: {
   orders: Order[];
   onBack: () => void;
-  onSelect: (order: Order) => void;
 }) {
-  const sorted = [...orders].sort((a, b) => a.timestamp - b.timestamp);
+  type BoardOrder = Pick<Order, "id" | "number" | "customerName" | "status" | "timestamp">;
+  const [boardOrders, setBoardOrders] = useState<BoardOrder[]>(() =>
+    orders.map(({ id, number, customerName, status, timestamp }) => ({
+      id,
+      number,
+      customerName,
+      status,
+      timestamp,
+    })),
+  );
+
+  useEffect(() => {
+    if (!API_URL) return;
+    let cancelled = false;
+    const loadBoard = async () => {
+      try {
+        const response = await fetch(`${API_URL}/orders/kiosk-board?_=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        });
+        if (!response.ok) return;
+        const rows = await response.json();
+        if (!Array.isArray(rows) || cancelled) return;
+        setBoardOrders(rows.map((row) => ({
+          id: String(row.id),
+          number: Number(row.number ?? String(row.id).replace(/\D/g, "")),
+          customerName: String(row.customerName ?? row.customer_name ?? ""),
+          status: String(row.status ?? "PAYMENT_PENDING") as Order["status"],
+          timestamp: new Date(row.createdAt ?? row.created_at ?? Date.now()).getTime(),
+        })));
+      } catch {
+        // Mantém a última fila visível durante uma oscilação de conexão.
+      }
+    };
+    void loadBoard();
+    const timer = window.setInterval(loadBoard, 2_000);
+    const handleFocus = () => void loadBoard();
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+  const columns = [
+    {
+      id: "received",
+      label: "Recebidos",
+      copy: "Pedido confirmado",
+      statuses: new Set(["CREATED", "PAYMENT_PENDING", "PAYMENT_PROOF_PENDING", "PAID", "ACCEPTED"]),
+      color: "#F6B8CB",
+    },
+    {
+      id: "preparing",
+      label: "Em preparo",
+      copy: "Nossa cozinha está preparando",
+      statuses: new Set(["IN_PREPARATION"]),
+      color: "#F6C453",
+    },
+    {
+      id: "ready",
+      label: "Prontos",
+      copy: "Pode retirar no balcão",
+      statuses: new Set(["READY"]),
+      color: "#A2E61B",
+    },
+  ];
+
+  const customerLabel = (value?: string) => {
+    const clean = String(value ?? "").trim();
+    if (!clean || normalizeKioskMobName(clean) === "KIOSK-MOB") return "Cliente";
+    return clean.split(/\s+/)[0];
+  };
 
   return (
-    <div className="min-h-full px-4 py-5" style={{ background: "#fff", color: VERDE }}>
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-5 rounded-2xl px-5 py-3 text-xs font-black uppercase"
-        style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}18` }}
-      >
-        Voltar ao menu
-      </button>
-      <div className="rounded-3xl p-5" style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}>
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-45">Fila do balcão</p>
-        <h1 className="mt-1 text-3xl font-black">Pedidos KIOSK-MOB</h1>
-        <p className="mt-1 text-xs font-bold opacity-60">
-          Cada pessoa gera um pedido separado. Toque em um pedido para acompanhar.
-        </p>
-        <div className="mt-5 grid gap-3">
-          {sorted.length === 0 ? (
-            <div className="rounded-2xl p-5 text-center text-sm font-black" style={{ background: "#fff" }}>
-              Nenhum pedido ativo no balcão.
-            </div>
-          ) : (
-            sorted.map((order, index) => {
-              const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
-              return (
-                <button
-                  key={order.id}
-                  type="button"
-                  onClick={() => onSelect(order)}
-                  className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl p-4 text-left"
-                  style={{ background: "#fff", border: `1.5px solid ${VERDE}14` }}
-                >
-                  <span
-                    className="flex h-11 w-11 items-center justify-center rounded-full text-lg font-black"
-                    style={{ background: VERDE, color: ROSA }}
-                  >
-                    {index + 1}
-                  </span>
-                  <span>
-                    <span className="block text-xl font-black">{order.id}</span>
-                    <span className="mt-0.5 block text-xs font-bold opacity-65">
-                      Código {deliveryConfirmationCode(order)} · {new Date(order.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+    <div className="min-h-full px-4 py-5 sm:px-6" style={{ background: "#FFF9FB", color: VERDE }}>
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="rounded-2xl px-5 py-3 text-xs font-black uppercase"
+            style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}18` }}
+          >
+            Voltar ao menu
+          </button>
+          <span className="flex items-center gap-2 text-xs font-black uppercase tracking-widest opacity-60">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" />
+            Atualização em tempo real
+          </span>
+        </div>
+        <header className="py-7 text-center">
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] opacity-45">Acompanhe seu pedido</p>
+          <h1 className="mt-2 text-4xl font-black sm:text-5xl">Painel de pedidos</h1>
+          <p className="mt-2 text-sm font-bold opacity-60">Procure seu nome e o número do pedido.</p>
+        </header>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {columns.map((column) => {
+            const columnOrders = boardOrders
+              .filter((order) => column.statuses.has(order.status))
+              .sort((a, b) => a.timestamp - b.timestamp);
+            return (
+              <section key={column.id} className="min-h-80 overflow-hidden rounded-3xl border bg-white" style={{ borderColor: `${VERDE}18` }}>
+                <header className="px-5 py-4" style={{ background: column.color }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-2xl font-black uppercase">{column.label}</h2>
+                      <p className="text-xs font-bold opacity-65">{column.copy}</p>
+                    </div>
+                    <span className="flex h-10 min-w-10 items-center justify-center rounded-full bg-white px-3 text-lg font-black">
+                      {columnOrders.length}
                     </span>
-                  </span>
-                  <span className="rounded-full px-3 py-2 text-[10px] font-black uppercase" style={{ background: ROSA, color: VERDE }}>
-                    {status.label}
-                  </span>
-                </button>
-              );
-            })
-          )}
+                  </div>
+                </header>
+                <div className="grid gap-3 p-4">
+                  {columnOrders.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed p-8 text-center text-sm font-bold opacity-40">
+                      Nenhum pedido nesta etapa
+                    </p>
+                  ) : (
+                    columnOrders.map((order) => (
+                      <article key={order.id} className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: `${VERDE}18` }}>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-45">Pedido</p>
+                        <div className="mt-1 flex items-end justify-between gap-3">
+                          <strong className="truncate text-2xl font-black">{customerLabel(order.customerName)}</strong>
+                          <strong className="shrink-0 text-3xl font-black">{order.id}</strong>
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </section>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import com.menfis.delivery.dto.ApiDtos.UpdateOrderItemsRequest;
 import com.menfis.delivery.service.OrderEventService;
 import com.menfis.delivery.service.OrderService;
 import com.menfis.delivery.service.AuthService;
+import com.menfis.delivery.service.KioskBoardService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,11 +32,17 @@ public class OrderController {
   private final OrderService orders;
   private final OrderEventService events;
   private final AuthService auth;
+  private final KioskBoardService kioskBoard;
 
-  public OrderController(OrderService orders, OrderEventService events, AuthService auth) {
+  public OrderController(
+      OrderService orders,
+      OrderEventService events,
+      AuthService auth,
+      KioskBoardService kioskBoard) {
     this.orders = orders;
     this.events = events;
     this.auth = auth;
+    this.kioskBoard = kioskBoard;
   }
 
   @PostMapping
@@ -55,6 +62,11 @@ public class OrderController {
   public List<OrderResponse> deliveryRoute(@RequestHeader(name = "Authorization", required = false) String authorization) {
     auth.requireDeliveryOrAdmin(authorization);
     return orders.listDeliveryRoute();
+  }
+
+  @GetMapping("/kiosk-board")
+  public List<KioskBoardService.BoardOrder> kioskBoard() {
+    return kioskBoard.listToday();
   }
 
   @GetMapping("/{id}")
