@@ -118,6 +118,10 @@ export const SALAD_LEMONADE_OPTIONS = [
   { id: "salad-coca-zero", label: "Coca-Cola Zero", price: 4, image: "/EXTRAS/cocazero.jpg" },
   { id: "salad-guarana-zero", label: "Guaraná Zero", price: 2, image: "/EXTRAS/GuraranaZero.jpg" },
   { id: "salad-agua-com-gas", label: "Água com gás", price: 4, image: "/EXTRAS/aguaComGas.png" },
+  { id: "salad-extra-tomate-cereja", label: "Tomate-cereja", price: 2.99, image: "/logo_M.jpeg" },
+  { id: "salad-extra-manga", label: "Manga", price: 1.99, image: "/logo_M.jpeg" },
+  { id: "salad-extra-abacaxi", label: "Abacaxi", price: 1.99, image: "/logo_M.jpeg" },
+  { id: "salad-extra-queijo", label: "Adicional de queijo", price: 2, image: "/EXTRAS/queijo.jpg" },
 ];
 
 export const SWEET_BOX_REQUIRED_COUNT = 4;

@@ -1001,7 +1001,11 @@ public class OrderService {
         || "salad-sunset-lemonade".equals(addonId)
         || "salad-coca-zero".equals(addonId)
         || "salad-guarana-zero".equals(addonId)
-        || "salad-agua-com-gas".equals(addonId);
+        || "salad-agua-com-gas".equals(addonId)
+        || "salad-extra-tomate-cereja".equals(addonId)
+        || "salad-extra-manga".equals(addonId)
+        || "salad-extra-abacaxi".equals(addonId)
+        || "salad-extra-queijo".equals(addonId);
       if (lemonade) return !lemonadeTopping;
       if (salad) return !saladLemonade;
       return lemonadeTopping || saladLemonade;
