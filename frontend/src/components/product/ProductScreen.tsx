@@ -93,6 +93,7 @@ import { useProductCatalog } from "./screen/useProductCatalog";
 
 import { API_URL, CUSTOMIZER_ADDON_IDS, DEFAULT_FEATURED_PRODUCT_ID, PRICING_ROWS_CACHE_KEY, PUBLIC_SETTINGS_CACHE_KEY, applyPricingToMenu, comboPotatoComponent, freshApiUrl, hasRequiredCustomerProfile, preloadClientImages, readJsonCache, writeJsonCache } from "./screen/productCatalog";
 import { ProductScreenView } from "./screen/ProductScreenView";
+import { normalizeBackendOrder } from "@/services/orders/normalize";
 
 const SPECIAL_OFFER_SESSION_KEY = "menfis_special_offer_seen";
 
@@ -144,6 +145,7 @@ export function ProductScreen({
   const [configurationUnavailable, setConfigurationUnavailable] = useState(false);
   const [quickQrOpen, setQuickQrOpen] = useState(false);
   const [quickQrSeconds, setQuickQrSeconds] = useState(45);
+  const [quickQrOrder, setQuickQrOrder] = useState<Order | null>(lastOrder ?? null);
   const adminTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const configurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const adminTapCountRef = useRef(0);
@@ -204,7 +206,24 @@ export function ProductScreen({
     if (adminTapTimerRef.current) clearTimeout(adminTapTimerRef.current);
 
     if (!kioskMode && adminTapCountRef.current === 3) {
+      setQuickQrOrder(lastOrder ?? null);
       setQuickQrOpen(true);
+      const memberToken = localStorage.getItem(MEMBER_TOKEN_KEY);
+      if (memberToken) {
+        void fetch(`${API_URL}/customers/orders`, {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${memberToken}` },
+        })
+          .then((response) => (response.ok ? response.json() : []))
+          .then((rows) => {
+            if (!Array.isArray(rows)) return;
+            const latestOrder = rows
+              .map(normalizeBackendOrder)
+              .sort((left, right) => right.timestamp - left.timestamp)[0];
+            if (latestOrder) setQuickQrOrder(latestOrder);
+          })
+          .catch(() => {});
+      }
     }
 
     if (adminTapCountRef.current >= 5) {
@@ -452,5 +471,5 @@ export function ProductScreen({
     showAddedConfirmation(customizer.item);
     setCustomizer(null);
   };
-  return <ProductScreenView catalog={catalog} member={member} screen={{ cart,updateQty,kioskMode,activeOrder,lastOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu }} />;
+  return <ProductScreenView catalog={catalog} member={member} screen={{ cart,updateQty,kioskMode,activeOrder,lastOrder:quickQrOrder ?? lastOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu }} />;
 }
