@@ -253,6 +253,13 @@ export default function App({ mode }: { mode?: AppMode }) {
     activeOrder && !isKioskMobOrder(activeOrder) && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
       ? activeOrder
       : latestCustomerActiveOrder;
+  const latestCustomerOrder = orders
+    .filter(
+      (order) =>
+        !isKioskMobOrder(order) &&
+        guestOrderMatchesScope(order, guestOrderScope),
+    )
+    .sort((left, right) => right.timestamp - left.timestamp)[0];
 
   useEffect(() => {
     if (adminOnlyMode || kioskMode) return;
@@ -534,6 +541,7 @@ export default function App({ mode }: { mode?: AppMode }) {
             onOpenIdleScreen={openKioskIdleScreen}
             kioskMode={kioskMode}
             activeOrder={kioskMobSession ? primaryKioskMobOrder : visibleActiveOrder}
+            lastOrder={latestCustomerOrder}
             notifications={memberNotifications}
             unreadNotificationCount={unreadNotificationCount}
             onReadNotifications={markMemberNotificationsRead}

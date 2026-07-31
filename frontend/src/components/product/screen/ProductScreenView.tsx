@@ -19,7 +19,7 @@ import { ProductCarousel } from "../carousel/ProductCarousel";
 import { LemonadeShowcase } from "../LemonadeShowcase";
 
 type ScreenState = {
- cart: CartItem[]; updateQty: (id:string,delta:number)=>void; kioskMode:boolean; activeOrder?:Order|null; notifications:MemberNotification[]; unreadNotificationCount:number; onOpenActiveOrder?: (orderId?:string)=>void; onRepeatOrder?: (items:CartItem[])=>void;
+ cart: CartItem[]; updateQty: (id:string,delta:number)=>void; kioskMode:boolean; activeOrder?:Order|null; lastOrder?:Order|null; notifications:MemberNotification[]; unreadNotificationCount:number; onOpenActiveOrder?: (orderId?:string)=>void; onRepeatOrder?: (items:CartItem[])=>void;
  builder:BuilderState; customizer:CustomizerState|null; addedConfirmation:{name:string;superTheme:boolean;chilli:boolean}|null; detailItem:MenuItem|null; configurationUnavailable:boolean; quickQrOpen:boolean; quickQrSeconds:number; cartCount:number; cartTotal:number; savedDelivery:Record<string,string>; kioskMobLoggedIn:boolean;
  setCustomizer:Dispatch<SetStateAction<CustomizerState|null>>; setAddedConfirmation:Dispatch<SetStateAction<{name:string;superTheme:boolean;chilli:boolean}|null>>; setDetailItem:Dispatch<SetStateAction<MenuItem|null>>; setConfigurationUnavailable:Dispatch<SetStateAction<boolean>>; setQuickQrOpen:Dispatch<SetStateAction<boolean>>;
  qty:(id:string)=>number; handleAdminTap:()=>void; handleIdleShortcutTap:()=>void; addMenuItem:(item:MenuItem)=>void; quickAddMenuItem:(item:MenuItem)=>void; handleGoToCart:()=>void; confirmCustomizer:()=>void; closeSpecialOffer:()=>void; addSpecialOffer:()=>void; viewSpecialOfferMenu:()=>void;
@@ -28,7 +28,7 @@ type ScreenState = {
 export function ProductScreenView({ catalog, member, screen }: { catalog: ReturnType<typeof useProductCatalog>; member: ReturnType<typeof useProductMember>; screen: ScreenState }) {
  const { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem,lemonadeSettings } = catalog;
  const { loginOpen,setLoginOpen,profileOpen,setProfileOpen,historyOpen,setHistoryOpen,notificationsOpen,setNotificationsOpen,favoritesOpen,setFavoritesOpen,memberName,setMemberName,memberEmail,setMemberEmail,memberCpf,setMemberCpf,memberPhone,setMemberPhone,memberPassword,setMemberPassword,memberPasswordConfirm,setMemberPasswordConfirm,memberLogin,setMemberLogin,loginPassword,setLoginPassword,memberAuthMode,setMemberAuthMode,memberBirthday,setMemberBirthday,memberCep,setMemberCep,memberStreet,setMemberStreet,memberNumber,setMemberNumber,memberComplement,setMemberComplement,memberNeighborhood,setMemberNeighborhood,memberCity,setMemberCity,memberReference,setMemberReference,memberProfile,memberError,memberSaving,openMemberAccess,editMember,openHistory,openNotifications,saveMember,loginMember,requestPasswordRecovery,resetMemberPassword,logoutMember,updateMemberProfile } = member;
- const { cart,updateQty,kioskMode,activeOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu } = screen;
+ const { cart,updateQty,kioskMode,activeOrder,lastOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu } = screen;
  const specialOfferProduct = catalogItems.find((item) => item.id === specialOffer.productId) ?? featuredItem;
  const managedSpecialOffer: SpecialOfferSettings = {
    ...specialOffer,
@@ -470,6 +470,25 @@ export function ProductScreenView({ catalog, member, screen }: { catalog: Return
                   alt="QR Code Menfi's"
                   className="h-full w-full object-contain"
                 />
+              </div>
+
+              <div
+                className="mx-auto mt-4 w-full max-w-[280px] rounded-[18px] px-4 py-3"
+                style={{ background: `${ROSA}22`, border: `1px solid ${ROSA}` }}
+              >
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-60">
+                  Valor do último pedido
+                </p>
+                {lastOrder ? (
+                  <>
+                    <p className="mt-1 text-3xl font-black">{fmt(lastOrder.total)}</p>
+                    <p className="mt-1 text-[10px] font-black uppercase opacity-55">
+                      Pedido #{lastOrder.number}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm font-black uppercase">Nenhum pedido encontrado</p>
+                )}
               </div>
 
               <div className="mt-4 flex items-center justify-between gap-3">

@@ -106,6 +106,7 @@ interface Props {
   onOpenIdleScreen?: () => void;
   kioskMode?: boolean;
   activeOrder?: Order | null;
+  lastOrder?: Order | null;
   notifications?: MemberNotification[];
   unreadNotificationCount?: number;
   onReadNotifications?: () => void;
@@ -122,6 +123,7 @@ export function ProductScreen({
   onOpenIdleScreen,
   kioskMode = false,
   activeOrder,
+  lastOrder,
   notifications = [],
   unreadNotificationCount = 0,
   onReadNotifications,
@@ -450,5 +452,5 @@ export function ProductScreen({
     showAddedConfirmation(customizer.item);
     setCustomizer(null);
   };
-  return <ProductScreenView catalog={catalog} member={member} screen={{ cart,updateQty,kioskMode,activeOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu }} />;
+  return <ProductScreenView catalog={catalog} member={member} screen={{ cart,updateQty,kioskMode,activeOrder,lastOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu }} />;
 }
