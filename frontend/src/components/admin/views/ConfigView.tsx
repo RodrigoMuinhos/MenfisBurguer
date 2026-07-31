@@ -85,7 +85,7 @@ export function ConfigView({
   const normalizedPromoCards = normalizePromoCards(promoCards);
   const normalizedSpecialOffer = normalizeSpecialOfferSettings(specialOffer);
   const activePromoCardsCount = normalizedPromoCards.filter((card) => card.enabled).length;
-  const [adminLoginDraft, setAdminLoginDraft] = useState(adminLogin || "menfisburguer@adm.com");
+  const [adminLoginDraft, setAdminLoginDraft] = useState(adminLogin || "");
   const [adminPasswordDraft, setAdminPasswordDraft] = useState("");
   const [adminCredentialsSaved, setAdminCredentialsSaved] = useState(false);
   const [adminCredentialsError, setAdminCredentialsError] = useState("");

@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal/LegalPage";
+import { publicPageMetadata } from "@/config/metadata";
 
-export const metadata: Metadata = {
-  title: "Termos de Servico | Menfi's Burger",
+export const metadata = publicPageMetadata({
+  title: "Termos de Serviço",
   description:
-    "Termos de Servico da Menfi's Burger: regras de uso, pedidos, prazos, cancelamentos e responsabilidades do cliente.",
-  alternates: {
-    canonical: "/termos-de-servico",
-  },
-};
+    "Termos de Serviço da Menfi’s Burguer: regras de uso, pedidos, prazos, cancelamentos e responsabilidades do cliente.",
+  path: "/termos-de-servico",
+});
 
 export default function TermsOfServicePage() {
   return (

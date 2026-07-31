@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Heart, Plus, Sparkles } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { MenuItem } from "@/features/catalog/types";
 import { fmt } from "./shared";
@@ -75,12 +76,15 @@ export function LemonadeShowcase({
     .filter((item): item is MenuItem => Boolean(item));
 
   useEffect(() => {
+    if (heroes.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
     const timer = window.setInterval(
       () => setActiveHero((current) => (current + 1) % heroes.length),
       5000,
     );
     return () => window.clearInterval(timer);
-  }, []);
+  }, [heroes.length]);
 
   const changeHero = (direction: number) => {
     setActiveHero((current) => (current + direction + heroes.length) % heroes.length);
@@ -88,7 +92,11 @@ export function LemonadeShowcase({
 
   return (
     <div className="overflow-hidden bg-white text-[#5B1230]">
-      <section className="relative aspect-[1672/941] overflow-hidden bg-[#FFE7EF]" aria-roledescription="carrossel">
+      <section
+        className="relative aspect-[1672/941] overflow-hidden bg-[#FFE7EF]"
+        aria-label="Destaques das Lemonades Menfi's"
+        aria-roledescription="carrossel"
+      >
         {heroes.map((hero, index) => (
           <button
             key={hero.src}
@@ -99,7 +107,14 @@ export function LemonadeShowcase({
             aria-label={`${hero.alt}. Ver sabores`}
             aria-hidden={activeHero !== index}
           >
-            <img src={hero.src} alt={hero.alt} className="h-full w-full object-cover" />
+            <Image
+              src={hero.src}
+              alt={hero.alt}
+              fill
+              priority={index === 0}
+              sizes="100vw"
+              className="object-cover"
+            />
           </button>
         ))}
         <button
@@ -153,7 +168,15 @@ export function LemonadeShowcase({
                 style={{ border: `1px solid ${theme.color}24` }}
               >
                 <div className="relative aspect-[3/4] overflow-hidden" style={{ background: theme.soft }}>
-                  <img src={String(item.image)} alt={item.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]" />
+                  {item.image ? (
+                    <Image
+                      src={item.image}
+                      alt={item.name}
+                      fill
+                      sizes="(max-width: 767px) 100vw, 33vw"
+                      className="object-cover transition duration-500 group-hover:scale-[1.025]"
+                    />
+                  ) : null}
                   {normalizedSettings.badgeLabels[item.id] && (
                     <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-[10px] font-black uppercase tracking-widest" style={{ color: theme.color }}>
                       {normalizedSettings.badgeLabels[item.id]}

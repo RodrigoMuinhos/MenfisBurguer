@@ -29,9 +29,6 @@ import io.jsonwebtoken.security.Keys;
 
 @Service
 public class AuthService {
-  private static final String DEFAULT_ADMIN_LOGIN = "menfisburguer@adm.com";
-  private static final String DEFAULT_ADMIN_PASSWORD = "menfis728";
-
   private final JdbcTemplate jdbc;
   private final PasswordEncoder encoder;
 
@@ -55,7 +52,6 @@ public class AuthService {
 
     AdminCredential admin = findAdminByLogin(normalizedLogin);
     if (admin == null) {
-      bootstrapDefaultAdmin(normalizedLogin, rawPassword);
       bootstrapAdminFromEnvironment(normalizedLogin);
       bootstrapDeliveryFromEnvironment(normalizedLogin, rawPassword);
       admin = findAdminByLogin(normalizedLogin);
@@ -138,19 +134,6 @@ public class AuthService {
       System.getenv("ADMIN_LOGIN"),
       System.getenv("ADMIN_PASSWORD"),
       System.getenv("ADMIN_NAME"),
-      "ADMIN",
-      "Administrador Menfi's"
-    );
-  }
-
-  private void bootstrapDefaultAdmin(String normalizedLogin, String rawPassword) {
-    if (!DEFAULT_ADMIN_LOGIN.equals(normalizedLogin) || !DEFAULT_ADMIN_PASSWORD.equals(rawPassword)) return;
-    bootstrapAccountFromEnvironment(
-      normalizedLogin,
-      rawPassword,
-      DEFAULT_ADMIN_LOGIN,
-      DEFAULT_ADMIN_PASSWORD,
-      "Administrador Menfi's",
       "ADMIN",
       "Administrador Menfi's"
     );

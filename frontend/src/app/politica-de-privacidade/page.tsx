@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal/LegalPage";
+import { publicPageMetadata } from "@/config/metadata";
 
-export const metadata: Metadata = {
-  title: "Politica de Privacidade | Menfi's Burger",
+export const metadata = publicPageMetadata({
+  title: "Política de Privacidade",
   description:
-    "Politica de Privacidade da Menfi's Burger: coleta, uso e protecao de dados para pedidos, entrega e atendimento.",
-  alternates: {
-    canonical: "/politica-de-privacidade",
-  },
-};
+    "Política de Privacidade da Menfi’s Burguer: coleta, uso e proteção de dados para pedidos, entrega e atendimento.",
+  path: "/politica-de-privacidade",
+});
 
 export default function PrivacyPolicyPage() {
   return (

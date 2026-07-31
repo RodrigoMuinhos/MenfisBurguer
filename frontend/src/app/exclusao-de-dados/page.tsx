@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
 import { LegalPage } from "@/components/legal/LegalPage";
+import { publicPageMetadata } from "@/config/metadata";
 
-export const metadata: Metadata = {
-  title: "Exclusao de Dados | Menfi's Burger",
+export const metadata = publicPageMetadata({
+  title: "Exclusão de Dados",
   description:
-    "Solicite a exclusao dos seus dados pessoais mantidos pela Menfi's Burger pelo e-mail de atendimento.",
-  alternates: {
-    canonical: "/exclusao-de-dados",
-  },
-};
+    "Saiba como solicitar a exclusão dos seus dados pessoais mantidos pela Menfi’s Burguer.",
+  path: "/exclusao-de-dados",
+});
 
 export default function DataDeletionPage() {
   return (

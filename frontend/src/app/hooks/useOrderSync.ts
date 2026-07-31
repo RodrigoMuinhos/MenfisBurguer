@@ -120,7 +120,7 @@ export function useOrderSync({
         return;
       }
 
-      const res = await fetch("/api/orders", { cache: "no-store" });
+      const res = await fetch(`${API_URL}/orders`, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data.orders)) {
@@ -288,8 +288,7 @@ export function useOrderSync({
           return latest;
         };
         for (const nextStatus of statusPath) {
-          const res = API_URL
-            ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/status`, {
+          const res = await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/status`, {
                 method: "PATCH",
                 headers: authHeaders(adminToken, true),
                 body: JSON.stringify({
@@ -300,11 +299,6 @@ export function useOrderSync({
                       ? paymentConfirmationReason(currentOrder?.paymentMethod)
                       : "kds_status_change",
                 }),
-              })
-            : await fetch(`/api/orders/${encodeURIComponent(id)}/status`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: nextStatus }),
               });
           if (!res.ok) {
             pendingStatusUpdatesRef.current.delete(id);
@@ -364,13 +358,9 @@ export function useOrderSync({
       if (!existing || !["CANCELLED", "DELIVERED"].includes(existing.status)) return;
       setOrders((prev) => prev.filter((order) => order.id !== id));
       try {
-        const res = API_URL
-          ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
+        const res = await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
               method: "DELETE",
               headers: authHeaders(adminToken),
-            })
-          : await fetch(`/api/orders/${encodeURIComponent(id)}`, {
-              method: "DELETE",
             });
         if (!res.ok) await syncOrders();
       } catch {
@@ -435,15 +425,9 @@ export function useOrderSync({
         discountTotal: discount,
       };
       try {
-        const res = API_URL
-          ? await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/items`, {
+        const res = await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/items`, {
               method: "PATCH",
               headers: authHeaders(adminToken, true),
-              body: JSON.stringify(body),
-            })
-          : await fetch(`/api/orders/${encodeURIComponent(id)}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
               body: JSON.stringify(body),
             });
         if (!res.ok) {

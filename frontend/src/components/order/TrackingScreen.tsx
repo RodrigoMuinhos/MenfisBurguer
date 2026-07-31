@@ -386,13 +386,10 @@ export function TrackingScreen({
     if (submittingProof) return;
     setSubmittingProof(true);
     try {
-      const response = API_URL
-        ? await fetch(`${API_URL}/orders/${encodeURIComponent(order.id)}/payment-proof`, { method: "POST" })
-        : await fetch(`/api/orders/${encodeURIComponent(order.id)}/status`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "PAYMENT_PROOF_PENDING" }),
-          });
+      const response = await fetch(
+        `${API_URL}/orders/${encodeURIComponent(order.id)}/payment-proof`,
+        { method: "POST" },
+      );
       if (!response.ok) throw new Error("payment_proof_request_failed");
       window.location.assign(`${WHATSAPP_URL}?text=${paymentProofWhatsappText}`);
     } catch {

@@ -65,12 +65,12 @@ export function ProductHeader({
             boxShadow: "0 10px 24px rgba(31,61,46,0.18)",
           }}
         >
-          <img
+          <Image
             src="/logo_M.jpeg"
             alt=""
             width={46}
             height={46}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            className="h-full w-full object-cover"
           />
         </button>
 
@@ -81,9 +81,11 @@ export function ProductHeader({
           aria-label={idleShortcutEnabled ? "Menfi's Burger. Toque três vezes para abrir a tela de descanso." : undefined}
           style={{ cursor: idleShortcutEnabled ? "pointer" : "default", userSelect: "none" }}
         >
-          <img
+          <Image
             src="/logo%20hor.png"
             alt="Menfi's Burger"
+            width={520}
+            height={160}
             className="h-20 w-auto max-w-[260px] object-contain object-left"
           />
           <p className="mt-0.5 truncate text-[10px] font-black uppercase tracking-wide" style={{ color: VERDE }}>

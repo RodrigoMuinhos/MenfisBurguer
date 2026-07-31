@@ -34,6 +34,10 @@ export function ProductCustomizer({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="product-customizer-title"
+      aria-describedby="product-customizer-description"
     >
       <motion.div
         initial={{ y: 40, scale: 0.98 }}
@@ -55,7 +59,7 @@ export function ProductCustomizer({
             <X size={18} strokeWidth={2.4} />
           </button>
           <div className="min-w-0 flex-1 text-center">
-            <p className="truncate text-sm font-black uppercase">{state.item.name}</p>
+            <p id="product-customizer-title" className="truncate text-sm font-black uppercase">{state.item.name}</p>
             <p className={`mt-0.5 text-[10px] font-black uppercase tracking-wider ${superTheme ? "text-white/55" : "text-black/40"}`}>
               Personalizar pedido · {fmt(total)}
             </p>
@@ -68,16 +72,12 @@ export function ProductCustomizer({
         <div className="max-h-[calc(92dvh-150px)] overflow-y-auto">
           <div className="relative h-48 overflow-hidden" style={{ background: superTheme ? superBackground : "#fff" }}>
             {state.item.image ? (
-              <img
+              <Image
                 src={imageSrc(state.item.image)}
                 alt={state.item.name}
-                style={{
-                  display: "block",
-                  height: "100%",
-                  width: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center",
-                }}
+                fill
+                sizes="(min-width: 640px) 672px, 100vw"
+                className="object-cover object-center"
               />
             ) : (
               <div className="flex h-full items-center justify-center">
@@ -101,7 +101,7 @@ export function ProductCustomizer({
             >
               {state.item.name}
             </h2>
-            <p className={`mt-2 text-sm leading-relaxed ${superTheme ? "text-white/65" : "text-black/58"}`}>
+            <p id="product-customizer-description" className={`mt-2 text-sm leading-relaxed ${superTheme ? "text-white/65" : "text-black/58"}`}>
               {state.item.desc}
             </p>
             <p

@@ -412,7 +412,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       subtotal + (deliveryType === "delivery" ? deliveryFee + SERVICE_FEE : 0);
 
     try {
-      const res = await fetch("/api/orders", {
+      const res = await fetch(`${API_URL}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -636,7 +636,7 @@ function AdminLoginScreen({
   onLogin: (login: string, password: string) => Promise<boolean>;
   kioskMode: boolean;
 }) {
-  const [login, setLogin] = useState("menfisburguer@adm.com");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [keyboardTarget, setKeyboardTarget] = useState<KioskKeyboardTarget>(null);

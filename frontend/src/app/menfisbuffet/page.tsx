@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import Image from "next/image";
 import {
   ArrowRight,
   CakeSlice,
@@ -16,12 +16,15 @@ import {
   Utensils,
 } from "lucide-react";
 import { BuffetAssistant } from "./BuffetAssistant";
+import { publicPageMetadata } from "@/config/metadata";
 
-export const metadata: Metadata = {
-  title: "Menfis Buffet | Mini burgers, salgados, doces e bebidas para festas",
+export const metadata = publicPageMetadata({
+  title: "Menfis Buffet | Mini burgers e opções para festas",
   description:
     "Menfis Buffet para aniversarios, eventos corporativos e celebracoes com mini hamburgueres artesanais, salgados, mini pizzas, doces, bebidas e drinks tropicais.",
-};
+  path: "/menfisbuffet",
+  absoluteTitle: true,
+});
 
 const VERDE = "#314A37";
 const ROSA = "#F8B7C8";
@@ -241,7 +244,7 @@ export default function MenfisBuffetPage() {
       <header className="sticky top-0 z-40 border-b border-[#314A37]/10 bg-white/92 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
           <a href="#inicio" className="flex items-center gap-3">
-            <img src={logoImage} alt="Menfi's Buffet" className="h-11 w-11 rounded-full object-cover" />
+            <Image src={logoImage} alt="Menfi's Buffet" width={44} height={44} className="h-11 w-11 rounded-full object-cover" />
             <span className="text-sm font-black uppercase tracking-[0.18em]">Menfi's Buffet</span>
           </a>
           <nav className="hidden items-center gap-6 text-xs font-black uppercase tracking-wide lg:flex">
@@ -264,7 +267,14 @@ export default function MenfisBuffetPage() {
       </header>
 
       <section id="inicio" className="relative min-h-[92dvh] overflow-hidden">
-        <img src={heroImage} alt="Mesa de mini burgers Menfi's Buffet" className="absolute inset-0 h-full w-full object-cover" />
+        <Image
+          src={heroImage}
+          alt="Mesa de mini burgers Menfi's Buffet"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/70" />
         <div className="relative mx-auto flex min-h-[92dvh] max-w-7xl flex-col justify-end px-4 pb-8 pt-28 md:px-6 lg:pb-12">
           <div className="max-w-3xl text-white">
@@ -321,7 +331,14 @@ export default function MenfisBuffetPage() {
               href={item.href}
               className="group overflow-hidden rounded-3xl border border-[#314A37]/10 bg-white transition duration-200 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#314A37]/12"
             >
-              <img src={item.image} alt={item.title} className="h-48 w-full object-cover transition duration-300 group-hover:scale-105" />
+              <Image
+                src={item.image}
+                alt={item.title}
+                width={640}
+                height={384}
+                sizes="(min-width: 1024px) 20vw, (min-width: 640px) 50vw, 100vw"
+                className="h-48 w-full object-cover transition duration-300 group-hover:scale-105"
+              />
               <div className="p-5">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-lg font-black">{item.title}</h3>
@@ -359,10 +376,13 @@ export default function MenfisBuffetPage() {
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-5">
             {sweetImages.map((image, index) => (
-              <img
+              <Image
                 key={image}
                 src={image}
                 alt={`Doces Menfi's Buffet ${index + 1}`}
+                width={720}
+                height={520}
+                sizes="(min-width: 768px) 25vw, 50vw"
                 className={`h-52 w-full rounded-3xl object-cover sm:h-64 ${index === 0 ? "col-span-2 md:col-span-1" : ""}`}
               />
             ))}
@@ -455,10 +475,13 @@ export default function MenfisBuffetPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
                   {section.images.map((image, index) => (
-                    <img
+                    <Image
                       key={`${section.title}-${image}-${index}`}
                       src={image}
                       alt={`${section.title} Menfi's Buffet ${index + 1}`}
+                      width={900}
+                      height={700}
+                      sizes={index === 0 ? "(min-width: 768px) 50vw, 50vw" : "(min-width: 768px) 25vw, 50vw"}
                       className={`h-full min-h-52 w-full rounded-3xl object-cover ${index === 0 ? "md:col-span-2 md:min-h-[430px]" : ""}`}
                     />
                   ))}
@@ -488,7 +511,14 @@ export default function MenfisBuffetPage() {
               <MessageCircle size={18} />
             </a>
           </div>
-          <img src={heroImage} alt="Buffet Menfi's para festa" className="h-full min-h-80 w-full object-cover" />
+          <Image
+            src={heroImage}
+            alt="Buffet Menfi's para festa"
+            width={1000}
+            height={800}
+            sizes="(min-width: 1024px) 45vw, 100vw"
+            className="h-full min-h-80 w-full object-cover"
+          />
         </div>
       </section>
 
@@ -497,7 +527,7 @@ export default function MenfisBuffetPage() {
           <div className="grid gap-10 border-b border-white/15 pb-12 md:grid-cols-2 lg:grid-cols-[1.35fr_0.75fr_0.9fr]">
             <div className="max-w-md">
               <div className="flex items-center gap-3">
-                <img src={logoImage} alt="Menfi's Buffet" className="h-16 w-16 rounded-2xl object-cover ring-1 ring-white/20" />
+                <Image src={logoImage} alt="Menfi's Buffet" width={64} height={64} className="h-16 w-16 rounded-2xl object-cover ring-1 ring-white/20" />
                 <div>
                   <p className="text-xl font-black">Menfi's Buffet</p>
                   <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-white/55">Eventos em Fortaleza</p>
@@ -614,7 +644,14 @@ function MenuBlock({
 function PhotoPanel({ image, title, copy, compact = false }: { image: string; title: string; copy: string; compact?: boolean }) {
   return (
     <article className="overflow-hidden rounded-3xl border border-[#314A37]/10 bg-white">
-      <img src={image} alt={title} className={`w-full object-cover ${compact ? "h-72" : "h-80 lg:h-full"}`} />
+      <Image
+        src={image}
+        alt={title}
+        width={900}
+        height={720}
+        sizes="(min-width: 1024px) 50vw, 100vw"
+        className={`w-full object-cover ${compact ? "h-72" : "h-80 lg:h-full"}`}
+      />
       <div className="p-5">
         <p className="text-xl font-black">{title}</p>
         <p className="mt-2 text-sm font-semibold leading-relaxed text-[#314A37]/62">{copy}</p>
