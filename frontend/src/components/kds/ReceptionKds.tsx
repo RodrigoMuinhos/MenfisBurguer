@@ -143,25 +143,25 @@ export function ReceptionKds() {
           </p>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {COLUMNS.map((column) => {
             const columnOrders = orders
               .filter((order) => column.statuses.has(order.status))
               .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
             return (
               <section key={column.id} className="min-h-[65vh] overflow-hidden rounded-3xl border border-[#65001F]/10 bg-white">
-                <header className="px-5 py-5" style={{ background: column.color }}>
+                <header className="px-2 py-4 sm:px-5 sm:py-5" style={{ background: column.color }}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h2 className="text-2xl font-black uppercase sm:text-3xl">{column.label}</h2>
-                      <p className="text-xs font-bold opacity-65">{column.copy}</p>
+                      <h2 className="text-base font-black uppercase sm:text-2xl xl:text-3xl">{column.label}</h2>
+                      <p className="hidden text-xs font-bold opacity-65 sm:block">{column.copy}</p>
                     </div>
-                    <span className="flex h-11 min-w-11 items-center justify-center rounded-full bg-white px-3 text-xl font-black">
+                    <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-white px-2 text-sm font-black sm:h-11 sm:min-w-11 sm:px-3 sm:text-xl">
                       {columnOrders.length}
                     </span>
                   </div>
                 </header>
-                <div className="grid gap-3 p-4">
+                <div className="grid gap-2 p-2 sm:gap-3 sm:p-4">
                   {columnOrders.length === 0 ? (
                     <p className="rounded-2xl border border-dashed border-[#65001F]/10 p-9 text-center text-sm font-bold opacity-40">
                       Nenhum pedido nesta etapa
@@ -170,8 +170,8 @@ export function ReceptionKds() {
                     <article key={order.id} className="rounded-2xl border border-[#65001F]/10 p-4 shadow-sm">
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-45">Pedido</p>
                       <div className="mt-1 flex items-end justify-between gap-3">
-                        <strong className="truncate text-2xl font-black">{customerLabel(order.customerName)}</strong>
-                        <strong className="shrink-0 text-3xl font-black">#{order.number}</strong>
+                        <strong className="truncate text-base font-black sm:text-2xl">{customerLabel(order.customerName)}</strong>
+                        <strong className="shrink-0 text-lg font-black sm:text-3xl">#{order.number}</strong>
                       </div>
                     </article>
                   ))}
