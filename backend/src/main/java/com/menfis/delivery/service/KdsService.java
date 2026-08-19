@@ -94,4 +94,22 @@ public class KdsService {
     };
     return orders.changeStatus(id, next, actor == null ? "kds" : actor, event);
   }
+
+  @Transactional
+  public OrderResponse acceptReceived(String id, String actor) {
+    OrderResponse order = orders.get(id);
+    OrderStatus current = OrderStatus.valueOf(order.status());
+    if (!(current == OrderStatus.PAYMENT_APPROVED
+        || current == OrderStatus.PAID
+        || current == OrderStatus.ACCEPTED)) {
+      throw new IllegalArgumentException("order_not_waiting_for_acceptance");
+    }
+    inventory.deductForOrder(order.id());
+    return orders.changeStatus(
+      id,
+      OrderStatus.IN_PREPARATION,
+      actor == null ? "kiosk-auto" : actor,
+      "kiosk_immediate_acceptance"
+    );
+  }
 }

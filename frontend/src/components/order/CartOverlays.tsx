@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, QrCode, Store } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { printOrderReceipts } from "@/components/admin/shared";
 import { KIOSK_PIX_CODE, KIOSK_PIX_TIMEOUT_SECONDS, KioskKeyboardTarget, PaymentMethod, pixCodeWithAmount } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
+import { acceptKioskOrder, kioskAutoAcceptanceEnabled } from "@/services/kioskAcceptance";
 
 export function CartOverlays({
   kioskSuccessOpen,
@@ -58,6 +59,7 @@ export function CartOverlays({
   const [counterPixSeconds, setCounterPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
   const [counterPixCompleted, setCounterPixCompleted] = useState(false);
   const [receiptPrintStep, setReceiptPrintStep] = useState<"idle" | "printing" | "printed" | "completed" | "error">("idle");
+  const automaticPrintOrderRef = useRef("");
   const successTotal = kioskSuccessOrder
     ? Number(kioskSuccessOrder.total || kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0))
     : 0;
@@ -77,6 +79,9 @@ export function CartOverlays({
       setReceiptPrintStep("error");
       return;
     }
+    if (counterServiceMode && kioskAutoAcceptanceEnabled()) {
+      await acceptKioskOrder(kioskSuccessOrder.id);
+    }
     setReceiptPrintStep("printed");
     await new Promise((resolve) => window.setTimeout(resolve, 1200));
     setReceiptPrintStep("completed");
@@ -84,6 +89,13 @@ export function CartOverlays({
     setReceiptPrintStep("idle");
     onCloseKioskSuccess?.();
   };
+
+  useEffect(() => {
+    if (!kioskSuccessOpen || !counterServiceMode || !kioskSuccessOrder) return;
+    if (automaticPrintOrderRef.current === kioskSuccessOrder.id) return;
+    automaticPrintOrderRef.current = kioskSuccessOrder.id;
+    void handleKioskReceiptPrint();
+  }, [counterServiceMode, kioskSuccessOpen, kioskSuccessOrder?.id]);
 
   useEffect(() => {
     if (!counterPaymentPromptOpen) {

@@ -479,6 +479,7 @@ public class OrderService {
     OrderStatus fromStatus = OrderStatus.valueOf(from);
     if (toStatus == OrderStatus.IN_PREPARATION
         && isReceivedStatus(fromStatus)
+        && "system".equalsIgnoreCase(actor)
         && !receivedHoldElapsed(asOffsetDateTime(row.get("paid_at")), OffsetDateTime.now())) {
       throw new IllegalArgumentException("order_received_hold_not_elapsed");
     }

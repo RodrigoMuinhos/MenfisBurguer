@@ -182,3 +182,19 @@
   font-weight: 700;
   opacity: 0.4;
 }
+
+@media (orientation: portrait), (max-aspect-ratio: 4 / 3) {
+  .ordersGrid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(10, minmax(0, 1fr));
+  }
+
+  .orderCard {
+    padding-inline: clamp(7px, 1vw, 12px);
+  }
+
+  .orderCard strong:first-child,
+  .orderCard strong:last-child {
+    font-size: clamp(11px, 1.55vw, 20px);
+  }
+}

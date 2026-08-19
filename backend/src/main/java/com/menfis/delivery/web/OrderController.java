@@ -11,6 +11,7 @@ import com.menfis.delivery.service.OrderEventService;
 import com.menfis.delivery.service.OrderService;
 import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.KioskBoardService;
+import com.menfis.delivery.service.KdsService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,16 +34,19 @@ public class OrderController {
   private final OrderEventService events;
   private final AuthService auth;
   private final KioskBoardService kioskBoard;
+  private final KdsService kds;
 
   public OrderController(
       OrderService orders,
       OrderEventService events,
       AuthService auth,
-      KioskBoardService kioskBoard) {
+      KioskBoardService kioskBoard,
+      KdsService kds) {
     this.orders = orders;
     this.events = events;
     this.auth = auth;
     this.kioskBoard = kioskBoard;
+    this.kds = kds;
   }
 
   @PostMapping
@@ -85,6 +89,14 @@ public class OrderController {
       @RequestHeader(name = "Authorization", required = false) String authorization) {
     auth.requireAdmin(authorization);
     return orders.approvePayment(id, "admin");
+  }
+
+  @PostMapping("/{id}/kiosk-accept")
+  public OrderResponse kioskAccept(
+      @PathVariable String id,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireKioskCustomer(authorization);
+    return kds.acceptReceived(id, "kiosk-auto");
   }
 
   @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

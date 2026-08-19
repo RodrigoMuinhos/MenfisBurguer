@@ -1,13 +1,14 @@
 import Image from "next/image";
 import { motion } from "motion/react";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
-import { Headphones, KeyRound, Loader2, LogOut, MapPin, Power, UserCog, X } from "lucide-react";
+import { Headphones, KeyRound, Loader2, LogOut, MapPin, Power, ToggleLeft, ToggleRight, UserCog, X } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import type { Order } from "@/types/order";
 import type { MemberProfile } from "../shared";
 import { SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { ActiveProfileOrderCard, InfoLine, ProfileInput, ProfileMenuButton, ProfileMenuLink, ProfileSection } from "./MemberUi";
 import { printBridgeIsRunning, startPrintBridge } from "@/services/printBridge";
+import { kioskAutoAcceptanceEnabled, setKioskAutoAcceptance } from "@/services/kioskAcceptance";
 const BRAND_M_LOGO = "/logo_M.jpeg";
 type Setter = Dispatch<SetStateAction<string>>;
 
@@ -51,6 +52,34 @@ function PrintBridgeProfileButton({ visible }: { visible: boolean }) {
           A ponte não respondeu. Execute novamente o instalar.ps1 atualizado nesta máquina e tente outra vez.
         </p>
       )}
+    </div>
+  );
+}
+
+function KioskAcceptanceButton({ visible }: { visible: boolean }) {
+  const [automatic, setAutomatic] = useState(false);
+
+  useEffect(() => {
+    if (visible) setAutomatic(kioskAutoAcceptanceEnabled());
+  }, [visible]);
+
+  if (!visible) return null;
+  return (
+    <div className="grid gap-2">
+      <ProfileMenuButton
+        icon={automatic ? ToggleRight : ToggleLeft}
+        label={automatic ? "Aceite imediato ligado" : "Aceite manual ligado"}
+        onClick={() => {
+          const next = !automatic;
+          setAutomatic(next);
+          setKioskAutoAcceptance(next);
+        }}
+      />
+      <p className="px-3 text-[11px] font-bold leading-relaxed opacity-60">
+        {automatic
+          ? "A nota sai e o pedido entra em preparo imediatamente."
+          : "A nota sai, mas o pedido aguarda aceite no ERP; após 5 minutos ele avança automaticamente."}
+      </p>
     </div>
   );
 }
@@ -223,6 +252,9 @@ export function MemberProfilePanel({ profileOpen, memberProfile, profileIncomple
                         </>
                       )}
                       <PrintBridgeProfileButton
+                        visible={String(memberProfile.email ?? "").trim().toLowerCase() === "kioskmob@gmail.com"}
+                      />
+                      <KioskAcceptanceButton
                         visible={String(memberProfile.email ?? "").trim().toLowerCase() === "kioskmob@gmail.com"}
                       />
                       {ordersLoading && !visibleActiveOrder && (
