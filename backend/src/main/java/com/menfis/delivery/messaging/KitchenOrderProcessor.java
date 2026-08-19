@@ -80,8 +80,7 @@ public class KitchenOrderProcessor {
     int updated = jdbc.update(
       """
       update orders
-      set status = 'IN_PREPARATION',
-          paid_at = coalesce(paid_at, ?),
+      set paid_at = coalesce(paid_at, ?),
           confirmed_at = coalesce(confirmed_at, ?),
           updated_at = now()
       where id = ?
@@ -98,24 +97,15 @@ public class KitchenOrderProcessor {
       return;
     }
 
-    jdbc.update(
-      "insert into order_status_history(order_id, from_status, to_status, changed_by, reason) values (?, ?, 'IN_PREPARATION', 'rabbitmq', 'ORDER_PAID')",
-      event.orderId(),
-      currentStatus
-    );
     markProcessed(event);
-    audit.log("rabbitmq", "ORDER_SENT_TO_KITCHEN", "ORDER", event.orderId(), Map.of("from", currentStatus, "event", event.eventType()));
+    audit.log("rabbitmq", "ORDER_RECEIVED_HOLD", "ORDER", event.orderId(), Map.of(
+      "status", currentStatus,
+      "event", event.eventType(),
+      "holdMinutes", 5
+    ));
     OrderResponse updatedOrder = orders.get(event.orderId());
     events.publish(event.orderId(), updatedOrder);
-    lifecyclePublisher.publish(
-      "ORDER_IN_PREPARATION",
-      updatedOrder,
-      currentStatus,
-      "IN_PREPARATION",
-      "rabbitmq",
-      "ORDER_PAID"
-    );
-    log.info("ORDER_PAID processed orderId={} from={} to=IN_PREPARATION", event.orderId(), currentStatus);
+    log.info("ORDER_PAID processed orderId={} status={} receivedHoldMinutes=5", event.orderId(), currentStatus);
   }
 
   private Boolean eventAlreadyProcessed(OrderPaidEvent event, String payload) {
