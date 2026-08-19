@@ -1,0 +1,33 @@
+{
+  "name": "menfis-kiosk-pdv",
+  "version": "1.2.0",
+  "private": true,
+  "description": "PDV Menfis instalável com impressão térmica nativa",
+  "main": "src/main.cjs",
+  "scripts": {
+    "dev": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "build": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "37.2.6",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "com.menfisburguer.kioskpdv",
+    "productName": "Menfis KIOSKPDV",
+    "artifactName": "Menfis-KIOSKPDV-Setup-${version}.${ext}",
+    "directories": { "output": "dist" },
+    "files": ["src/**/*", "package.json"],
+    "asar": true,
+    "win": { "target": "nsis" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Menfis KIOSKPDV",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

@@ -81,17 +81,17 @@ export function CartOverlays({
     setReceiptPrintStep("printed");
     await new Promise((resolve) => window.setTimeout(resolve, 1200));
     setReceiptPrintStep("completed");
-    await new Promise((resolve) => window.setTimeout(resolve, 2200));
+    await new Promise((resolve) => window.setTimeout(resolve, 10000));
     setReceiptPrintStep("idle");
     onCloseKioskSuccess?.();
   };
 
   useEffect(() => {
-    if (!kioskSuccessOpen || !counterServiceMode || !kioskSuccessOrder) return;
+    if (!kioskSuccessOpen || (!counterServiceMode && !kioskMode) || !kioskSuccessOrder) return;
     if (automaticPrintOrderRef.current === kioskSuccessOrder.id) return;
     automaticPrintOrderRef.current = kioskSuccessOrder.id;
     void handleKioskReceiptPrint();
-  }, [counterServiceMode, kioskSuccessOpen, kioskSuccessOrder?.id]);
+  }, [counterServiceMode, kioskMode, kioskSuccessOpen, kioskSuccessOrder?.id]);
 
   useEffect(() => {
     if (!counterPaymentPromptOpen) {
@@ -265,13 +265,15 @@ export function CartOverlays({
                     <h2 className="mt-5 text-3xl font-black uppercase tracking-wide">
                       {receiptPrintStep === "printing" && "Aguarde sua impressão"}
                       {receiptPrintStep === "printed" && "Nota impressa"}
-                      {receiptPrintStep === "completed" && "Concluído"}
+                      {receiptPrintStep === "completed" && "Pedido confirmado! 🍔"}
                       {receiptPrintStep === "error" && "Não foi possível imprimir"}
                     </h2>
                     <p className="mt-3 text-sm font-bold leading-relaxed opacity-70">
                       {receiptPrintStep === "printing" && "Estamos enviando sua nota diretamente para a impressora."}
                       {receiptPrintStep === "printed" && "Sua nota foi enviada e impressa com sucesso."}
-                      {receiptPrintStep === "completed" && "Aguarde ser chamado no balcão pelo nome e número do pedido."}
+                      {receiptPrintStep === "completed" && (
+                        <>Agora é só acompanhar seu pedido na tela.<br />Quando ficar verde, pode retirar no balcão.<br /><br />Bom apetite!<br />A Menfi’s agradece a sua presença e deseja uma ótima experiência.</>
+                      )}
                       {receiptPrintStep === "error" && "A POS-58 pode estar ativa. Verifique se a Ponte de Impressão Menfis está iniciada antes de tentar novamente."}
                     </p>
                     <div className="mt-6 flex items-center justify-center gap-2" aria-label="Progresso da impressão">

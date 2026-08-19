@@ -1,0 +1,19 @@
+MENFIS KIOSKPDV 1.2.0
+
+1. Feche qualquer versao anterior do KIOSKPDV.
+2. Execute Menfis-KIOSKPDV-Setup-1.2.0.exe.
+3. Conclua a instalacao e abra o Menfis KIOSKPDV.
+
+REQUISITOS
+- Computador Windows conectado a internet.
+- Impressora instalada no Windows com o nome POS-58.
+- Impressora ligada, com papel e cabo USB conectado.
+
+FLUXO PIX
+- O contador aguarda 45 segundos.
+- E possivel repetir a contagem ou confirmar o pagamento manualmente.
+- Depois da impressao, a confirmacao aparece por 10 segundos.
+- Em seguida, o aplicativo limpa o pedido e volta ao menu inicial.
+
+ATALHO TECNICO
+- Ctrl+Shift+Q fecha o aplicativo.
