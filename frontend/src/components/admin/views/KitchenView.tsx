@@ -401,7 +401,7 @@ export function KitchenView({
                     : runStatusAction(selectedOrder, "DELIVERED", "deliver")
                   : runStatusAction(selectedOrder, "READY", "ready", orderReadyWhatsappUrl(selectedOrder))
               }
-              onPrintMotoboy={() => printOrderReceipts(selectedOrder)}
+              onPrintMotoboy={() => printOrderReceipts(selectedOrder, { confirm: false, browserFallback: false })}
               onGenerateTxt={() => void copyOrderTxt(selectedOrder)}
             />
           ) : (

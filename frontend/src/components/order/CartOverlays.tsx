@@ -264,7 +264,7 @@ export function CartOverlays({
                       {receiptPrintStep === "printing" && "Estamos enviando sua nota diretamente para a impressora."}
                       {receiptPrintStep === "printed" && "Sua nota foi enviada e impressa com sucesso."}
                       {receiptPrintStep === "completed" && "Aguarde ser chamado no balcão pelo nome e número do pedido."}
-                      {receiptPrintStep === "error" && "Verifique se a POS-58 está ligada e conectada antes de tentar novamente."}
+                      {receiptPrintStep === "error" && "A POS-58 pode estar ativa. Verifique se a Ponte de Impressão Menfis está iniciada antes de tentar novamente."}
                     </p>
                     <div className="mt-6 flex items-center justify-center gap-2" aria-label="Progresso da impressão">
                       {(["printing", "printed", "completed"] as const).map((step) => {

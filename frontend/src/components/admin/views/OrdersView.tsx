@@ -400,7 +400,7 @@ export function OrdersView({
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => runAfterNextPaint(() => printOrderReceipts(selected))}
+                onClick={() => runAfterNextPaint(() => printOrderReceipts(selected, { confirm: false, browserFallback: false }))}
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
                 style={{ background: VERDE, color: ROSA }}
               >
