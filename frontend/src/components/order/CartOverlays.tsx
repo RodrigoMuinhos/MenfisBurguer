@@ -6,7 +6,6 @@ import { ROSA, VERDE } from "@/utils/theme";
 import { printOrderReceipts } from "@/components/admin/shared";
 import { KIOSK_PIX_CODE, KIOSK_PIX_TIMEOUT_SECONDS, KioskKeyboardTarget, PaymentMethod, pixCodeWithAmount } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
-import { acceptKioskOrder, kioskAutoAcceptanceEnabled } from "@/services/kioskAcceptance";
 
 export function CartOverlays({
   kioskSuccessOpen,
@@ -78,9 +77,6 @@ export function CartOverlays({
     if (!printed) {
       setReceiptPrintStep("error");
       return;
-    }
-    if (counterServiceMode && kioskAutoAcceptanceEnabled()) {
-      await acceptKioskOrder(kioskSuccessOrder.id);
     }
     setReceiptPrintStep("printed");
     await new Promise((resolve) => window.setTimeout(resolve, 1200));

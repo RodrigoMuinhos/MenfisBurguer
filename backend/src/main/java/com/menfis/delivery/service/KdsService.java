@@ -49,22 +49,32 @@ public class KdsService {
   @Scheduled(fixedDelayString = "${menfis.kds-auto-preparation-delay-ms:15000}", initialDelayString = "${menfis.kds-auto-preparation-delay-ms:15000}")
   @Transactional
   public void moveDueOrdersToPreparation() {
+    boolean automaticAcceptance = settings.automaticOrderAcceptanceEnabled();
+    String holdInterval = automaticAcceptance ? "0 seconds" : "5 minutes";
     List<String> dueIds = jdbc.queryForList(
       """
       select id from orders
       where status in ('PAYMENT_APPROVED', 'PAID', 'ACCEPTED')
-        and paid_at <= now() - interval '5 minutes'
+        and paid_at <= now() - (?::interval)
         and test_mode = ?
       order by paid_at asc
       for update skip locked
       """,
       String.class,
+      holdInterval,
       settings.testModeEnabled()
     );
     for (String id : dueIds) {
       try {
         inventory.deductForOrder(id);
-        orders.changeStatus(id, OrderStatus.IN_PREPARATION, "system", "received_hold_5_minutes_elapsed");
+        orders.changeStatus(
+          id,
+          OrderStatus.IN_PREPARATION,
+          "system",
+          automaticAcceptance
+            ? "automatic_order_acceptance_enabled"
+            : "received_hold_5_minutes_elapsed"
+        );
       } catch (IllegalArgumentException ignored) {
         // Outro processo pode ter avançado o pedido entre a consulta e a atualização.
       }
@@ -95,21 +105,4 @@ public class KdsService {
     return orders.changeStatus(id, next, actor == null ? "kds" : actor, event);
   }
 
-  @Transactional
-  public OrderResponse acceptReceived(String id, String actor) {
-    OrderResponse order = orders.get(id);
-    OrderStatus current = OrderStatus.valueOf(order.status());
-    if (!(current == OrderStatus.PAYMENT_APPROVED
-        || current == OrderStatus.PAID
-        || current == OrderStatus.ACCEPTED)) {
-      throw new IllegalArgumentException("order_not_waiting_for_acceptance");
-    }
-    inventory.deductForOrder(order.id());
-    return orders.changeStatus(
-      id,
-      OrderStatus.IN_PREPARATION,
-      actor == null ? "kiosk-auto" : actor,
-      "kiosk_immediate_acceptance"
-    );
-  }
 }

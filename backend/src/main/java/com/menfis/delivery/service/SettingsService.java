@@ -18,6 +18,7 @@ public class SettingsService {
   public static final String DEMO_TABLE = "demo_table_enabled";
   public static final String OPERATING_HOURS = "operating_hours";
   public static final String SOLD_OUT = "sold_out_enabled";
+  public static final String AUTOMATIC_ORDER_ACCEPTANCE = "automatic_order_acceptance_enabled";
   public static final String PRESENTATION = "presentation_settings";
   public static final String PROMO_CARDS = "promo_cards";
   public static final String SPECIAL_OFFER = "special_offer_settings";
@@ -84,6 +85,10 @@ public class SettingsService {
 
   public boolean soldOutEnabled() {
     return Boolean.parseBoolean(value(SOLD_OUT, "false"));
+  }
+
+  public boolean automaticOrderAcceptanceEnabled() {
+    return Boolean.parseBoolean(value(AUTOMATIC_ORDER_ACCEPTANCE, "false"));
   }
 
   public Map<String, Object> operatingHours() {
@@ -161,6 +166,7 @@ public class SettingsService {
     response.put("specialOffer", specialOfferSettings());
     response.put("lemonade", lemonadeSettings());
     response.put("soldOutEnabled", soldOut);
+    response.put("automaticOrderAcceptanceEnabled", automaticOrderAcceptanceEnabled());
     response.put("soldOutActive", soldOutActive);
     response.put("soldOutMessage", SOLD_OUT_MESSAGE);
     response.put("operatingNow", !soldOutActive && operatingStatus.open());
@@ -307,6 +313,19 @@ public class SettingsService {
       on conflict (key) do update set value = excluded.value, updated_at = now()
       """,
       SOLD_OUT,
+      Boolean.toString(enabled)
+    );
+    return publicSettings();
+  }
+
+  public Map<String, Object> setAutomaticOrderAcceptanceEnabled(boolean enabled) {
+    jdbc.update(
+      """
+      insert into app_settings(key, value, updated_at)
+      values (?, ?, now())
+      on conflict (key) do update set value = excluded.value, updated_at = now()
+      """,
+      AUTOMATIC_ORDER_ACCEPTANCE,
       Boolean.toString(enabled)
     );
     return publicSettings();

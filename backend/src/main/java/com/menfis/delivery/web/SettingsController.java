@@ -59,6 +59,14 @@ public class SettingsController {
     return settings.setSoldOutEnabled(request.enabled());
   }
 
+  @PatchMapping("/automatic-order-acceptance")
+  public Map<String, Object> setAutomaticOrderAcceptance(
+      @RequestBody AutomaticOrderAcceptanceRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return settings.setAutomaticOrderAcceptanceEnabled(request.enabled());
+  }
+
   @PatchMapping("/featured-product")
   public Map<String, Object> setFeaturedProduct(
       @RequestBody FeaturedProductRequest request,
@@ -132,6 +140,7 @@ public class SettingsController {
   public record TestModeRequest(boolean enabled) {}
   public record DemoTableRequest(boolean enabled) {}
   public record SoldOutRequest(boolean enabled) {}
+  public record AutomaticOrderAcceptanceRequest(boolean enabled) {}
   public record FeaturedProductRequest(String productId) {}
   public record OperatingHoursRequest(Map<String, Object> operatingHours) {}
   public record PresentationRequest(Map<String, Object> presentation) {}

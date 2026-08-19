@@ -132,6 +132,7 @@ export function AdminPanel({
   const [testModeEnabled, setTestModeEnabled] = useState(false);
   const [demoTableEnabled, setDemoTableEnabled] = useState(false);
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
+  const [automaticOrderAcceptanceEnabled, setAutomaticOrderAcceptanceEnabled] = useState(false);
   const [adminLogin, setAdminLogin] = useState("");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
@@ -360,6 +361,7 @@ export function AdminPanel({
     setTestModeEnabled(settings.testModeEnabled === true);
     setDemoTableEnabled(settings.demoTableEnabled === true);
     setSoldOutEnabled(settings.soldOutEnabled === true);
+    setAutomaticOrderAcceptanceEnabled(settings.automaticOrderAcceptanceEnabled === true);
     const normalizedHours = normalizeOperatingHours(settings.operatingHours);
     setOperatingHours(normalizedHours);
     setSavedOperatingHours(normalizedHours);
@@ -431,6 +433,9 @@ export function AdminPanel({
 
   const toggleSoldOut = () =>
     updateSetting("/settings/sold-out", !soldOutEnabled);
+
+  const toggleAutomaticOrderAcceptance = () =>
+    updateSetting("/settings/automatic-order-acceptance", !automaticOrderAcceptanceEnabled);
 
   const updateOperatingHours = (next: OperatingHoursConfig) => {
     const normalized = normalizeOperatingHours(next);
@@ -983,6 +988,7 @@ export function AdminPanel({
             testModeEnabled={testModeEnabled}
             demoTableEnabled={demoTableEnabled}
             soldOutEnabled={soldOutEnabled}
+            automaticOrderAcceptanceEnabled={automaticOrderAcceptanceEnabled}
             adminLogin={adminLogin}
             operatingHours={operatingHours}
             presentation={presentation}
@@ -1010,6 +1016,7 @@ export function AdminPanel({
             onToggleTestMode={toggleTestMode}
             onToggleDemoTable={toggleDemoTable}
             onToggleSoldOut={toggleSoldOut}
+            onToggleAutomaticOrderAcceptance={toggleAutomaticOrderAcceptance}
             onSaveAdminCredentials={saveAdminCredentials}
             onOperatingHoursChange={updateOperatingHours}
             onPresentationChange={setPresentation}

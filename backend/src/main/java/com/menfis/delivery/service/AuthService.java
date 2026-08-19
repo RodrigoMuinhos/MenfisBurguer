@@ -209,23 +209,6 @@ public class AuthService {
     }
   }
 
-  public long requireKioskCustomer(String authorization) {
-    long customerId = requireCustomer(authorization);
-    Integer allowed = jdbc.queryForObject(
-      """
-      select count(*) from customers
-      where id = ?
-        and lower(trim(email)) = 'kioskmob@gmail.com'
-      """,
-      Integer.class,
-      customerId
-    );
-    if (allowed == null || allowed == 0) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "kiosk_customer_required");
-    }
-    return customerId;
-  }
-
   private String resolveAuthorization(String authorization) {
     if (authorization != null && !authorization.isBlank()) return authorization;
     if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)) {
