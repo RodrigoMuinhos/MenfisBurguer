@@ -15,6 +15,19 @@ isso, cada máquina PDV que imprime precisa executar a ponte local.
 
 ## Instalação em cada PDV
 
+O método recomendado é copiar `MenfisPrintBridgeSetup.exe` para a máquina e abrir
+com duplo clique. O instalador é self-contained: não exige Node.js, Electron ou
+.NET previamente instalado. Ao final ele oferece uma impressão curta de teste.
+
+O código-fonte do instalador fica em `tools/MenfisPrintBridge` e o artefato pode ser
+regenerado com:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-print-bridge-installer.ps1
+```
+
+### Instalação legada por scripts
+
 Pré-requisitos:
 
 - Windows;
