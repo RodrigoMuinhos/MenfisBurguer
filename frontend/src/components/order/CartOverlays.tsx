@@ -58,6 +58,7 @@ export function CartOverlays({
   const [counterPixSeconds, setCounterPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
   const [counterPixCompleted, setCounterPixCompleted] = useState(false);
   const [receiptPrintStep, setReceiptPrintStep] = useState<"idle" | "printing" | "printed" | "completed" | "error">("idle");
+  const [successSecondsLeft, setSuccessSecondsLeft] = useState(10);
   const automaticPrintOrderRef = useRef("");
   const successTotal = kioskSuccessOrder
     ? Number(kioskSuccessOrder.total || kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0))
@@ -80,6 +81,7 @@ export function CartOverlays({
     }
     setReceiptPrintStep("printed");
     await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    setSuccessSecondsLeft(10);
     setReceiptPrintStep("completed");
     await new Promise((resolve) => window.setTimeout(resolve, 10000));
     setReceiptPrintStep("idle");
@@ -92,6 +94,15 @@ export function CartOverlays({
     automaticPrintOrderRef.current = kioskSuccessOrder.id;
     void handleKioskReceiptPrint();
   }, [counterServiceMode, kioskMode, kioskSuccessOpen, kioskSuccessOrder?.id]);
+
+  useEffect(() => {
+    if (receiptPrintStep !== "completed" || successSecondsLeft <= 0) return;
+    const timer = window.setTimeout(
+      () => setSuccessSecondsLeft((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [receiptPrintStep, successSecondsLeft]);
 
   useEffect(() => {
     if (!counterPaymentPromptOpen) {
@@ -262,20 +273,38 @@ export function CartOverlays({
                         <CheckCircle2 size={42} strokeWidth={2.8} />
                       )}
                     </div>
-                    <h2 className="mt-5 text-3xl font-black uppercase tracking-wide">
+                    {receiptPrintStep === "completed" && (
+                      <div
+                        className="mx-auto mt-5 inline-flex rounded-full px-5 py-2 text-xs font-black uppercase tracking-[0.24em] text-white"
+                        style={{ background: VERDE }}
+                      >
+                        Concluído
+                      </div>
+                    )}
+                    <h2
+                      className={`${receiptPrintStep === "completed" ? "mt-3 text-4xl" : "mt-5 text-3xl"} font-black uppercase tracking-wide`}
+                    >
                       {receiptPrintStep === "printing" && "Aguarde sua impressão"}
                       {receiptPrintStep === "printed" && "Nota impressa"}
-                      {receiptPrintStep === "completed" && "Pedido confirmado! 🍔"}
+                      {receiptPrintStep === "completed" && "Pedido confirmado!"}
                       {receiptPrintStep === "error" && "Não foi possível imprimir"}
                     </h2>
-                    <p className="mt-3 text-sm font-bold leading-relaxed opacity-70">
+                    <div className="mt-3 text-sm font-bold leading-relaxed opacity-70">
                       {receiptPrintStep === "printing" && "Estamos enviando sua nota diretamente para a impressora."}
                       {receiptPrintStep === "printed" && "Sua nota foi enviada e impressa com sucesso."}
                       {receiptPrintStep === "completed" && (
-                        <>Agora é só acompanhar seu pedido na tela.<br />Quando ficar verde, pode retirar no balcão.<br /><br />Bom apetite!<br />A Menfi’s agradece a sua presença e deseja uma ótima experiência.</>
+                        <>
+                          <p className="text-base font-black opacity-100">🍔 Agora é só acompanhar seu pedido na tela.</p>
+                          <p className="mt-1">Quando ficar verde, pode retirar no balcão.</p>
+                          <div className="mx-auto my-4 h-px w-24" style={{ background: `${ROSA}90` }} />
+                          <p className="font-black opacity-100">Bom apetite!</p>
+                          <p className="mx-auto mt-1 max-w-xs text-xs">
+                            A Menfi’s agradece a sua presença e deseja uma ótima experiência.
+                          </p>
+                        </>
                       )}
                       {receiptPrintStep === "error" && "A POS-58 pode estar ativa. Verifique se a Ponte de Impressão Menfis está iniciada antes de tentar novamente."}
-                    </p>
+                    </div>
                     <div className="mt-6 flex items-center justify-center gap-2" aria-label="Progresso da impressão">
                       {(["printing", "printed", "completed"] as const).map((step) => {
                         const order = ["printing", "printed", "completed"];
@@ -284,6 +313,23 @@ export function CartOverlays({
                         return <span key={step} className="h-2.5 w-16 rounded-full" style={{ background: active ? VERDE : `${ROSA}80` }} />;
                       })}
                     </div>
+                    {receiptPrintStep === "completed" && (
+                      <div className="mt-6" aria-label={`Retorno ao início em ${successSecondsLeft} segundos`}>
+                        <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase tracking-wider opacity-60">
+                          <span>Novo pedido em instantes</span>
+                          <span>{successSecondsLeft}s</span>
+                        </div>
+                        <div className="h-3 overflow-hidden rounded-full" style={{ background: `${ROSA}70` }}>
+                          <div
+                            className="h-full rounded-full transition-[width] duration-1000 ease-linear"
+                            style={{
+                              background: VERDE,
+                              width: `${(successSecondsLeft / 10) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     {receiptPrintStep === "error" && (
                       <div className="mt-6 grid gap-3 sm:grid-cols-2">
                         <button
