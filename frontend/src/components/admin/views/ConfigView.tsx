@@ -1,4 +1,4 @@
-import { Beef, CalendarClock, Check, Clock, Flame, FlaskConical, Gift, GripVertical, Heart, ImagePlus, KeyRound, LockKeyhole, PackageX, Percent, Plus, Printer, Save, Star, Table2, Tag, Ticket, Trash2, Utensils, RotateCcw, X } from "lucide-react";
+import { Beef, CalendarClock, Clock, Flame, FlaskConical, Gift, GripVertical, Heart, ImagePlus, KeyRound, LockKeyhole, PackageX, Percent, Plus, Printer, Save, Star, Table2, Tag, Ticket, Trash2, Utensils, RotateCcw } from "lucide-react";
 import { useEffect, useState, type ElementType } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -42,8 +42,7 @@ export function ConfigView({
   onToggleTestMode,
   onToggleDemoTable,
   onToggleSoldOut,
-  onToggleAutomaticOrderAcceptance,
-  onToggleAutomaticKitchenPrinting,
+  onToggleAutomaticOrderWorkflow,
   onSaveAdminCredentials,
   onOperatingHoursChange,
   onPresentationChange,
@@ -77,8 +76,7 @@ export function ConfigView({
   onToggleTestMode: () => void;
   onToggleDemoTable: () => void;
   onToggleSoldOut: () => void;
-  onToggleAutomaticOrderAcceptance: () => void;
-  onToggleAutomaticKitchenPrinting: () => void | Promise<void>;
+  onToggleAutomaticOrderWorkflow: () => void | Promise<void>;
   onSaveAdminCredentials: (login: string, password: string) => Promise<boolean>;
   onOperatingHoursChange: (config: OperatingHoursConfig) => void;
   onPresentationChange: (config: PresentationSettings) => void;
@@ -1013,64 +1011,37 @@ export function ConfigView({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
-              {automaticOrderAcceptanceEnabled ? <Check size={19} strokeWidth={2.6} /> : <X size={19} strokeWidth={2.6} />}
-            </div>
-            <div>
-              <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Aceite automático de pedidos</p>
-              <p className="mt-1 max-w-2xl text-xs font-bold leading-relaxed opacity-55" style={{ color: VERDE }}>
-                {automaticOrderAcceptanceEnabled
-                  ? "Ligado: pedidos pagos de qualquer PDV passam por Recebidos e são aceitos automaticamente pelo servidor."
-                  : "Desligado: pedidos pagos ficam em Recebidos para conferência manual e avançam após 5 minutos se ninguém agir."}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onToggleAutomaticOrderAcceptance}
-            disabled={saving || disabled}
-            className="inline-flex min-h-12 min-w-36 items-center justify-center rounded-full px-6 text-xs font-black uppercase"
-            style={{
-              background: automaticOrderAcceptanceEnabled ? VERDE : "#E5E7EB",
-              color: automaticOrderAcceptanceEnabled ? ROSA : "#4B5563",
-              opacity: saving || disabled ? 0.6 : 1,
-            }}
-          >
-            {saving ? "Salvando..." : automaticOrderAcceptanceEnabled ? "Ligado" : "Desligado"}
-          </button>
-        </div>
-      </section>
-
-      <section className="rounded-2xl p-4" style={{ background: "#fff", border: `1.5px solid ${VERDE}18` }}>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: ROSA, color: VERDE }}>
               <Printer size={19} strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Impressão automática nesta máquina</p>
+              <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Receber e imprimir automaticamente</p>
               <p className="mt-1 max-w-2xl text-xs font-bold leading-relaxed opacity-55" style={{ color: VERDE }}>
                 {automaticKitchenPrintingStatus === "printing"
                   ? "Enviando a nova comanda para a POS-58..."
                   : automaticKitchenPrintingStatus === "error"
                     ? "Ponte local indisponível. Ligue a ponte de impressão neste computador e tente novamente."
                     : automaticKitchenPrintingEnabled
-                      ? "Ligada: os próximos pedidos do PDV serão impressos automaticamente na POS-58 deste computador."
-                      : "Desligada: as comandas só serão impressas pelo botão Imprimir via."}
+                      ? "Ligado: ao entrar um novo pedido do PDV, este computador aceita e imprime uma única comanda na POS-58."
+                      : "Desligado: os pedidos aguardam conferência e as comandas só saem pelo botão Imprimir via."}
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => void onToggleAutomaticKitchenPrinting()}
-            disabled={automaticKitchenPrintingStatus === "printing"}
+            onClick={() => void onToggleAutomaticOrderWorkflow()}
+            disabled={saving || disabled || automaticKitchenPrintingStatus === "printing"}
             className="inline-flex min-h-12 min-w-36 items-center justify-center rounded-full px-6 text-xs font-black uppercase"
             style={{
-              background: automaticKitchenPrintingEnabled ? VERDE : "#E5E7EB",
-              color: automaticKitchenPrintingEnabled ? ROSA : "#4B5563",
+              background: automaticKitchenPrintingEnabled && automaticOrderAcceptanceEnabled ? VERDE : "#E5E7EB",
+              color: automaticKitchenPrintingEnabled && automaticOrderAcceptanceEnabled ? ROSA : "#4B5563",
               opacity: automaticKitchenPrintingStatus === "printing" ? 0.6 : 1,
             }}
           >
-            {automaticKitchenPrintingStatus === "printing" ? "Imprimindo..." : automaticKitchenPrintingEnabled ? "Ligada" : "Desligada"}
+            {automaticKitchenPrintingStatus === "printing"
+              ? "Imprimindo..."
+              : saving
+                ? "Salvando..."
+                : automaticKitchenPrintingEnabled && automaticOrderAcceptanceEnabled ? "Ligado" : "Desligado"}
           </button>
         </div>
       </section>

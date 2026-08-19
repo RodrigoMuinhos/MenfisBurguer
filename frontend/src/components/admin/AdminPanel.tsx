@@ -486,13 +486,12 @@ export function AdminPanel({
   const toggleSoldOut = () =>
     updateSetting("/settings/sold-out", !soldOutEnabled);
 
-  const toggleAutomaticOrderAcceptance = () =>
-    updateSetting("/settings/automatic-order-acceptance", !automaticOrderAcceptanceEnabled);
-
-  const toggleAutomaticKitchenPrinting = async () => {
-    if (automaticKitchenPrintingEnabled) {
+  const toggleAutomaticOrderWorkflow = async () => {
+    const fullyEnabled = automaticOrderAcceptanceEnabled && automaticKitchenPrintingEnabled;
+    if (fullyEnabled) {
       localStorage.setItem("menfis_kitchen_auto_print_enabled", "0");
       setAutomaticKitchenPrintingEnabled(false);
+      await updateSetting("/settings/automatic-order-acceptance", false);
       return;
     }
     const bridgeRunning = await printBridgeIsRunning();
@@ -504,6 +503,9 @@ export function AdminPanel({
     localStorage.setItem("menfis_kitchen_auto_print_enabled", "1");
     setAutomaticKitchenPrintingStatus("ready");
     setAutomaticKitchenPrintingEnabled(true);
+    if (!automaticOrderAcceptanceEnabled) {
+      await updateSetting("/settings/automatic-order-acceptance", true);
+    }
   };
 
   const updateOperatingHours = (next: OperatingHoursConfig) => {
@@ -1087,8 +1089,7 @@ export function AdminPanel({
             onToggleTestMode={toggleTestMode}
             onToggleDemoTable={toggleDemoTable}
             onToggleSoldOut={toggleSoldOut}
-            onToggleAutomaticOrderAcceptance={toggleAutomaticOrderAcceptance}
-            onToggleAutomaticKitchenPrinting={toggleAutomaticKitchenPrinting}
+            onToggleAutomaticOrderWorkflow={toggleAutomaticOrderWorkflow}
             onSaveAdminCredentials={saveAdminCredentials}
             onOperatingHoursChange={updateOperatingHours}
             onPresentationChange={setPresentation}
