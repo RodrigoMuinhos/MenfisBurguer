@@ -57,6 +57,7 @@ export function CartOverlays({
   const [counterPaymentMethod, setCounterPaymentMethod] = useState<"pix" | "atendente" | null>(null);
   const [counterPixSeconds, setCounterPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
   const [counterPixCompleted, setCounterPixCompleted] = useState(false);
+  const [receiptPrintStep, setReceiptPrintStep] = useState<"idle" | "printing" | "printed" | "completed" | "error">("idle");
   const successTotal = kioskSuccessOrder
     ? Number(kioskSuccessOrder.total || kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0))
     : 0;
@@ -64,6 +65,25 @@ export function CartOverlays({
   const canConfirmCounterName = counterCustomerNameDraft.trim().length >= 2;
   const formatMoney = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const handleKioskReceiptPrint = async (retry = false) => {
+    if (!kioskSuccessOrder || (!retry && receiptPrintStep !== "idle")) return;
+    setReceiptPrintStep("printing");
+    const printed = await printOrderReceipts(kioskSuccessOrder, {
+      confirm: false,
+      browserFallback: false,
+    });
+    if (!printed) {
+      setReceiptPrintStep("error");
+      return;
+    }
+    setReceiptPrintStep("printed");
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    setReceiptPrintStep("completed");
+    await new Promise((resolve) => window.setTimeout(resolve, 2200));
+    setReceiptPrintStep("idle");
+    onCloseKioskSuccess?.();
+  };
 
   useEffect(() => {
     if (!counterPaymentPromptOpen) {
@@ -174,10 +194,8 @@ export function CartOverlays({
                         <div className="mx-auto mt-5 grid max-w-md gap-3 sm:grid-cols-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              printOrderReceipts(kioskSuccessOrder, { confirm: false });
-                              onCloseKioskSuccess?.();
-                            }}
+                            onClick={() => void handleKioskReceiptPrint()}
+                            disabled={receiptPrintStep !== "idle"}
                             className="min-h-14 rounded-2xl px-4 text-sm font-black uppercase tracking-wide"
                             style={{ background: VERDE, color: ROSA }}
                           >
@@ -204,6 +222,83 @@ export function CartOverlays({
                           cozinha.
                         </p>
                       </>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {receiptPrintStep !== "idle" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[95] flex items-center justify-center px-6"
+                  style={{ background: "rgba(255,255,255,0.96)", backdropFilter: "blur(8px)" }}
+                >
+                  <motion.div
+                    initial={{ y: 14, scale: 0.96 }}
+                    animate={{ y: 0, scale: 1 }}
+                    exit={{ y: 14, scale: 0.96 }}
+                    className="w-full max-w-md rounded-[32px] border-2 bg-white p-8 text-center shadow-2xl"
+                    style={{ borderColor: ROSA, color: VERDE }}
+                  >
+                    <div
+                      className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
+                      style={{ background: ROSA }}
+                    >
+                      {receiptPrintStep === "printing" ? (
+                        <Loader2 size={38} strokeWidth={2.8} className="animate-spin" />
+                      ) : (
+                        <CheckCircle2 size={42} strokeWidth={2.8} />
+                      )}
+                    </div>
+                    <h2 className="mt-5 text-3xl font-black uppercase tracking-wide">
+                      {receiptPrintStep === "printing" && "Aguarde sua impressão"}
+                      {receiptPrintStep === "printed" && "Nota impressa"}
+                      {receiptPrintStep === "completed" && "Concluído"}
+                      {receiptPrintStep === "error" && "Não foi possível imprimir"}
+                    </h2>
+                    <p className="mt-3 text-sm font-bold leading-relaxed opacity-70">
+                      {receiptPrintStep === "printing" && "Estamos enviando sua nota diretamente para a impressora."}
+                      {receiptPrintStep === "printed" && "Sua nota foi enviada e impressa com sucesso."}
+                      {receiptPrintStep === "completed" && "Aguarde ser chamado no balcão pelo nome e número do pedido."}
+                      {receiptPrintStep === "error" && "Verifique se a POS-58 está ligada e conectada antes de tentar novamente."}
+                    </p>
+                    <div className="mt-6 flex items-center justify-center gap-2" aria-label="Progresso da impressão">
+                      {(["printing", "printed", "completed"] as const).map((step) => {
+                        const order = ["printing", "printed", "completed"];
+                        const current = receiptPrintStep === "error" ? 0 : order.indexOf(receiptPrintStep);
+                        const active = order.indexOf(step) <= current;
+                        return <span key={step} className="h-2.5 w-16 rounded-full" style={{ background: active ? VERDE : `${ROSA}80` }} />;
+                      })}
+                    </div>
+                    {receiptPrintStep === "error" && (
+                      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReceiptPrintStep("idle");
+                            void handleKioskReceiptPrint(true);
+                          }}
+                          className="min-h-12 rounded-2xl px-4 text-xs font-black uppercase"
+                          style={{ background: VERDE, color: ROSA }}
+                        >
+                          Tentar novamente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReceiptPrintStep("idle");
+                            onCloseKioskSuccess?.();
+                          }}
+                          className="min-h-12 rounded-2xl border px-4 text-xs font-black uppercase"
+                          style={{ borderColor: VERDE }}
+                        >
+                          Finalizar sem imprimir
+                        </button>
+                      </div>
                     )}
                   </motion.div>
                 </motion.div>

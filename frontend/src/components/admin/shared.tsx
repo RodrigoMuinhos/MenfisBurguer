@@ -789,19 +789,34 @@ export async function printOrderReceipts(
   order: Order,
   options?: { confirm?: boolean; browserFallback?: boolean },
 ) {
-  if (options?.confirm !== false && !window.confirm("Imprimir via do cliente agora?")) return;
+  if (options?.confirm !== false && !window.confirm("Imprimir via do cliente agora?")) return false;
 
   const rawReceipt = generateCustomerReceipt(order);
+  const desktopPrinter = (window as Window & {
+    kioskMenfis?: {
+      printOrder?: (content: string) => Promise<{ ok: boolean; error?: string }>;
+    };
+  }).kioskMenfis;
+  if (desktopPrinter?.printOrder) {
+    try {
+      const result = await desktopPrinter.printOrder(rawReceipt);
+      if (result.ok) return true;
+      console.error("Impressão direta POS-58 falhou:", result.error);
+    } catch (error) {
+      console.error("Impressão direta POS-58 falhou:", error);
+    }
+  }
+
   const silentPrinted = await trySilentReceiptPrint(order, rawReceipt);
-  if (silentPrinted) return;
+  if (silentPrinted) return true;
 
   if (launchPrintBridge()) {
     await sleep(1800);
     const retriedSilentPrint = await trySilentReceiptPrint(order, rawReceipt);
-    if (retriedSilentPrint) return;
+    if (retriedSilentPrint) return true;
   }
 
-  if (!browserPrintFallbackEnabled(options)) return;
+  if (!browserPrintFallbackEnabled(options)) return false;
 
   const receipt = escapeReceipt(rawReceipt);
   const orderId = escapeReceipt(String(order.id || order.number || ""));
@@ -894,7 +909,7 @@ export async function printOrderReceipts(
   const doc = iframe.contentDocument;
   if (!doc) {
     iframe.remove();
-    return;
+    return false;
   }
   doc.open();
   doc.write(html);
@@ -915,6 +930,7 @@ export async function printOrderReceipts(
   };
 
   window.setTimeout(printFrame, 250);
+  return true;
 }
 
 export function loadStoredCoupons(): Coupon[] {
