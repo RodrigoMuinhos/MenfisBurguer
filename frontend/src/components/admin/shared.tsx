@@ -792,6 +792,17 @@ export async function printOrderReceipts(
   if (options?.confirm !== false && !window.confirm("Imprimir via do cliente agora?")) return false;
 
   const rawReceipt = generateCustomerReceipt(order);
+  const silentPrinted = await trySilentReceiptPrint(order, rawReceipt);
+  if (silentPrinted) return true;
+
+  if (launchPrintBridge()) {
+    await sleep(1800);
+    const retriedSilentPrint = await trySilentReceiptPrint(order, rawReceipt);
+    if (retriedSilentPrint) return true;
+  }
+
+  // Compatibilidade com instalações antigas do aplicativo desktop. A ponte HTTP
+  // acima é o transporte principal e funciona igualmente em todos os PDVs web.
   const desktopPrinter = (window as Window & {
     kioskMenfis?: {
       printOrder?: (content: string) => Promise<{ ok: boolean; error?: string }>;
@@ -805,15 +816,6 @@ export async function printOrderReceipts(
     } catch (error) {
       console.error("Impressão direta POS-58 falhou:", error);
     }
-  }
-
-  const silentPrinted = await trySilentReceiptPrint(order, rawReceipt);
-  if (silentPrinted) return true;
-
-  if (launchPrintBridge()) {
-    await sleep(1800);
-    const retriedSilentPrint = await trySilentReceiptPrint(order, rawReceipt);
-    if (retriedSilentPrint) return true;
   }
 
   if (!browserPrintFallbackEnabled(options)) return false;
