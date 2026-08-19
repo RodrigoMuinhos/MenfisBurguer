@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BellRing, BellOff } from "lucide-react";
 import { API_URL } from "@/app/appState";
+import styles from "./ReceptionKds.module.css";
 
 type BoardStatus =
   | "CREATED"
@@ -121,9 +122,9 @@ export function ReceptionKds() {
   };
 
   return (
-    <main className="min-h-screen bg-[#FFF9FB] px-3 py-5 text-[#65001F] sm:px-6">
-      <div className="mx-auto max-w-[1600px]">
-        <div className="flex justify-end">
+    <main className={styles.screen}>
+      <div className={styles.container}>
+        <div className={styles.soundControl}>
           <button
             type="button"
             onClick={soundEnabled ? () => setSoundEnabled(false) : enableSound}
@@ -134,44 +135,45 @@ export function ReceptionKds() {
           </button>
         </div>
 
-        <header className="pb-7 text-center">
+        <header className={styles.hero}>
           <p className="text-[11px] font-black uppercase tracking-[0.3em] opacity-50">Acompanhe seu pedido</p>
-          <h1 className="mt-2 text-4xl font-black sm:text-6xl">Painel de pedidos</h1>
-          <p className="mt-2 font-bold opacity-60">Procure seu nome e o número do pedido.</p>
-          <p className={`mt-3 text-xs font-black uppercase ${connected ? "text-emerald-600" : "text-red-600"}`}>
+          <h1>Painel de pedidos</h1>
+          <p className={styles.subtitle}>Procure seu nome e o número do pedido.</p>
+          <p className={`${styles.connection} ${connected ? styles.connected : styles.disconnected}`}>
             {connected ? "● Atualização em tempo real" : "● Reconectando…"}
           </p>
         </header>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className={styles.board}>
           {COLUMNS.map((column) => {
             const columnOrders = orders
               .filter((order) => column.statuses.has(order.status))
               .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            const visibleOrders = columnOrders.slice(0, 10);
             return (
-              <section key={column.id} className="min-h-[65vh] overflow-hidden rounded-3xl border border-[#65001F]/10 bg-white">
-                <header className="px-2 py-4 sm:px-5 sm:py-5" style={{ background: column.color }}>
+              <section key={column.id} className={styles.stage}>
+                <header className={styles.stageHeader} style={{ background: column.color }}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h2 className="text-base font-black uppercase sm:text-2xl xl:text-3xl">{column.label}</h2>
-                      <p className="hidden text-xs font-bold opacity-65 sm:block">{column.copy}</p>
+                      <h2>{column.label}</h2>
+                      <p>{column.copy}</p>
                     </div>
-                    <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-white px-2 text-sm font-black sm:h-11 sm:min-w-11 sm:px-3 sm:text-xl">
+                    <span className={styles.counter}>
                       {columnOrders.length}
                     </span>
                   </div>
                 </header>
-                <div className="grid gap-2 p-2 sm:gap-3 sm:p-4">
+                <div className={styles.ordersGrid}>
                   {columnOrders.length === 0 ? (
-                    <p className="rounded-2xl border border-dashed border-[#65001F]/10 p-9 text-center text-sm font-bold opacity-40">
+                    <p className={styles.emptyState}>
                       Nenhum pedido nesta etapa
                     </p>
-                  ) : columnOrders.map((order) => (
-                    <article key={order.id} className="rounded-2xl border border-[#65001F]/10 p-4 shadow-sm">
-                      <p className="text-[10px] font-black uppercase tracking-widest opacity-45">Pedido</p>
-                      <div className="mt-1 flex items-end justify-between gap-3">
-                        <strong className="truncate text-base font-black sm:text-2xl">{customerLabel(order.customerName)}</strong>
-                        <strong className="shrink-0 text-lg font-black sm:text-3xl">#{order.number}</strong>
+                  ) : visibleOrders.map((order) => (
+                    <article key={order.id} className={styles.orderCard}>
+                      <p>Pedido</p>
+                      <div>
+                        <strong>{customerLabel(order.customerName)}</strong>
+                        <strong>#{order.number}</strong>
                       </div>
                     </article>
                   ))}
