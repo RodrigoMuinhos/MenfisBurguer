@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -45,14 +46,37 @@ public class KdsService {
     ).stream().map(row -> orders.get((String) row.get("id"))).toList();
   }
 
+  @Scheduled(fixedDelayString = "${menfis.kds-auto-preparation-delay-ms:15000}", initialDelayString = "${menfis.kds-auto-preparation-delay-ms:15000}")
+  @Transactional
+  public void moveDueOrdersToPreparation() {
+    List<String> dueIds = jdbc.queryForList(
+      """
+      select id from orders
+      where status in ('PAYMENT_APPROVED', 'PAID', 'ACCEPTED')
+        and paid_at <= now() - interval '5 minutes'
+        and test_mode = ?
+      order by paid_at asc
+      for update skip locked
+      """,
+      String.class,
+      settings.testModeEnabled()
+    );
+    for (String id : dueIds) {
+      try {
+        inventory.deductForOrder(id);
+        orders.changeStatus(id, OrderStatus.IN_PREPARATION, "system", "received_hold_5_minutes_elapsed");
+      } catch (IllegalArgumentException ignored) {
+        // Outro processo pode ter avançado o pedido entre a consulta e a atualização.
+      }
+    }
+  }
+
   @Transactional
   public OrderResponse advance(String id, String actor) {
     OrderResponse order = orders.get(id);
     OrderStatus current = OrderStatus.valueOf(order.status());
     OrderStatus next = switch (current) {
-      case PAYMENT_APPROVED -> OrderStatus.ACCEPTED;
-      case PAID -> OrderStatus.ACCEPTED;
-      case ACCEPTED -> OrderStatus.IN_PREPARATION;
+      case PAYMENT_APPROVED, PAID, ACCEPTED -> OrderStatus.IN_PREPARATION;
       case IN_PREPARATION -> OrderStatus.READY;
       case OUT_FOR_DELIVERY -> OrderStatus.DELIVERED;
       default -> throw new IllegalArgumentException("order_not_advanceable");

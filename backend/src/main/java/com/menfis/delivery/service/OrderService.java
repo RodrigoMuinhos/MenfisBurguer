@@ -17,7 +17,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.OffsetDateTime;
+import java.time.Duration;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,7 @@ public class OrderService {
   private static final Logger log = LoggerFactory.getLogger(OrderService.class);
   private static final BigDecimal DELIVERY_FEE = new BigDecimal("7.10");
   private static final BigDecimal SERVICE_FEE = new BigDecimal("0.99");
+  static final Duration RECEIVED_HOLD_DURATION = Duration.ofMinutes(5);
 
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
@@ -468,11 +472,16 @@ public class OrderService {
   @Transactional
   public OrderResponse changeStatus(String id, OrderStatus toStatus, String actor, String reason) {
     Map<String, Object> row = jdbc.queryForMap(
-      "select status, customer_name from orders where id = ?",
+      "select status, customer_name, paid_at from orders where id = ?",
       id
     );
     String from = String.valueOf(row.get("status"));
     OrderStatus fromStatus = OrderStatus.valueOf(from);
+    if (toStatus == OrderStatus.IN_PREPARATION
+        && isReceivedStatus(fromStatus)
+        && !receivedHoldElapsed(asOffsetDateTime(row.get("paid_at")), OffsetDateTime.now())) {
+      throw new IllegalArgumentException("order_received_hold_not_elapsed");
+    }
     boolean kioskMobOrder = isKioskMobName(String.valueOf(row.get("customer_name")));
     if (kioskMobOrder && toStatus == OrderStatus.OUT_FOR_DELIVERY) {
       throw new IllegalArgumentException("kiosk_mob_counter_service_required");
@@ -789,6 +798,24 @@ public class OrderService {
       case CANCELLED -> to == OrderStatus.PAYMENT_APPROVED || to == OrderStatus.PAID || to == OrderStatus.ACCEPTED;
       default -> false;
     };
+  }
+
+  static boolean receivedHoldElapsed(OffsetDateTime paidAt, OffsetDateTime now) {
+    return paidAt != null && !paidAt.plus(RECEIVED_HOLD_DURATION).isAfter(now);
+  }
+
+  private OffsetDateTime asOffsetDateTime(Object value) {
+    if (value instanceof OffsetDateTime offset) return offset;
+    if (value instanceof Timestamp timestamp) return timestamp.toInstant().atOffset(ZoneOffset.UTC);
+    return null;
+  }
+
+  private boolean isReceivedStatus(OrderStatus status) {
+    return status == OrderStatus.PAYMENT_PENDING
+      || status == OrderStatus.PAYMENT_PROOF_PENDING
+      || status == OrderStatus.PAYMENT_APPROVED
+      || status == OrderStatus.PAID
+      || status == OrderStatus.ACCEPTED;
   }
 
   private boolean isKitchenOrTerminal(OrderStatus status) {
