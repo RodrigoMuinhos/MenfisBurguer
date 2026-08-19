@@ -9,6 +9,7 @@ internal static class Program
 {
     private const string PrinterName = "POS-58";
     private const string RunValueName = "MenfisPrintBridge";
+    private const string ProtocolName = "menfis-print-bridge";
     private static readonly string InstallDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MenfisPrintBridge");
@@ -24,7 +25,8 @@ internal static class Program
     [STAThread]
     private static async Task Main(string[] args)
     {
-        if (args.Contains("--run", StringComparer.OrdinalIgnoreCase))
+        if (args.Contains("--run", StringComparer.OrdinalIgnoreCase)
+            || args.Any(argument => argument.StartsWith($"{ProtocolName}://", StringComparison.OrdinalIgnoreCase)))
         {
             await RunBridge();
             return;
@@ -110,6 +112,12 @@ internal static class Program
         using var runKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
         runKey?.SetValue(RunValueName, $"\"{InstalledExecutable}\" --run", RegistryValueKind.String);
 
+        using var protocolKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{ProtocolName}");
+        protocolKey?.SetValue(null, "URL:Menfis Print Bridge Protocol", RegistryValueKind.String);
+        protocolKey?.SetValue("URL Protocol", "", RegistryValueKind.String);
+        using var commandKey = protocolKey?.CreateSubKey(@"shell\open\command");
+        commandKey?.SetValue(null, $"\"{InstalledExecutable}\" \"%1\"", RegistryValueKind.String);
+
         var running = Process.GetProcessesByName("MenfisPrintBridge")
             .Any(process => process.Id != Environment.ProcessId);
         if (!running)
@@ -167,6 +175,16 @@ internal static class Program
         });
 
         app.MapGet("/health", () => Results.Ok(new { ok = true, printer = PrinterName }));
+        app.MapMethods("/health", new[] { "OPTIONS" }, (HttpContext context) =>
+        {
+            var origin = context.Request.Headers.Origin.ToString();
+            if (!AllowedOrigins.Contains(origin)) return Results.StatusCode(403);
+            context.Response.Headers.AccessControlAllowMethods = "GET, OPTIONS";
+            context.Response.Headers.AccessControlAllowHeaders = "Content-Type";
+            context.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
+            context.Response.Headers.AccessControlMaxAge = "86400";
+            return Results.NoContent();
+        });
         app.MapMethods("/print", new[] { "OPTIONS" }, (HttpContext context) =>
         {
             var origin = context.Request.Headers.Origin.ToString();

@@ -1,14 +1,59 @@
 import Image from "next/image";
 import { motion } from "motion/react";
-import type { Dispatch, SetStateAction } from "react";
-import { Headphones, KeyRound, Loader2, LogOut, MapPin, UserCog, X } from "lucide-react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { Headphones, KeyRound, Loader2, LogOut, MapPin, Power, UserCog, X } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import type { Order } from "@/types/order";
 import type { MemberProfile } from "../shared";
 import { SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
 import { ActiveProfileOrderCard, InfoLine, ProfileInput, ProfileMenuButton, ProfileMenuLink, ProfileSection } from "./MemberUi";
+import { printBridgeIsRunning, startPrintBridge } from "@/services/printBridge";
 const BRAND_M_LOGO = "/logo_M.jpeg";
 type Setter = Dispatch<SetStateAction<string>>;
+
+function PrintBridgeProfileButton({ visible }: { visible: boolean }) {
+  const [status, setStatus] = useState<"checking" | "off" | "starting" | "on" | "error">("checking");
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    void printBridgeIsRunning().then((running) => {
+      if (!cancelled) setStatus(running ? "on" : "off");
+    });
+    return () => { cancelled = true; };
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const label = status === "checking"
+    ? "Verificando ponte"
+    : status === "starting"
+      ? "Ligando ponte"
+      : status === "on"
+        ? "Ponte de impressão ligada"
+        : status === "error"
+          ? "Tentar ligar ponte novamente"
+          : "Ligar ponte de impressão";
+
+  return (
+    <div className="grid gap-2">
+      <ProfileMenuButton
+        icon={status === "checking" || status === "starting" ? Loader2 : Power}
+        label={label}
+        onClick={() => {
+          if (status === "checking" || status === "starting" || status === "on") return;
+          setStatus("starting");
+          void startPrintBridge().then((started) => setStatus(started ? "on" : "error"));
+        }}
+      />
+      {status === "error" && (
+        <p className="px-3 text-[11px] font-bold leading-relaxed text-red-700">
+          A ponte não respondeu. Execute novamente o instalar.ps1 atualizado nesta máquina e tente outra vez.
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function MemberProfilePanel({ profileOpen, memberProfile, profileIncomplete, profileEditOpen, profileEditName, profileEditPhone, profileEditEmail, profileCurrentPassword, profileNewPassword, profileConfirmPassword, profileEditError, profileEditSaving, ordersLoading, visibleActiveOrder, hasActiveOrder, closeProfile, editMember, setProfileEditOpen, setProfileEditName, setProfileEditPhone, setProfileEditEmail, setProfileCurrentPassword, setProfileNewPassword, setProfileConfirmPassword, submitProfileEdit, openProfileEdit, onOpenActiveOrder, logoutMember }: { profileOpen: boolean; memberProfile: MemberProfile | null; profileIncomplete: boolean; profileEditOpen: boolean; profileEditName: string; profileEditPhone: string; profileEditEmail: string; profileCurrentPassword: string; profileNewPassword: string; profileConfirmPassword: string; profileEditError: string; profileEditSaving: boolean; ordersLoading: boolean; visibleActiveOrder?: Order | null; hasActiveOrder: boolean; closeProfile: () => void; editMember: () => void; setProfileEditOpen: Dispatch<SetStateAction<boolean>>; setProfileEditName: Setter; setProfileEditPhone: Setter; setProfileEditEmail: Setter; setProfileCurrentPassword: Setter; setProfileNewPassword: Setter; setProfileConfirmPassword: Setter; submitProfileEdit: () => Promise<void>; openProfileEdit: () => void; onOpenActiveOrder?: (orderId?: string) => void; logoutMember: () => void }) { return <>              {profileOpen && memberProfile && (
                 <motion.div
@@ -177,6 +222,9 @@ export function MemberProfilePanel({ profileOpen, memberProfile, profileIncomple
                           <ProfileMenuButton icon={KeyRound} label="Alterar senha / recuperar acesso" onClick={openProfileEdit} />
                         </>
                       )}
+                      <PrintBridgeProfileButton
+                        visible={String(memberProfile.email ?? "").trim().toLowerCase() === "kioskmob@gmail.com"}
+                      />
                       {ordersLoading && !visibleActiveOrder && (
                         <div
                           className="flex items-center gap-3 rounded-2xl p-4 text-xs font-black uppercase tracking-wider"

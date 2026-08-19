@@ -19,6 +19,13 @@ $shortcut.WindowStyle = 7
 $shortcut.Description = "Ponte local de impressão RAW da Menfis"
 $shortcut.Save()
 
+$protocolKey = "HKCU:\Software\Classes\menfis-print-bridge"
+$protocolCommandKey = Join-Path $protocolKey "shell\open\command"
+New-Item -Path $protocolCommandKey -Force | Out-Null
+Set-Item -Path $protocolKey -Value "URL:Menfis Print Bridge Protocol"
+New-ItemProperty -Path $protocolKey -Name "URL Protocol" -Value "" -PropertyType String -Force | Out-Null
+Set-Item -Path $protocolCommandKey -Value ('"' + $nodePath + '" "' + $bridgePath + '" "%1"')
+
 $listener = Get-NetTCPConnection -LocalPort 17777 -State Listen -ErrorAction SilentlyContinue
 if (-not $listener) {
   Start-Process -FilePath $nodePath -ArgumentList ('"' + $bridgePath + '"') -WorkingDirectory $installDir -WindowStyle Hidden
