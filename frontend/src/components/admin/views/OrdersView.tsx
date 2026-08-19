@@ -206,11 +206,18 @@ export function OrdersView({
     setEditingDetails(false);
     cancelItemEdit();
   };
-  const confirmDeleteFinished = (order: Order) => {
+  const confirmDeleteFinished = async (order: Order) => {
     if (!["CANCELLED", "DELIVERED"].includes(order.status)) return;
-    const confirmed = window.confirm(`Excluir definitivamente o pedido ${order.id}?`);
+    const confirmed = window.confirm(
+      `Excluir definitivamente o pedido ${order.id} do banco de dados?\n\nEsta ação não pode ser desfeita.`,
+    );
     if (!confirmed) return;
-    void deleteOrder(order.id);
+    try {
+      await deleteOrder(order.id);
+      if (selected?.id === order.id) setSelectedId("");
+    } catch {
+      window.alert("Não foi possível excluir o pedido. Tente novamente ou verifique o servidor.");
+    }
   };
   const startItemEdit = () => {
     if (!selected) return;

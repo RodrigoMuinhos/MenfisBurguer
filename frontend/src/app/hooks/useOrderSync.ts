@@ -356,15 +356,19 @@ export function useOrderSync({
     async (id: string) => {
       const existing = orders.find((order) => order.id === id);
       if (!existing || !["CANCELLED", "DELIVERED"].includes(existing.status)) return;
-      setOrders((prev) => prev.filter((order) => order.id !== id));
       try {
         const res = await fetch(`${API_URL}/orders/${encodeURIComponent(id)}`, {
-              method: "DELETE",
-              headers: authHeaders(adminToken),
-            });
-        if (!res.ok) await syncOrders();
-      } catch {
+          method: "DELETE",
+          headers: authHeaders(adminToken),
+        });
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          throw new Error(typeof payload?.error === "string" ? payload.error : "order_delete_failed");
+        }
+        setOrders((prev) => prev.filter((order) => order.id !== id));
+      } catch (error) {
         await syncOrders();
+        throw error;
       }
     },
     [adminToken, orders, syncOrders],

@@ -272,7 +272,16 @@ public class OrderService {
     if (!OrderStatus.CANCELLED.name().equals(status) && !OrderStatus.DELIVERED.name().equals(status)) {
       throw new IllegalArgumentException("only_cancelled_or_delivered_orders_can_be_deleted");
     }
-    jdbc.update("delete from orders where id = ?", id);
+    // stock_movements intentionally has no ON DELETE CASCADE because it is normally
+    // part of the permanent inventory ledger. A definitive admin deletion is the
+    // exception: remove its inventory references and non-FK Rabbit log first, then
+    // let the remaining order-owned records cascade from orders.
+    jdbc.update("delete from stock_movements where order_id = ?", id);
+    jdbc.update("delete from order_event_log where order_id = ?", id);
+    int deleted = jdbc.update("delete from orders where id = ?", id);
+    if (deleted != 1) {
+      throw new EmptyResultDataAccessException(1);
+    }
     audit.log("admin", "ORDER_DELETED", "ORDER", id, Map.of("status", status));
   }
 
