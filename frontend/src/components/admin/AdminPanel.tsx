@@ -49,8 +49,10 @@ import {
   loadStoredCoupons,
   mergeCoupons,
   playAdminPaymentAlert,
+  printOrderReceipts,
   uid,
 } from "./shared";
+import { printBridgeIsRunning } from "@/services/printBridge";
 import { CouponsView } from "./views/CouponsView";
 import { ConfigView } from "./views/ConfigView";
 import { CustomersCrmView, CrmCustomer } from "./views/CustomersCrmView";
@@ -81,6 +83,15 @@ function adminHeaders(adminToken: string, json = false) {
     ...(json ? { "Content-Type": "application/json" } : {}),
     ...(adminToken && adminToken !== "cookie" ? { Authorization: `Bearer ${adminToken}` } : {}),
   };
+}
+
+function loadAutomaticallyPrintedOrderIds() {
+  try {
+    const stored = JSON.parse(localStorage.getItem("menfis_kitchen_auto_printed_orders") || "[]");
+    return new Set<string>(Array.isArray(stored) ? stored.map(String) : []);
+  } catch {
+    return new Set<string>();
+  }
 }
 
 interface Props {
@@ -133,6 +144,10 @@ export function AdminPanel({
   const [demoTableEnabled, setDemoTableEnabled] = useState(false);
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
   const [automaticOrderAcceptanceEnabled, setAutomaticOrderAcceptanceEnabled] = useState(false);
+  const [automaticKitchenPrintingEnabled, setAutomaticKitchenPrintingEnabled] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("menfis_kitchen_auto_print_enabled") === "1",
+  );
+  const [automaticKitchenPrintingStatus, setAutomaticKitchenPrintingStatus] = useState<"off" | "ready" | "printing" | "error">("off");
   const [adminLogin, setAdminLogin] = useState("");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
@@ -151,6 +166,7 @@ export function AdminPanel({
   const [stockCapacity, setStockCapacity] = useState<CapacityItem[]>([]);
   const stockItemsRef = useRef(stockItems);
   const notifiedPaymentRequestsRef = useRef<Set<string>>(new Set());
+  const automaticPrintInFlightRef = useRef<Set<string>>(new Set());
   stockItemsRef.current = stockItems;
 
   const deductStockForOrder = (order: Order) => {
@@ -356,6 +372,42 @@ export function AdminPanel({
     };
   }, [openPaymentRequests.map((order) => order.id).join("|")]);
 
+  useEffect(() => {
+    if (!automaticKitchenPrintingEnabled) {
+      setAutomaticKitchenPrintingStatus("off");
+      return;
+    }
+    const enabledAt = Number(localStorage.getItem("menfis_kitchen_auto_print_enabled_at") || Date.now());
+    const printedIds = loadAutomaticallyPrintedOrderIds();
+    const candidates = orders.filter((order) =>
+      isKioskMobOrder(order)
+      && order.timestamp >= enabledAt
+      && !printedIds.has(order.id)
+      && !automaticPrintInFlightRef.current.has(order.id)
+      && order.status !== "CANCELLED",
+    );
+    if (candidates.length === 0) {
+      void printBridgeIsRunning().then((running) => setAutomaticKitchenPrintingStatus(running ? "ready" : "error"));
+      return;
+    }
+    void (async () => {
+      for (const order of candidates.sort((left, right) => left.timestamp - right.timestamp)) {
+        automaticPrintInFlightRef.current.add(order.id);
+        setAutomaticKitchenPrintingStatus("printing");
+        const printed = await printOrderReceipts(order, { confirm: false, browserFallback: false });
+        automaticPrintInFlightRef.current.delete(order.id);
+        if (!printed) {
+          setAutomaticKitchenPrintingStatus("error");
+          break;
+        }
+        const latest = loadAutomaticallyPrintedOrderIds();
+        latest.add(order.id);
+        localStorage.setItem("menfis_kitchen_auto_printed_orders", JSON.stringify([...latest].slice(-200)));
+        setAutomaticKitchenPrintingStatus("ready");
+      }
+    })();
+  }, [automaticKitchenPrintingEnabled, orders]);
+
   const applyPublicSettings = (settings: Record<string, unknown>) => {
     setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled !== false);
     setTestModeEnabled(settings.testModeEnabled === true);
@@ -436,6 +488,23 @@ export function AdminPanel({
 
   const toggleAutomaticOrderAcceptance = () =>
     updateSetting("/settings/automatic-order-acceptance", !automaticOrderAcceptanceEnabled);
+
+  const toggleAutomaticKitchenPrinting = async () => {
+    if (automaticKitchenPrintingEnabled) {
+      localStorage.setItem("menfis_kitchen_auto_print_enabled", "0");
+      setAutomaticKitchenPrintingEnabled(false);
+      return;
+    }
+    const bridgeRunning = await printBridgeIsRunning();
+    if (!bridgeRunning) {
+      setAutomaticKitchenPrintingStatus("error");
+      return;
+    }
+    localStorage.setItem("menfis_kitchen_auto_print_enabled_at", String(Date.now()));
+    localStorage.setItem("menfis_kitchen_auto_print_enabled", "1");
+    setAutomaticKitchenPrintingStatus("ready");
+    setAutomaticKitchenPrintingEnabled(true);
+  };
 
   const updateOperatingHours = (next: OperatingHoursConfig) => {
     const normalized = normalizeOperatingHours(next);
@@ -989,6 +1058,8 @@ export function AdminPanel({
             demoTableEnabled={demoTableEnabled}
             soldOutEnabled={soldOutEnabled}
             automaticOrderAcceptanceEnabled={automaticOrderAcceptanceEnabled}
+            automaticKitchenPrintingEnabled={automaticKitchenPrintingEnabled}
+            automaticKitchenPrintingStatus={automaticKitchenPrintingStatus}
             adminLogin={adminLogin}
             operatingHours={operatingHours}
             presentation={presentation}
@@ -1017,6 +1088,7 @@ export function AdminPanel({
             onToggleDemoTable={toggleDemoTable}
             onToggleSoldOut={toggleSoldOut}
             onToggleAutomaticOrderAcceptance={toggleAutomaticOrderAcceptance}
+            onToggleAutomaticKitchenPrinting={toggleAutomaticKitchenPrinting}
             onSaveAdminCredentials={saveAdminCredentials}
             onOperatingHoursChange={updateOperatingHours}
             onPresentationChange={setPresentation}
