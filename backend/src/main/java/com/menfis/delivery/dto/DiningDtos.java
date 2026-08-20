@@ -4,6 +4,7 @@ import com.menfis.delivery.domain.DiningSessionStatus;
 import com.menfis.delivery.domain.TableKitStatus;
 import com.menfis.delivery.domain.TableLightState;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -70,5 +71,17 @@ public class DiningDtos {
     List<DiningTableResponse> tables,
     List<TableKitResponse> availableKits,
     List<DiningSessionResponse> openSessions
+  ) {}
+
+  public record PublicDiningSessionResponse(
+    UUID sessionPublicId,
+    String tableName,
+    String tableArea,
+    String customerName,
+    OffsetDateTime openedAt
+  ) {}
+
+  public record DiningCustomerNameRequest(
+    @NotBlank @Size(min = 2, max = 80) String name
   ) {}
 }

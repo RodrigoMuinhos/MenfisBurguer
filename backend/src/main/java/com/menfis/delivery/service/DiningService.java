@@ -8,6 +8,7 @@ import com.menfis.delivery.dto.DiningDtos.DiningSessionResponse;
 import com.menfis.delivery.dto.DiningDtos.DiningTableRequest;
 import com.menfis.delivery.dto.DiningDtos.DiningTableResponse;
 import com.menfis.delivery.dto.DiningDtos.OpenDiningSessionRequest;
+import com.menfis.delivery.dto.DiningDtos.PublicDiningSessionResponse;
 import com.menfis.delivery.dto.DiningDtos.TableKitRequest;
 import com.menfis.delivery.dto.DiningDtos.TableKitResponse;
 import java.sql.ResultSet;
@@ -162,6 +163,57 @@ public class DiningService {
       sessionSelect() + " where s.status = 'OPEN' order by s.opened_at",
       this::mapSession
     );
+  }
+
+  public PublicDiningSessionResponse resolvePublicSession(String qrToken) {
+    String token = normalizedToken(qrToken);
+    return jdbc.queryForObject(
+      """
+      select s.public_id, s.customer_name, s.opened_at, t.name table_name, t.area table_area
+      from table_kits k
+      join dining_sessions s on s.table_kit_id = k.id and s.status = 'OPEN'
+      join dining_tables t on t.id = s.table_id
+      where k.qr_token = ? and k.active = true and k.status = 'IN_USE' and t.active = true
+      """,
+      (rs, row) -> new PublicDiningSessionResponse(
+        rs.getObject("public_id", UUID.class),
+        rs.getString("table_name"),
+        rs.getString("table_area"),
+        rs.getString("customer_name"),
+        rs.getObject("opened_at", OffsetDateTime.class)
+      ),
+      token
+    );
+  }
+
+  @Transactional
+  public PublicDiningSessionResponse identifyCustomer(String qrToken, String customerName) {
+    String token = normalizedToken(qrToken);
+    String name = customerName == null ? "" : customerName.trim();
+    if (name.length() < 2 || name.length() > 80) {
+      throw new IllegalArgumentException("invalid_customer_name");
+    }
+    int updated = jdbc.update(
+      """
+      update dining_sessions s
+      set customer_name = ?, updated_at = now()
+      from table_kits k
+      where s.table_kit_id = k.id
+        and s.status = 'OPEN'
+        and k.qr_token = ?
+        and k.active = true
+        and k.status = 'IN_USE'
+        and (s.customer_name is null or btrim(s.customer_name) = '')
+      """,
+      name,
+      token
+    );
+    if (updated == 0) {
+      PublicDiningSessionResponse existing = resolvePublicSession(token);
+      if (existing.customerName() != null && existing.customerName().equalsIgnoreCase(name)) return existing;
+      throw new IllegalStateException("dining_session_already_identified");
+    }
+    return resolvePublicSession(token);
   }
 
   public DiningSessionResponse getSession(UUID id) {
@@ -341,5 +393,13 @@ public class DiningService {
 
   private String blankToNull(String value) {
     return value == null || value.isBlank() ? null : value.trim();
+  }
+
+  private String normalizedToken(String value) {
+    String token = value == null ? "" : value.trim();
+    if (token.length() < 32 || token.length() > 128 || !token.matches("[A-Za-z0-9_-]+")) {
+      throw new IllegalArgumentException("invalid_qr_token");
+    }
+    return token;
   }
 }

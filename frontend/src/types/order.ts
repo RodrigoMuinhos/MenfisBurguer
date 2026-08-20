@@ -1,4 +1,4 @@
-export type OrderChannel = "DELIVERY" | "KIOSK";
+export type OrderChannel = "DELIVERY" | "KIOSK" | "COUNTER" | "DINING_QR";
 
 export type OrderStatus =
   | "CREATED"
