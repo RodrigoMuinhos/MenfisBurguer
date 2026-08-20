@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import java.util.UUID;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,6 +47,14 @@ public class StaffDiningController {
       @RequestHeader(name = "Authorization", required = false) String authorization) {
     auth.requireDiningStaff(authorization);
     return diningOrders.listActiveForStaff();
+  }
+
+  @DeleteMapping("/stations/{tableId}")
+  public void deleteStation(
+      @PathVariable UUID tableId,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    var claims = auth.requireDiningStaff(authorization);
+    dining.deleteStation(tableId, claims.getSubject());
   }
 
   @PostMapping("/sessions")

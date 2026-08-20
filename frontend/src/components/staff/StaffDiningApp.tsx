@@ -8,6 +8,7 @@ import {
   Plus,
   Printer,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import {
   DiningDashboard,
@@ -151,6 +152,16 @@ export function StaffDiningApp() {
           orders={orders}
           onSelect={setSelectedTable}
           onPrepare={setPrepareTable}
+          busy={busy}
+          onDelete={(table) =>
+            run(async () => {
+              await diningRequest(
+                `/api/staff/dining/stations/${table.id}`,
+                token,
+                { method: "DELETE" },
+              );
+            })
+          }
         />
       </div>
       {prepareTable && dashboard && (
@@ -317,11 +328,15 @@ function DiningMap({
   orders,
   onSelect,
   onPrepare,
+  onDelete,
+  busy,
 }: {
   dashboard: DiningDashboard | null;
   orders: DiningOrder[];
   onSelect: (table: DiningTable) => void;
   onPrepare: (table: DiningTable) => void;
+  onDelete: (table: DiningTable) => Promise<void> | void;
+  busy: boolean;
 }) {
   const areas = useMemo(
     () =>
@@ -353,53 +368,78 @@ function DiningMap({
                 );
                 const state = tableState(session, tableOrders);
                 return (
-                  <button
+                  <article
                     key={table.id}
-                    onClick={() =>
-                      session ? onSelect(table) : onPrepare(table)
-                    }
-                    className="rounded-2xl border-2 bg-white p-4 text-left shadow-sm"
+                    className="relative rounded-2xl border-2 bg-white shadow-sm"
                     style={{ borderColor: state.color }}
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <strong className="text-xl font-black">
-                          {table.name}
-                        </strong>
-                        <p
-                          className="mt-1 text-xs font-black uppercase"
-                          style={{ color: state.color }}
-                        >
-                          {state.label}
-                        </p>
-                      </div>
-                      <span
-                        className="rounded-full px-3 py-2 text-xs font-black"
-                        style={{
-                          background: `${state.color}18`,
-                          color: state.color,
+                    {!session && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Excluir ${table.name} e o kit vinculado? Esta ação não poderá ser desfeita.`,
+                            )
+                          )
+                            void onDelete(table);
                         }}
+                        className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-red-100 bg-white text-red-600 shadow-sm disabled:opacity-40"
+                        aria-label={`Excluir mesa ${table.name}`}
+                        title="Excluir mesa"
                       >
-                        {session?.kit.code || "LIVRE"}
-                      </span>
-                    </div>
-                    {session ? (
-                      <div className="mt-4 border-t pt-3">
-                        <p className="font-black">
-                          {session.customerName || "Aguardando nome"}
-                        </p>
-                        <p className="mt-1 text-xs font-bold opacity-60">
-                          {tableOrders.length
-                            ? `#${tableOrders.at(-1)?.number} · ${money(tableOrders.reduce((s, o) => s + Number(o.total), 0))}`
-                            : "Nenhum pedido"}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mt-4 flex items-center gap-2 text-xs font-black uppercase">
-                        <Plus size={15} /> Receber cliente
-                      </div>
+                        <Trash2 size={15} />
+                      </button>
                     )}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        session ? onSelect(table) : onPrepare(table)
+                      }
+                      className="w-full p-4 text-left"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <strong className="text-xl font-black">
+                            {table.name}
+                          </strong>
+                          <p
+                            className="mt-1 text-xs font-black uppercase"
+                            style={{ color: state.color }}
+                          >
+                            {state.label}
+                          </p>
+                        </div>
+                        <span
+                          className="rounded-full px-3 py-2 text-xs font-black"
+                          style={{
+                            marginRight: session ? 0 : 32,
+                            background: `${state.color}18`,
+                            color: state.color,
+                          }}
+                        >
+                          {session?.kit.code || "LIVRE"}
+                        </span>
+                      </div>
+                      {session ? (
+                        <div className="mt-4 border-t pt-3">
+                          <p className="font-black">
+                            {session.customerName || "Aguardando nome"}
+                          </p>
+                          <p className="mt-1 text-xs font-bold opacity-60">
+                            {tableOrders.length
+                              ? `#${tableOrders.at(-1)?.number} · ${money(tableOrders.reduce((s, o) => s + Number(o.total), 0))}`
+                              : "Nenhum pedido"}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mt-4 flex items-center gap-2 text-xs font-black uppercase">
+                          <Plus size={15} /> Receber cliente
+                        </div>
+                      )}
+                    </button>
+                  </article>
                 );
               })}
           </div>
@@ -521,7 +561,9 @@ function TableDialog({
     );
   const confirmAccount = (paymentMethod: string) =>
     onRun(async () => {
-      for (const order of orders.filter((item) => item.status === "PAYMENT_REQUESTED")) {
+      for (const order of orders.filter(
+        (item) => item.status === "PAYMENT_REQUESTED",
+      )) {
         await diningRequest(
           `/api/staff/dining/orders/${order.publicOrderId}/confirm-payment`,
           token,
