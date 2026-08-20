@@ -196,6 +196,14 @@ public class AuthService {
     return requireAnyRole(resolveAuthorization(authorization), "DELIVERY", "ADMIN");
   }
 
+  public Claims requireDiningStaff(String authorization) {
+    return requireAnyRole(resolveAuthorization(authorization), "STAFF", "MANAGER", "ADMIN");
+  }
+
+  public Claims requireDiningManager(String authorization) {
+    return requireAnyRole(resolveAuthorization(authorization), "MANAGER", "ADMIN");
+  }
+
   public long requireCustomer(String authorization) {
     var claims = requireRole(authorization, "CUSTOMER");
     String subject = claims.getSubject();

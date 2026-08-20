@@ -32,6 +32,8 @@ public class SecurityConfig {
         .requestMatchers("/orders/delivery-route", "/orders/*/delivery-confirmation",
           "/api/orders/delivery-route", "/api/orders/*/delivery-confirmation")
           .hasAnyRole("DELIVERY", "ADMIN")
+        .requestMatchers("/api/admin/dining/**").hasAnyRole("MANAGER", "ADMIN")
+        .requestMatchers("/api/staff/dining/**").hasAnyRole("STAFF", "MANAGER", "ADMIN")
         .requestMatchers(
           "/dashboard/**",
           "/monitoring/**",

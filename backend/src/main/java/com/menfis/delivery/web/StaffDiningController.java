@@ -1,0 +1,70 @@
+package com.menfis.delivery.web;
+
+import com.menfis.delivery.dto.DiningDtos.DiningDashboardResponse;
+import com.menfis.delivery.dto.DiningDtos.DiningSessionResponse;
+import com.menfis.delivery.dto.DiningDtos.LightRequest;
+import com.menfis.delivery.dto.DiningDtos.OpenDiningSessionRequest;
+import com.menfis.delivery.dto.DiningDtos.TableKitResponse;
+import com.menfis.delivery.service.AuthService;
+import com.menfis.delivery.service.DiningService;
+import jakarta.validation.Valid;
+import java.util.UUID;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/staff/dining")
+public class StaffDiningController {
+  private final DiningService dining;
+  private final AuthService auth;
+
+  public StaffDiningController(DiningService dining, AuthService auth) {
+    this.dining = dining;
+    this.auth = auth;
+  }
+
+  @GetMapping("/dashboard")
+  public DiningDashboardResponse dashboard(
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireDiningStaff(authorization);
+    return dining.dashboard();
+  }
+
+  @PostMapping("/sessions")
+  public DiningSessionResponse openSession(
+      @Valid @RequestBody OpenDiningSessionRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    var claims = auth.requireDiningStaff(authorization);
+    return dining.openSession(request, claims.getSubject());
+  }
+
+  @GetMapping("/sessions/{id}")
+  public DiningSessionResponse session(
+      @PathVariable UUID id,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireDiningStaff(authorization);
+    return dining.getSession(id);
+  }
+
+  @PostMapping("/sessions/{id}/close")
+  public DiningSessionResponse closeSession(
+      @PathVariable UUID id,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    var claims = auth.requireDiningStaff(authorization);
+    return dining.closeSession(id, claims.getSubject());
+  }
+
+  @PostMapping("/kits/{id}/light")
+  public TableKitResponse changeLight(
+      @PathVariable UUID id,
+      @Valid @RequestBody LightRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    var claims = auth.requireDiningStaff(authorization);
+    return dining.changeLight(id, request.state(), request.reason(), claims.getSubject());
+  }
+}
