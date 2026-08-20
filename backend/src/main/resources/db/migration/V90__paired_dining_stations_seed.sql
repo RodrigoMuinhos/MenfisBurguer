@@ -23,7 +23,7 @@ select
   seed.name,
   seed.code,
   replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''),
-  upper(substring(replace(gen_random_uuid()::text, '-', '') from 1 for 12)),
+  upper(substring(replace(gen_random_uuid()::text, '-', '') from 1 for 16)),
   'AVAILABLE',
   'OFF',
   true,
