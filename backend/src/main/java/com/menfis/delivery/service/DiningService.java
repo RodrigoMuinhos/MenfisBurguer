@@ -289,7 +289,7 @@ public class DiningService {
     Integer blockingOrders = jdbc.queryForObject(
       """
       select count(*) from orders where dining_session_id = ?
-        and status not in ('DELIVERED', 'CANCELLED')
+        and status not in ('PICKED_UP', 'DELIVERED', 'CANCELLED')
       """,
       Integer.class,
       id

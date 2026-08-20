@@ -16,6 +16,7 @@ import {
   Crown,
   CupSoda,
   Megaphone,
+  Armchair,
 } from "lucide-react";
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import {
@@ -67,6 +68,7 @@ import { SupportView } from "./views/SupportView";
 import { isLoyaltyCustomer, LoyaltyView } from "./views/LoyaltyView";
 import { LemonadeAdminView } from "./views/LemonadeAdminView";
 import { MetaMetricsView } from "./views/MetaMetricsView";
+import { DiningManagementView } from "./views/DiningManagementView";
 import { DEFAULT_LEMONADE_SETTINGS, normalizeLemonadeSettings, type LemonadeSettings } from "@/components/product/LemonadeShowcase";
 import {
   deleteAdminCoupon,
@@ -76,7 +78,7 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "lemonade" | "suporte" | "cupons" | "resultados" | "meta" | "monitoramento" | "config";
+export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "salao" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "lemonade" | "suporte" | "cupons" | "resultados" | "meta" | "monitoramento" | "config";
 
 function adminHeaders(adminToken: string, json = false) {
   return {
@@ -211,6 +213,7 @@ export function AdminPanel({
     { id: "pedidos", label: "Pedidos", Icon: ClipboardList },
     { id: "cozinha", label: "Cozinha", Icon: ChefHat },
     { id: "notas", label: "Notas", Icon: ClipboardCheck },
+    { id: "salao", label: "Salão PDV", Icon: Armchair },
     { id: "entrega", label: "Entrega", Icon: Bike },
     { id: "estoque", label: "Estoque", Icon: Package },
     { id: "custos", label: "Custos e Precificação", Icon: Calculator },
@@ -950,6 +953,7 @@ export function AdminPanel({
             demoTableEnabled={demoTableEnabled}
           />
         )}
+        {tab === "salao" && <DiningManagementView adminToken={adminToken} />}
         {tab === "dashboard" && (
           <DashboardView
             orders={visibleOrders}
