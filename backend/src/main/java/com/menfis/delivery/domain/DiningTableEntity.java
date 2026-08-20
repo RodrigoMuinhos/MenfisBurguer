@@ -3,6 +3,7 @@ package com.menfis.delivery.domain;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -15,8 +16,8 @@ public class DiningTableEntity {
   public String code;
   public String area;
   public boolean active;
-  public Integer positionX;
-  public Integer positionY;
+  @Column(name = "position_x") public Integer positionX;
+  @Column(name = "position_y") public Integer positionY;
   public OffsetDateTime createdAt;
   public OffsetDateTime updatedAt;
 }
