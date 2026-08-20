@@ -5,6 +5,8 @@ import com.menfis.delivery.domain.TableKitStatus;
 import com.menfis.delivery.domain.TableLightState;
 import com.menfis.delivery.dto.DiningDtos.DiningDashboardResponse;
 import com.menfis.delivery.dto.DiningDtos.DiningSessionResponse;
+import com.menfis.delivery.dto.DiningDtos.DiningStationRequest;
+import com.menfis.delivery.dto.DiningDtos.DiningStationResponse;
 import com.menfis.delivery.dto.DiningDtos.DiningTableRequest;
 import com.menfis.delivery.dto.DiningDtos.DiningTableResponse;
 import com.menfis.delivery.dto.DiningDtos.OpenDiningSessionRequest;
@@ -17,6 +19,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -54,7 +57,7 @@ public class DiningService {
       insert into dining_tables(id, name, code, area, active, position_x, position_y)
       values (?, ?, ?, ?, ?, ?, ?)
       """,
-      id, clean(request.name()), code(request.code()), clean(request.area()),
+      id, clean(request.name()), code(request.code()), area(request.area()),
       request.active() == null || request.active(), request.positionX(), request.positionY()
     );
     audit.log(actor, "DINING_TABLE_CREATED", "DINING_TABLE", id.toString(), request);
@@ -69,7 +72,7 @@ public class DiningService {
         position_x = ?, position_y = ?, updated_at = now()
       where id = ?
       """,
-      clean(request.name()), code(request.code()), clean(request.area()),
+      clean(request.name()), code(request.code()), area(request.area()),
       request.active() == null || request.active(), request.positionX(), request.positionY(), id
     );
     if (updated != 1) throw new EmptyResultDataAccessException(1);
@@ -82,17 +85,97 @@ public class DiningService {
   }
 
   @Transactional
+  public DiningStationResponse createStation(DiningStationRequest request, String actor) {
+    String stationCode = code(request.code());
+    boolean active = request.active() == null || request.active();
+    UUID tableId = UUID.randomUUID();
+    UUID kitId = UUID.randomUUID();
+    jdbc.update(
+      """
+      insert into dining_tables(id, name, code, area, active)
+      values (?, ?, ?, ?, ?)
+      """,
+      tableId, clean(request.name()), stationCode, area(request.area()), active
+    );
+    jdbc.update(
+      """
+      insert into table_kits(id, name, code, qr_token, qr_short_token, status, light_state, active, device_id, installed_by_staff, dining_table_id)
+      values (?, ?, ?, ?, ?, ?, 'OFF', ?, ?, ?, ?)
+      """,
+      kitId, "Kit " + clean(request.name()), stationCode, tokens.generate(), tokens.generatePublic(),
+      active ? TableKitStatus.AVAILABLE.name() : TableKitStatus.DISABLED.name(), active,
+      blankToNull(request.deviceId()), installer(request.installedByStaff()), tableId
+    );
+    audit.log(actor, "DINING_STATION_CREATED", "DINING_TABLE", tableId.toString(), Map.of(
+      "kitId", kitId, "area", area(request.area()), "code", stationCode
+    ));
+    return new DiningStationResponse(getTable(tableId), getKit(kitId));
+  }
+
+  @Transactional
+  public DiningStationResponse updateStation(UUID tableId, DiningStationRequest request, String actor) {
+    DiningTableResponse table = getTableForUpdate(tableId);
+    TableKitResponse kit = getPairedKitForUpdate(tableId);
+    boolean active = request.active() == null ? table.active() : request.active();
+    if (!active && kit.status() == TableKitStatus.IN_USE) {
+      throw new IllegalStateException("dining_station_in_use");
+    }
+    String stationCode = code(request.code());
+    jdbc.update(
+      """
+      update dining_tables set name = ?, code = ?, area = ?, active = ?, updated_at = now()
+      where id = ?
+      """,
+      clean(request.name()), stationCode, area(request.area()), active, tableId
+    );
+    TableKitStatus status = active
+      ? (kit.status() == TableKitStatus.DISABLED ? TableKitStatus.AVAILABLE : kit.status())
+      : TableKitStatus.DISABLED;
+    jdbc.update(
+      """
+      update table_kits set name = ?, code = ?, status = ?, active = ?, device_id = ?,
+        installed_by_staff = ?, updated_at = now()
+      where id = ?
+      """,
+      "Kit " + clean(request.name()), stationCode, status.name(), active,
+      blankToNull(request.deviceId()), installer(request.installedByStaff()), kit.id()
+    );
+    audit.log(actor, "DINING_STATION_UPDATED", "DINING_TABLE", tableId.toString(), Map.of(
+      "kitId", kit.id(), "active", active, "installedByStaff", installer(request.installedByStaff())
+    ));
+    return new DiningStationResponse(getTable(tableId), getKit(kit.id()));
+  }
+
+  @Transactional
+  public void deleteStation(UUID tableId, String actor) {
+    getTableForUpdate(tableId);
+    TableKitResponse kit = getPairedKitForUpdate(tableId);
+    if (kit.status() == TableKitStatus.IN_USE) throw new IllegalStateException("dining_station_in_use");
+    Integer history = jdbc.queryForObject(
+      "select count(*) from dining_sessions where table_id = ? or table_kit_id = ?",
+      Integer.class,
+      tableId,
+      kit.id()
+    );
+    if (history != null && history > 0) throw new IllegalStateException("dining_station_has_history_use_pause");
+    jdbc.update("delete from table_light_events where table_kit_id = ?", kit.id());
+    jdbc.update("delete from table_kits where id = ?", kit.id());
+    jdbc.update("delete from dining_tables where id = ?", tableId);
+    audit.log(actor, "DINING_STATION_DELETED", "DINING_TABLE", tableId.toString(), Map.of("kitId", kit.id()));
+  }
+
+  @Transactional
   public TableKitResponse createKit(TableKitRequest request, String actor) {
     UUID id = UUID.randomUUID();
     boolean active = request.active() == null || request.active();
     jdbc.update(
       """
-      insert into table_kits(id, name, code, qr_token, status, light_state, active, device_id)
-      values (?, ?, ?, ?, ?, 'OFF', ?, ?)
+      insert into table_kits(id, name, code, qr_token, qr_short_token, status, light_state, active, device_id, installed_by_staff)
+      values (?, ?, ?, ?, ?, ?, 'OFF', ?, ?, ?)
       """,
-      id, clean(request.name()), code(request.code()), tokens.generate(),
+      id, clean(request.name()), code(request.code()), tokens.generate(), tokens.generatePublic(),
       active ? TableKitStatus.AVAILABLE.name() : TableKitStatus.DISABLED.name(),
-      active, blankToNull(request.deviceId())
+      active, blankToNull(request.deviceId()), actor
     );
     audit.log(actor, "TABLE_KIT_CREATED", "TABLE_KIT", id.toString(), Map.of("code", code(request.code())));
     return getKit(id);
@@ -125,7 +208,10 @@ public class DiningService {
     if (current.status() == TableKitStatus.IN_USE) {
       throw new IllegalStateException("cannot_regenerate_token_while_kit_in_use");
     }
-    jdbc.update("update table_kits set qr_token = ?, updated_at = now() where id = ?", tokens.generate(), id);
+    jdbc.update(
+      "update table_kits set qr_token = ?, qr_short_token = ?, updated_at = now() where id = ?",
+      tokens.generate(), tokens.generatePublic(), id
+    );
     audit.log(actor, "TABLE_KIT_TOKEN_REGENERATED", "TABLE_KIT", id.toString(), Map.of());
     return getKit(id);
   }
@@ -173,7 +259,7 @@ public class DiningService {
       from table_kits k
       join dining_sessions s on s.table_kit_id = k.id and s.status = 'OPEN'
       join dining_tables t on t.id = s.table_id
-      where k.qr_token = ? and k.active = true and k.status = 'IN_USE' and t.active = true
+      where (k.qr_token = ? or k.qr_short_token = ?) and k.active = true and k.status = 'IN_USE' and t.active = true
       """,
       (rs, row) -> new PublicDiningSessionResponse(
         rs.getObject("public_id", UUID.class),
@@ -182,7 +268,7 @@ public class DiningService {
         rs.getString("customer_name"),
         rs.getObject("opened_at", OffsetDateTime.class)
       ),
-      token
+      token, token
     );
   }
 
@@ -195,7 +281,7 @@ public class DiningService {
       from table_kits k
       join dining_sessions s on s.table_kit_id = k.id and s.status = 'OPEN'
       join dining_tables t on t.id = s.table_id
-      where k.qr_token = ? and k.active = true and k.status = 'IN_USE' and t.active = true
+      where (k.qr_token = ? or k.qr_short_token = ?) and k.active = true and k.status = 'IN_USE' and t.active = true
       """,
       (rs, row) -> new DiningOrderContext(
         rs.getObject("session_id", UUID.class),
@@ -205,7 +291,7 @@ public class DiningService {
         rs.getObject("kit_id", UUID.class),
         rs.getString("customer_name")
       ),
-      token
+      token, token
     );
   }
 
@@ -223,13 +309,13 @@ public class DiningService {
       from table_kits k
       where s.table_kit_id = k.id
         and s.status = 'OPEN'
-        and k.qr_token = ?
+        and (k.qr_token = ? or k.qr_short_token = ?)
         and k.active = true
         and k.status = 'IN_USE'
         and (s.customer_name is null or btrim(s.customer_name) = '')
       """,
       name,
-      token
+      token, token
     );
     if (updated == 0) {
       PublicDiningSessionResponse existing = resolvePublicSession(token);
@@ -335,6 +421,14 @@ public class DiningService {
     return jdbc.queryForObject("select * from table_kits where id = ? for update", this::mapKit, id);
   }
 
+  private TableKitResponse getPairedKitForUpdate(UUID tableId) {
+    return jdbc.queryForObject(
+      "select * from table_kits where dining_table_id = ? for update",
+      this::mapKit,
+      tableId
+    );
+  }
+
   private DiningSessionResponse getSessionForUpdate(UUID id) {
     return jdbc.queryForObject(sessionSelect() + " where s.id = ? for update of s", this::mapSession, id);
   }
@@ -364,11 +458,13 @@ public class DiningService {
       select s.id session_id, s.public_id, s.status session_status, s.opened_at, s.closed_at, s.customer_name,
         t.id table_id, t.name table_name, t.code table_code, t.area table_area, t.active table_active,
         t.position_x, t.position_y,
-        k.id kit_id, k.name kit_name, k.code kit_code, k.qr_token, k.status kit_status,
-        k.light_state, k.active kit_active, k.device_id
+        k.id kit_id, k.name kit_name, k.code kit_code, coalesce(k.qr_short_token, k.qr_token) qr_token, k.status kit_status,
+        k.light_state, k.active kit_active, k.device_id, k.installed_by_staff,
+        opener.login opened_by_staff
       from dining_sessions s
       join dining_tables t on t.id = s.table_id
       join table_kits k on k.id = s.table_kit_id
+      left join admins opener on opener.id = s.opened_by_staff_id
       """;
   }
 
@@ -381,9 +477,9 @@ public class DiningService {
 
   private TableKitResponse mapKit(ResultSet rs, int row) throws SQLException {
     return new TableKitResponse(
-      rs.getObject("id", UUID.class), rs.getString("name"), rs.getString("code"), rs.getString("qr_token"),
+      rs.getObject("id", UUID.class), rs.getString("name"), rs.getString("code"), rs.getString("qr_short_token"),
       TableKitStatus.valueOf(rs.getString("status")), TableLightState.valueOf(rs.getString("light_state")),
-      rs.getBoolean("active"), rs.getString("device_id")
+      rs.getBoolean("active"), rs.getString("device_id"), rs.getString("installed_by_staff")
     );
   }
 
@@ -396,13 +492,14 @@ public class DiningService {
     TableKitResponse kit = new TableKitResponse(
       rs.getObject("kit_id", UUID.class), rs.getString("kit_name"), rs.getString("kit_code"),
       rs.getString("qr_token"), TableKitStatus.valueOf(rs.getString("kit_status")),
-      TableLightState.valueOf(rs.getString("light_state")), rs.getBoolean("kit_active"), rs.getString("device_id")
+      TableLightState.valueOf(rs.getString("light_state")), rs.getBoolean("kit_active"), rs.getString("device_id"),
+      rs.getString("installed_by_staff")
     );
     return new DiningSessionResponse(
       rs.getObject("session_id", UUID.class), rs.getObject("public_id", UUID.class),
       DiningSessionStatus.valueOf(rs.getString("session_status")),
       rs.getObject("opened_at", OffsetDateTime.class), rs.getObject("closed_at", OffsetDateTime.class),
-      rs.getString("customer_name"), table, kit
+      rs.getString("customer_name"), rs.getString("opened_by_staff"), table, kit
     );
   }
 
@@ -414,16 +511,32 @@ public class DiningService {
     return clean(value).toUpperCase(Locale.ROOT).replaceAll("\\s+", "_");
   }
 
+  private String area(String value) {
+    String normalized = clean(value).toUpperCase(Locale.ROOT);
+    if (!Set.of("SALÃO", "JARDIM", "SALA").contains(normalized)) {
+      throw new IllegalArgumentException("invalid_dining_area");
+    }
+    return normalized;
+  }
+
   private String blankToNull(String value) {
     return value == null || value.isBlank() ? null : value.trim();
   }
 
   private String normalizedToken(String value) {
     String token = value == null ? "" : value.trim();
-    if (token.length() < 32 || token.length() > 128 || !token.matches("[A-Za-z0-9_-]+")) {
+    if (token.length() < 16 || token.length() > 128 || !token.matches("[A-Za-z0-9_-]+")) {
       throw new IllegalArgumentException("invalid_qr_token");
     }
     return token;
+  }
+
+  private String installer(String value) {
+    String normalized = clean(value).toUpperCase(Locale.ROOT);
+    if (!Set.of("RODRIGO", "NATHAN").contains(normalized)) {
+      throw new IllegalArgumentException("invalid_kit_installer");
+    }
+    return normalized;
   }
 
   public record DiningOrderContext(
