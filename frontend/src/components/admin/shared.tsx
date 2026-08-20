@@ -70,6 +70,7 @@ export const STAGE_ORDER: OrderStatus[] = [
   "ACCEPTED",
   "IN_PREPARATION",
   "READY",
+  "PICKED_UP",
   "OUT_FOR_DELIVERY",
   "DELIVERED",
 ];
@@ -83,6 +84,7 @@ export const STAGE_LABEL: Record<OrderStatus, string> = {
   ACCEPTED: "Pedido Aceito",
   IN_PREPARATION: "Em Preparo",
   READY: "Pronto",
+  PICKED_UP: "Retirado no balcão",
   OUT_FOR_DELIVERY: "Saiu para Entrega",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
@@ -140,6 +142,12 @@ export const STAGE_COLOR: Record<
     border: "#6EE7B7",
     accent: "#10B981",
   },
+  PICKED_UP: {
+    bg: "#ECFDF5",
+    text: "#065F46",
+    border: "#6EE7B7",
+    accent: "#10B981",
+  },
   OUT_FOR_DELIVERY: {
     bg: "#F5F3FF",
     text: "#5B21B6",
@@ -169,6 +177,7 @@ export const STAGE_ICON: Record<OrderStatus, ElementType> = {
   ACCEPTED: CheckCircle2,
   IN_PREPARATION: ChefHat,
   READY: CheckCircle2,
+  PICKED_UP: Package,
   OUT_FOR_DELIVERY: Bike,
   DELIVERED: Package,
   CANCELLED: X,

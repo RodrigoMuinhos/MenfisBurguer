@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.menfis.delivery.domain.TableLightState;
 import com.menfis.delivery.dto.ApiDtos.OrderItemRequest;
 import com.menfis.delivery.dto.DiningDtos.DiningOrderResponse;
+import com.menfis.delivery.messaging.OrderOutboxService;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,6 +32,7 @@ public class DiningOrderService {
   private final SettingsService settings;
   private final AuditService audit;
   private final OrderEventService events;
+  private final OrderOutboxService outbox;
 
   public DiningOrderService(
       JdbcTemplate jdbc,
@@ -40,7 +42,8 @@ public class DiningOrderService {
       PricingService pricing,
       SettingsService settings,
       AuditService audit,
-      OrderEventService events) {
+      OrderEventService events,
+      OrderOutboxService outbox) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.dining = dining;
@@ -49,6 +52,7 @@ public class DiningOrderService {
     this.settings = settings;
     this.audit = audit;
     this.events = events;
+    this.outbox = outbox;
   }
 
   @Transactional
@@ -166,6 +170,8 @@ public class DiningOrderService {
     );
     audit.log(actor, "DINING_PAYMENT_CONFIRMED", "ORDER", orderId, Map.of("paymentMethod", paymentMethod));
     dining.changeLight(kitId, TableLightState.NORMAL, "dining_payment_confirmed", actor);
+    OffsetDateTime paidAt = jdbc.queryForObject("select paid_at from orders where id = ?", OffsetDateTime.class, orderId);
+    outbox.enqueueOrderPaid(orderId, "DINING_QR", paidAt);
     events.publish(orderId, orders.get(orderId));
     return getForStaff(publicOrderId);
   }
@@ -176,9 +182,48 @@ public class DiningOrderService {
 
   public List<DiningOrderResponse> listActiveForStaff() {
     return jdbc.query(
-      responseSelect() + " where o.channel = 'DINING_QR' and o.status not in ('DELIVERED', 'CANCELLED') order by o.created_at",
+      responseSelect() + " where o.channel = 'DINING_QR' and o.status not in ('PICKED_UP', 'DELIVERED', 'CANCELLED') order by o.created_at",
       this::mapResponse
     );
+  }
+
+  @Transactional
+  public void markReady(String orderId, String actor) {
+    List<UUID> kits = jdbc.queryForList(
+      """
+      select s.table_kit_id from orders o
+      join dining_sessions s on s.id = o.dining_session_id
+      where o.id = ? and o.channel = 'DINING_QR' and o.status = 'READY'
+      """,
+      UUID.class,
+      orderId
+    );
+    if (!kits.isEmpty()) dining.changeLight(kits.get(0), TableLightState.GREEN, "dining_order_ready", actor);
+  }
+
+  @Transactional
+  public DiningOrderResponse markPickedUp(UUID publicOrderId, String actor) {
+    Map<String, Object> row = jdbc.queryForMap(
+      """
+      select o.id, o.status, s.table_kit_id from orders o
+      join dining_sessions s on s.id = o.dining_session_id
+      where o.public_id = ? and o.channel = 'DINING_QR'
+      for update of o
+      """,
+      publicOrderId
+    );
+    if ("PICKED_UP".equals(String.valueOf(row.get("status")))) return getForStaff(publicOrderId);
+    if (!"READY".equals(String.valueOf(row.get("status")))) throw new IllegalStateException("dining_order_not_ready");
+    String orderId = String.valueOf(row.get("id"));
+    jdbc.update("update orders set status = 'PICKED_UP', updated_at = now() where id = ? and status = 'READY'", orderId);
+    jdbc.update(
+      "insert into order_status_history(order_id, from_status, to_status, changed_by, reason) values (?, 'READY', 'PICKED_UP', ?, 'DINING_ORDER_PICKED_UP')",
+      orderId, actor
+    );
+    audit.log(actor, "DINING_ORDER_PICKED_UP", "ORDER", orderId, Map.of());
+    dining.changeLight((UUID) row.get("table_kit_id"), TableLightState.NORMAL, "dining_order_picked_up", actor);
+    events.publish(orderId, orders.get(orderId));
+    return getForStaff(publicOrderId);
   }
 
   private DiningOrderResponse findByIdempotency(String key, UUID sessionId) {

@@ -22,6 +22,7 @@ export const STATUS_INDEX: Record<OrderStatus, number> = {
   ACCEPTED: 1,
   IN_PREPARATION: 2,
   READY: 3,
+  PICKED_UP: 4,
   OUT_FOR_DELIVERY: 4,
   DELIVERED: 5,
   CANCELLED: 0,
@@ -70,6 +71,11 @@ export const STATUS_COPY: Record<
     label: "Pedido pronto",
     copy: "A cozinha concluiu a producao. Aguardando liberacao manual para entrega.",
     eta: "35-45 min",
+  },
+  PICKED_UP: {
+    label: "Pedido retirado",
+    copy: "O pedido foi retirado no balcão. Obrigado e bom apetite!",
+    eta: "Retirado",
   },
   OUT_FOR_DELIVERY: {
     label: "Seu pedido saiu para entrega",

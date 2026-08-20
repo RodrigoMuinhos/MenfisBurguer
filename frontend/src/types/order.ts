@@ -9,6 +9,7 @@ export type OrderStatus =
   | "ACCEPTED"
   | "IN_PREPARATION"
   | "READY"
+  | "PICKED_UP"
   | "OUT_FOR_DELIVERY"
   | "DELIVERED"
   | "CANCELLED";
@@ -50,6 +51,7 @@ export interface Order {
   customerName?: string;
   customerPhone?: string;
   customerAddress?: string;
+  diningTableName?: string;
   subtotal?: number;
   deliveryFee?: number;
   couponCode?: string;

@@ -89,4 +89,12 @@ public class StaffDiningController {
     var claims = auth.requireDiningStaff(authorization);
     return diningOrders.confirmPayment(publicOrderId, request.paymentMethod(), claims.getSubject());
   }
+
+  @PostMapping("/orders/{publicOrderId}/picked-up")
+  public DiningOrderResponse markPickedUp(
+      @PathVariable UUID publicOrderId,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    var claims = auth.requireDiningStaff(authorization);
+    return diningOrders.markPickedUp(publicOrderId, claims.getSubject());
+  }
 }
