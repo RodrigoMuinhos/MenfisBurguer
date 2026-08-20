@@ -90,6 +90,9 @@ public class OrderService {
       : request.channel() == null
       ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
       : request.channel();
+    if (channel == OrderChannel.DINING_QR) {
+      throw new IllegalArgumentException("use_dining_order_endpoint");
+    }
     DeliveryType deliveryType = kioskLocalCustomer ? DeliveryType.RETIRADA : request.deliveryType();
     String customerName = kioskLocalCustomer
       ? "KIOSK-MOB"
@@ -233,7 +236,8 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at,
+        (select t.name from dining_sessions s join dining_tables t on t.id = s.table_id where s.id = orders.dining_session_id) dining_table_name
       from orders where id = ?
       """,
       this::mapOrder,
@@ -246,7 +250,8 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at,
+        (select t.name from dining_sessions s join dining_tables t on t.id = s.table_id where s.id = orders.dining_session_id) dining_table_name
       from orders
       where test_mode = ?
       order by created_at desc
@@ -409,7 +414,8 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at,
+        (select t.name from dining_sessions s join dining_tables t on t.id = s.table_id where s.id = orders.dining_session_id) dining_table_name
       from orders
       where delivery_type = 'DELIVERY'
         and status = 'OUT_FOR_DELIVERY'
@@ -427,7 +433,8 @@ public class OrderService {
       """
       select o.id, o.number, o.items, o.channel, o.delivery_type, o.customer_name, o.customer_phone, o.customer_address,
         o.subtotal, o.delivery_fee, o.coupon_code, o.discount_total, o.total, o.payment_provider, o.payment_method, o.payment_status,
-        o.payment_id, o.timestamp, o.created_at, o.updated_at, o.status, o.paid_at, o.confirmed_at
+        o.payment_id, o.timestamp, o.created_at, o.updated_at, o.status, o.paid_at, o.confirmed_at,
+        (select t.name from dining_sessions s join dining_tables t on t.id = s.table_id where s.id = o.dining_session_id) dining_table_name
       from orders o
       join customers c on c.id = ?
       where o.test_mode = ?
@@ -803,11 +810,20 @@ public class OrderService {
       case PAID -> to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case ACCEPTED -> to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case IN_PREPARATION -> to == OrderStatus.READY || to == OrderStatus.CANCELLED;
-      case READY -> to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
+      case READY -> to == OrderStatus.PICKED_UP || to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> to == OrderStatus.DELIVERED;
       case CANCELLED -> to == OrderStatus.PAYMENT_APPROVED || to == OrderStatus.PAID || to == OrderStatus.ACCEPTED;
       default -> false;
     };
+  }
+
+  public PricedOrder priceDiningItems(List<OrderItemRequest> requestedItems) {
+    if (requestedItems == null || requestedItems.isEmpty()) {
+      throw new IllegalArgumentException("order_must_have_at_least_one_item");
+    }
+    requestedItems.forEach(this::validateProductAddons);
+    PriceResult price = calculate(requestedItems);
+    return new PricedOrder(price.subtotal(), price.items());
   }
 
   static boolean receivedHoldElapsed(OffsetDateTime paidAt, OffsetDateTime now) {
@@ -831,6 +847,7 @@ public class OrderService {
   private boolean isKitchenOrTerminal(OrderStatus status) {
     return status == OrderStatus.IN_PREPARATION
       || status == OrderStatus.READY
+      || status == OrderStatus.PICKED_UP
       || status == OrderStatus.OUT_FOR_DELIVERY
       || status == OrderStatus.DELIVERED
       || status == OrderStatus.CANCELLED;
@@ -858,6 +875,7 @@ public class OrderService {
       case ACCEPTED -> "ORDER_ACCEPTED";
       case IN_PREPARATION -> "ORDER_IN_PREPARATION";
       case READY -> "ORDER_READY";
+      case PICKED_UP -> "ORDER_PICKED_UP";
       case OUT_FOR_DELIVERY -> "ORDER_OUT_FOR_DELIVERY";
       case DELIVERED -> "ORDER_DELIVERED";
       case CANCELLED -> "ORDER_CANCELLED";
@@ -926,7 +944,8 @@ public class OrderService {
       offset(rs, "updated_at"),
       rs.getString("status"),
       offset(rs, "paid_at"),
-      offset(rs, "confirmed_at")
+      offset(rs, "confirmed_at"),
+      rs.getString("dining_table_name")
     );
   }
 
@@ -1063,5 +1082,6 @@ public class OrderService {
   }
 
   private record PriceResult(BigDecimal subtotal, List<Map<String, Object>> items) {}
+  public record PricedOrder(BigDecimal subtotal, List<Map<String, Object>> items) {}
   private record CouponResult(String code, BigDecimal discount, boolean freeShipping) {}
 }

@@ -15,12 +15,14 @@ public class KdsService {
   private final OrderService orders;
   private final InventoryService inventory;
   private final SettingsService settings;
+  private final DiningOrderService diningOrders;
 
-  public KdsService(JdbcTemplate jdbc, OrderService orders, InventoryService inventory, SettingsService settings) {
+  public KdsService(JdbcTemplate jdbc, OrderService orders, InventoryService inventory, SettingsService settings, DiningOrderService diningOrders) {
     this.jdbc = jdbc;
     this.orders = orders;
     this.inventory = inventory;
     this.settings = settings;
+    this.diningOrders = diningOrders;
   }
 
   public Map<String, List<OrderResponse>> board() {
@@ -102,7 +104,9 @@ public class KdsService {
       case DELIVERED -> "ORDER_DELIVERED";
       default -> "ORDER_STATUS_CHANGED";
     };
-    return orders.changeStatus(id, next, actor == null ? "kds" : actor, event);
+    OrderResponse changed = orders.changeStatus(id, next, actor == null ? "kds" : actor, event);
+    if (next == OrderStatus.READY) diningOrders.markReady(id, actor == null ? "kds" : actor);
+    return changed;
   }
 
 }

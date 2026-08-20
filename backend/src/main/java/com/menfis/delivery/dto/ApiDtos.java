@@ -62,7 +62,8 @@ public class ApiDtos {
     OffsetDateTime updatedAt,
     String status,
     OffsetDateTime paidAt,
-    OffsetDateTime confirmedAt
+    OffsetDateTime confirmedAt,
+    String diningTableName
   ) {}
 
   public record StatusResponse(String id, String status, OffsetDateTime paidAt, OffsetDateTime confirmedAt) {}

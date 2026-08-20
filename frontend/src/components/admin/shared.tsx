@@ -63,24 +63,28 @@ export type SupportTicket = {
 };
 
 export const STAGE_ORDER: OrderStatus[] = [
+  "PAYMENT_REQUESTED",
   "PAYMENT_PENDING",
   "PAYMENT_PROOF_PENDING",
   "PAID",
   "ACCEPTED",
   "IN_PREPARATION",
   "READY",
+  "PICKED_UP",
   "OUT_FOR_DELIVERY",
   "DELIVERED",
 ];
 
 export const STAGE_LABEL: Record<OrderStatus, string> = {
   CREATED: "Criado",
+  PAYMENT_REQUESTED: "Pagamento solicitado",
   PAYMENT_PENDING: "Aguardando Pagamento",
   PAYMENT_PROOF_PENDING: "Aguardando aprovação do comprovante",
   PAID: "Pedido Recebido",
   ACCEPTED: "Pedido Aceito",
   IN_PREPARATION: "Em Preparo",
   READY: "Pronto",
+  PICKED_UP: "Retirado no balcão",
   OUT_FOR_DELIVERY: "Saiu para Entrega",
   DELIVERED: "Entregue",
   CANCELLED: "Cancelado",
@@ -95,6 +99,12 @@ export const STAGE_COLOR: Record<
     text: "#4B5563",
     border: "#E5E7EB",
     accent: "#6B7280",
+  },
+  PAYMENT_REQUESTED: {
+    bg: "#EFF6FF",
+    text: "#1D4ED8",
+    border: "#BFDBFE",
+    accent: "#3B82F6",
   },
   PAYMENT_PENDING: {
     bg: "#FFFBEB",
@@ -132,6 +142,12 @@ export const STAGE_COLOR: Record<
     border: "#6EE7B7",
     accent: "#10B981",
   },
+  PICKED_UP: {
+    bg: "#ECFDF5",
+    text: "#065F46",
+    border: "#6EE7B7",
+    accent: "#10B981",
+  },
   OUT_FOR_DELIVERY: {
     bg: "#F5F3FF",
     text: "#5B21B6",
@@ -154,12 +170,14 @@ export const STAGE_COLOR: Record<
 
 export const STAGE_ICON: Record<OrderStatus, ElementType> = {
   CREATED: Clock,
+  PAYMENT_REQUESTED: Clock,
   PAYMENT_PENDING: Clock,
   PAYMENT_PROOF_PENDING: Clock,
   PAID: Clock,
   ACCEPTED: CheckCircle2,
   IN_PREPARATION: ChefHat,
   READY: CheckCircle2,
+  PICKED_UP: Package,
   OUT_FOR_DELIVERY: Bike,
   DELIVERED: Package,
   CANCELLED: X,

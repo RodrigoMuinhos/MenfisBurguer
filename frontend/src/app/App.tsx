@@ -88,6 +88,8 @@ export default function App({ mode }: { mode?: AppMode }) {
   const appMode = resolveAppMode(mode);
   const adminOnlyMode = appMode === "admin" || appMode === "kds" || appMode === "notes";
   const kioskMode = appMode === "kiosk";
+  const diningMode = appMode === "dining";
+  const selfServiceMenuMode = kioskMode || diningMode;
   const [screen, setScreen] = useState<Screen>(
     appMode === "admin" || appMode === "kds" || appMode === "notes" ? "admin" : "product",
   );
@@ -140,7 +142,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       if ("caches" in window) {
         void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
       }
-    } else if (!kioskMode) {
+    } else if (!selfServiceMenuMode) {
       try {
         const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? "[]");
         setCart(normalizeStoredCart(parsed));
@@ -150,19 +152,23 @@ export default function App({ mode }: { mode?: AppMode }) {
     }
 
     if (!adminOnlyMode) {
-      const storedScreen = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
-      if (storedScreen && ["product", "cart", "tracking", "queue"].includes(storedScreen)) {
-        setScreen(storedScreen);
+      if (diningMode) {
+        setScreen("product");
+      } else {
+        const storedScreen = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
+        if (storedScreen && ["product", "cart", "tracking", "queue"].includes(storedScreen)) {
+          setScreen(storedScreen);
+        }
       }
       setReturnToPaymentStep(localStorage.getItem(CHECKOUT_RETURN_STEP_KEY) === "payment");
     }
     setClientStorageReady(true);
-  }, [adminOnlyMode, kioskMode]);
+  }, [adminOnlyMode, diningMode, selfServiceMenuMode]);
 
   useEffect(() => {
-    if (adminOnlyMode || !clientStorageReady) return;
+    if (adminOnlyMode || diningMode || !clientStorageReady) return;
     localStorage.setItem(APP_SCREEN_KEY, screen);
-  }, [adminOnlyMode, clientStorageReady, screen]);
+  }, [adminOnlyMode, clientStorageReady, diningMode, screen]);
 
   useEffect(() => {
     if (!API_URL) return;
@@ -181,9 +187,9 @@ export default function App({ mode }: { mode?: AppMode }) {
   }, []);
 
   useEffect(() => {
-    if (kioskMode || !clientStorageReady) return;
+    if (selfServiceMenuMode || !clientStorageReady) return;
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  }, [cart, clientStorageReady, kioskMode]);
+  }, [cart, clientStorageReady, selfServiceMenuMode]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -525,7 +531,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       <div className="flex-1 overflow-auto">
         {screen === "product" && (
           <>
-          {!kioskMode && visibleActiveOrder && (
+          {!selfServiceMenuMode && visibleActiveOrder && (
             <ActiveOrderBanner
               order={visibleActiveOrder}
               onOpen={() => setScreen("tracking")}
@@ -537,9 +543,9 @@ export default function App({ mode }: { mode?: AppMode }) {
             updateQty={updateQty}
             goToCart={() => setScreen("cart")}
             goBack={goHome}
-            onAdminOpen={kioskMode ? openInstalledAdmin : openAdmin}
-            onOpenIdleScreen={openKioskIdleScreen}
-            kioskMode={kioskMode}
+            onAdminOpen={kioskMode ? openInstalledAdmin : diningMode ? undefined : openAdmin}
+            onOpenIdleScreen={kioskMode ? openKioskIdleScreen : undefined}
+            kioskMode={selfServiceMenuMode}
             activeOrder={kioskMobSession ? primaryKioskMobOrder : visibleActiveOrder}
             lastOrder={latestCustomerOrder}
             notifications={memberNotifications}
@@ -579,7 +585,10 @@ export default function App({ mode }: { mode?: AppMode }) {
             <AdminLoginScreen error={adminError} onLogin={loginAdmin} kioskMode={kioskMode} />
           )
         )}
-        {screen === "cart" && (
+        {screen === "cart" && diningMode && (
+          <DiningCartPreview cart={cart} updateQty={updateQty} onBack={goHome} onCreated={() => setCart([])} />
+        )}
+        {screen === "cart" && !diningMode && (
           <CartScreen
             cart={cart}
             addToCart={addToCart}
@@ -986,6 +995,175 @@ function KioskMobQueueScreen({
       </div>
     </div>
   );
+}
+
+function DiningCartPreview({
+  cart,
+  updateQty,
+  onBack,
+  onCreated,
+}: {
+  cart: CartItem[];
+  updateQty: (id: string, delta: number) => void;
+  onBack: () => void;
+  onCreated: () => void;
+}) {
+  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [order, setOrder] = useState<{
+    publicOrderId: string;
+    number: number;
+    status: string;
+    tableName: string;
+    customerName: string;
+    total: number;
+    lightState: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!order?.publicOrderId || order.status === "PAID") return;
+    let active = true;
+    const context = readDiningContext();
+    if (!context?.token) return;
+    const sync = async () => {
+      try {
+        const response = await fetch(
+          `${API_URL}/api/public/dining/kits/${encodeURIComponent(context.token)}/orders/${encodeURIComponent(order.publicOrderId)}`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) return;
+        const updated = await response.json();
+        if (active) setOrder(updated);
+      } catch {
+        // Mantém a tela estável durante falhas breves de conexão.
+      }
+    };
+    const timer = window.setInterval(sync, 3000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [order?.publicOrderId, order?.status]);
+
+  async function requestPayment() {
+    const context = readDiningContext();
+    if (!context?.token) {
+      setError("Sessão da mesa não encontrada. Escaneie o QR Code novamente.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    const keyStorage = `menfis_dining_idempotency_${context.sessionPublicId}`;
+    let idempotencyKey = sessionStorage.getItem(keyStorage);
+    if (!idempotencyKey) {
+      idempotencyKey = typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(keyStorage, idempotencyKey);
+    }
+    try {
+      const response = await fetch(
+        `${API_URL}/api/public/dining/kits/${encodeURIComponent(context.token)}/orders`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            idempotencyKey,
+            items: cart.map((item) => ({
+              productId: item.productId ?? item.id,
+              quantity: item.qty,
+              addonIds: item.addonIds ?? [],
+              metadata: { components: item.components ?? [], note: item.note ?? "" },
+            })),
+          }),
+        },
+      );
+      const created = await response.json().catch(() => ({}));
+      if (!response.ok || !created.publicOrderId) throw new Error(created.error ?? "dining_order_failed");
+      sessionStorage.removeItem(keyStorage);
+      setOrder(created);
+      onCreated();
+    } catch {
+      setError("Não foi possível chamar a equipe. Tente novamente sem fechar esta tela.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (order) {
+    const paid = order.status === "PAID";
+    return (
+      <main className="flex min-h-dvh items-center justify-center px-5 py-8" style={{ background: "#FFF9FB", color: VERDE }}>
+        <section className="w-full max-w-md rounded-[32px] border-2 bg-white p-7 text-center shadow-2xl" style={{ borderColor: paid ? "#A2E61B" : "#5B8DEF" }}>
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-4xl" style={{ background: paid ? "#DDF8A6" : "#DDE8FF" }}>
+            {paid ? "✓" : "🔵"}
+          </div>
+          <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] opacity-50">Pedido #{order.number}</p>
+          <h1 className="mt-2 text-3xl font-black uppercase">{paid ? "Pagamento confirmado" : "Chamamos a equipe"}</h1>
+          {paid ? (
+            <p className="mt-4 text-sm font-bold leading-relaxed opacity-70">
+              Estamos preparando seu pedido.<br />Quando sua torre ficar <strong>VERDE</strong>, retire no balcão.
+            </p>
+          ) : (
+            <p className="mt-4 text-sm font-bold leading-relaxed opacity-70">
+              Sua torre ficará <strong className="text-blue-700">AZUL</strong> enquanto você aguarda o pagamento.<br /><br />Não faça outro pedido até o atendimento ser concluído.
+            </p>
+          )}
+          <div className="mt-6 rounded-2xl p-4 text-left" style={{ background: "#FFF5F8" }}>
+            <div className="flex justify-between text-sm font-black"><span>Mesa</span><span>{order.tableName}</span></div>
+            <div className="mt-2 flex justify-between text-sm font-black"><span>Total</span><span>R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
+          </div>
+          {!paid && <p className="mt-5 animate-pulse text-xs font-black uppercase tracking-wider text-blue-700">Aguardando confirmação da equipe</p>}
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-dvh px-4 py-6" style={{ background: "#FFF9FB", color: VERDE }}>
+      <div className="mx-auto max-w-2xl">
+        <button type="button" onClick={onBack} className="mb-5 rounded-full border px-5 py-3 text-xs font-black uppercase" style={{ borderColor: VERDE }}>
+          Voltar ao cardápio
+        </button>
+        <section className="rounded-[28px] border bg-white p-5 shadow-xl" style={{ borderColor: `${ROSA}90` }}>
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-50">Pedido na mesa</p>
+          <h1 className="mt-2 text-3xl font-black">Revise seu carrinho</h1>
+          <div className="mt-5 grid gap-3">
+            {cart.map((item) => (
+              <article key={item.id} className="flex items-center justify-between gap-4 rounded-2xl border p-4" style={{ borderColor: `${VERDE}18` }}>
+                <div className="min-w-0">
+                  <p className="truncate font-black">{item.name}</p>
+                  <p className="text-sm font-bold opacity-60">R$ {(item.price * item.qty).toFixed(2).replace(".", ",")}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => updateQty(item.id, -1)} className="h-10 w-10 rounded-full border text-xl font-black" style={{ borderColor: VERDE }}>−</button>
+                  <strong>{item.qty}</strong>
+                  <button type="button" onClick={() => updateQty(item.id, 1)} className="h-10 w-10 rounded-full text-xl font-black" style={{ background: VERDE, color: ROSA }}>+</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="mt-6 flex items-center justify-between border-t pt-5" style={{ borderColor: `${ROSA}90` }}>
+            <span className="font-black uppercase">Total</span>
+            <strong className="text-3xl">R$ {total.toFixed(2).replace(".", ",")}</strong>
+          </div>
+          {error && <p className="mt-4 text-center text-xs font-black text-red-700">{error}</p>}
+          <button type="button" onClick={() => void requestPayment()} disabled={submitting || cart.length === 0} className="mt-5 min-h-14 w-full rounded-2xl text-sm font-black uppercase disabled:opacity-45" style={{ background: VERDE, color: ROSA }}>
+            {submitting ? "Chamando a equipe..." : "Solicitar pagamento"}
+          </button>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function readDiningContext(): { token: string; sessionPublicId: string } | null {
+  try {
+    return JSON.parse(sessionStorage.getItem("menfis_dining_context") ?? "null");
+  } catch {
+    return null;
+  }
 }
 
 function ActiveOrderBanner({

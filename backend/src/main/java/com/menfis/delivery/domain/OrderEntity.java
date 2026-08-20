@@ -5,6 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "orders")
@@ -13,6 +14,8 @@ public class OrderEntity {
   public String id;
   public Long number;
   public String channel;
+  public String fulfillmentType;
+  public UUID diningSessionId;
   public String deliveryType;
   public String customerName;
   public String customerPhone;

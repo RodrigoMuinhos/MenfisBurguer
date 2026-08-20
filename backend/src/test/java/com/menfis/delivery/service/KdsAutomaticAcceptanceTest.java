@@ -15,7 +15,8 @@ class KdsAutomaticAcceptanceTest {
   private final OrderService orders = mock(OrderService.class);
   private final InventoryService inventory = mock(InventoryService.class);
   private final SettingsService settings = mock(SettingsService.class);
-  private final KdsService service = new KdsService(jdbc, orders, inventory, settings);
+  private final DiningOrderService diningOrders = mock(DiningOrderService.class);
+  private final KdsService service = new KdsService(jdbc, orders, inventory, settings, diningOrders);
 
   @Test
   void acceptsPaidOrderWithoutFiveMinuteHoldWhenEnabled() {
