@@ -15,6 +15,7 @@ export const STEPS = [
 
 export const STATUS_INDEX: Record<OrderStatus, number> = {
   CREATED: 0,
+  PAYMENT_REQUESTED: 0,
   PAYMENT_PENDING: 0,
   PAYMENT_PROOF_PENDING: 0,
   PAID: 0,
@@ -34,6 +35,11 @@ export const STATUS_COPY: Record<
     label: "Pedido criado",
     copy: "Estamos aguardando o inicio do pagamento.",
     eta: "Aguardando pagamento",
+  },
+  PAYMENT_REQUESTED: {
+    label: "Pagamento solicitado",
+    copy: "Chamamos a equipe para receber o pagamento na mesa.",
+    eta: "Aguardando atendimento",
   },
   PAYMENT_PENDING: {
     label: "Aguardando pagamento",

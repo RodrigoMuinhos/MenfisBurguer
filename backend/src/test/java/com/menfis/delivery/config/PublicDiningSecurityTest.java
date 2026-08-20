@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.menfis.delivery.dto.DiningDtos.PublicDiningSessionResponse;
 import com.menfis.delivery.service.DiningService;
+import com.menfis.delivery.service.DiningOrderService;
 import com.menfis.delivery.web.PublicDiningController;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -25,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class PublicDiningSecurityTest {
   @Autowired private MockMvc mvc;
   @MockBean private DiningService dining;
+  @MockBean private DiningOrderService diningOrders;
 
   @Test
   void resolvesQrSessionWithoutAuthenticationAndDoesNotExposeInternalIds() throws Exception {

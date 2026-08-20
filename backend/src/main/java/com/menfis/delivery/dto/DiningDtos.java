@@ -3,11 +3,15 @@ package com.menfis.delivery.dto;
 import com.menfis.delivery.domain.DiningSessionStatus;
 import com.menfis.delivery.domain.TableKitStatus;
 import com.menfis.delivery.domain.TableLightState;
+import com.menfis.delivery.dto.ApiDtos.OrderItemRequest;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class DiningDtos {
@@ -83,5 +87,27 @@ public class DiningDtos {
 
   public record DiningCustomerNameRequest(
     @NotBlank @Size(min = 2, max = 80) String name
+  ) {}
+
+  public record CreateDiningOrderRequest(
+    @NotNull @Size(min = 1) List<@Valid OrderItemRequest> items,
+    @NotBlank @Size(max = 120) String idempotencyKey
+  ) {}
+
+  public record DiningOrderResponse(
+    UUID publicOrderId,
+    long number,
+    String status,
+    String tableName,
+    String customerName,
+    List<Map<String, Object>> items,
+    BigDecimal total,
+    OffsetDateTime paymentRequestedAt,
+    String paymentMethod,
+    String lightState
+  ) {}
+
+  public record ConfirmDiningPaymentRequest(
+    @NotBlank String paymentMethod
   ) {}
 }

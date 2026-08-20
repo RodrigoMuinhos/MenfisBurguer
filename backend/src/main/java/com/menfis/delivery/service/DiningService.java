@@ -186,6 +186,29 @@ public class DiningService {
     );
   }
 
+  public DiningOrderContext resolveOrderContext(String qrToken) {
+    String token = normalizedToken(qrToken);
+    return jdbc.queryForObject(
+      """
+      select s.id session_id, s.public_id session_public_id, s.customer_name,
+        t.id table_id, t.name table_name, k.id kit_id
+      from table_kits k
+      join dining_sessions s on s.table_kit_id = k.id and s.status = 'OPEN'
+      join dining_tables t on t.id = s.table_id
+      where k.qr_token = ? and k.active = true and k.status = 'IN_USE' and t.active = true
+      """,
+      (rs, row) -> new DiningOrderContext(
+        rs.getObject("session_id", UUID.class),
+        rs.getObject("session_public_id", UUID.class),
+        rs.getObject("table_id", UUID.class),
+        rs.getString("table_name"),
+        rs.getObject("kit_id", UUID.class),
+        rs.getString("customer_name")
+      ),
+      token
+    );
+  }
+
   @Transactional
   public PublicDiningSessionResponse identifyCustomer(String qrToken, String customerName) {
     String token = normalizedToken(qrToken);
@@ -402,4 +425,13 @@ public class DiningService {
     }
     return token;
   }
+
+  public record DiningOrderContext(
+    UUID sessionId,
+    UUID sessionPublicId,
+    UUID tableId,
+    String tableName,
+    UUID kitId,
+    String customerName
+  ) {}
 }

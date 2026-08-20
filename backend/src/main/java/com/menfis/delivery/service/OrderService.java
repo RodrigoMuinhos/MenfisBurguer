@@ -90,6 +90,9 @@ public class OrderService {
       : request.channel() == null
       ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
       : request.channel();
+    if (channel == OrderChannel.DINING_QR) {
+      throw new IllegalArgumentException("use_dining_order_endpoint");
+    }
     DeliveryType deliveryType = kioskLocalCustomer ? DeliveryType.RETIRADA : request.deliveryType();
     String customerName = kioskLocalCustomer
       ? "KIOSK-MOB"
@@ -810,6 +813,15 @@ public class OrderService {
     };
   }
 
+  public PricedOrder priceDiningItems(List<OrderItemRequest> requestedItems) {
+    if (requestedItems == null || requestedItems.isEmpty()) {
+      throw new IllegalArgumentException("order_must_have_at_least_one_item");
+    }
+    requestedItems.forEach(this::validateProductAddons);
+    PriceResult price = calculate(requestedItems);
+    return new PricedOrder(price.subtotal(), price.items());
+  }
+
   static boolean receivedHoldElapsed(OffsetDateTime paidAt, OffsetDateTime now) {
     return paidAt != null && !paidAt.plus(RECEIVED_HOLD_DURATION).isAfter(now);
   }
@@ -1063,5 +1075,6 @@ public class OrderService {
   }
 
   private record PriceResult(BigDecimal subtotal, List<Map<String, Object>> items) {}
+  public record PricedOrder(BigDecimal subtotal, List<Map<String, Object>> items) {}
   private record CouponResult(String code, BigDecimal discount, boolean freeShipping) {}
 }

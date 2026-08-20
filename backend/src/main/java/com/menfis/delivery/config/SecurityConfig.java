@@ -28,7 +28,9 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers(HttpMethod.GET, "/settings/public").permitAll()
         .requestMatchers(HttpMethod.GET, "/api/public/dining/kits/*/session").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/public/dining/kits/*/orders/*").permitAll()
         .requestMatchers(HttpMethod.POST, "/api/public/dining/kits/*/session/customer-name").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/public/dining/kits/*/orders").permitAll()
         .requestMatchers(HttpMethod.GET, "/orders/events", "/api/orders/events")
           .hasRole("ADMIN")
         .requestMatchers("/orders/delivery-route", "/orders/*/delivery-confirmation",

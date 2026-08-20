@@ -2,6 +2,7 @@ package com.menfis.delivery.domain;
 
 public enum OrderStatus {
   CREATED,
+  PAYMENT_REQUESTED,
   PAYMENT_PENDING,
   PAYMENT_PROOF_PENDING,
   PAYMENT_APPROVED,

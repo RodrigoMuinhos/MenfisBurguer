@@ -2,6 +2,7 @@ export type OrderChannel = "DELIVERY" | "KIOSK" | "COUNTER" | "DINING_QR";
 
 export type OrderStatus =
   | "CREATED"
+  | "PAYMENT_REQUESTED"
   | "PAYMENT_PENDING"
   | "PAYMENT_PROOF_PENDING"
   | "PAID"

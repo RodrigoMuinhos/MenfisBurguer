@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.menfis.delivery.dto.DiningDtos.DiningDashboardResponse;
 import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.DiningService;
+import com.menfis.delivery.service.DiningOrderService;
 import com.menfis.delivery.web.StaffDiningController;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -32,6 +33,7 @@ class DiningSecurityAccessTest {
   @Autowired private MockMvc mvc;
   @MockBean private DiningService dining;
   @MockBean private AuthService auth;
+  @MockBean private DiningOrderService diningOrders;
 
   @Test
   void staffDashboardRequiresAuthentication() throws Exception {
