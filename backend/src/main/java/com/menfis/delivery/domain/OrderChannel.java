@@ -2,5 +2,7 @@ package com.menfis.delivery.domain;
 
 public enum OrderChannel {
   DELIVERY,
-  KIOSK
+  KIOSK,
+  COUNTER,
+  DINING_QR
 }
