@@ -207,6 +207,17 @@ export default function App({ mode }: { mode?: AppMode }) {
   }, [adminOnlyMode, clientStorageReady, diningMode, screen]);
 
   useEffect(() => {
+    if (!diningMode) return;
+    const openDiningAccount = () => setScreen("cart");
+    window.addEventListener("menfis:dining-open-account", openDiningAccount);
+    return () =>
+      window.removeEventListener(
+        "menfis:dining-open-account",
+        openDiningAccount,
+      );
+  }, [diningMode]);
+
+  useEffect(() => {
     if (!API_URL) return;
     fetch(`${API_URL}/settings/public?_=${Date.now()}`, {
       cache: "no-store",

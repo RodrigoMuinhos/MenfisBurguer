@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Loader2,
   MapPin,
+  ShoppingCart,
   UserRound,
 } from "lucide-react";
 import App from "@/app/App";
@@ -119,11 +120,24 @@ export function DiningQrExperience({ token }: { token: string }) {
               Mesa {session.tableName}
             </p>
           </div>
-          <div
-            className="rounded-full px-4 py-2 text-xs font-black"
-            style={{ background: ROSA, color: VERDE }}
-          >
-            {session.customerName}
+          <div className="flex items-center gap-2">
+            <div
+              className="rounded-full px-4 py-2 text-xs font-black"
+              style={{ background: ROSA, color: VERDE }}
+            >
+              {session.customerName}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                window.dispatchEvent(new Event("menfis:dining-open-account"))
+              }
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10"
+              aria-label="Abrir meus pedidos e conta da mesa"
+              title="Meus pedidos"
+            >
+              <ShoppingCart size={20} />
+            </button>
           </div>
         </div>
         <App mode="dining" />

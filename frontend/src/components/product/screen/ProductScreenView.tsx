@@ -267,14 +267,17 @@ export function ProductScreenView({
           promoCards={promoCards}
           memberProfile={memberProfile}
           notificationCount={unreadNotificationCount}
-          onOpenMember={openMemberAccess}
-          onOpenNotifications={openNotifications}
+          onOpenMember={modernMobileMode ? handleGoToCart : openMemberAccess}
+          onOpenNotifications={
+            modernMobileMode ? handleGoToCart : openNotifications
+          }
           onQuickAdd={addMenuItem}
           onOpenDetails={setDetailItem}
           goToCart={handleGoToCart}
           soldOutEnabled={soldOutEnabled}
           soldOutMessage={soldOutMessage}
           lemonadeSettings={lemonadeSettings}
+          fullCatalog={modernMobileMode}
         />
       )}
 
@@ -350,8 +353,11 @@ export function ProductScreenView({
               >
                 {CATEGORIES.filter(
                   ({ id }) =>
-                    (kioskMode || kioskMobLoggedIn || id !== "lemonade") &&
-                    (kioskMobLoggedIn || id !== "salad"),
+                    (kioskMode ||
+                      kioskMobLoggedIn ||
+                      modernMobileMode ||
+                      id !== "lemonade") &&
+                    (kioskMobLoggedIn || modernMobileMode || id !== "salad"),
                 ).map(({ id, label, Icon }) => {
                   const active = id === "super";
                   return (
@@ -432,10 +438,12 @@ export function ProductScreenView({
           onAdminTap={handleAdminTap}
           onIdleShortcutTap={handleIdleShortcutTap}
           goToCart={handleGoToCart}
-          memberProfile={memberProfile}
+          memberProfile={modernMobileMode ? null : memberProfile}
           notificationCount={unreadNotificationCount}
-          onOpenMember={openMemberAccess}
-          onOpenNotifications={openNotifications}
+          onOpenMember={modernMobileMode ? handleGoToCart : openMemberAccess}
+          onOpenNotifications={
+            modernMobileMode ? handleGoToCart : openNotifications
+          }
           onLogoutMember={logoutMember}
         />
 
@@ -471,7 +479,7 @@ export function ProductScreenView({
             />
           )}
 
-          {category !== "lemonade" && !kioskMode && (
+          {category !== "lemonade" && !kioskMode && !modernMobileMode && (
             <MemberAccessBanner
               memberProfile={memberProfile}
               onOpen={openMemberAccess}
@@ -481,8 +489,8 @@ export function ProductScreenView({
           <CategoryTabs
             category={category}
             setCategory={setCategory}
-            showKioskOnly={kioskMode || kioskMobLoggedIn}
-            showSalad={kioskMobLoggedIn}
+            showKioskOnly={kioskMode || kioskMobLoggedIn || modernMobileMode}
+            showSalad={kioskMobLoggedIn || modernMobileMode}
           />
           {category === "lemonade" ? (
             <LemonadeShowcase
@@ -550,11 +558,15 @@ export function ProductScreenView({
             <BottomNavButton
               icon={PackageSearch}
               label="Pedidos"
-              active={Boolean(activeOrder) || kioskMobLoggedIn}
+              active={
+                Boolean(activeOrder) || kioskMobLoggedIn || modernMobileMode
+              }
               onClick={() =>
-                activeOrder || kioskMobLoggedIn
-                  ? onOpenActiveOrder?.()
-                  : openHistory()
+                modernMobileMode
+                  ? handleGoToCart()
+                  : activeOrder || kioskMobLoggedIn
+                    ? onOpenActiveOrder?.()
+                    : openHistory()
               }
             />
             <BottomNavButton
@@ -577,77 +589,79 @@ export function ProductScreenView({
             />
             <BottomNavButton
               icon={UserRound}
-              label="Perfil"
-              onClick={openMemberAccess}
+              label={modernMobileMode ? "Minha conta" : "Perfil"}
+              onClick={modernMobileMode ? handleGoToCart : openMemberAccess}
             />
           </div>
         </div>
       </div>
 
-      <MemberModals
-        loginOpen={loginOpen}
-        profileOpen={profileOpen}
-        historyOpen={historyOpen}
-        notificationsOpen={notificationsOpen}
-        favoritesOpen={favoritesOpen}
-        memberProfile={memberProfile}
-        memberName={memberName}
-        setMemberName={setMemberName}
-        memberEmail={memberEmail}
-        setMemberEmail={setMemberEmail}
-        memberCpf={memberCpf}
-        setMemberCpf={setMemberCpf}
-        memberPhone={memberPhone}
-        setMemberPhone={setMemberPhone}
-        memberPassword={memberPassword}
-        setMemberPassword={setMemberPassword}
-        memberPasswordConfirm={memberPasswordConfirm}
-        setMemberPasswordConfirm={setMemberPasswordConfirm}
-        memberLogin={memberLogin}
-        setMemberLogin={setMemberLogin}
-        loginPassword={loginPassword}
-        setLoginPassword={setLoginPassword}
-        memberAuthMode={memberAuthMode}
-        setMemberAuthMode={setMemberAuthMode}
-        memberBirthday={memberBirthday}
-        setMemberBirthday={setMemberBirthday}
-        memberCep={memberCep}
-        setMemberCep={setMemberCep}
-        memberStreet={memberStreet}
-        setMemberStreet={setMemberStreet}
-        memberNumber={memberNumber}
-        setMemberNumber={setMemberNumber}
-        memberComplement={memberComplement}
-        setMemberComplement={setMemberComplement}
-        memberNeighborhood={memberNeighborhood}
-        setMemberNeighborhood={setMemberNeighborhood}
-        memberCity={memberCity}
-        setMemberCity={setMemberCity}
-        memberReference={memberReference}
-        setMemberReference={setMemberReference}
-        memberError={memberError}
-        memberSaving={memberSaving}
-        savedDelivery={savedDelivery}
-        saveMember={saveMember}
-        loginMember={loginMember}
-        requestPasswordRecovery={requestPasswordRecovery}
-        resetMemberPassword={resetMemberPassword}
-        editMember={editMember}
-        updateMemberProfile={updateMemberProfile}
-        logoutMember={logoutMember}
-        loginRequired={false}
-        closeLogin={() => {
-          setLoginOpen(false);
-        }}
-        closeProfile={() => setProfileOpen(false)}
-        closeHistory={() => setHistoryOpen(false)}
-        closeNotifications={() => setNotificationsOpen(false)}
-        closeFavorites={() => setFavoritesOpen(false)}
-        activeOrder={activeOrder}
-        notifications={notifications}
-        onOpenActiveOrder={onOpenActiveOrder}
-        onRepeatOrder={onRepeatOrder}
-      />
+      {!modernMobileMode && (
+        <MemberModals
+          loginOpen={loginOpen}
+          profileOpen={profileOpen}
+          historyOpen={historyOpen}
+          notificationsOpen={notificationsOpen}
+          favoritesOpen={favoritesOpen}
+          memberProfile={memberProfile}
+          memberName={memberName}
+          setMemberName={setMemberName}
+          memberEmail={memberEmail}
+          setMemberEmail={setMemberEmail}
+          memberCpf={memberCpf}
+          setMemberCpf={setMemberCpf}
+          memberPhone={memberPhone}
+          setMemberPhone={setMemberPhone}
+          memberPassword={memberPassword}
+          setMemberPassword={setMemberPassword}
+          memberPasswordConfirm={memberPasswordConfirm}
+          setMemberPasswordConfirm={setMemberPasswordConfirm}
+          memberLogin={memberLogin}
+          setMemberLogin={setMemberLogin}
+          loginPassword={loginPassword}
+          setLoginPassword={setLoginPassword}
+          memberAuthMode={memberAuthMode}
+          setMemberAuthMode={setMemberAuthMode}
+          memberBirthday={memberBirthday}
+          setMemberBirthday={setMemberBirthday}
+          memberCep={memberCep}
+          setMemberCep={setMemberCep}
+          memberStreet={memberStreet}
+          setMemberStreet={setMemberStreet}
+          memberNumber={memberNumber}
+          setMemberNumber={setMemberNumber}
+          memberComplement={memberComplement}
+          setMemberComplement={setMemberComplement}
+          memberNeighborhood={memberNeighborhood}
+          setMemberNeighborhood={setMemberNeighborhood}
+          memberCity={memberCity}
+          setMemberCity={setMemberCity}
+          memberReference={memberReference}
+          setMemberReference={setMemberReference}
+          memberError={memberError}
+          memberSaving={memberSaving}
+          savedDelivery={savedDelivery}
+          saveMember={saveMember}
+          loginMember={loginMember}
+          requestPasswordRecovery={requestPasswordRecovery}
+          resetMemberPassword={resetMemberPassword}
+          editMember={editMember}
+          updateMemberProfile={updateMemberProfile}
+          logoutMember={logoutMember}
+          loginRequired={false}
+          closeLogin={() => {
+            setLoginOpen(false);
+          }}
+          closeProfile={() => setProfileOpen(false)}
+          closeHistory={() => setHistoryOpen(false)}
+          closeNotifications={() => setNotificationsOpen(false)}
+          closeFavorites={() => setFavoritesOpen(false)}
+          activeOrder={activeOrder}
+          notifications={notifications}
+          onOpenActiveOrder={onOpenActiveOrder}
+          onRepeatOrder={onRepeatOrder}
+        />
+      )}
 
       <AnimatePresence>
         {addedConfirmation &&
