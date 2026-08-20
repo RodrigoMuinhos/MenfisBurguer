@@ -49,7 +49,22 @@ public class DiningDtos {
     TableKitStatus status,
     TableLightState lightState,
     boolean active,
-    String deviceId
+    String deviceId,
+    String installedByStaff
+  ) {}
+
+  public record DiningStationRequest(
+    @NotBlank String name,
+    @NotBlank String code,
+    @NotBlank String area,
+    String deviceId,
+    @NotBlank String installedByStaff,
+    Boolean active
+  ) {}
+
+  public record DiningStationResponse(
+    DiningTableResponse table,
+    TableKitResponse kit
   ) {}
 
   public record OpenDiningSessionRequest(
@@ -65,6 +80,7 @@ public class DiningDtos {
     OffsetDateTime openedAt,
     OffsetDateTime closedAt,
     String customerName,
+    String openedByStaff,
     DiningTableResponse table,
     TableKitResponse kit
   ) {}
@@ -105,6 +121,15 @@ public class DiningDtos {
     OffsetDateTime paymentRequestedAt,
     String paymentMethod,
     String lightState
+  ) {}
+
+  public record DiningAccountResponse(
+    UUID sessionPublicId,
+    String tableName,
+    String customerName,
+    List<DiningOrderResponse> orders,
+    BigDecimal total,
+    String status
   ) {}
 
   public record ConfirmDiningPaymentRequest(

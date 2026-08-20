@@ -86,12 +86,33 @@ import {
 } from "@/components/order/checkout";
 import { MobileMenuExperience } from "./MobileMenuExperience";
 import { MemberNotification } from "./notifications";
-import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "./SoldOutNotice";
-import { BottomNavButton, SpecialOfferModal, specialOfferSessionKey } from "./screen/ProductScreenOverlays";
+import {
+  SoldOutAlertModal,
+  SoldOutBanner,
+  SOLD_OUT_MESSAGE,
+} from "./SoldOutNotice";
+import {
+  BottomNavButton,
+  SpecialOfferModal,
+  specialOfferSessionKey,
+} from "./screen/ProductScreenOverlays";
 import { useProductMember } from "./screen/useProductMember";
 import { useProductCatalog } from "./screen/useProductCatalog";
 
-import { API_URL, CUSTOMIZER_ADDON_IDS, DEFAULT_FEATURED_PRODUCT_ID, PRICING_ROWS_CACHE_KEY, PUBLIC_SETTINGS_CACHE_KEY, applyPricingToMenu, comboPotatoComponent, freshApiUrl, hasRequiredCustomerProfile, preloadClientImages, readJsonCache, writeJsonCache } from "./screen/productCatalog";
+import {
+  API_URL,
+  CUSTOMIZER_ADDON_IDS,
+  DEFAULT_FEATURED_PRODUCT_ID,
+  PRICING_ROWS_CACHE_KEY,
+  PUBLIC_SETTINGS_CACHE_KEY,
+  applyPricingToMenu,
+  comboPotatoComponent,
+  freshApiUrl,
+  hasRequiredCustomerProfile,
+  preloadClientImages,
+  readJsonCache,
+  writeJsonCache,
+} from "./screen/productCatalog";
 import { ProductScreenView } from "./screen/ProductScreenView";
 import { normalizeBackendOrder } from "@/services/orders/normalize";
 
@@ -106,6 +127,7 @@ interface Props {
   onAdminOpen?: () => boolean | void | Promise<boolean | void>;
   onOpenIdleScreen?: () => void;
   kioskMode?: boolean;
+  modernMobileMode?: boolean;
   activeOrder?: Order | null;
   lastOrder?: Order | null;
   notifications?: MemberNotification[];
@@ -123,6 +145,7 @@ export function ProductScreen({
   onAdminOpen,
   onOpenIdleScreen,
   kioskMode = false,
+  modernMobileMode = false,
   activeOrder,
   lastOrder,
   notifications = [],
@@ -132,30 +155,125 @@ export function ProductScreen({
   onRepeatOrder,
 }: Props) {
   const catalog = useProductCatalog(kioskMode);
-  const { category,setCategory,featuredImage,featuredTitle,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem } = catalog;
+  const {
+    category,
+    setCategory,
+    featuredImage,
+    featuredTitle,
+    heroSettingsLoaded,
+    promoCards,
+    specialOffer,
+    specialOfferOpen,
+    setSpecialOfferOpen,
+    operatingNow,
+    operatingHoursSummary,
+    operatingHoursMessage,
+    soldOutEnabled,
+    soldOutMessage,
+    catalogItems,
+    catalogLoaded,
+    soldOutAlertOpen,
+    setSoldOutAlertOpen,
+    filteredItems,
+    featuredItem,
+  } = catalog;
   const [builder, setBuilder] = useState<BuilderState>({
     cheese: false,
     sauce: false,
   });
   const [customizer, setCustomizer] = useState<CustomizerState | null>(null);
-  const [addedConfirmation, setAddedConfirmation] = useState<{ name: string; superTheme: boolean; chilli: boolean } | null>(null);
+  const [addedConfirmation, setAddedConfirmation] = useState<{
+    name: string;
+    superTheme: boolean;
+    chilli: boolean;
+  } | null>(null);
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
   const member = useProductMember(kioskMode, onReadNotifications);
-  const { loginOpen,setLoginOpen,profileOpen,setProfileOpen,historyOpen,setHistoryOpen,notificationsOpen,setNotificationsOpen,favoritesOpen,setFavoritesOpen,memberName,setMemberName,memberEmail,setMemberEmail,memberCpf,setMemberCpf,memberPhone,setMemberPhone,memberPassword,setMemberPassword,memberPasswordConfirm,setMemberPasswordConfirm,memberLogin,setMemberLogin,loginPassword,setLoginPassword,memberAuthMode,setMemberAuthMode,memberBirthday,setMemberBirthday,memberCep,setMemberCep,memberStreet,setMemberStreet,memberNumber,setMemberNumber,memberComplement,setMemberComplement,memberNeighborhood,setMemberNeighborhood,memberCity,setMemberCity,memberReference,setMemberReference,memberProfile,memberError,memberSaving,openMemberAccess,editMember,openHistory,openNotifications,saveMember,loginMember,requestPasswordRecovery,resetMemberPassword,logoutMember,applyMemberProfileUpdate } = member;
-  const [configurationUnavailable, setConfigurationUnavailable] = useState(false);
+  const {
+    loginOpen,
+    setLoginOpen,
+    profileOpen,
+    setProfileOpen,
+    historyOpen,
+    setHistoryOpen,
+    notificationsOpen,
+    setNotificationsOpen,
+    favoritesOpen,
+    setFavoritesOpen,
+    memberName,
+    setMemberName,
+    memberEmail,
+    setMemberEmail,
+    memberCpf,
+    setMemberCpf,
+    memberPhone,
+    setMemberPhone,
+    memberPassword,
+    setMemberPassword,
+    memberPasswordConfirm,
+    setMemberPasswordConfirm,
+    memberLogin,
+    setMemberLogin,
+    loginPassword,
+    setLoginPassword,
+    memberAuthMode,
+    setMemberAuthMode,
+    memberBirthday,
+    setMemberBirthday,
+    memberCep,
+    setMemberCep,
+    memberStreet,
+    setMemberStreet,
+    memberNumber,
+    setMemberNumber,
+    memberComplement,
+    setMemberComplement,
+    memberNeighborhood,
+    setMemberNeighborhood,
+    memberCity,
+    setMemberCity,
+    memberReference,
+    setMemberReference,
+    memberProfile,
+    memberError,
+    memberSaving,
+    openMemberAccess,
+    editMember,
+    openHistory,
+    openNotifications,
+    saveMember,
+    loginMember,
+    requestPasswordRecovery,
+    resetMemberPassword,
+    logoutMember,
+    applyMemberProfileUpdate,
+  } = member;
+  const [configurationUnavailable, setConfigurationUnavailable] =
+    useState(false);
   const [quickQrOpen, setQuickQrOpen] = useState(false);
   const [quickQrSeconds, setQuickQrSeconds] = useState(45);
-  const [quickQrOrder, setQuickQrOrder] = useState<Order | null>(lastOrder ?? null);
+  const [quickQrOrder, setQuickQrOrder] = useState<Order | null>(
+    lastOrder ?? null,
+  );
   const adminTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const configurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const configurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const adminTapCountRef = useRef(0);
   const idleShortcutTapCountRef = useRef(0);
-  const idleShortcutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleShortcutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   const savedDelivery = readSavedDelivery();
-  const kioskMobLoggedIn = String(memberProfile?.name ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "-").replace(/-+/g, "-") === "KIOSK-MOB";
+  const kioskMobLoggedIn =
+    String(memberProfile?.name ?? "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "-")
+      .replace(/-+/g, "-") === "KIOSK-MOB";
   useEffect(() => {
     if (!quickQrOpen) return;
     setQuickQrSeconds(45);
@@ -232,7 +350,8 @@ export function ProductScreen({
       const opened = await onAdminOpen?.();
       if (opened === false || !onAdminOpen) {
         setConfigurationUnavailable(true);
-        if (configurationTimerRef.current) clearTimeout(configurationTimerRef.current);
+        if (configurationTimerRef.current)
+          clearTimeout(configurationTimerRef.current);
         configurationTimerRef.current = setTimeout(() => {
           setConfigurationUnavailable(false);
           configurationTimerRef.current = null;
@@ -251,7 +370,8 @@ export function ProductScreen({
     if (!onOpenIdleScreen) return;
     if (!kioskMobLoggedIn) return;
     idleShortcutTapCountRef.current += 1;
-    if (idleShortcutTimerRef.current) clearTimeout(idleShortcutTimerRef.current);
+    if (idleShortcutTimerRef.current)
+      clearTimeout(idleShortcutTimerRef.current);
 
     if (idleShortcutTapCountRef.current >= 3) {
       idleShortcutTapCountRef.current = 0;
@@ -322,7 +442,10 @@ export function ProductScreen({
 
   const closeSpecialOffer = () => {
     if (specialOffer.oncePerSession && typeof window !== "undefined") {
-      sessionStorage.setItem(specialOfferSessionKey(specialOffer, kioskMode), "1");
+      sessionStorage.setItem(
+        specialOfferSessionKey(specialOffer, kioskMode),
+        "1",
+      );
     }
     setSpecialOfferOpen(false);
   };
@@ -352,21 +475,26 @@ export function ProductScreen({
         customizer.item.category === "combo");
     const requiredCount = requiredCustomizerCount(customizer.item);
     const requiresSauce =
-      (customizer.item.category === "burger" || customizer.item.category === "combo") &&
+      (customizer.item.category === "burger" ||
+        customizer.item.category === "combo") &&
       !isSuperProduct(customizer.item);
     const requiresFreeMayo = isNuggetsProduct(customizer.item);
     const requiresSweetBox = isSweetBoxProduct(customizer.item);
-    const sweetCount = Object.values(customizer.extras).reduce((sum, quantity) => sum + quantity, 0);
+    const sweetCount = Object.values(customizer.extras).reduce(
+      (sum, quantity) => sum + quantity,
+      0,
+    );
     const sauceRequiredCount = requiresFreeMayo ? 1 : requiredCount;
     const requiresDrink = customizer.item.category === "combo";
     const requiresSpice = requiresSpiceLevel(customizer.item);
     if (
       (requiresSweetBox && sweetCount !== SWEET_BOX_REQUIRED_COUNT) ||
       (meatRequired && customizer.meatPoints.length < requiredCount) ||
-      (!requiresSweetBox && (requiresSauce || requiresFreeMayo) &&
+      (!requiresSweetBox &&
+        (requiresSauce || requiresFreeMayo) &&
         customizer.sauces.length < sauceRequiredCount) ||
-      (requiresDrink && customizer.drinks.length < requiredCount)
-      || (requiresSpice && customizer.spiceLevel === undefined)
+      (requiresDrink && customizer.drinks.length < requiredCount) ||
+      (requiresSpice && customizer.spiceLevel === undefined)
     ) {
       return;
     }
@@ -375,10 +503,14 @@ export function ProductScreen({
       const selectedSweets = Object.entries(customizer.extras)
         .map(([sweetId, quantity]) => ({
           quantity,
-          sweet: getSweetOptionsForItem(customizer.item).find((option) => option.id === sweetId),
+          sweet: getSweetOptionsForItem(customizer.item).find(
+            (option) => option.id === sweetId,
+          ),
         }))
         .filter(
-          (entry): entry is {
+          (
+            entry,
+          ): entry is {
             quantity: number;
             sweet: ReturnType<typeof getSweetOptionsForItem>[number];
           } => Boolean(entry.sweet) && entry.quantity > 0,
@@ -391,21 +523,30 @@ export function ProductScreen({
         0,
       );
       const drinkLabels = customizer.drinks
-        .map((drinkId) => DRINK_OPTIONS.find((option) => option.id === drinkId)?.label)
+        .map(
+          (drinkId) =>
+            DRINK_OPTIONS.find((option) => option.id === drinkId)?.label,
+        )
         .filter(Boolean) as string[];
-      const selectedExtras = requiresSweetBox ? [] : Object.entries(customizer.extras)
-        .map(([extraId, quantity]) => ({
-          quantity,
-          extra: getExtraOptionsForItem(customizer.item).find(
-            (option) => option.id === extraId,
-          ),
-        }))
-        .filter(
-          (entry): entry is {
-            quantity: number;
-            extra: NonNullable<ReturnType<typeof getExtraOptionsForItem>[number]>;
-          } => Boolean(entry.extra) && entry.quantity > 0,
-        );
+      const selectedExtras = requiresSweetBox
+        ? []
+        : Object.entries(customizer.extras)
+            .map(([extraId, quantity]) => ({
+              quantity,
+              extra: getExtraOptionsForItem(customizer.item).find(
+                (option) => option.id === extraId,
+              ),
+            }))
+            .filter(
+              (
+                entry,
+              ): entry is {
+                quantity: number;
+                extra: NonNullable<
+                  ReturnType<typeof getExtraOptionsForItem>[number]
+                >;
+              } => Boolean(entry.extra) && entry.quantity > 0,
+            );
       const addonIds = selectedExtras.flatMap(({ extra, quantity }) =>
         CUSTOMIZER_ADDON_IDS.has(extra.id)
           ? Array.from({ length: quantity }, () => extra.id)
@@ -435,15 +576,21 @@ export function ProductScreen({
           sweetPremiumTotal +
           selectedExtras
             .filter(({ extra }) => CUSTOMIZER_ADDON_IDS.has(extra.id))
-            .reduce((sum, { extra, quantity }) => sum + extra.price * quantity, 0),
+            .reduce(
+              (sum, { extra, quantity }) => sum + extra.price * quantity,
+              0,
+            ),
         components,
         addonIds,
-        note: [
-          requiresSpice
-            ? `Pimenta: ${"🌶️".repeat(customizer.spiceLevel ?? 0)}${"☆".repeat(5 - (customizer.spiceLevel ?? 0))}`
-            : "",
-          customizer.note.trim(),
-        ].filter(Boolean).join(" | ") || undefined,
+        note:
+          [
+            requiresSpice
+              ? `Pimenta: ${"🌶️".repeat(customizer.spiceLevel ?? 0)}${"☆".repeat(5 - (customizer.spiceLevel ?? 0))}`
+              : "",
+            customizer.note.trim(),
+          ]
+            .filter(Boolean)
+            .join(" | ") || undefined,
       });
       customizer.drinks.forEach((drinkId) => {
         const drink = DRINK_OPTIONS.find((option) => option.id === drinkId);
@@ -471,5 +618,48 @@ export function ProductScreen({
     showAddedConfirmation(customizer.item);
     setCustomizer(null);
   };
-  return <ProductScreenView catalog={catalog} member={member} screen={{ cart,updateQty,kioskMode,activeOrder,lastOrder:quickQrOrder ?? lastOrder,notifications,unreadNotificationCount,onOpenActiveOrder,onRepeatOrder,builder,customizer,addedConfirmation,detailItem,configurationUnavailable,quickQrOpen,quickQrSeconds,setCustomizer,setAddedConfirmation,setDetailItem,setConfigurationUnavailable,setQuickQrOpen,cartCount,cartTotal,savedDelivery,kioskMobLoggedIn,qty,handleAdminTap,handleIdleShortcutTap,addMenuItem,quickAddMenuItem,handleGoToCart,confirmCustomizer,closeSpecialOffer,addSpecialOffer,viewSpecialOfferMenu }} />;
+  return (
+    <ProductScreenView
+      catalog={catalog}
+      member={member}
+      screen={{
+        cart,
+        updateQty,
+        kioskMode,
+        modernMobileMode,
+        activeOrder,
+        lastOrder: quickQrOrder ?? lastOrder,
+        notifications,
+        unreadNotificationCount,
+        onOpenActiveOrder,
+        onRepeatOrder,
+        builder,
+        customizer,
+        addedConfirmation,
+        detailItem,
+        configurationUnavailable,
+        quickQrOpen,
+        quickQrSeconds,
+        setCustomizer,
+        setAddedConfirmation,
+        setDetailItem,
+        setConfigurationUnavailable,
+        setQuickQrOpen,
+        cartCount,
+        cartTotal,
+        savedDelivery,
+        kioskMobLoggedIn,
+        qty,
+        handleAdminTap,
+        handleIdleShortcutTap,
+        addMenuItem,
+        quickAddMenuItem,
+        handleGoToCart,
+        confirmCustomizer,
+        closeSpecialOffer,
+        addSpecialOffer,
+        viewSpecialOfferMenu,
+      }}
+    />
+  );
 }

@@ -33,8 +33,19 @@ import {
   SERVICE_FEE,
   normalizePresentationSettings,
 } from "@/components/order/checkout";
-import { deliveryConfirmationCode, normalizeBackendOrder } from "@/services/orders/normalize";
-import { DELIVERY_STORAGE_KEY, MEMBER_KEY, MEMBER_TOKEN_KEY, readMemberProfile } from "@/components/product/shared";
+import {
+  deliveryConfirmationCode,
+  normalizeBackendOrder,
+} from "@/services/orders/normalize";
+import {
+  DELIVERY_STORAGE_KEY,
+  MEMBER_KEY,
+  MEMBER_TOKEN_KEY,
+  imageSrc,
+  readMemberProfile,
+} from "@/components/product/shared";
+import { MENU_ITEMS } from "@/features/catalog/menu";
+import type { MenuItem } from "@/features/catalog/types";
 import { MemberNotification } from "@/components/product/notifications";
 import { formatDeliveryAddress } from "@/utils/address";
 import { KioskVirtualKeyboard } from "@/components/order/KioskVirtualKeyboard";
@@ -50,68 +61,79 @@ const NOTIFIABLE_STATUSES = new Set([
   "DELIVERED",
   "CANCELLED",
 ]);
-function notificationForOrder(order: Order): Omit<MemberNotification, "id" | "createdAt" | "read"> | null {
+function notificationForOrder(
+  order: Order,
+): Omit<MemberNotification, "id" | "createdAt" | "read"> | null {
   if (!NOTIFIABLE_STATUSES.has(order.status)) return null;
   const status = STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
   const title =
     order.status === "PAYMENT_PENDING"
       ? "Pedido recebido"
       : order.status === "PAID"
-      ? "Pedido recebido"
-      : order.status === "ACCEPTED"
-        ? "Pedido aceito"
-        : order.status === "IN_PREPARATION"
-          ? "Pedido em preparo"
-          : order.status === "READY"
-            ? "Pedido pronto"
-            : order.status === "OUT_FOR_DELIVERY"
-              ? "Pedido saiu para entrega"
-              : order.status === "DELIVERED"
-                ? "Pedido entregue"
-                : order.status === "CANCELLED"
-                  ? "Pedido cancelado"
-                  : status.label;
+        ? "Pedido recebido"
+        : order.status === "ACCEPTED"
+          ? "Pedido aceito"
+          : order.status === "IN_PREPARATION"
+            ? "Pedido em preparo"
+            : order.status === "READY"
+              ? "Pedido pronto"
+              : order.status === "OUT_FOR_DELIVERY"
+                ? "Pedido saiu para entrega"
+                : order.status === "DELIVERED"
+                  ? "Pedido entregue"
+                  : order.status === "CANCELLED"
+                    ? "Pedido cancelado"
+                    : status.label;
   const message =
     order.status === "PAYMENT_PENDING"
       ? "Recebemos seu pedido. A equipe vai confirmar o atendimento."
       : order.status === "READY"
-      ? "Seu pedido ficou pronto. Acompanhe a liberação."
-      : order.status === "OUT_FOR_DELIVERY"
-        ? "Seu pedido saiu para entrega."
-        : order.status === "DELIVERED"
-          ? "Pedido finalizado. Obrigado pela preferência."
-          : status.copy;
+        ? "Seu pedido ficou pronto. Acompanhe a liberação."
+        : order.status === "OUT_FOR_DELIVERY"
+          ? "Seu pedido saiu para entrega."
+          : order.status === "DELIVERED"
+            ? "Pedido finalizado. Obrigado pela preferência."
+            : status.copy;
   return { orderId: order.id, title, message, status: order.status };
 }
 
 export default function App({ mode }: { mode?: AppMode }) {
   const appMode = resolveAppMode(mode);
-  const adminOnlyMode = appMode === "admin" || appMode === "kds" || appMode === "notes";
+  const adminOnlyMode =
+    appMode === "admin" || appMode === "kds" || appMode === "notes";
   const kioskMode = appMode === "kiosk";
   const diningMode = appMode === "dining";
   const selfServiceMenuMode = kioskMode || diningMode;
   const [screen, setScreen] = useState<Screen>(
-    appMode === "admin" || appMode === "kds" || appMode === "notes" ? "admin" : "product",
+    appMode === "admin" || appMode === "kds" || appMode === "notes"
+      ? "admin"
+      : "product",
   );
   const [cart, setCart] = useState<CartItem[]>([]);
   const [clientStorageReady, setClientStorageReady] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string>("");
   const [returnToPaymentStep, setReturnToPaymentStep] = useState(false);
+  const { adminToken, adminError, loginAdmin, openAdmin, closeAdmin } =
+    useAdminSession({ adminOnlyMode, appMode, setScreen });
   const {
-    adminToken,
-    adminError,
-    loginAdmin,
-    openAdmin,
-    closeAdmin,
-  } = useAdminSession({ adminOnlyMode, appMode, setScreen });
-  const { orders, setOrders, loadOrderById, updateOrderStatus, deleteOrder, updateOrderItems } = useOrderSync({
+    orders,
+    setOrders,
+    loadOrderById,
+    updateOrderStatus,
+    deleteOrder,
+    updateOrderItems,
+  } = useOrderSync({
     adminToken,
     lastOrderId,
     screen,
     started: true,
   });
-  const [memberNotifications, setMemberNotifications] = useState<MemberNotification[]>([]);
-  const [paymentTimeoutOrder, setPaymentTimeoutOrder] = useState<Order | null>(null);
+  const [memberNotifications, setMemberNotifications] = useState<
+    MemberNotification[]
+  >([]);
+  const [paymentTimeoutOrder, setPaymentTimeoutOrder] = useState<Order | null>(
+    null,
+  );
   const [presentation, setPresentation] = useState<PresentationSettings>(
     DEFAULT_PRESENTATION_SETTINGS,
   );
@@ -125,7 +147,8 @@ export default function App({ mode }: { mode?: AppMode }) {
   } = useKioskIdle({ kioskMode, screen, started: true, setCart, setScreen });
 
   useEffect(() => {
-    const cacheIsCurrent = localStorage.getItem("menfis_cache_version") === CACHE_VERSION;
+    const cacheIsCurrent =
+      localStorage.getItem("menfis_cache_version") === CACHE_VERSION;
     const memberToken = localStorage.getItem(MEMBER_TOKEN_KEY);
     const memberProfile = localStorage.getItem(MEMBER_KEY);
     const pendingOrderId = localStorage.getItem(PENDING_ORDER_KEY);
@@ -135,16 +158,22 @@ export default function App({ mode }: { mode?: AppMode }) {
       localStorage.clear();
       if (memberToken) localStorage.setItem(MEMBER_TOKEN_KEY, memberToken);
       if (memberProfile) localStorage.setItem(MEMBER_KEY, memberProfile);
-      if (pendingOrderId) localStorage.setItem(PENDING_ORDER_KEY, pendingOrderId);
-      if (adminSession) localStorage.setItem("menfis_admin_session", adminSession);
+      if (pendingOrderId)
+        localStorage.setItem(PENDING_ORDER_KEY, pendingOrderId);
+      if (adminSession)
+        localStorage.setItem("menfis_admin_session", adminSession);
       if (appScreen) localStorage.setItem(APP_SCREEN_KEY, appScreen);
       localStorage.setItem("menfis_cache_version", CACHE_VERSION);
       if ("caches" in window) {
-        void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+        void caches
+          .keys()
+          .then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
       }
     } else if (!selfServiceMenuMode) {
       try {
-        const parsed = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? "[]");
+        const parsed = JSON.parse(
+          localStorage.getItem(CART_STORAGE_KEY) ?? "[]",
+        );
         setCart(normalizeStoredCart(parsed));
       } catch {
         setCart([]);
@@ -155,12 +184,19 @@ export default function App({ mode }: { mode?: AppMode }) {
       if (diningMode) {
         setScreen("product");
       } else {
-        const storedScreen = localStorage.getItem(APP_SCREEN_KEY) as Screen | null;
-        if (storedScreen && ["product", "cart", "tracking", "queue"].includes(storedScreen)) {
+        const storedScreen = localStorage.getItem(
+          APP_SCREEN_KEY,
+        ) as Screen | null;
+        if (
+          storedScreen &&
+          ["product", "cart", "tracking", "queue"].includes(storedScreen)
+        ) {
           setScreen(storedScreen);
         }
       }
-      setReturnToPaymentStep(localStorage.getItem(CHECKOUT_RETURN_STEP_KEY) === "payment");
+      setReturnToPaymentStep(
+        localStorage.getItem(CHECKOUT_RETURN_STEP_KEY) === "payment",
+      );
     }
     setClientStorageReady(true);
   }, [adminOnlyMode, diningMode, selfServiceMenuMode]);
@@ -251,12 +287,16 @@ export default function App({ mode }: { mode?: AppMode }) {
       guestOrderMatchesScope(order, guestOrderScope),
   );
   const kioskMobQueue = orders.filter(
-    (order) => isKioskMobOrder(order) && !["DELIVERED", "CANCELLED"].includes(order.status),
+    (order) =>
+      isKioskMobOrder(order) &&
+      !["DELIVERED", "CANCELLED"].includes(order.status),
   );
   const kioskMobSession = isKioskMobSession();
   const primaryKioskMobOrder = kioskMobQueue[0];
   const visibleActiveOrder =
-    activeOrder && !isKioskMobOrder(activeOrder) && !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
+    activeOrder &&
+    !isKioskMobOrder(activeOrder) &&
+    !["DELIVERED", "CANCELLED"].includes(activeOrder.status)
       ? activeOrder
       : latestCustomerActiveOrder;
   const latestCustomerOrder = orders
@@ -270,7 +310,9 @@ export default function App({ mode }: { mode?: AppMode }) {
   useEffect(() => {
     if (adminOnlyMode || kioskMode) return;
     const expired = orders.find(
-      (order) => order.status === "CANCELLED" && String(order.paymentStatus).toLowerCase() === "expired",
+      (order) =>
+        order.status === "CANCELLED" &&
+        String(order.paymentStatus).toLowerCase() === "expired",
     );
     if (!expired || paymentTimeoutHandledRef.current.has(expired.id)) return;
     paymentTimeoutHandledRef.current.add(expired.id);
@@ -307,7 +349,9 @@ export default function App({ mode }: { mode?: AppMode }) {
     });
   }, [adminOnlyMode, orders]);
 
-  const unreadNotificationCount = memberNotifications.filter((item) => !item.read).length;
+  const unreadNotificationCount = memberNotifications.filter(
+    (item) => !item.read,
+  ).length;
   const markMemberNotificationsRead = () => {
     setMemberNotifications((items) =>
       items.map((item) => (item.read ? item : { ...item, read: true })),
@@ -494,7 +538,13 @@ export default function App({ mode }: { mode?: AppMode }) {
 
   if (adminOnlyMode) {
     if (!adminToken) {
-      return <AdminLoginScreen error={adminError} onLogin={loginAdmin} kioskMode={false} />;
+      return (
+        <AdminLoginScreen
+          error={adminError}
+          onLogin={loginAdmin}
+          kioskMode={false}
+        />
+      );
     }
     return (
       <div
@@ -511,7 +561,13 @@ export default function App({ mode }: { mode?: AppMode }) {
             deleteOrder={deleteOrder}
             updateOrderItems={updateOrderItems}
             onClose={closeAdmin}
-            initialTab={appMode === "notes" ? "notas" : appMode === "kds" ? "cozinha" : "pedidos"}
+            initialTab={
+              appMode === "notes"
+                ? "notas"
+                : appMode === "kds"
+                  ? "cozinha"
+                  : "pedidos"
+            }
             adminToken={adminToken}
             kitchenOnly={appMode === "kds" || appMode === "notes"}
           />
@@ -531,46 +587,61 @@ export default function App({ mode }: { mode?: AppMode }) {
       <div className="flex-1 overflow-auto">
         {screen === "product" && (
           <>
-          {!selfServiceMenuMode && visibleActiveOrder && (
-            <ActiveOrderBanner
-              order={visibleActiveOrder}
-              onOpen={() => setScreen("tracking")}
+            {!selfServiceMenuMode && visibleActiveOrder && (
+              <ActiveOrderBanner
+                order={visibleActiveOrder}
+                onOpen={() => setScreen("tracking")}
+              />
+            )}
+            <ProductScreen
+              cart={cart}
+              addToCart={addToCart}
+              updateQty={updateQty}
+              goToCart={() => setScreen("cart")}
+              goBack={goHome}
+              onAdminOpen={
+                kioskMode
+                  ? openInstalledAdmin
+                  : diningMode
+                    ? undefined
+                    : openAdmin
+              }
+              onOpenIdleScreen={kioskMode ? openKioskIdleScreen : undefined}
+              kioskMode={kioskMode}
+              modernMobileMode={diningMode}
+              activeOrder={
+                kioskMobSession ? primaryKioskMobOrder : visibleActiveOrder
+              }
+              lastOrder={latestCustomerOrder}
+              notifications={memberNotifications}
+              unreadNotificationCount={unreadNotificationCount}
+              onReadNotifications={markMemberNotificationsRead}
+              onOpenActiveOrder={(orderId) => {
+                if (kioskMobSession) {
+                  setScreen("queue");
+                  return;
+                }
+                const targetOrderId =
+                  orderId || lastOrderId || visibleActiveOrder?.id;
+                if (targetOrderId) {
+                  setLastOrderId(targetOrderId);
+                }
+                setScreen("tracking");
+              }}
+              onRepeatOrder={(items) => {
+                setCart(
+                  items.map((item) => ({
+                    ...item,
+                    qty: Math.max(1, item.qty || 1),
+                  })),
+                );
+                setScreen("cart");
+              }}
             />
-          )}
-          <ProductScreen
-            cart={cart}
-            addToCart={addToCart}
-            updateQty={updateQty}
-            goToCart={() => setScreen("cart")}
-            goBack={goHome}
-            onAdminOpen={kioskMode ? openInstalledAdmin : diningMode ? undefined : openAdmin}
-            onOpenIdleScreen={kioskMode ? openKioskIdleScreen : undefined}
-            kioskMode={selfServiceMenuMode}
-            activeOrder={kioskMobSession ? primaryKioskMobOrder : visibleActiveOrder}
-            lastOrder={latestCustomerOrder}
-            notifications={memberNotifications}
-            unreadNotificationCount={unreadNotificationCount}
-            onReadNotifications={markMemberNotificationsRead}
-            onOpenActiveOrder={(orderId) => {
-              if (kioskMobSession) {
-                setScreen("queue");
-                return;
-              }
-              const targetOrderId = orderId || lastOrderId || visibleActiveOrder?.id;
-              if (targetOrderId) {
-                setLastOrderId(targetOrderId);
-              }
-              setScreen("tracking");
-            }}
-            onRepeatOrder={(items) => {
-              setCart(items.map((item) => ({ ...item, qty: Math.max(1, item.qty || 1) })));
-              setScreen("cart");
-            }}
-          />
           </>
         )}
-        {screen === "admin" && (
-          adminToken ? (
+        {screen === "admin" &&
+          (adminToken ? (
             <AdminPanel
               orders={orders}
               updateOrderStatus={updateOrderStatus}
@@ -582,11 +653,20 @@ export default function App({ mode }: { mode?: AppMode }) {
               kitchenOnly={false}
             />
           ) : (
-            <AdminLoginScreen error={adminError} onLogin={loginAdmin} kioskMode={kioskMode} />
-          )
-        )}
+            <AdminLoginScreen
+              error={adminError}
+              onLogin={loginAdmin}
+              kioskMode={kioskMode}
+            />
+          ))}
         {screen === "cart" && diningMode && (
-          <DiningCartPreview cart={cart} updateQty={updateQty} onBack={goHome} onCreated={() => setCart([])} />
+          <DiningCartPreview
+            cart={cart}
+            addToCart={addToCart}
+            updateQty={updateQty}
+            onBack={goHome}
+            onCreated={() => setCart([])}
+          />
         )}
         {screen === "cart" && !diningMode && (
           <CartScreen
@@ -609,13 +689,10 @@ export default function App({ mode }: { mode?: AppMode }) {
           />
         )}
         {screen === "queue" && (
-          <KioskMobQueueScreen
-            orders={kioskMobQueue}
-            onBack={goHome}
-          />
+          <KioskMobQueueScreen orders={kioskMobQueue} onBack={goHome} />
         )}
-        {screen === "admin" && (
-          adminToken ? (
+        {screen === "admin" &&
+          (adminToken ? (
             <AdminPanel
               orders={orders}
               updateOrderStatus={updateOrderStatus}
@@ -626,9 +703,12 @@ export default function App({ mode }: { mode?: AppMode }) {
               adminToken={adminToken}
             />
           ) : (
-            <AdminLoginScreen error={adminError} onLogin={loginAdmin} kioskMode={kioskMode} />
-          )
-        )}
+            <AdminLoginScreen
+              error={adminError}
+              onLogin={loginAdmin}
+              kioskMode={kioskMode}
+            />
+          ))}
       </div>
 
       <KioskIdleOverlays
@@ -639,7 +719,9 @@ export default function App({ mode }: { mode?: AppMode }) {
         onActivity={resetKioskActivity}
         presentation={presentation}
       />
-      {paymentTimeoutOrder && <PaymentTimeoutModal onClose={() => setPaymentTimeoutOrder(null)} />}
+      {paymentTimeoutOrder && (
+        <PaymentTimeoutModal onClose={() => setPaymentTimeoutOrder(null)} />
+      )}
     </div>
   );
 }
@@ -656,15 +738,18 @@ function AdminLoginScreen({
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [keyboardTarget, setKeyboardTarget] = useState<KioskKeyboardTarget>(null);
+  const [keyboardTarget, setKeyboardTarget] =
+    useState<KioskKeyboardTarget>(null);
 
   const typeVirtualKey = (key: string) => {
     if (keyboardTarget === "adminLogin") setLogin((value) => value + key);
     if (keyboardTarget === "adminPassword") setPassword((value) => value + key);
   };
   const backspaceVirtualKey = () => {
-    if (keyboardTarget === "adminLogin") setLogin((value) => value.slice(0, -1));
-    if (keyboardTarget === "adminPassword") setPassword((value) => value.slice(0, -1));
+    if (keyboardTarget === "adminLogin")
+      setLogin((value) => value.slice(0, -1));
+    if (keyboardTarget === "adminPassword")
+      setPassword((value) => value.slice(0, -1));
   };
   const clearVirtualField = () => {
     if (keyboardTarget === "adminLogin") setLogin("");
@@ -683,9 +768,22 @@ function AdminLoginScreen({
   };
 
   return (
-    <main className="grid min-h-dvh place-items-center px-4" style={{ background: "#fff", color: VERDE }}>
-      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl p-5" style={{ border: `1.5px solid ${VERDE}18`, background: "#FFF8F2", marginBottom: kioskMode && keyboardTarget ? 410 : 0 }}>
-        <p className="text-xs font-black uppercase tracking-widest opacity-55">Admin Menfi's</p>
+    <main
+      className="grid min-h-dvh place-items-center px-4"
+      style={{ background: "#fff", color: VERDE }}
+    >
+      <form
+        onSubmit={submit}
+        className="w-full max-w-sm rounded-2xl p-5"
+        style={{
+          border: `1.5px solid ${VERDE}18`,
+          background: "#FFF8F2",
+          marginBottom: kioskMode && keyboardTarget ? 410 : 0,
+        }}
+      >
+        <p className="text-xs font-black uppercase tracking-widest opacity-55">
+          Admin Menfi's
+        </p>
         <h1 className="mt-2 text-2xl font-black">Entrar no painel</h1>
         <label className="mt-5 grid gap-1 text-[10px] font-black uppercase tracking-wide opacity-70">
           Login
@@ -714,7 +812,11 @@ function AdminLoginScreen({
             inputMode={kioskMode ? "none" : "text"}
           />
         </label>
-        {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">{error}</p>}
+        {error && (
+          <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-800">
+            {error}
+          </p>
+        )}
         <button
           type="submit"
           disabled={submitting}
@@ -739,20 +841,39 @@ function AdminLoginScreen({
 
 function PaymentTimeoutModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-labelledby="payment-timeout-title">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="payment-timeout-title"
+    >
       <section className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-        <p className="text-xs font-black uppercase tracking-widest text-rose-600">Pagamento não confirmado</p>
-        <h2 id="payment-timeout-title" className="mt-2 text-2xl font-black text-[#65001F]">Pedido cancelado automaticamente</h2>
+        <p className="text-xs font-black uppercase tracking-widest text-rose-600">
+          Pagamento não confirmado
+        </p>
+        <h2
+          id="payment-timeout-title"
+          className="mt-2 text-2xl font-black text-[#65001F]"
+        >
+          Pedido cancelado automaticamente
+        </h2>
         <p className="mt-4 text-sm font-semibold leading-relaxed text-[#65001F]">
-          Pedimos desculpas pela demora, mas seu pagamento não foi confirmado dentro do prazo.
+          Pedimos desculpas pela demora, mas seu pagamento não foi confirmado
+          dentro do prazo.
         </p>
         <p className="mt-3 text-sm font-semibold leading-relaxed text-[#65001F]">
-          Infelizmente, nesse intervalo, nossa cozinha atingiu o limite de produção do dia e estamos em <strong>SOLD OUT</strong>.
+          Infelizmente, nesse intervalo, nossa cozinha atingiu o limite de
+          produção do dia e estamos em <strong>SOLD OUT</strong>.
         </p>
         <p className="mt-3 text-sm font-semibold leading-relaxed text-[#65001F]">
-          Nossa equipe entrará em contato com você pelo WhatsApp para verificar a melhor forma de atender seu pedido.
+          Nossa equipe entrará em contato com você pelo WhatsApp para verificar
+          a melhor forma de atender seu pedido.
         </p>
-        <button type="button" onClick={onClose} className="mt-6 min-h-12 w-full rounded-2xl bg-[#65001F] px-5 text-sm font-black uppercase text-white">
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-6 min-h-12 w-full rounded-2xl bg-[#65001F] px-5 text-sm font-black uppercase text-white"
+        >
           Entendi
         </button>
       </section>
@@ -761,17 +882,26 @@ function PaymentTimeoutModal({ onClose }: { onClose: () => void }) {
 }
 
 function normalizeKioskMobName(value?: string) {
-  return String(value ?? "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "-").replace(/-+/g, "-");
+  return String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "-")
+    .replace(/-+/g, "-");
 }
 
 function isKioskMobOrder(order?: Order | null) {
-  return order?.channel === "KIOSK" || normalizeKioskMobName(order?.customerName) === "KIOSK-MOB";
+  return (
+    order?.channel === "KIOSK" ||
+    normalizeKioskMobName(order?.customerName) === "KIOSK-MOB"
+  );
 }
 
 function isKioskMobSession() {
   if (typeof window === "undefined") return false;
   try {
-    const profile = JSON.parse(localStorage.getItem(MEMBER_KEY) ?? "{}") as { name?: string };
+    const profile = JSON.parse(localStorage.getItem(MEMBER_KEY) ?? "{}") as {
+      name?: string;
+    };
     return normalizeKioskMobName(profile.name) === "KIOSK-MOB";
   } catch {
     return false;
@@ -783,7 +913,9 @@ function guestDeliveryScope() {
     return { phone: "", address: "" };
   }
   try {
-    const saved = JSON.parse(localStorage.getItem(DELIVERY_STORAGE_KEY) ?? "{}") as {
+    const saved = JSON.parse(
+      localStorage.getItem(DELIVERY_STORAGE_KEY) ?? "{}",
+    ) as {
       phone?: string;
       street?: string;
       number?: string;
@@ -791,7 +923,11 @@ function guestDeliveryScope() {
     };
     const address =
       saved.street && saved.number
-        ? formatDeliveryAddress({ street: saved.street, number: saved.number, complement: saved.complement })
+        ? formatDeliveryAddress({
+            street: saved.street,
+            number: saved.number,
+            complement: saved.complement,
+          })
         : "";
     return {
       phone: digits(saved.phone),
@@ -807,7 +943,8 @@ function guestOrderMatchesScope(
   scope: { phone: string; address: string },
 ) {
   if (!scope.phone && !scope.address) return true;
-  const phoneMatches = !scope.phone || digits(order.customerPhone) === scope.phone;
+  const phoneMatches =
+    !scope.phone || digits(order.customerPhone) === scope.phone;
   const addressMatches =
     !scope.address || normalizeAddress(order.customerAddress) === scope.address;
   return phoneMatches && addressMatches;
@@ -828,7 +965,9 @@ function normalizeAddress(value?: string) {
 
 function resolvePaymentReturnOrderId(params: URLSearchParams) {
   const pendingOrderId =
-    typeof window === "undefined" ? "" : localStorage.getItem(PENDING_ORDER_KEY) ?? "";
+    typeof window === "undefined"
+      ? ""
+      : (localStorage.getItem(PENDING_ORDER_KEY) ?? "");
   const raw =
     params.get("orderId") ||
     params.get("external_reference") ||
@@ -856,7 +995,10 @@ function KioskMobQueueScreen({
   orders: Order[];
   onBack: () => void;
 }) {
-  type BoardOrder = Pick<Order, "id" | "number" | "customerName" | "status" | "timestamp">;
+  type BoardOrder = Pick<
+    Order,
+    "id" | "number" | "customerName" | "status" | "timestamp"
+  >;
   const [boardOrders, setBoardOrders] = useState<BoardOrder[]>(() =>
     orders.map(({ id, number, customerName, status, timestamp }) => ({
       id,
@@ -872,20 +1014,27 @@ function KioskMobQueueScreen({
     let cancelled = false;
     const loadBoard = async () => {
       try {
-        const response = await fetch(`${API_URL}/orders/kiosk-board?_=${Date.now()}`, {
-          cache: "no-store",
-          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-        });
+        const response = await fetch(
+          `${API_URL}/orders/kiosk-board?_=${Date.now()}`,
+          {
+            cache: "no-store",
+            headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+          },
+        );
         if (!response.ok) return;
         const rows = await response.json();
         if (!Array.isArray(rows) || cancelled) return;
-        setBoardOrders(rows.map((row) => ({
-          id: String(row.id),
-          number: Number(row.number ?? String(row.id).replace(/\D/g, "")),
-          customerName: String(row.customerName ?? row.customer_name ?? ""),
-          status: String(row.status ?? "PAYMENT_PENDING") as Order["status"],
-          timestamp: new Date(row.createdAt ?? row.created_at ?? Date.now()).getTime(),
-        })));
+        setBoardOrders(
+          rows.map((row) => ({
+            id: String(row.id),
+            number: Number(row.number ?? String(row.id).replace(/\D/g, "")),
+            customerName: String(row.customerName ?? row.customer_name ?? ""),
+            status: String(row.status ?? "PAYMENT_PENDING") as Order["status"],
+            timestamp: new Date(
+              row.createdAt ?? row.created_at ?? Date.now(),
+            ).getTime(),
+          })),
+        );
       } catch {
         // Mantém a última fila visível durante uma oscilação de conexão.
       }
@@ -906,7 +1055,13 @@ function KioskMobQueueScreen({
       id: "received",
       label: "Recebidos",
       copy: "Pedido confirmado",
-      statuses: new Set(["CREATED", "PAYMENT_PENDING", "PAYMENT_PROOF_PENDING", "PAID", "ACCEPTED"]),
+      statuses: new Set([
+        "CREATED",
+        "PAYMENT_PENDING",
+        "PAYMENT_PROOF_PENDING",
+        "PAID",
+        "ACCEPTED",
+      ]),
       color: "#F6B8CB",
     },
     {
@@ -927,19 +1082,27 @@ function KioskMobQueueScreen({
 
   const customerLabel = (value?: string) => {
     const clean = String(value ?? "").trim();
-    if (!clean || normalizeKioskMobName(clean) === "KIOSK-MOB") return "Cliente";
+    if (!clean || normalizeKioskMobName(clean) === "KIOSK-MOB")
+      return "Cliente";
     return clean.split(/\s+/)[0];
   };
 
   return (
-    <div className="min-h-full px-4 py-5 sm:px-6" style={{ background: "#FFF9FB", color: VERDE }}>
+    <div
+      className="min-h-full px-4 py-5 sm:px-6"
+      style={{ background: "#FFF9FB", color: VERDE }}
+    >
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <button
             type="button"
             onClick={onBack}
             className="rounded-2xl px-5 py-3 text-xs font-black uppercase"
-            style={{ background: "#fff", color: VERDE, border: `1.5px solid ${VERDE}18` }}
+            style={{
+              background: "#fff",
+              color: VERDE,
+              border: `1.5px solid ${VERDE}18`,
+            }}
           >
             Voltar ao menu
           </button>
@@ -949,9 +1112,15 @@ function KioskMobQueueScreen({
           </span>
         </div>
         <header className="py-7 text-center">
-          <p className="text-[11px] font-black uppercase tracking-[0.28em] opacity-45">Acompanhe seu pedido</p>
-          <h1 className="mt-2 text-4xl font-black sm:text-5xl">Painel de pedidos</h1>
-          <p className="mt-2 text-sm font-bold opacity-60">Procure seu nome e o número do pedido.</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.28em] opacity-45">
+            Acompanhe seu pedido
+          </p>
+          <h1 className="mt-2 text-4xl font-black sm:text-5xl">
+            Painel de pedidos
+          </h1>
+          <p className="mt-2 text-sm font-bold opacity-60">
+            Procure seu nome e o número do pedido.
+          </p>
         </header>
         <div className="grid gap-4 lg:grid-cols-3">
           {columns.map((column) => {
@@ -959,12 +1128,23 @@ function KioskMobQueueScreen({
               .filter((order) => column.statuses.has(order.status))
               .sort((a, b) => a.timestamp - b.timestamp);
             return (
-              <section key={column.id} className="min-h-80 overflow-hidden rounded-3xl border bg-white" style={{ borderColor: `${VERDE}18` }}>
-                <header className="px-5 py-4" style={{ background: column.color }}>
+              <section
+                key={column.id}
+                className="min-h-80 overflow-hidden rounded-3xl border bg-white"
+                style={{ borderColor: `${VERDE}18` }}
+              >
+                <header
+                  className="px-5 py-4"
+                  style={{ background: column.color }}
+                >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h2 className="text-2xl font-black uppercase">{column.label}</h2>
-                      <p className="text-xs font-bold opacity-65">{column.copy}</p>
+                      <h2 className="text-2xl font-black uppercase">
+                        {column.label}
+                      </h2>
+                      <p className="text-xs font-bold opacity-65">
+                        {column.copy}
+                      </p>
                     </div>
                     <span className="flex h-10 min-w-10 items-center justify-center rounded-full bg-white px-3 text-lg font-black">
                       {columnOrders.length}
@@ -978,11 +1158,21 @@ function KioskMobQueueScreen({
                     </p>
                   ) : (
                     columnOrders.map((order) => (
-                      <article key={order.id} className="rounded-2xl border p-4 shadow-sm" style={{ borderColor: `${VERDE}18` }}>
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-45">Pedido</p>
+                      <article
+                        key={order.id}
+                        className="rounded-2xl border p-4 shadow-sm"
+                        style={{ borderColor: `${VERDE}18` }}
+                      >
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
+                          Pedido
+                        </p>
                         <div className="mt-1 flex items-end justify-between gap-3">
-                          <strong className="truncate text-2xl font-black">{customerLabel(order.customerName)}</strong>
-                          <strong className="shrink-0 text-3xl font-black">{order.id}</strong>
+                          <strong className="truncate text-2xl font-black">
+                            {customerLabel(order.customerName)}
+                          </strong>
+                          <strong className="shrink-0 text-3xl font-black">
+                            {order.id}
+                          </strong>
                         </div>
                       </article>
                     ))
@@ -999,11 +1189,13 @@ function KioskMobQueueScreen({
 
 function DiningCartPreview({
   cart,
+  addToCart,
   updateQty,
   onBack,
   onCreated,
 }: {
   cart: CartItem[];
+  addToCart: (item: Omit<CartItem, "qty">) => void;
   updateQty: (id: string, delta: number) => void;
   onBack: () => void;
   onCreated: () => void;
@@ -1011,6 +1203,19 @@ function DiningCartPreview({
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showAccount, setShowAccount] = useState(cart.length === 0);
+  const [account, setAccount] = useState<{
+    orders: Array<{
+      publicOrderId: string;
+      number: number;
+      status: string;
+      items: Array<Record<string, unknown>>;
+      total: number;
+    }>;
+    total: number;
+    status: string;
+    tableName: string;
+  } | null>(null);
   const [order, setOrder] = useState<{
     publicOrderId: string;
     number: number;
@@ -1021,8 +1226,79 @@ function DiningCartPreview({
     lightState: string;
   } | null>(null);
 
+  const catalogById = new Map(MENU_ITEMS.map((item) => [item.id, item]));
+  const consumedIds = new Set([
+    ...cart.map((item) => item.productId ?? item.id),
+    ...(account?.orders.flatMap((note) =>
+      note.items.map((item) => String(item.productId || "")),
+    ) ?? []),
+  ]);
+  const consumedCategories = new Set(
+    [...consumedIds].map((id) => catalogById.get(id)?.category).filter(Boolean),
+  );
+  const recommendationReason = (item: MenuItem) => {
+    if (item.category === "bebida") return "Uma bebida para acompanhar";
+    if (item.category === "fries") return "Completa bem o seu pedido";
+    if (item.category === "sweet") return "Uma sobremesa para finalizar";
+    return "Boa combinação para a mesa";
+  };
+  const recommendations = MENU_ITEMS.filter(
+    (item) =>
+      !consumedIds.has(item.id) &&
+      ["bebida", "fries", "sweet", "extra"].includes(item.category),
+  )
+    .map((item) => ({
+      item,
+      score:
+        (item.category === "bebida" &&
+        (consumedCategories.has("burger") || consumedCategories.has("combo"))
+          ? 8
+          : 0) +
+        (item.category === "fries" && consumedCategories.has("burger")
+          ? 7
+          : 0) +
+        (item.category === "sweet" && consumedIds.size > 0 ? 5 : 0) +
+        (item.highlight ? 2 : 0),
+    }))
+    .sort((a, b) => b.score - a.score || a.item.price - b.item.price)
+    .slice(0, 3)
+    .map(({ item }) => item);
+
+  function catalogItemFor(value: Record<string, unknown>) {
+    return catalogById.get(String(value.productId || value.id || ""));
+  }
+
+  function addRecommendation(item: MenuItem) {
+    addToCart({
+      id: item.id,
+      productId: item.id,
+      name: item.name.toUpperCase(),
+      price: item.price,
+    });
+    setShowAccount(false);
+  }
+
+  async function loadAccount() {
+    const context = readDiningContext();
+    if (!context?.token) return;
+    const response = await fetch(
+      `${API_URL}/api/public/dining/kits/${encodeURIComponent(context.token)}/account`,
+      { cache: "no-store" },
+    );
+    if (response.ok) setAccount(await response.json());
+  }
+
   useEffect(() => {
-    if (!order?.publicOrderId || order.status === "PAID") return;
+    void loadAccount();
+  }, []);
+
+  useEffect(() => {
+    if (
+      !order?.publicOrderId ||
+      order.status === "CREATED" ||
+      order.status === "PAID"
+    )
+      return;
     let active = true;
     const context = readDiningContext();
     if (!context?.token) return;
@@ -1046,7 +1322,7 @@ function DiningCartPreview({
     };
   }, [order?.publicOrderId, order?.status]);
 
-  async function requestPayment() {
+  async function addOrder() {
     const context = readDiningContext();
     if (!context?.token) {
       setError("Sessão da mesa não encontrada. Escaneie o QR Code novamente.");
@@ -1057,9 +1333,10 @@ function DiningCartPreview({
     const keyStorage = `menfis_dining_idempotency_${context.sessionPublicId}`;
     let idempotencyKey = sessionStorage.getItem(keyStorage);
     if (!idempotencyKey) {
-      idempotencyKey = typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      idempotencyKey =
+        typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       sessionStorage.setItem(keyStorage, idempotencyKey);
     }
     try {
@@ -1074,83 +1351,399 @@ function DiningCartPreview({
               productId: item.productId ?? item.id,
               quantity: item.qty,
               addonIds: item.addonIds ?? [],
-              metadata: { components: item.components ?? [], note: item.note ?? "" },
+              metadata: {
+                components: item.components ?? [],
+                note: item.note ?? "",
+              },
             })),
           }),
         },
       );
       const created = await response.json().catch(() => ({}));
-      if (!response.ok || !created.publicOrderId) throw new Error(created.error ?? "dining_order_failed");
+      if (!response.ok || !created.publicOrderId)
+        throw new Error(created.error ?? "dining_order_failed");
       sessionStorage.removeItem(keyStorage);
       setOrder(created);
       onCreated();
     } catch {
-      setError("Não foi possível chamar a equipe. Tente novamente sem fechar esta tela.");
+      setError("Não foi possível adicionar o pedido à conta. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function closeAccount() {
+    const context = readDiningContext();
+    if (!context?.token) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `${API_URL}/api/public/dining/kits/${encodeURIComponent(context.token)}/account/close`,
+        { method: "POST" },
+      );
+      const value = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error("close_failed");
+      setAccount(value);
+    } catch {
+      setError("Não foi possível encerrar a conta agora. Chame a equipe.");
     } finally {
       setSubmitting(false);
     }
   }
 
   if (order) {
-    const paid = order.status === "PAID";
     return (
-      <main className="flex min-h-dvh items-center justify-center px-5 py-8" style={{ background: "#FFF9FB", color: VERDE }}>
-        <section className="w-full max-w-md rounded-[32px] border-2 bg-white p-7 text-center shadow-2xl" style={{ borderColor: paid ? "#A2E61B" : "#5B8DEF" }}>
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-4xl" style={{ background: paid ? "#DDF8A6" : "#DDE8FF" }}>
-            {paid ? "✓" : "🔵"}
+      <main
+        className="flex min-h-dvh items-center justify-center px-5 py-8"
+        style={{ background: "#FFF9FB", color: VERDE }}
+      >
+        <section
+          className="w-full max-w-md rounded-[32px] border-2 bg-white p-7 text-center shadow-2xl"
+          style={{ borderColor: ROSA }}
+        >
+          <div
+            className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-4xl"
+            style={{ background: "#DDF8A6" }}
+          >
+            ✓
           </div>
-          <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] opacity-50">Pedido #{order.number}</p>
-          <h1 className="mt-2 text-3xl font-black uppercase">{paid ? "Pagamento confirmado" : "Chamamos a equipe"}</h1>
-          {paid ? (
-            <p className="mt-4 text-sm font-bold leading-relaxed opacity-70">
-              Estamos preparando seu pedido.<br />Quando sua torre ficar <strong>VERDE</strong>, retire no balcão.
-            </p>
-          ) : (
-            <p className="mt-4 text-sm font-bold leading-relaxed opacity-70">
-              Sua torre ficará <strong className="text-blue-700">AZUL</strong> enquanto você aguarda o pagamento.<br /><br />Não faça outro pedido até o atendimento ser concluído.
-            </p>
-          )}
-          <div className="mt-6 rounded-2xl p-4 text-left" style={{ background: "#FFF5F8" }}>
-            <div className="flex justify-between text-sm font-black"><span>Mesa</span><span>{order.tableName}</span></div>
-            <div className="mt-2 flex justify-between text-sm font-black"><span>Total</span><span>R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
+          <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] opacity-50">
+            Pedido #{order.number}
+          </p>
+          <h1 className="mt-2 text-3xl font-black uppercase">Pedido anotado</h1>
+          <p className="mt-4 text-sm font-bold leading-relaxed opacity-70">
+            Ele foi adicionado à sua conta. Você pode continuar pedindo e
+            encerrar a conta somente quando desejar pagar.
+          </p>
+          <div
+            className="mt-6 rounded-2xl p-4 text-left"
+            style={{ background: "#FFF5F8" }}
+          >
+            <div className="flex justify-between text-sm font-black">
+              <span>Mesa</span>
+              <span>{order.tableName}</span>
+            </div>
+            <div className="mt-2 flex justify-between text-sm font-black">
+              <span>Total</span>
+              <span>R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
+            </div>
           </div>
-          {!paid && <p className="mt-5 animate-pulse text-xs font-black uppercase tracking-wider text-blue-700">Aguardando confirmação da equipe</p>}
+          <button
+            onClick={onBack}
+            className="mt-5 min-h-14 w-full rounded-2xl text-sm font-black uppercase"
+            style={{ background: VERDE, color: ROSA }}
+          >
+            Voltar ao menu
+          </button>
+          <button
+            onClick={() => {
+              setOrder(null);
+              setShowAccount(true);
+              void loadAccount();
+            }}
+            className="mt-3 min-h-14 w-full rounded-2xl border-2 text-sm font-black uppercase"
+            style={{ borderColor: VERDE }}
+          >
+            Ver minha conta
+          </button>
         </section>
       </main>
     );
   }
 
+  if (showAccount || cart.length === 0) {
+    const waiting = account?.status === "PAYMENT_REQUESTED";
+    const hasOpenNotes =
+      account?.orders.some((note) => note.status === "CREATED") ?? false;
+    return (
+      <main
+        className="min-h-dvh px-4 py-6"
+        style={{ background: "#FFF9FB", color: VERDE }}
+      >
+        <div className="mx-auto max-w-2xl">
+          <button
+            onClick={onBack}
+            className="mb-4 rounded-full border px-5 py-3 text-xs font-black uppercase"
+          >
+            ← Voltar ao menu
+          </button>
+          <section className="overflow-hidden rounded-[28px] border bg-white shadow-xl">
+            <header className="p-5 text-white" style={{ background: VERDE }}>
+              <p className="text-[10px] font-black uppercase tracking-[.24em] opacity-70">
+                Conta da mesa
+              </p>
+              <div className="mt-2 flex items-end justify-between">
+                <h1 className="text-3xl font-black">
+                  {account?.tableName || "Minha conta"}
+                </h1>
+                <strong className="text-2xl">
+                  R${" "}
+                  {Number(account?.total || 0)
+                    .toFixed(2)
+                    .replace(".", ",")}
+                </strong>
+              </div>
+            </header>
+            <div className="p-5">
+              <div className="space-y-4">
+                {account?.orders.length ? (
+                  account.orders.map((note) => (
+                    <article
+                      key={note.publicOrderId}
+                      className="rounded-2xl border p-4"
+                    >
+                      <div className="flex justify-between">
+                        <strong>Nota #{note.number}</strong>
+                        <strong>
+                          R$ {Number(note.total).toFixed(2).replace(".", ",")}
+                        </strong>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {note.items.map((item, index) => {
+                          const catalogItem = catalogItemFor(item);
+                          return (
+                            <div
+                              key={index}
+                              className="flex items-center gap-3 rounded-xl bg-stone-50 p-2"
+                            >
+                              {catalogItem && imageSrc(catalogItem.image) ? (
+                                <img
+                                  src={imageSrc(catalogItem.image)}
+                                  alt=""
+                                  className="h-12 w-12 rounded-lg object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 text-xl">
+                                  🍔
+                                </div>
+                              )}
+                              <p className="min-w-0 flex-1 text-sm font-bold opacity-75">
+                                {Number(item.quantity || 1)}x{" "}
+                                {String(
+                                  item.name || catalogItem?.name || "Item",
+                                )}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <p className="rounded-2xl bg-stone-50 p-6 text-center text-sm font-bold opacity-60">
+                    Sua conta ainda está vazia.
+                  </p>
+                )}
+              </div>
+              {error && (
+                <p className="mt-4 text-center text-xs font-black text-red-700">
+                  {error}
+                </p>
+              )}
+              {waiting ? (
+                <div className="mt-5 rounded-2xl bg-blue-50 p-5 text-center">
+                  <strong className="text-blue-800">Conta encerrada</strong>
+                  <p className="mt-1 text-sm font-bold text-blue-700">
+                    Chamamos a equipe para receber o pagamento.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={onBack}
+                    className="mt-5 min-h-14 w-full rounded-2xl text-sm font-black uppercase"
+                    style={{ background: ROSA, color: VERDE }}
+                  >
+                    Fazer outro pedido
+                  </button>
+                  <button
+                    disabled={submitting || !hasOpenNotes}
+                    onClick={() => void closeAccount()}
+                    className="mt-3 min-h-14 w-full rounded-2xl border-2 text-sm font-black uppercase disabled:opacity-40"
+                    style={{ borderColor: VERDE }}
+                  >
+                    {submitting ? "Chamando a equipe..." : "Encerrar conta"}
+                  </button>
+                  <p className="mt-3 text-center text-xs font-bold opacity-55">
+                    Encerre somente quando desejar pagar o total da mesa.
+                  </p>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-dvh px-4 py-6" style={{ background: "#FFF9FB", color: VERDE }}>
+    <main
+      className="min-h-dvh px-4 py-6"
+      style={{ background: "#FFF9FB", color: VERDE }}
+    >
       <div className="mx-auto max-w-2xl">
-        <button type="button" onClick={onBack} className="mb-5 rounded-full border px-5 py-3 text-xs font-black uppercase" style={{ borderColor: VERDE }}>
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-5 rounded-full border px-5 py-3 text-xs font-black uppercase"
+          style={{ borderColor: VERDE }}
+        >
           Voltar ao cardápio
         </button>
-        <section className="rounded-[28px] border bg-white p-5 shadow-xl" style={{ borderColor: `${ROSA}90` }}>
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-50">Pedido na mesa</p>
-          <h1 className="mt-2 text-3xl font-black">Revise seu carrinho</h1>
+        <section
+          className="rounded-[28px] border bg-white p-5 shadow-xl"
+          style={{ borderColor: `${ROSA}90` }}
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] opacity-50">
+            Conta aberta · pedido na mesa
+          </p>
+          <h1 className="mt-2 text-3xl font-black">Seu pedido agora</h1>
+          <p className="mt-2 text-sm font-bold opacity-60">
+            Você pode pedir quantas vezes quiser. Tudo fica reunido na conta da
+            mesa até o encerramento.
+          </p>
           <div className="mt-5 grid gap-3">
-            {cart.map((item) => (
-              <article key={item.id} className="flex items-center justify-between gap-4 rounded-2xl border p-4" style={{ borderColor: `${VERDE}18` }}>
-                <div className="min-w-0">
-                  <p className="truncate font-black">{item.name}</p>
-                  <p className="text-sm font-bold opacity-60">R$ {(item.price * item.qty).toFixed(2).replace(".", ",")}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => updateQty(item.id, -1)} className="h-10 w-10 rounded-full border text-xl font-black" style={{ borderColor: VERDE }}>−</button>
-                  <strong>{item.qty}</strong>
-                  <button type="button" onClick={() => updateQty(item.id, 1)} className="h-10 w-10 rounded-full text-xl font-black" style={{ background: VERDE, color: ROSA }}>+</button>
-                </div>
-              </article>
-            ))}
+            {cart.map((item) => {
+              const catalogItem = catalogById.get(item.productId ?? item.id);
+              return (
+                <article
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-2xl border p-3"
+                  style={{ borderColor: `${VERDE}18` }}
+                >
+                  {catalogItem && imageSrc(catalogItem.image) ? (
+                    <img
+                      src={imageSrc(catalogItem.image)}
+                      alt={item.name}
+                      className="h-20 w-20 shrink-0 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-pink-100 text-3xl">
+                      🍔
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 font-black">{item.name}</p>
+                    <p className="mt-1 text-sm font-bold opacity-60">
+                      R$ {(item.price * item.qty).toFixed(2).replace(".", ",")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => updateQty(item.id, -1)}
+                      className="h-10 w-10 rounded-full border text-xl font-black"
+                      style={{ borderColor: VERDE }}
+                    >
+                      −
+                    </button>
+                    <strong>{item.qty}</strong>
+                    <button
+                      type="button"
+                      onClick={() => updateQty(item.id, 1)}
+                      className="h-10 w-10 rounded-full text-xl font-black"
+                      style={{ background: VERDE, color: ROSA }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-          <div className="mt-6 flex items-center justify-between border-t pt-5" style={{ borderColor: `${ROSA}90` }}>
-            <span className="font-black uppercase">Total</span>
-            <strong className="text-3xl">R$ {total.toFixed(2).replace(".", ",")}</strong>
+          {recommendations.length > 0 && (
+            <section
+              className="mt-6 border-t pt-5"
+              style={{ borderColor: `${ROSA}55` }}
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">
+                Sugestões para o seu pedido
+              </p>
+              <h2 className="mt-1 text-xl font-black">Que tal adicionar?</h2>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {recommendations.map((item) => (
+                  <article
+                    key={item.id}
+                    className="overflow-hidden rounded-2xl border bg-white"
+                    style={{ borderColor: `${VERDE}18` }}
+                  >
+                    {imageSrc(item.image) ? (
+                      <img
+                        src={imageSrc(item.image)}
+                        alt={item.name}
+                        className="h-28 w-full object-cover"
+                      />
+                    ) : null}
+                    <div className="p-3">
+                      <p className="text-[10px] font-black uppercase opacity-50">
+                        {recommendationReason(item)}
+                      </p>
+                      <h3 className="mt-1 line-clamp-2 text-sm font-black">
+                        {item.name}
+                      </h3>
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <strong className="text-sm">
+                          R$ {item.price.toFixed(2).replace(".", ",")}
+                        </strong>
+                        <button
+                          type="button"
+                          onClick={() => addRecommendation(item)}
+                          className="h-9 rounded-full px-4 text-xs font-black uppercase"
+                          style={{ background: ROSA, color: VERDE }}
+                        >
+                          + Adicionar
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+          <div
+            className="mt-6 space-y-2 border-t pt-5"
+            style={{ borderColor: `${ROSA}90` }}
+          >
+            {Number(account?.total || 0) > 0 && (
+              <div className="flex justify-between text-sm font-bold opacity-60">
+                <span>Já consumido na mesa</span>
+                <span>
+                  R$ {Number(account?.total).toFixed(2).replace(".", ",")}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="font-black uppercase">Novo pedido</span>
+              <strong className="text-3xl">
+                R$ {total.toFixed(2).replace(".", ",")}
+              </strong>
+            </div>
+            {Number(account?.total || 0) > 0 && (
+              <div className="flex justify-between rounded-xl bg-pink-50 p-3 font-black">
+                <span>Total após adicionar</span>
+                <span>
+                  R${" "}
+                  {(Number(account?.total || 0) + total)
+                    .toFixed(2)
+                    .replace(".", ",")}
+                </span>
+              </div>
+            )}
           </div>
-          {error && <p className="mt-4 text-center text-xs font-black text-red-700">{error}</p>}
-          <button type="button" onClick={() => void requestPayment()} disabled={submitting || cart.length === 0} className="mt-5 min-h-14 w-full rounded-2xl text-sm font-black uppercase disabled:opacity-45" style={{ background: VERDE, color: ROSA }}>
-            {submitting ? "Chamando a equipe..." : "Solicitar pagamento"}
+          {error && (
+            <p className="mt-4 text-center text-xs font-black text-red-700">
+              {error}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => void addOrder()}
+            disabled={submitting || cart.length === 0}
+            className="mt-5 min-h-14 w-full rounded-2xl text-sm font-black uppercase disabled:opacity-45"
+            style={{ background: VERDE, color: ROSA }}
+          >
+            {submitting ? "Anotando pedido..." : "Fazer pedido"}
           </button>
         </section>
       </div>
@@ -1158,9 +1751,14 @@ function DiningCartPreview({
   );
 }
 
-function readDiningContext(): { token: string; sessionPublicId: string } | null {
+function readDiningContext(): {
+  token: string;
+  sessionPublicId: string;
+} | null {
   try {
-    return JSON.parse(sessionStorage.getItem("menfis_dining_context") ?? "null");
+    return JSON.parse(
+      sessionStorage.getItem("menfis_dining_context") ?? "null",
+    );
   } catch {
     return null;
   }
@@ -1178,7 +1776,7 @@ function ActiveOrderBanner({
     order.status === "PAYMENT_PENDING" &&
     String(order.paymentStatus ?? "").toLowerCase() !== "approved"
       ? STATUS_COPY.PAYMENT_PENDING
-      : STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING;
+      : (STATUS_COPY[order.status] ?? STATUS_COPY.PAYMENT_PENDING);
 
   return (
     <button
@@ -1221,7 +1819,9 @@ function ActiveOrderBanner({
 
         <div
           className="grid gap-2"
-          style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}
+          style={{
+            gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))`,
+          }}
         >
           {STEPS.map((step, index) => {
             const done = index <= current;
@@ -1231,13 +1831,19 @@ function ActiveOrderBanner({
               <div key={step.label} className="min-w-0">
                 <div
                   className="mb-1 h-1.5 rounded-full"
-                  style={{ background: done ? "#FFB3CC" : "rgba(255,179,204,0.22)" }}
+                  style={{
+                    background: done ? "#FFB3CC" : "rgba(255,179,204,0.22)",
+                  }}
                 />
                 <div className="flex items-center gap-1.5">
                   <span
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                     style={{
-                      background: active ? "#FFB3CC" : done ? "rgba(255,179,204,0.3)" : "rgba(255,255,255,0.08)",
+                      background: active
+                        ? "#FFB3CC"
+                        : done
+                          ? "rgba(255,179,204,0.3)"
+                          : "rgba(255,255,255,0.08)",
                       color: active ? "#65001F" : "#FFB3CC",
                       border: `1px solid ${done ? "#FFB3CC" : "rgba(255,179,204,0.24)"}`,
                     }}

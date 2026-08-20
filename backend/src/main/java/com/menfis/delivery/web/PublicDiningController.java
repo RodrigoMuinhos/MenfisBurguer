@@ -4,6 +4,7 @@ import com.menfis.delivery.dto.DiningDtos.DiningCustomerNameRequest;
 import com.menfis.delivery.dto.DiningDtos.PublicDiningSessionResponse;
 import com.menfis.delivery.dto.DiningDtos.CreateDiningOrderRequest;
 import com.menfis.delivery.dto.DiningDtos.DiningOrderResponse;
+import com.menfis.delivery.dto.DiningDtos.DiningAccountResponse;
 import com.menfis.delivery.service.DiningOrderService;
 import com.menfis.delivery.service.DiningService;
 import jakarta.validation.Valid;
@@ -42,7 +43,17 @@ public class PublicDiningController {
   public DiningOrderResponse createOrder(
       @PathVariable String token,
       @Valid @RequestBody CreateDiningOrderRequest request) {
-    return diningOrders.createAndRequestPayment(token, request.items(), request.idempotencyKey());
+    return diningOrders.createOrder(token, request.items(), request.idempotencyKey());
+  }
+
+  @GetMapping("/{token}/account")
+  public DiningAccountResponse account(@PathVariable String token) {
+    return diningOrders.getAccount(token);
+  }
+
+  @PostMapping("/{token}/account/close")
+  public DiningAccountResponse closeAccount(@PathVariable String token) {
+    return diningOrders.requestAccountPayment(token);
   }
 
   @GetMapping("/{token}/orders/{publicOrderId}")

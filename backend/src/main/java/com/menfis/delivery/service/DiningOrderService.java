@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.menfis.delivery.domain.TableLightState;
 import com.menfis.delivery.dto.ApiDtos.OrderItemRequest;
 import com.menfis.delivery.dto.DiningDtos.DiningOrderResponse;
+import com.menfis.delivery.dto.DiningDtos.DiningAccountResponse;
 import com.menfis.delivery.messaging.OrderOutboxService;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -56,7 +57,7 @@ public class DiningOrderService {
   }
 
   @Transactional
-  public DiningOrderResponse createAndRequestPayment(
+  public DiningOrderResponse createOrder(
       String qrToken,
       List<OrderItemRequest> requestedItems,
       String clientIdempotencyKey) {
@@ -83,7 +84,7 @@ public class DiningOrderService {
         customer_name, subtotal, delivery_fee, total, payment_method, payment_status,
         status, idempotency_key, payment_requested_at, timestamp, test_mode, updated_at
       ) values (?, ?, ?, ?::jsonb, 'DINING_QR', 'RETIRADA', 'COUNTER_PICKUP', ?,
-        ?, ?, 0, ?, 'PRESENCIAL', 'requested', 'PAYMENT_REQUESTED', ?, now(), ?, ?, now())
+        ?, ?, 0, ?, 'PRESENCIAL', 'pending', 'CREATED', ?, null, ?, ?, now())
       on conflict (idempotency_key) where idempotency_key is not null do nothing
       """,
       orderId, publicId, number, json(priced.items()), context.sessionId(), context.customerName(),
@@ -109,17 +110,71 @@ public class DiningOrderService {
     jdbc.update(
       """
       insert into order_status_history(order_id, from_status, to_status, changed_by, reason)
-      values (?, null, 'PAYMENT_REQUESTED', 'customer', 'DINING_PAYMENT_REQUESTED')
+      values (?, null, 'CREATED', 'customer', 'DINING_ORDER_ADDED_TO_ACCOUNT')
       """,
       orderId
     );
-    audit.log("customer", "DINING_PAYMENT_REQUESTED", "ORDER", orderId, Map.of(
+    audit.log("customer", "DINING_ORDER_ADDED_TO_ACCOUNT", "ORDER", orderId, Map.of(
       "sessionId", context.sessionId(), "tableId", context.tableId(), "kitId", context.kitId(),
       "total", priced.subtotal()
     ));
-    dining.changeLight(context.kitId(), TableLightState.BLUE, "dining_payment_requested", "customer");
     events.publish(orderId, orders.get(orderId));
     return getByPublicId(qrToken, publicId);
+  }
+
+  public DiningAccountResponse getAccount(String qrToken) {
+    DiningService.DiningOrderContext context = dining.resolveOrderContext(qrToken);
+    List<DiningOrderResponse> accountOrders = jdbc.query(
+      responseSelect() + " where o.dining_session_id = ? and o.channel = 'DINING_QR' order by o.created_at",
+      this::mapResponse,
+      context.sessionId()
+    );
+    BigDecimal total = accountOrders.stream()
+      .filter(order -> !"CANCELLED".equals(order.status()))
+      .map(DiningOrderResponse::total)
+      .reduce(BigDecimal.ZERO, BigDecimal::add);
+    String status = accountOrders.stream().anyMatch(order -> "PAYMENT_REQUESTED".equals(order.status()))
+      ? "PAYMENT_REQUESTED"
+      : accountOrders.stream().anyMatch(order -> "CREATED".equals(order.status())) ? "OPEN" : "PROCESSING";
+    if (accountOrders.isEmpty()) status = "EMPTY";
+    return new DiningAccountResponse(
+      context.sessionPublicId(), context.tableName(), context.customerName(), accountOrders, total, status
+    );
+  }
+
+  @Transactional
+  public DiningAccountResponse requestAccountPayment(String qrToken) {
+    DiningService.DiningOrderContext context = dining.resolveOrderContext(qrToken);
+    List<String> orderIds = jdbc.queryForList(
+      "select id from orders where dining_session_id = ? and channel = 'DINING_QR' and status = 'CREATED' for update",
+      String.class,
+      context.sessionId()
+    );
+    if (orderIds.isEmpty()) {
+      DiningAccountResponse current = getAccount(qrToken);
+      if (current.orders().stream().noneMatch(order -> "PAYMENT_REQUESTED".equals(order.status()))) {
+        throw new IllegalStateException("dining_account_has_no_open_orders");
+      }
+      return current;
+    }
+    jdbc.update(
+      """
+      update orders set status = 'PAYMENT_REQUESTED', payment_status = 'requested',
+        payment_requested_at = now(), updated_at = now()
+      where dining_session_id = ? and channel = 'DINING_QR' and status = 'CREATED'
+      """,
+      context.sessionId()
+    );
+    for (String orderId : orderIds) {
+      jdbc.update(
+        "insert into order_status_history(order_id, from_status, to_status, changed_by, reason) values (?, 'CREATED', 'PAYMENT_REQUESTED', 'customer', 'DINING_ACCOUNT_CLOSED')",
+        orderId
+      );
+      audit.log("customer", "DINING_PAYMENT_REQUESTED", "ORDER", orderId, Map.of("sessionId", context.sessionId()));
+      events.publish(orderId, orders.get(orderId));
+    }
+    dining.changeLight(context.kitId(), TableLightState.BLUE, "dining_account_closed", "customer");
+    return getAccount(qrToken);
   }
 
   public DiningOrderResponse getByPublicId(String qrToken, UUID publicOrderId) {

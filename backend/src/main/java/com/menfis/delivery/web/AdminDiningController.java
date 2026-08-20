@@ -3,6 +3,8 @@ package com.menfis.delivery.web;
 import com.menfis.delivery.dto.DiningDtos.DiningTableRequest;
 import com.menfis.delivery.dto.DiningDtos.DiningTableResponse;
 import com.menfis.delivery.dto.DiningDtos.LightRequest;
+import com.menfis.delivery.dto.DiningDtos.DiningStationRequest;
+import com.menfis.delivery.dto.DiningDtos.DiningStationResponse;
 import com.menfis.delivery.dto.DiningDtos.TableKitRequest;
 import com.menfis.delivery.dto.DiningDtos.TableKitResponse;
 import com.menfis.delivery.service.AuthService;
@@ -11,6 +13,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,6 +38,31 @@ public class AdminDiningController {
       @RequestHeader(name = "Authorization", required = false) String authorization) {
     auth.requireDiningManager(authorization);
     return dining.listTables();
+  }
+
+  @PostMapping("/stations")
+  public DiningStationResponse createStation(
+      @Valid @RequestBody DiningStationRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    var claims = auth.requireDiningManager(authorization);
+    return dining.createStation(request, claims.getSubject());
+  }
+
+  @PatchMapping("/stations/{tableId}")
+  public DiningStationResponse updateStation(
+      @PathVariable UUID tableId,
+      @Valid @RequestBody DiningStationRequest request,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    var claims = auth.requireDiningManager(authorization);
+    return dining.updateStation(tableId, request, claims.getSubject());
+  }
+
+  @DeleteMapping("/stations/{tableId}")
+  public void deleteStation(
+      @PathVariable UUID tableId,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    var claims = auth.requireDiningManager(authorization);
+    dining.deleteStation(tableId, claims.getSubject());
   }
 
   @PostMapping("/tables")
