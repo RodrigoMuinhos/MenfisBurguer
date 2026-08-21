@@ -60,8 +60,14 @@ const PRODUCT_ID_ALIASES: Record<string, string> = {
   "combo-coca-adicional": "coca-zero",
   "extra-maionese-alho-frito": "extra-molho",
   "extra-maionese-barbecue": "extra-molho",
-  "coca-zero": "cola",
+  cola: "coca-zero",
 };
+
+const COMBO_DRINK_SURCHARGE_ID = "combo-coca-adicional";
+const COMBO_DRINK_SURCHARGE_COST = 0.81;
+const DRINK_PRODUCT_IDS = new Set(
+  MENU_ITEMS.filter((item) => item.category === "bebida").map((item) => item.id),
+);
 
 const DASHBOARD_STOCK_MAP: Record<string, Array<{ stockId: string; qty: number }>> = {
   "double-burger": [
@@ -127,7 +133,9 @@ export function DashboardView({
   const revenue = billableOrders.reduce((sum, order) => sum + order.total, 0);
   const avgTicket = billableOrders.length ? revenue / billableOrders.length : 0;
   const productStats = buildProductStats(billableOrders, stockItems);
-  const topProduct = productStats[0];
+  const foodStats = productStats.filter((product) => !DRINK_PRODUCT_IDS.has(product.id));
+  const drinkStats = productStats.filter((product) => DRINK_PRODUCT_IDS.has(product.id));
+  const topProduct = foodStats[0];
   const totalEstimatedCost = productStats.reduce((sum, item) => sum + item.cost, 0);
   const totalCmv = revenue > 0 ? totalEstimatedCost / revenue : 0;
   const lowStock = stockItems.filter((item) => ["baixo", "zerado"].includes(getStatus(item)));
@@ -170,7 +178,7 @@ export function DashboardView({
           </div>
           <div className="grid min-w-[320px] grid-cols-2 gap-3">
             <HeroMetric label="Pedidos ativos" value={String(activeOrders.length)} icon={ClipboardList} />
-            <HeroMetric label="Produto líder" value={topProduct?.name ?? "-"} icon={ChefHat} />
+            <HeroMetric label="Alimento líder" value={topProduct?.name ?? "-"} icon={ChefHat} />
           </div>
         </div>
       </section>
@@ -182,14 +190,25 @@ export function DashboardView({
         <AdminMetric label="Clientes CRM" value={String(customers.length)} sub={`${crmAudience.length} com histórico`} icon={Users} />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.3fr_0.9fr]">
-        <Panel title="Produtos que mais saem" icon={TrendingUp}>
+      <section className="grid gap-5 xl:grid-cols-3">
+        <Panel title="Ranking de alimentos" icon={TrendingUp}>
           <div className="grid gap-3">
-            {productStats.slice(0, 7).map((product, index) => (
+            {foodStats.slice(0, 7).map((product, index) => (
               <ProductRow key={product.id} product={product} rank={index + 1} />
             ))}
-            {productStats.length === 0 && (
-              <EmptyState text="Ainda não há pedidos faturados para calcular ranking." />
+            {foodStats.length === 0 && (
+              <EmptyState text="Ainda não há alimentos faturados para calcular o ranking." />
+            )}
+          </div>
+        </Panel>
+
+        <Panel title="Ranking de bebidas" icon={TrendingUp}>
+          <div className="grid gap-3">
+            {drinkStats.slice(0, 7).map((product, index) => (
+              <ProductRow key={product.id} product={product} rank={index + 1} />
+            ))}
+            {drinkStats.length === 0 && (
+              <EmptyState text="Ainda não há bebidas faturadas para calcular o ranking." />
             )}
           </div>
         </Panel>
@@ -279,10 +298,13 @@ function buildProductStats(orders: Order[], stockItems: StockItem[]): ProductSta
 
   orders.forEach((order) => {
     order.items.forEach((item) => {
-      const productId = normalizeProductId(item.productId ?? item.id);
+      const rawProductId = normalizeKey(item.productId ?? item.id);
+      const productId = normalizeProductId(rawProductId);
       const qty = Number(item.qty ?? 0);
       const revenue = Number(item.price ?? 0) * qty;
-      const baseCost = pricingCosts.get(productId) ?? estimateProductUnitCost(productId, stockIndex);
+      const baseCost = rawProductId === COMBO_DRINK_SURCHARGE_ID
+        ? COMBO_DRINK_SURCHARGE_COST
+        : pricingCosts.get(productId) ?? estimateProductUnitCost(productId, stockIndex);
       const costUnit =
         baseCost +
         estimateAddonUnitCost(item.addonIds, stockIndex) +
