@@ -79,6 +79,7 @@ export function OrdersView({
   );
   const [selectedId, setSelectedId] = useState(orders[0]?.id ?? "");
   const [searchQuery, setSearchQuery] = useState("");
+  const [detailOpen, setDetailOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [editingOrderId, setEditingOrderId] = useState("");
   const [draftItems, setDraftItems] = useState<CartItem[]>([]);
@@ -132,6 +133,19 @@ export function OrdersView({
       setSelectedId(selected.id);
     }
   }, [selected?.id, selectedId]);
+  useEffect(() => {
+    if (!detailOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDetailOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [detailOpen]);
   const selectedPaymentStatus = String(selected?.paymentStatus ?? "").toLowerCase();
   const paymentRejected = [
     "rejected",
@@ -329,8 +343,8 @@ export function OrdersView({
           </p>
         </div>
       ) : (
-      <div className="grid gap-4 xl:grid-cols-[minmax(520px,1.45fr)_minmax(380px,0.8fr)] xl:items-start">
-        <div className="grid max-h-[calc(100dvh-190px)] min-h-0 gap-3 overflow-y-auto pr-1 md:grid-cols-2">
+      <div>
+        <div className="grid max-h-[calc(100dvh-190px)] min-h-0 gap-3 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
           {ORDER_BOARD_GROUPS.map((group) => {
             const groupOrders = filteredOrders.filter((order) => group.statuses.includes(order.status));
             return (
@@ -353,7 +367,15 @@ export function OrdersView({
                     const itemCount = order.items.reduce((sum, item) => sum + item.qty, 0);
                     return (
                       <div key={order.id} className="relative overflow-hidden rounded-xl bg-white" style={{ border: `1.5px solid ${selected.id === order.id ? stage.accent : stage.border}` }}>
-                        <button type="button" onClick={() => setSelectedId(order.id)} className="w-full p-3 text-left" style={{ background: selected.id === order.id ? stage.bg : "#fff" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedId(order.id);
+                            setDetailOpen(true);
+                          }}
+                          className="w-full p-3 text-left"
+                          style={{ background: selected.id === order.id ? stage.bg : "#fff" }}
+                        >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <strong className="block truncate text-sm" style={{ color: stage.text }}>{order.id}</strong>
@@ -397,8 +419,18 @@ export function OrdersView({
           })}
         </div>
 
+        {detailOpen && (
         <div
-          className="max-h-[calc(100dvh-190px)] overflow-y-auto rounded-2xl p-5"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-3 backdrop-blur-sm sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setDetailOpen(false);
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Detalhes do pedido ${selected.id}`}
+        >
+        <div
+          className="max-h-[94dvh] w-full max-w-5xl overflow-y-auto rounded-2xl p-5 shadow-2xl"
           style={{ border: `1.5px solid ${ROSA}`, background: "#fff" }}
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -414,6 +446,15 @@ export function OrdersView({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setDetailOpen(false)}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
+                style={{ background: `${VERDE}10`, color: VERDE, border: `1.5px solid ${VERDE}20` }}
+                aria-label="Fechar detalhes do pedido"
+              >
+                <XCircle size={16} /> Fechar
+              </button>
               <button
                 onClick={() => runAfterNextPaint(() => printOrderReceipts(selected, { confirm: false, browserFallback: false }))}
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
@@ -1025,6 +1066,8 @@ export function OrdersView({
             }
           `}</style>
         </div>
+        </div>
+        )}
       </div>
       )}
       {cancelTarget && (
