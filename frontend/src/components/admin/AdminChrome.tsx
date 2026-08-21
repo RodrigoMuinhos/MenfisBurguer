@@ -15,33 +15,48 @@ export function AdminHeader({
   activeOrders,
   onClose,
   onOpenConfig,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   activeOrders: number;
   onClose: () => void;
   onOpenConfig: () => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div
-      className="relative flex items-center gap-3 px-4 pb-4 pt-5"
+      className={`relative flex items-center gap-3 pb-4 pt-5 ${collapsed ? "justify-center px-2" : "px-4"}`}
       style={{ background: VERDE, borderBottom: `2px solid ${ROSA}22` }}
     >
-      <img
-        src="/logo_M.jpeg"
-        alt="Admin"
-        width={36}
-        height={36}
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: "50%",
-          objectFit: "cover",
-          background: "#fff",
-          border: `1.5px solid ${ROSA}55`,
-        }}
-      />
-      <div className="flex-1">
+      <button
+        type="button"
+        onClick={onToggleCollapsed}
+        disabled={!onToggleCollapsed}
+        aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+        aria-expanded={!collapsed}
+        title={collapsed ? "Expandir menu" : "Recolher menu"}
+        className="shrink-0 rounded-full disabled:cursor-default"
+        style={{ border: "none", padding: 0, background: "transparent", cursor: onToggleCollapsed ? "pointer" : "default" }}
+      >
+        <img
+          src="/logo_M.jpeg"
+          alt="Menfi's ERP"
+          width={36}
+          height={36}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            objectFit: "cover",
+            background: "#fff",
+            border: `1.5px solid ${ROSA}55`,
+          }}
+        />
+      </button>
+      {!collapsed && <div className="flex-1">
         <p
           className="font-black uppercase tracking-widest"
           style={{
@@ -58,8 +73,8 @@ export function AdminHeader({
           {activeOrders} pedido{activeOrders !== 1 ? "s" : ""} ativo
           {activeOrders !== 1 ? "s" : ""}
         </p>
-      </div>
-      <div className="relative">
+      </div>}
+      {!collapsed && <div className="relative">
         <button
           onClick={() => setMenuOpen((open) => !open)}
           className="inline-flex h-12 w-12 items-center justify-center rounded-full"
@@ -99,7 +114,7 @@ export function AdminHeader({
             </button>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
@@ -109,23 +124,27 @@ export function AdminTabs({
   tab,
   tabCount,
   onChange,
+  collapsed = false,
 }: {
   tabs: AdminTabItem[];
   tab: AdminTab;
   tabCount: Partial<Record<AdminTab, number>>;
   onChange: (tab: AdminTab) => void;
+  collapsed?: boolean;
 }) {
   const mobileTabs = new Set<AdminTab>(["dashboard", "pedidos", "cozinha", "estoque", "custos", "fidelidade", "lemonade"]);
   return (
     <div
-      className="flex overflow-x-auto lg:flex-col lg:gap-1 lg:px-3 lg:pb-3"
+      className={`flex overflow-x-auto lg:flex-col lg:gap-1 lg:pb-3 ${collapsed ? "lg:px-2 lg:pt-3" : "lg:px-3"}`}
       style={{ background: VERDE, borderBottom: `2px solid ${ROSA}22` }}
     >
       {tabs.map(({ id, label, Icon }) => (
         <button
           key={id}
           onClick={() => onChange(id)}
-          className={`${mobileTabs.has(id) ? "flex" : "hidden lg:flex"} min-w-[94px] flex-1 items-center justify-center gap-2 px-3 py-3 text-[11px] font-black uppercase tracking-wider lg:min-w-0 lg:flex-none lg:justify-start lg:rounded-2xl lg:px-4 lg:py-3.5`}
+          title={collapsed ? label : undefined}
+          aria-label={label}
+          className={`${mobileTabs.has(id) ? "flex" : "hidden lg:flex"} min-w-[94px] flex-1 items-center justify-center gap-2 px-3 py-3 text-[11px] font-black uppercase tracking-wider lg:min-w-0 lg:flex-none lg:rounded-2xl lg:py-3.5 ${collapsed ? "lg:justify-center lg:px-2" : "lg:justify-start lg:px-4"}`}
           style={{
             background: tab === id ? ROSA : "transparent",
             color: tab === id ? VERDE : `${ROSA}60`,
@@ -134,9 +153,9 @@ export function AdminTabs({
             transition: "background-color 0.15s ease, color 0.15s ease",
           }}
         >
-          <Icon size={13} strokeWidth={2} />
-          {label}
-          {Number(tabCount[id] ?? 0) > 0 && (
+          <Icon size={collapsed ? 18 : 13} strokeWidth={2} />
+          {!collapsed && label}
+          {!collapsed && Number(tabCount[id] ?? 0) > 0 && (
             <span
               className="flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-[10px] font-black"
               style={{

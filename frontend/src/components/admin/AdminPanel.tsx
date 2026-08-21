@@ -168,6 +168,9 @@ export function AdminPanel({
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
   const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
   const [lemonadeSettings, setLemonadeSettings] = useState<LemonadeSettings>(DEFAULT_LEMONADE_SETTINGS);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("menfis_admin_sidebar_collapsed") === "1",
+  );
 
   const [stockItems, setStockItems] = useState<StockItem[]>(INITIAL_ITEMS);
   const [stockMovements, setStockMovements] = useState<Movement[]>([]);
@@ -259,6 +262,14 @@ export function AdminPanel({
       return;
     }
     await updateOrderStatus(id, status);
+  };
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      localStorage.setItem("menfis_admin_sidebar_collapsed", next ? "1" : "0");
+      return next;
+    });
   };
 
   const handleDeleteOrder = async (id: string) => {
@@ -890,19 +901,28 @@ export function AdminPanel({
     >
       <div className={kitchenOnly ? "" : "lg:flex lg:min-h-dvh"}>
         {!kitchenOnly && (
-          <aside className="hidden w-72 shrink-0 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col" style={{ background: VERDE }}>
+          <aside
+            className={`${sidebarCollapsed ? "w-20" : "w-72"} hidden shrink-0 transition-[width] duration-200 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col`}
+            style={{ background: VERDE }}
+          >
             <AdminHeader
               activeOrders={activeOrders}
               onClose={onClose}
               onOpenConfig={() => changeTab("config")}
+              collapsed={sidebarCollapsed}
+              onToggleCollapsed={toggleSidebar}
             />
-            <p className="px-5 pb-2 pt-4 text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: `${ROSA}75` }}>
-              Gestão da operação
-            </p>
-            <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={changeTab} />
-            <p className="mt-auto p-5 text-xs font-semibold leading-relaxed" style={{ color: `${ROSA}80` }}>
-              Da entrada do pedido ao pós-venda, em uma única operação.
-            </p>
+            {!sidebarCollapsed && (
+              <p className="px-5 pb-2 pt-4 text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: `${ROSA}75` }}>
+                Gestão da operação
+              </p>
+            )}
+            <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={changeTab} collapsed={sidebarCollapsed} />
+            {!sidebarCollapsed && (
+              <p className="mt-auto p-5 text-xs font-semibold leading-relaxed" style={{ color: `${ROSA}80` }}>
+                Da entrada do pedido ao pós-venda, em uma única operação.
+              </p>
+            )}
           </aside>
         )}
         <main className={kitchenOnly ? "" : "min-w-0 flex-1"}>
