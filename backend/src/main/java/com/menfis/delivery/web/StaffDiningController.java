@@ -11,6 +11,7 @@ import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.DiningOrderService;
 import com.menfis.delivery.service.DiningService;
 import jakarta.validation.Valid;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import java.util.UUID;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@ConditionalOnProperty(name = "menfis.features.dining-enabled", havingValue = "true")
 @RequestMapping("/api/staff/dining")
 public class StaffDiningController {
   private final DiningService dining;
