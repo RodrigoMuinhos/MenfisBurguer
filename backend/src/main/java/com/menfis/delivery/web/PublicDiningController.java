@@ -8,6 +8,7 @@ import com.menfis.delivery.dto.DiningDtos.DiningAccountResponse;
 import com.menfis.delivery.service.DiningOrderService;
 import com.menfis.delivery.service.DiningService;
 import jakarta.validation.Valid;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
+@ConditionalOnProperty(name = "menfis.features.dining-enabled", havingValue = "true")
 @RequestMapping("/api/public/dining/kits")
 public class PublicDiningController {
   private final DiningService dining;

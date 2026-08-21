@@ -78,6 +78,9 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
+const DINING_FEATURE_ENABLED =
+  process.env.NEXT_PUBLIC_DINING_FEATURE_ENABLED === "true";
+
 export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "salao" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "lemonade" | "suporte" | "cupons" | "resultados" | "meta" | "monitoramento" | "config";
 
 function adminHeaders(adminToken: string, json = false) {
@@ -118,9 +121,12 @@ export function AdminPanel({
   kitchenOnly = false,
 }: Props) {
   const [tab, setTab] = useState<AdminTab>(() => {
+    if (!DINING_FEATURE_ENABLED && initialTab === "salao") return "dashboard";
     if (kitchenOnly || typeof window === "undefined") return initialTab;
     const stored = localStorage.getItem("menfis_admin_tab") as AdminTab | null;
-    return stored ?? initialTab;
+    return !DINING_FEATURE_ENABLED && stored === "salao"
+      ? "dashboard"
+      : stored ?? initialTab;
   });
   const [, startTabTransition] = useTransition();
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
@@ -213,7 +219,9 @@ export function AdminPanel({
     { id: "pedidos", label: "Pedidos", Icon: ClipboardList },
     { id: "cozinha", label: "Cozinha", Icon: ChefHat },
     { id: "notas", label: "Notas", Icon: ClipboardCheck },
-    { id: "salao", label: "Salão PDV", Icon: Armchair },
+    ...(DINING_FEATURE_ENABLED
+      ? [{ id: "salao" as const, label: "Salão PDV", Icon: Armchair }]
+      : []),
     { id: "entrega", label: "Entrega", Icon: Bike },
     { id: "estoque", label: "Estoque", Icon: Package },
     { id: "custos", label: "Custos e Precificação", Icon: Calculator },
@@ -953,7 +961,9 @@ export function AdminPanel({
             demoTableEnabled={demoTableEnabled}
           />
         )}
-        {tab === "salao" && <DiningManagementView adminToken={adminToken} />}
+        {DINING_FEATURE_ENABLED && tab === "salao" && (
+          <DiningManagementView adminToken={adminToken} />
+        )}
         {tab === "dashboard" && (
           <DashboardView
             orders={visibleOrders}
