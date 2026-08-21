@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BellRing, Check, FileText, MessageCircle, Minus, Pencil, Phone, Plus, Printer, Save, Trash2, XCircle } from "lucide-react";
+import { BellRing, Check, FileText, MessageCircle, Minus, Pencil, Phone, Plus, Printer, Save, Search, Trash2, XCircle } from "lucide-react";
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { DELIVERY_FEE } from "@/components/order/checkout";
@@ -28,6 +28,22 @@ const PREPARATION_STARTED_STATUSES: OrderStatus[] = [
   "READY",
   "OUT_FOR_DELIVERY",
   "DELIVERED",
+];
+
+const ORDER_BOARD_GROUPS: Array<{
+  id: string;
+  label: string;
+  statuses: OrderStatus[];
+}> = [
+  {
+    id: "waiting",
+    label: "Aguardando",
+    statuses: ["CREATED", "PAYMENT_REQUESTED", "PAYMENT_PENDING", "PAYMENT_PROOF_PENDING"],
+  },
+  { id: "preparing", label: "Em preparo", statuses: ["PAID", "ACCEPTED", "IN_PREPARATION"] },
+  { id: "ready", label: "Prontos", statuses: ["READY"] },
+  { id: "route", label: "Em rota", statuses: ["PICKED_UP", "OUT_FOR_DELIVERY"] },
+  { id: "finished", label: "Finalizados", statuses: ["DELIVERED", "CANCELLED"] },
 ];
 
 function runAfterNextPaint(callback: () => void) {
@@ -62,6 +78,7 @@ export function OrdersView({
     "ALL",
   );
   const [selectedId, setSelectedId] = useState(orders[0]?.id ?? "");
+  const [searchQuery, setSearchQuery] = useState("");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [editingOrderId, setEditingOrderId] = useState("");
   const [draftItems, setDraftItems] = useState<CartItem[]>([]);
@@ -87,11 +104,22 @@ export function OrdersView({
       setSelectedDate(availableDates[0]);
     }
   }, [availableDates, selectedDate]);
-  const filteredOrders = orders.filter(
-    (order) =>
+  const normalizedSearch = searchQuery.trim().toLocaleLowerCase("pt-BR");
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch = !normalizedSearch || [
+      order.id,
+      String(order.number ?? ""),
+      order.customerName,
+      order.customerPhone,
+      order.customerAddress,
+      ...order.items.map((item) => item.name),
+    ].some((value) => String(value ?? "").toLocaleLowerCase("pt-BR").includes(normalizedSearch));
+    return (
       (!selectedDate || localDateKey(order.timestamp) === selectedDate) &&
-      (channelFilter === "ALL" || order.channel === channelFilter),
-  );
+      (channelFilter === "ALL" || order.channel === channelFilter) &&
+      matchesSearch
+    );
+  });
   const selected =
     filteredOrders.find((order) => order.id === selectedId) ??
     filteredOrders[0];
@@ -252,7 +280,17 @@ export function OrdersView({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3" style={{ border: `1px solid ${VERDE}18` }}>
+        <label className="flex min-h-10 min-w-[220px] flex-1 items-center gap-2 rounded-xl px-3" style={{ border: `1px solid ${VERDE}22`, color: VERDE }}>
+          <Search size={16} strokeWidth={2.3} />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Buscar pedido, cliente, telefone ou item"
+            className="min-w-0 flex-1 bg-transparent text-xs font-bold outline-none placeholder:opacity-45"
+          />
+        </label>
         <div className="flex gap-2">
           {(["ALL", "DELIVERY", "KIOSK"] as const).map((channel) => (
             <button
@@ -269,7 +307,7 @@ export function OrdersView({
             </button>
           ))}
         </div>
-        <label className="ml-auto flex min-h-10 items-center gap-2 rounded-full px-3 text-xs font-black uppercase" style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}22` }}>
+        <label className="flex min-h-10 items-center gap-2 rounded-xl px-3 text-xs font-black uppercase" style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}22` }}>
           Data
           <input
             type="date"
@@ -291,100 +329,70 @@ export function OrdersView({
           </p>
         </div>
       ) : (
-      <div className="grid gap-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(360px,1.2fr)] lg:items-start">
-        <div className="flex max-h-[calc(100dvh-190px)] min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-          {filteredOrders.map((order) => {
-            const stage = STAGE_COLOR[order.status];
-            const createdAt = new Date(order.timestamp);
-            const ageMinutes = Math.max(
-              0,
-              Math.round(((order.completedAt ?? Date.now()) - order.timestamp) / 60000),
-            );
-            const itemsPreview = order.items
-              .slice(0, 2)
-              .map((item) => `${item.qty}x ${item.name}`)
-              .join(" · ");
+      <div className="grid gap-4 xl:grid-cols-[minmax(520px,1.45fr)_minmax(380px,0.8fr)] xl:items-start">
+        <div className="grid max-h-[calc(100dvh-190px)] min-h-0 gap-3 overflow-y-auto pr-1 md:grid-cols-2">
+          {ORDER_BOARD_GROUPS.map((group) => {
+            const groupOrders = filteredOrders.filter((order) => group.statuses.includes(order.status));
             return (
-              <div
-                key={order.id}
-                className="grid min-h-[138px] grid-cols-[minmax(0,1fr)_auto] items-stretch overflow-hidden rounded-xl"
-                style={{
-                  background: selected.id === order.id ? stage.bg : "#fff",
-                  border: `1.5px solid ${selected.id === order.id ? stage.accent : stage.border}`,
-                }}
+              <section
+                key={group.id}
+                className={`min-h-48 rounded-2xl p-3 ${group.id === "finished" ? "md:col-span-2" : ""}`}
+                style={{ background: "#F7F7F6", border: `1px solid ${VERDE}12` }}
               >
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(order.id)}
-                  className="min-h-[138px] min-w-0 p-4 text-left"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <strong className="text-base" style={{ color: stage.text }}>{order.id}</strong>
-                    <span
-                      className="text-[10px] font-black uppercase"
-                      style={{ color: stage.text }}
-                    >
-                      {orderStageLabel(order)}
-                    </span>
-                  </div>
-                  <div className="mt-2 grid gap-1 text-xs font-bold" style={{ color: VERDE }}>
-                    <p>
-                      {isKioskMobOrder(order) ? "BALCÃO" : order.channel} · {fmt(order.total)}
-                    </p>
-                    <p className="truncate">
-                      {order.customerName || "Sem nome"} · {order.customerPhone || "Sem telefone"}
-                    </p>
-                    <p className="truncate opacity-75">
-                      {createdAt.toLocaleDateString("pt-BR")} · {createdAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · {ageMinutes} min
-                    </p>
-                    {itemsPreview && (
-                      <p className="line-clamp-2 text-[11px] opacity-80">
-                        {itemsPreview}
-                      </p>
-                    )}
-                  </div>
-                  {order.deliveryType === "delivery" && !isKioskMobOrder(order) && (
-                    <p className="mt-1 line-clamp-3 whitespace-pre-line text-[11px] font-bold" style={{ color: `${VERDE}99` }}>
-                      {formatAddressForReceipt(order.customerAddress || "Endereço não informado")}
-                    </p>
+                <div className="mb-3 flex items-center justify-between gap-2 px-1">
+                  <h2 className="text-xs font-black uppercase tracking-wide" style={{ color: VERDE }}>{group.label}</h2>
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-[10px] font-black" style={{ background: VERDE, color: "#fff" }}>
+                    {groupOrders.length}
+                  </span>
+                </div>
+                <div className={`grid gap-2 ${group.id === "finished" ? "lg:grid-cols-2" : ""}`}>
+                  {groupOrders.map((order) => {
+                    const stage = STAGE_COLOR[order.status];
+                    const createdAt = new Date(order.timestamp);
+                    const ageMinutes = Math.max(0, Math.round(((order.completedAt ?? Date.now()) - order.timestamp) / 60000));
+                    const itemCount = order.items.reduce((sum, item) => sum + item.qty, 0);
+                    return (
+                      <div key={order.id} className="relative overflow-hidden rounded-xl bg-white" style={{ border: `1.5px solid ${selected.id === order.id ? stage.accent : stage.border}` }}>
+                        <button type="button" onClick={() => setSelectedId(order.id)} className="w-full p-3 text-left" style={{ background: selected.id === order.id ? stage.bg : "#fff" }}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <strong className="block truncate text-sm" style={{ color: stage.text }}>{order.id}</strong>
+                              <p className="mt-0.5 truncate text-[11px] font-bold" style={{ color: VERDE }}>{order.customerName || "Cliente não informado"}</p>
+                            </div>
+                            <strong className="shrink-0 text-sm" style={{ color: VERDE }}>{fmt(order.total)}</strong>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-black uppercase" style={{ color: `${VERDE}AA` }}>
+                            <span>{createdAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                            <span>{ageMinutes} min</span>
+                            <span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
+                            <span>{isKioskMobOrder(order) ? "Balcão" : order.deliveryType === "delivery" ? "Entrega" : "Retirada"}</span>
+                          </div>
+                          <p className="mt-2 truncate text-[11px] font-bold opacity-65" style={{ color: VERDE }}>
+                            {order.items.slice(0, 2).map((item) => `${item.qty}x ${item.name}`).join(" · ")}
+                          </p>
+                        </button>
+                        {["CANCELLED", "DELIVERED"].includes(order.status) && (
+                          <div className="flex justify-end gap-1 border-t p-1" style={{ borderColor: stage.border }}>
+                            {order.status === "CANCELLED" && (
+                              <button type="button" onClick={() => runAfterNextPaint(() => updateOrderStatus(order.id, "ACCEPTED"))} className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ color: "#166534", background: "#DCFCE7" }} aria-label={`Reverter pedido ${order.id}`} title="Reverter pedido">
+                                <Check size={15} strokeWidth={2.6} />
+                              </button>
+                            )}
+                            <button type="button" onClick={() => confirmDeleteFinished(order)} className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ color: "#991B1B", background: "#FEF2F2" }} aria-label={`Excluir pedido ${order.id}`} title="Excluir pedido">
+                              <Trash2 size={15} strokeWidth={2.4} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {groupOrders.length === 0 && (
+                    <div className="flex min-h-28 items-center justify-center rounded-xl border border-dashed bg-white px-4 text-center text-[11px] font-bold opacity-45" style={{ color: VERDE, borderColor: `${VERDE}30` }}>
+                      Nenhum pedido em {group.label.toLocaleLowerCase("pt-BR")}.
+                    </div>
                   )}
-                </button>
-                {["CANCELLED", "DELIVERED"].includes(order.status) && (
-                  <div className="grid w-12 grid-rows-2 border-l" style={{ borderColor: stage.border }}>
-                    {order.status === "CANCELLED" ? (
-                      <button
-                        type="button"
-                        onClick={() => runAfterNextPaint(() => updateOrderStatus(order.id, "ACCEPTED"))}
-                        className="flex items-center justify-center"
-                        style={{
-                          color: "#166534",
-                          background: "#DCFCE7",
-                          borderBottom: `1px solid ${stage.border}`,
-                        }}
-                        aria-label={`Reverter e aceitar pedido ${order.id}`}
-                        title="Reverter e aceitar pedido"
-                      >
-                        <Check size={17} strokeWidth={2.6} />
-                      </button>
-                    ) : (
-                      <span style={{ borderBottom: `1px solid ${stage.border}` }} />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => confirmDeleteFinished(order)}
-                      className="flex items-center justify-center"
-                      style={{
-                        color: "#991B1B",
-                        background: "#FEF2F2",
-                      }}
-                      aria-label={`Excluir pedido ${order.id}`}
-                      title={order.status === "DELIVERED" ? "Excluir pedido entregue" : "Excluir pedido cancelado"}
-                    >
-                      <Trash2 size={17} strokeWidth={2.4} />
-                    </button>
-                  </div>
-                )}
-              </div>
+                </div>
+              </section>
             );
           })}
         </div>
