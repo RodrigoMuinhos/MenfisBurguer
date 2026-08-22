@@ -344,13 +344,13 @@ export function OrdersView({
         </div>
       ) : (
       <div>
-        <div className="grid max-h-[calc(100dvh-190px)] min-h-0 gap-3 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid min-h-0 gap-3 pr-1 md:h-[calc(100dvh-120px)] md:grid-cols-2 md:grid-rows-3 xl:grid-cols-3 xl:grid-rows-2">
           {ORDER_BOARD_GROUPS.map((group) => {
             const groupOrders = filteredOrders.filter((order) => group.statuses.includes(order.status));
             return (
               <section
                 key={group.id}
-                className={`min-h-48 rounded-2xl p-3 ${group.id === "finished" ? "md:col-span-2" : ""}`}
+                className={`flex min-h-48 min-w-0 flex-col overflow-hidden rounded-2xl p-3 ${group.id === "finished" ? "md:col-span-2" : ""}`}
                 style={{ background: "#F7F7F6", border: `1px solid ${VERDE}12` }}
               >
                 <div className="mb-3 flex items-center justify-between gap-2 px-1">
@@ -359,7 +359,7 @@ export function OrdersView({
                     {groupOrders.length}
                   </span>
                 </div>
-                <div className={`grid gap-2 ${group.id === "finished" ? "lg:grid-cols-2" : ""}`}>
+                <div className={`grid min-h-0 flex-1 content-start gap-2 overflow-y-auto pr-1 ${group.id === "finished" ? "lg:grid-cols-2" : ""}`}>
                   {groupOrders.map((order) => {
                     const stage = STAGE_COLOR[order.status];
                     const createdAt = new Date(order.timestamp);
