@@ -299,15 +299,14 @@ export function CartBagStepSection({
 
 function buildHeroSuggestions(cart: CartItem[]): SuggestedExtra[] {
   const cartIds = new Set(cart.map((item) => item.id));
-  const nuggetsOnly = DEFAULT_SUGGESTIONS.filter((item) => item.id.includes("nuggets"));
-  const garlicMayo = EXTRA_SUGGESTIONS.find((item) => item.id === "extra-maionese-alho-frito")!;
+  const friesOnly = DEFAULT_SUGGESTIONS.filter((item) =>
+    item.id.startsWith("batata"),
+  );
 
-  // O hero tem sempre três páginas: nugget, molho e doce.
-  return [
-    pickAvailable(nuggetsOnly, cartIds) ?? nuggetsOnly[0],
-    garlicMayo,
-    pickAvailable(SWEET_SUGGESTIONS, cartIds) ?? SWEET_SUGGESTIONS[0],
-  ];
+  // O carrossel da sacola oferece somente as três famílias principais.
+  return [BURGER_SUGGESTIONS, DRINK_SUGGESTIONS, friesOnly].map(
+    (group) => pickAvailable(group, cartIds) ?? group[0],
+  );
 }
 
 function buildUpsellSuggestions(cart: CartItem[]): SuggestedExtra[] {
