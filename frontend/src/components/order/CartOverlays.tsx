@@ -1,67 +1,11 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
-import QRCode from "qrcode";
-import { CheckCircle2, CircleX, CreditCard, Loader2, QrCode } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, Loader2, QrCode, Store } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { printOrderReceipts } from "@/components/admin/shared";
-import { KioskKeyboardTarget, PaymentMethod } from "./checkout";
+import { KIOSK_PIX_CODE, KIOSK_PIX_TIMEOUT_SECONDS, KioskKeyboardTarget, PaymentMethod, pixCodeWithAmount } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
-import type { CounterTerminalMethod } from "./cartFinalize";
-import type { TerminalPaymentProgress } from "./cartFinalize";
-
-const TERMINAL_ERROR_STATUSES = new Set([
-  "DECLINED",
-  "CANCELLED",
-  "TIMEOUT",
-  "TERMINAL_DISCONNECTED",
-  "COMMUNICATION_ERROR",
-]);
-
-function terminalProgressMessage(progress: TerminalPaymentProgress) {
-  const raw = String(progress.message ?? "").trim();
-  const normalized = raw.toLocaleLowerCase("pt-BR");
-  const safeLiveMessage =
-    raw.length >= 3 &&
-    raw.length <= 120 &&
-    /[a-zá-ú]/i.test(raw) &&
-    !/\d{6,}/.test(raw) &&
-    !/^[0-9a-f;]+$/i.test(raw);
-  if (normalized.includes("senha")) return safeLiveMessage ? raw : "Digite sua senha no terminal de pagamento.";
-  if (
-    normalized.includes("aproxime") ||
-    normalized.includes("insira") ||
-    normalized.includes("passe o cart")
-  ) {
-    return safeLiveMessage ? raw : "Aproxime, insira ou passe o cartão no terminal.";
-  }
-  if (normalized.includes("retire") && normalized.includes("cart")) {
-    return safeLiveMessage ? raw : "Retire o cartão do terminal.";
-  }
-  if (normalized.includes("process") || normalized.includes("aguarde")) {
-    return safeLiveMessage ? raw : "Aguarde. O pagamento está sendo processado.";
-  }
-  if (normalized.includes("conect")) return safeLiveMessage ? raw : "Conectando ao sistema de pagamento.";
-  if (progress.status === "APPROVED") return "Pagamento aprovado.";
-  if (progress.status === "CANCELLED") {
-    return "A operação foi encerrada na maquininha e o pedido foi cancelado.";
-  }
-  return "Siga as instruções exibidas no terminal de pagamento.";
-}
-
-function terminalProgressTitle(progress: TerminalPaymentProgress) {
-  if (progress.status === "APPROVED") return "Pagamento aprovado";
-  if (progress.status === "DECLINED") return "Pagamento negado";
-  if (progress.status === "CANCELLED") return "Operação cancelada";
-  if (progress.status === "TIMEOUT") return "Tempo da etapa encerrado";
-  if (progress.status === "COMMUNICATION_ERROR") return "Pagamento não concluído";
-  if (progress.status === "WAITING_TERMINAL") return "Preparando terminal";
-  const message = terminalProgressMessage(progress);
-  if (message.startsWith("Digite")) return "Digite a senha";
-  if (message.startsWith("Aproxime")) return "Apresente o cartão";
-  if (message.startsWith("Retire")) return "Retire o cartão";
-  return "Pagamento em andamento";
-}
 
 export function CartOverlays({
   kioskSuccessOpen,
@@ -70,7 +14,6 @@ export function CartOverlays({
   counterServiceMode = false,
   payment,
   paymentSlow,
-  terminalPaymentProgress = null,
   kioskKeyboardOpen,
   kioskKeyboardTarget,
   typeKioskKey,
@@ -94,7 +37,6 @@ export function CartOverlays({
   counterServiceMode?: boolean;
   payment: PaymentMethod;
   paymentSlow: boolean;
-  terminalPaymentProgress?: TerminalPaymentProgress | null;
   kioskKeyboardOpen: boolean;
   kioskKeyboardTarget: KioskKeyboardTarget;
   typeKioskKey: (key: string) => void;
@@ -107,141 +49,79 @@ export function CartOverlays({
   counterCustomerNamePromptOpen?: boolean;
   counterCustomerNameDraft?: string;
   kioskSuccessOrder?: Order | null;
-  onConfirmCounterPayment?: (method: CounterTerminalMethod) => void;
+  onConfirmCounterPayment?: (method: "pix" | "atendente") => void;
   setCounterCustomerNameDraft?: (value: string) => void;
   onConfirmCounterCustomerName?: () => void;
   onCloseKioskSuccess?: () => void;
 }) {
-  const [counterPaymentMethod, setCounterPaymentMethod] = useState<CounterTerminalMethod | null>(null);
-  const [now, setNow] = useState(Date.now());
-  const [sitefOpen, setSitefOpen] = useState(false);
-  const [sitefPassword, setSitefPassword] = useState("");
-  const [sitefAuthorized, setSitefAuthorized] = useState(false);
-  const [sitefLoading, setSitefLoading] = useState(false);
-  const [sitefMessage, setSitefMessage] = useState("");
-  const [sitefOnline, setSitefOnline] = useState(false);
-  const [terminalCancelling, setTerminalCancelling] = useState(false);
-  const [terminalQrImage, setTerminalQrImage] = useState("");
-  const [terminalCancelConfirm, setTerminalCancelConfirm] = useState(false);
+  const [counterPaymentMethod, setCounterPaymentMethod] = useState<"pix" | "atendente" | null>(null);
+  const [counterPixSeconds, setCounterPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
+  const [counterPixCompleted, setCounterPixCompleted] = useState(false);
+  const [receiptPrintStep, setReceiptPrintStep] = useState<"idle" | "printing" | "printed" | "completed" | "error">("idle");
+  const [successSecondsLeft, setSuccessSecondsLeft] = useState(10);
+  const automaticPrintOrderRef = useRef("");
   const successTotal = kioskSuccessOrder
     ? Number(kioskSuccessOrder.total || kioskSuccessOrder.items.reduce((sum, item) => sum + item.price * item.qty, 0))
     : 0;
-  const rawCallName = String(kioskSuccessOrder?.customerName ?? "").trim();
-  const callName = rawCallName.toUpperCase().replace(/_/g, "-") === "KIOSK-MOB" ? "" : rawCallName;
+  const callName = String(kioskSuccessOrder?.customerName ?? "").trim();
   const canConfirmCounterName = counterCustomerNameDraft.trim().length >= 2;
   const formatMoney = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  const handleKioskReceiptPrint = async (retry = false) => {
+    if (!kioskSuccessOrder || (!retry && receiptPrintStep !== "idle")) return;
+    setReceiptPrintStep("printing");
+    const printed = await printOrderReceipts(kioskSuccessOrder, {
+      confirm: false,
+      browserFallback: false,
+    });
+    if (!printed) {
+      setReceiptPrintStep("error");
+      return;
+    }
+    setReceiptPrintStep("printed");
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    setSuccessSecondsLeft(10);
+    setReceiptPrintStep("completed");
+    await new Promise((resolve) => window.setTimeout(resolve, 10000));
+    setReceiptPrintStep("idle");
+    onCloseKioskSuccess?.();
+  };
+
+  useEffect(() => {
+    if (!kioskSuccessOpen || (!counterServiceMode && !kioskMode) || !kioskSuccessOrder) return;
+    if (automaticPrintOrderRef.current === kioskSuccessOrder.id) return;
+    automaticPrintOrderRef.current = kioskSuccessOrder.id;
+    void handleKioskReceiptPrint();
+  }, [counterServiceMode, kioskMode, kioskSuccessOpen, kioskSuccessOrder?.id]);
+
+  useEffect(() => {
+    if (receiptPrintStep !== "completed" || successSecondsLeft <= 0) return;
+    const timer = window.setTimeout(
+      () => setSuccessSecondsLeft((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [receiptPrintStep, successSecondsLeft]);
+
   useEffect(() => {
     if (!counterPaymentPromptOpen) {
       setCounterPaymentMethod(null);
+      setCounterPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
+      setCounterPixCompleted(false);
       return;
     }
-  }, [counterPaymentPromptOpen]);
-
-  useEffect(() => {
-    if (!terminalPaymentProgress) {
-      setTerminalCancelConfirm(false);
-      setTerminalCancelling(false);
+    if (counterPaymentMethod !== "pix" || counterPixCompleted) return;
+    if (counterPixSeconds <= 0) {
+      setCounterPixCompleted(true);
       return;
     }
-    if (TERMINAL_ERROR_STATUSES.has(terminalPaymentProgress.status)) {
-      setTerminalCancelConfirm(false);
-    }
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [terminalPaymentProgress]);
-
-  useEffect(() => {
-    const payload = terminalPaymentProgress?.qrCode?.trim();
-    if (!payload) {
-      setTerminalQrImage("");
-      return;
-    }
-    let active = true;
-    QRCode.toDataURL(payload, { width: 280, margin: 2, errorCorrectionLevel: "M" })
-      .then((image) => active && setTerminalQrImage(image))
-      .catch(() => active && setTerminalQrImage(""));
-    return () => {
-      active = false;
-    };
-  }, [terminalPaymentProgress?.qrCode]);
-
-  useEffect(() => {
-    const open = () => {
-      setSitefOpen(true);
-      setSitefPassword("");
-      setSitefAuthorized(false);
-      setSitefMessage("");
-    };
-    const keydown = (event: KeyboardEvent) => {
-      if (event.key === "F3") {
-        event.preventDefault();
-        open();
-      }
-    };
-    window.addEventListener("keydown", keydown);
-    const desktop = (window as Window & {
-      kioskMenfis?: { onOpenSitef?: (callback: () => void) => () => void };
-    }).kioskMenfis;
-    const unsubscribe = desktop?.onOpenSitef?.(open);
-    return () => {
-      window.removeEventListener("keydown", keydown);
-      unsubscribe?.();
-    };
-  }, []);
-
-  const remainingSeconds = terminalPaymentProgress
-    ? Math.max(0, 60 - Math.floor((now - terminalPaymentProgress.stageStartedAt) / 1000))
-    : 0;
-  const remainingLabel = String(remainingSeconds);
-
-  const unlockSitef = async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8180";
-    const valid = await fetch(`${apiUrl}/settings/sitef-supervisor/verify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: sitefPassword }),
-    })
-      .then((response) => response.ok ? response.json() : null)
-      .then((body) => body?.valid === true)
-      .catch(() => false);
-    if (!valid) {
-      setSitefMessage("Senha inválida.");
-      return;
-    }
-    setSitefAuthorized(true);
-    setSitefMessage("Consultando o serviço...");
-    const desktop = (window as Window & {
-      kioskMenfis?: { sitefStatus?: () => Promise<{ online: boolean; message: string }> };
-    }).kioskMenfis;
-    const status = desktop?.sitefStatus
-      ? await desktop.sitefStatus()
-      : await fetch("http://127.0.0.1:8081/api/terminal/availability")
-          .then((response) => response.ok ? response.json() : null)
-          .then((body) => ({
-            online: body?.available === true && body?.mode === "REAL",
-            message: body?.message || "SiTef Bridge indisponível",
-          }))
-          .catch(() => ({ online: false, message: "SiTef Bridge indisponível" }));
-    setSitefOnline(status?.online === true);
-    setSitefMessage(status?.message ?? "SiTef Bridge indisponível.");
-  };
-
-  const startSitef = async () => {
-    setSitefLoading(true);
-    setSitefMessage("Ligando o SiTef Bridge...");
-    const desktop = (window as Window & {
-      kioskMenfis?: {
-        startSitef?: (password: string) => Promise<{ ok: boolean; online?: boolean; message?: string; error?: string }>;
-      };
-    }).kioskMenfis;
-    const result = await desktop?.startSitef?.(sitefPassword);
-    setSitefLoading(false);
-    setSitefOnline(result?.ok === true && result?.online !== false);
-    setSitefMessage(result?.message ?? result?.error ?? "Não foi possível ligar o SiTef Bridge.");
-  };
+    const timer = window.setTimeout(
+      () => setCounterPixSeconds((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [counterPaymentMethod, counterPaymentPromptOpen, counterPixCompleted, counterPixSeconds]);
 
   return (
     <>
@@ -333,10 +213,8 @@ export function CartOverlays({
                         <div className="mx-auto mt-5 grid max-w-md gap-3 sm:grid-cols-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              printOrderReceipts(kioskSuccessOrder, { confirm: false });
-                              onCloseKioskSuccess?.();
-                            }}
+                            onClick={() => void handleKioskReceiptPrint()}
+                            disabled={receiptPrintStep !== "idle"}
                             className="min-h-14 rounded-2xl px-4 text-sm font-black uppercase tracking-wide"
                             style={{ background: VERDE, color: ROSA }}
                           >
@@ -363,6 +241,120 @@ export function CartOverlays({
                           cozinha.
                         </p>
                       </>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {receiptPrintStep !== "idle" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[95] flex items-center justify-center px-6"
+                  style={{ background: "rgba(255,255,255,0.96)", backdropFilter: "blur(8px)" }}
+                >
+                  <motion.div
+                    initial={{ y: 14, scale: 0.96 }}
+                    animate={{ y: 0, scale: 1 }}
+                    exit={{ y: 14, scale: 0.96 }}
+                    className="w-full max-w-md rounded-[32px] border-2 bg-white p-8 text-center shadow-2xl"
+                    style={{ borderColor: ROSA, color: VERDE }}
+                  >
+                    <div
+                      className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
+                      style={{ background: ROSA }}
+                    >
+                      {receiptPrintStep === "printing" ? (
+                        <Loader2 size={38} strokeWidth={2.8} className="animate-spin" />
+                      ) : (
+                        <CheckCircle2 size={42} strokeWidth={2.8} />
+                      )}
+                    </div>
+                    {receiptPrintStep === "completed" && (
+                      <div
+                        className="mx-auto mt-5 inline-flex rounded-full px-5 py-2 text-xs font-black uppercase tracking-[0.24em] text-white"
+                        style={{ background: VERDE }}
+                      >
+                        Concluído
+                      </div>
+                    )}
+                    <h2
+                      className={`${receiptPrintStep === "completed" ? "mt-3 text-4xl" : "mt-5 text-3xl"} font-black uppercase tracking-wide`}
+                    >
+                      {receiptPrintStep === "printing" && "Aguarde sua impressão"}
+                      {receiptPrintStep === "printed" && "Nota impressa"}
+                      {receiptPrintStep === "completed" && "Pedido confirmado!"}
+                      {receiptPrintStep === "error" && "Não foi possível imprimir"}
+                    </h2>
+                    <div className="mt-3 text-sm font-bold leading-relaxed opacity-70">
+                      {receiptPrintStep === "printing" && "Estamos enviando sua nota diretamente para a impressora."}
+                      {receiptPrintStep === "printed" && "Sua nota foi enviada e impressa com sucesso."}
+                      {receiptPrintStep === "completed" && (
+                        <>
+                          <p className="text-base font-black opacity-100">🍔 Agora é só acompanhar seu pedido na tela.</p>
+                          <p className="mt-1">Quando ficar verde, pode retirar no balcão.</p>
+                          <div className="mx-auto my-4 h-px w-24" style={{ background: `${ROSA}90` }} />
+                          <p className="font-black opacity-100">Bom apetite!</p>
+                          <p className="mx-auto mt-1 max-w-xs text-xs">
+                            A Menfi’s agradece a sua presença e deseja uma ótima experiência.
+                          </p>
+                        </>
+                      )}
+                      {receiptPrintStep === "error" && "A POS-58 pode estar ativa. Verifique se a Ponte de Impressão Menfis está iniciada antes de tentar novamente."}
+                    </div>
+                    <div className="mt-6 flex items-center justify-center gap-2" aria-label="Progresso da impressão">
+                      {(["printing", "printed", "completed"] as const).map((step) => {
+                        const order = ["printing", "printed", "completed"];
+                        const current = receiptPrintStep === "error" ? 0 : order.indexOf(receiptPrintStep);
+                        const active = order.indexOf(step) <= current;
+                        return <span key={step} className="h-2.5 w-16 rounded-full" style={{ background: active ? VERDE : `${ROSA}80` }} />;
+                      })}
+                    </div>
+                    {receiptPrintStep === "completed" && (
+                      <div className="mt-6" aria-label={`Retorno ao início em ${successSecondsLeft} segundos`}>
+                        <div className="mb-2 flex items-center justify-between text-[10px] font-black uppercase tracking-wider opacity-60">
+                          <span>Novo pedido em instantes</span>
+                          <span>{successSecondsLeft}s</span>
+                        </div>
+                        <div className="h-3 overflow-hidden rounded-full" style={{ background: `${ROSA}70` }}>
+                          <div
+                            className="h-full rounded-full transition-[width] duration-1000 ease-linear"
+                            style={{
+                              background: VERDE,
+                              width: `${(successSecondsLeft / 10) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {receiptPrintStep === "error" && (
+                      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReceiptPrintStep("idle");
+                            void handleKioskReceiptPrint(true);
+                          }}
+                          className="min-h-12 rounded-2xl px-4 text-xs font-black uppercase"
+                          style={{ background: VERDE, color: ROSA }}
+                        >
+                          Tentar novamente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReceiptPrintStep("idle");
+                            onCloseKioskSuccess?.();
+                          }}
+                          className="min-h-12 rounded-2xl border px-4 text-xs font-black uppercase"
+                          style={{ borderColor: VERDE }}
+                        >
+                          Finalizar sem imprimir
+                        </button>
+                      </div>
                     )}
                   </motion.div>
                 </motion.div>
@@ -455,41 +447,26 @@ export function CartOverlays({
                     initial={{ y: 12, scale: 0.98 }}
                     animate={{ y: 0, scale: 1 }}
                     exit={{ y: 12, scale: 0.98 }}
-                    className="w-full max-w-sm rounded-[32px] px-7 py-8 text-center"
+                    className="w-full max-w-sm rounded-[28px] p-6 text-center"
                     style={{
                       background: "#fff",
                       border: `1px solid ${ROSA}`,
-                      boxShadow: "0 28px 80px rgba(101,0,31,0.18)",
+                      boxShadow: "0 24px 70px rgba(101,0,31,0.16)",
                       color: VERDE,
                     }}
                   >
                     <div
-                      className="mx-auto mb-5 flex h-[72px] w-[72px] items-center justify-center rounded-full"
-                      style={{ background: `${ROSA}90`, boxShadow: `0 10px 28px ${ROSA}80` }}
+                      className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+                      style={{ background: ROSA }}
                     >
-                      {terminalPaymentProgress?.status === "APPROVED" ? (
-                        <CheckCircle2 size={34} strokeWidth={2.8} />
-                      ) : terminalPaymentProgress &&
-                        TERMINAL_ERROR_STATUSES.has(terminalPaymentProgress.status) ? (
-                        <CircleX size={34} strokeWidth={2.8} />
-                      ) : (
-                        <Loader2
-                          size={30}
-                          strokeWidth={2.8}
-                          style={{ animation: "spin 1s linear infinite" }}
-                        />
-                      )}
+                      <Loader2
+                        size={30}
+                        strokeWidth={2.8}
+                        style={{ animation: "spin 1s linear infinite" }}
+                      />
                     </div>
-                    {counterServiceMode && terminalPaymentProgress && (
-                      <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] opacity-55">
-                        <CreditCard size={14} strokeWidth={2.5} />
-                        Terminal de pagamento
-                      </div>
-                    )}
                     <p className="text-sm font-black uppercase tracking-wide">
-                      {counterServiceMode && terminalPaymentProgress
-                        ? terminalProgressTitle(terminalPaymentProgress)
-                        : counterServiceMode
+                      {counterServiceMode
                         ? "Registrando pedido do balcão"
                         : payment === "whatsapp"
                           ? "Enviando ao atendimento"
@@ -499,17 +476,9 @@ export function CartOverlays({
                               ? "Enviando pedido para a equipe"
                               : "Conectando ao pagamento"}
                     </p>
-                    <p
-                      className={
-                        counterServiceMode && terminalPaymentProgress
-                          ? "mx-auto mt-3 max-w-[290px] text-xl font-black uppercase leading-snug"
-                          : "mt-2 text-xs leading-relaxed opacity-65"
-                      }
-                    >
+                    <p className="mt-2 text-xs leading-relaxed opacity-65">
                       {counterServiceMode
-                        ? terminalPaymentProgress
-                          ? terminalProgressMessage(terminalPaymentProgress)
-                          : "Estamos criando o pedido antes de iniciar o pagamento."
+                        ? "Estamos criando o pedido e preparando a impressão da via."
                         : payment === "whatsapp"
                           ? "Estamos criando o pedido e abrindo o WhatsApp para o atendimento."
                           : payment === "pagar_na_entrega"
@@ -518,97 +487,6 @@ export function CartOverlays({
                               ? "Aguarde enquanto registramos o pedido para confirmação do atendente."
                               : "Estamos registrando seu pedido e abrindo o Mercado Pago. Se demorar, aguarde mais alguns segundos."}
                     </p>
-                    {counterServiceMode && terminalPaymentProgress && (
-                      <div className="mt-5">
-                        {terminalQrImage && (
-                          <div className="mx-auto mb-5 w-fit rounded-3xl border bg-white p-3" style={{ borderColor: ROSA }}>
-                            <img
-                              src={terminalQrImage}
-                              alt="QR Code PIX gerado pelo SiTef"
-                              className="h-52 w-52"
-                            />
-                            <p className="mt-2 text-[10px] font-black uppercase tracking-wide opacity-60">
-                              Escaneie com o aplicativo do seu banco
-                            </p>
-                          </div>
-                        )}
-                        <div
-                          className="mx-auto flex h-11 w-[92px] items-center justify-center rounded-full"
-                          style={{ background: `${ROSA}45` }}
-                          aria-label={`Tempo restante: ${remainingLabel} segundos`}
-                        >
-                          <p className="text-base font-black tabular-nums tracking-wide">
-                            {remainingLabel} <span className="text-[10px] uppercase opacity-55">seg</span>
-                          </p>
-                        </div>
-                        <div className="mx-auto mt-4 h-1.5 w-full overflow-hidden rounded-full" style={{ background: `${ROSA}45` }}>
-                          <motion.div
-                            className="h-full rounded-full"
-                            style={{ background: VERDE }}
-                            animate={{ width: `${(remainingSeconds / 60) * 100}%` }}
-                            transition={{ duration: 0.35, ease: "linear" }}
-                          />
-                        </div>
-                        <p className="mt-3 text-[11px] font-bold opacity-55">
-                          Conclua a operação diretamente na maquininha.
-                        </p>
-                      </div>
-                    )}
-                    {counterServiceMode &&
-                      terminalPaymentProgress?.cancel &&
-                      !TERMINAL_ERROR_STATUSES.has(terminalPaymentProgress.status) &&
-                      terminalPaymentProgress.status !== "APPROVED" && (
-                        terminalCancelConfirm ? (
-                          <div
-                            className="mt-4 rounded-2xl p-4"
-                            style={{ background: `${ROSA}45`, border: `1px solid ${ROSA}` }}
-                          >
-                            <p className="text-base font-black uppercase">
-                              Deseja continuar ou cancelar?
-                            </p>
-                            <p className="mt-1 text-xs font-bold opacity-65">
-                              Ao cancelar, aguarde a maquininha encerrar completamente.
-                            </p>
-                            <div className="mt-3 grid grid-cols-2 gap-2">
-                              <button
-                                type="button"
-                                disabled={terminalCancelling}
-                                onClick={() => setTerminalCancelConfirm(false)}
-                                className="h-12 rounded-xl text-xs font-black uppercase text-white"
-                                style={{ background: VERDE }}
-                              >
-                                Continuar
-                              </button>
-                              <button
-                                type="button"
-                                disabled={terminalCancelling}
-                                onClick={async () => {
-                                  setTerminalCancelling(true);
-                                  try {
-                                    await terminalPaymentProgress.cancel?.();
-                                    setTerminalCancelConfirm(false);
-                                  } finally {
-                                    setTerminalCancelling(false);
-                                  }
-                                }}
-                                className="h-12 rounded-xl border text-xs font-black uppercase disabled:opacity-50"
-                                style={{ borderColor: VERDE, color: VERDE }}
-                              >
-                                {terminalCancelling ? "Encerrando..." : "Sim, cancelar"}
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setTerminalCancelConfirm(true)}
-                            className="mt-6 h-12 w-full rounded-2xl border text-xs font-black uppercase tracking-wide transition-opacity hover:opacity-70"
-                            style={{ borderColor: VERDE, color: VERDE }}
-                          >
-                            Cancelar pagamento
-                          </button>
-                        )
-                      )}
                     {paymentSlow &&
                       !counterServiceMode &&
                       payment !== "whatsapp" &&
@@ -621,99 +499,6 @@ export function CartOverlays({
                         tentando.
                       </p>
                     )}
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {sitefOpen && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[100] flex items-center justify-center px-6"
-                  style={{ background: "rgba(255,255,255,0.96)", color: VERDE }}
-                >
-                  <motion.div
-                    initial={{ scale: 0.95, y: 12 }}
-                    animate={{ scale: 1, y: 0 }}
-                    className="w-full max-w-md rounded-3xl border bg-white p-6 shadow-2xl"
-                    style={{ borderColor: ROSA }}
-                  >
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] opacity-50">
-                      Manutenção — F3
-                    </p>
-                    <h2 className="mt-2 text-2xl font-black uppercase">SiTef Bridge</h2>
-                    {!sitefAuthorized ? (
-                      <>
-                        <p className="mt-2 text-sm font-bold opacity-65">
-                          Digite a senha técnica para acessar o controle.
-                        </p>
-                        <input
-                          type="password"
-                          value={sitefPassword}
-                          onChange={(event) => setSitefPassword(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") void unlockSitef();
-                          }}
-                          autoFocus
-                          className="mt-5 h-14 w-full rounded-2xl px-4 text-xl font-black outline-none"
-                          style={{ border: `2px solid ${ROSA}`, color: VERDE }}
-                          placeholder="Senha"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => void unlockSitef()}
-                          className="mt-4 h-14 w-full rounded-2xl text-sm font-black uppercase text-white"
-                          style={{ background: VERDE }}
-                        >
-                          Entrar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div
-                          className="mt-5 rounded-2xl p-4 text-sm font-black"
-                          style={{ background: sitefOnline ? "#DCFCE7" : `${ROSA}45` }}
-                        >
-                          {sitefOnline ? "● SiTef Bridge ligado" : "○ SiTef Bridge desligado"}
-                          <p className="mt-1 text-xs font-semibold opacity-70">{sitefMessage}</p>
-                        </div>
-                        {!sitefOnline && (
-                          <button
-                            type="button"
-                            disabled={sitefLoading}
-                            onClick={() => void startSitef()}
-                            className="mt-4 h-14 w-full rounded-2xl text-sm font-black uppercase text-white disabled:opacity-50"
-                            style={{ background: VERDE }}
-                          >
-                            {sitefLoading ? "Ligando..." : "Ligar SiTef Bridge"}
-                          </button>
-                        )}
-                        {sitefOnline && (
-                          <button
-                            type="button"
-                            onClick={() => window.open("http://127.0.0.1:7071/tef/admin", "_blank", "noopener,noreferrer")}
-                            className="mt-4 h-14 w-full rounded-2xl text-sm font-black uppercase text-white"
-                            style={{ background: VERDE }}
-                          >
-                            Abrir testes gerenciais
-                          </button>
-                        )}
-                      </>
-                    )}
-                    {sitefMessage && !sitefAuthorized && (
-                      <p className="mt-3 text-xs font-bold text-red-700">{sitefMessage}</p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setSitefOpen(false)}
-                      className="mt-4 h-12 w-full rounded-2xl border text-sm font-black uppercase"
-                      style={{ borderColor: ROSA }}
-                    >
-                      Fechar
-                    </button>
                   </motion.div>
                 </motion.div>
               )}
@@ -742,15 +527,13 @@ export function CartOverlays({
                       className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
                       style={{ background: ROSA }}
                     >
-                      {counterPaymentMethod === "PIX" ? <QrCode size={26} /> : <CreditCard size={26} />}
+                      {counterPaymentMethod === "atendente" ? <Store size={26} /> : <QrCode size={26} />}
                     </div>
                     <h2 className="text-xl font-black uppercase tracking-wide">
-                      {counterPaymentMethod === "PIX"
+                      {counterPaymentMethod === "pix"
                         ? "Pagamento Pix"
-                        : counterPaymentMethod === "DEBIT"
-                          ? "Cartão de débito"
-                          : counterPaymentMethod === "CREDIT"
-                            ? "Cartão de crédito"
+                        : counterPaymentMethod === "atendente"
+                          ? "Pagar com atendente"
                           : "Como será o pagamento?"}
                     </h2>
                     {!counterPaymentMethod && (
@@ -758,73 +541,92 @@ export function CartOverlays({
                         <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-relaxed opacity-70">
                           Escolha a forma de pagamento para concluir o pedido do balcão.
                         </p>
-                        <div className="mt-6 grid gap-3">
+                        <div className="mt-6 grid grid-cols-2 gap-3">
                           <button
                             type="button"
-                            onClick={() => setCounterPaymentMethod("DEBIT")}
+                            onClick={() => {
+                              setCounterPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
+                              setCounterPixCompleted(false);
+                              setCounterPaymentMethod("pix");
+                            }}
                             className="flex h-16 items-center justify-center gap-2 rounded-2xl border text-sm font-black uppercase"
                             style={{ borderColor: ROSA, color: VERDE }}
-                          >
-                            <CreditCard size={20} />
-                            Débito
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setCounterPaymentMethod("CREDIT")}
-                            className="flex h-16 items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase text-white"
-                            style={{ background: VERDE }}
-                          >
-                            <CreditCard size={20} />
-                            Crédito
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setCounterPaymentMethod("PIX")}
-                            className="flex h-16 items-center justify-center gap-2 rounded-2xl border text-sm font-black uppercase"
-                            style={{ borderColor: VERDE, color: VERDE }}
                           >
                             <QrCode size={20} />
                             Pix
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setCounterPaymentMethod("atendente")}
+                            className="flex h-16 items-center justify-center gap-2 rounded-2xl text-sm font-black uppercase text-white"
+                            style={{ background: VERDE }}
+                          >
+                            <Store size={20} />
+                            Atendente
+                          </button>
                         </div>
                       </>
                     )}
-                    {counterPaymentMethod && (
+                    {counterPaymentMethod === "pix" && (
                       <div className="mt-5 grid gap-4">
-                        <div className="rounded-3xl p-5" style={{ background: `${ROSA}35`, border: `1px solid ${ROSA}` }}>
-                          <p className="text-xl font-black uppercase" style={{ color: VERDE }}>
-                            Confirmar pagamento
-                          </p>
+                        <div className="rounded-3xl p-4" style={{ background: "#fff", border: `1px solid ${ROSA}` }}>
+                          <img src="/pix-menfis.png" alt="QR Code Pix Menfi's" className="mx-auto h-56 w-56 object-contain" />
                           <p className="mt-4 text-[10px] font-black uppercase tracking-widest opacity-55">
                             Valor a pagar
                           </p>
                           <p className="text-4xl font-black" style={{ color: "#8A0030" }}>
                             {formatMoney(counterPaymentTotal)}
                           </p>
-                          <p className="mt-3 text-sm font-bold leading-relaxed opacity-70">
-                            Ao continuar, siga as instruções do terminal de pagamento.
-                            O pedido será liberado somente após a aprovação.
+                          <div className="mx-auto mt-3 max-w-[220px] rounded-2xl px-4 py-3" style={{ background: `${ROSA}40` }}>
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+                              Próxima etapa em
+                            </p>
+                            <p className="mt-1 text-3xl font-black tabular-nums" style={{ color: VERDE }}>
+                              00:{String(counterPixSeconds).padStart(2, "0")}
+                            </p>
+                            <p className="mt-1 text-[10px] font-bold opacity-65">
+                              Depois, informe o nome para concluir o pedido.
+                            </p>
+                          </div>
+                          <p className="mt-3 break-all rounded-2xl px-3 py-2 text-[10px] font-bold leading-relaxed" style={{ background: `${ROSA}40` }}>
+                            {pixCodeWithAmount(counterPaymentTotal) || KIOSK_PIX_CODE}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            const method = counterPaymentMethod;
                             setCounterPaymentMethod(null);
-                            onConfirmCounterPayment?.(method);
+                            setCounterPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
+                            setCounterPixCompleted(false);
+                            onConfirmCounterPayment?.("pix");
                           }}
                           className="h-14 rounded-2xl text-sm font-black uppercase text-white"
                           style={{ background: VERDE }}
                         >
-                          Iniciar pagamento
+                          Continuar agora
                         </button>
+                      </div>
+                    )}
+                    {counterPaymentMethod === "atendente" && (
+                      <div className="mt-5 grid gap-4">
+                        <div className="rounded-3xl p-5" style={{ background: `${ROSA}35`, border: `1px solid ${ROSA}` }}>
+                          <p className="text-3xl font-black uppercase" style={{ color: VERDE }}>
+                            Aguarde o atendente
+                          </p>
+                          <p className="mt-2 text-sm font-bold leading-relaxed opacity-70">
+                            O atendente vai concluir o pagamento no balcão.
+                          </p>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => setCounterPaymentMethod(null)}
-                          className="h-12 rounded-2xl border text-sm font-black uppercase"
-                          style={{ borderColor: ROSA, color: VERDE }}
+                          onClick={() => {
+                            setCounterPaymentMethod(null);
+                            onConfirmCounterPayment?.("atendente");
+                          }}
+                          className="h-14 rounded-2xl text-sm font-black uppercase text-white"
+                          style={{ background: VERDE }}
                         >
-                          Voltar
+                          Continuar pedido
                         </button>
                       </div>
                     )}
@@ -833,6 +635,50 @@ export function CartOverlays({
               )}
             </AnimatePresence>
 
+            <AnimatePresence>
+              {counterPaymentPromptOpen && counterPixCompleted && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[90] flex items-center justify-center bg-white px-6"
+                >
+                  <motion.div
+                    initial={{ scale: 0.9, y: 18 }}
+                    animate={{ scale: 1, y: 0 }}
+                    className="w-full max-w-md rounded-[32px] p-8 text-center shadow-2xl"
+                    style={{ border: `2px solid ${ROSA}`, color: VERDE }}
+                  >
+                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full" style={{ background: ROSA }}>
+                      <CheckCircle2 size={56} strokeWidth={2.8} />
+                    </div>
+                    <p className="mt-6 text-xs font-black uppercase tracking-[0.18em] opacity-60">
+                      Pix finalizado
+                    </p>
+                    <h2 className="mt-2 text-4xl font-black uppercase">
+                      Pagamento concluído
+                    </h2>
+                    <p className="mt-3 text-sm font-bold leading-relaxed opacity-70">
+                      Agora informe o nome do cliente para concluir e enviar o pedido.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCounterPixCompleted(false);
+                        setCounterPaymentMethod(null);
+                        setCounterPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
+                        onConfirmCounterPayment?.("pix");
+                      }}
+                      className="mt-7 min-h-14 w-full rounded-2xl text-sm font-black uppercase text-white"
+                      style={{ background: VERDE }}
+                    >
+                      Continuar
+                    </button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+      
             <AnimatePresence>
               {kioskKeyboardOpen && (
                 <KioskVirtualKeyboard
