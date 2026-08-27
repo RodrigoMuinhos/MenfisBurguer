@@ -143,6 +143,7 @@ export function CartScreen({
     setScheduledTime,
     setStreet,
     confirmCounterPaymentChoice,
+    cancelCounterPaymentChoice,
     stepLabel,
     street,
     streetRef,
@@ -232,6 +233,25 @@ export function CartScreen({
   if (cart.length === 0) {
     return <EmptyCartState onBack={handleBack} />;
   }
+
+  const stickyCheckoutAction = (
+    <CartStickyCta
+      checkoutStep={checkoutStep}
+      kioskMode={kioskMode}
+      counterServiceMode={counterServiceMode}
+      missingDelivery={missingDelivery}
+      payment={payment}
+      subtotal={subtotal}
+      fee={fee}
+      serviceFee={serviceFee}
+      discount={discount}
+      total={total}
+      paying={paying}
+      nextActionLabel={nextActionLabel}
+      hideTotalInButton={soldOutEnabled && !kioskMode && !counterServiceMode}
+      onFinalize={handleFinalize}
+    />
+  );
 
   return (
     <div
@@ -326,7 +346,9 @@ export function CartScreen({
           deliveryValid={deliveryValid}
           inputStyle={inputStyle}
           total={total}
+          onChooseCounterPayment={handleFinalize}
         />
+        {counterServiceMode && checkoutStep === "bag" && stickyCheckoutAction}
         <CheckoutReviewSection
           checkoutStep={checkoutStep}
           kioskMode={kioskMode}
@@ -405,6 +427,11 @@ export function CartScreen({
         counterPaymentPromptOpen={counterPaymentPromptOpen}
         counterPaymentTotal={counterPaymentTotal}
         onConfirmCounterPayment={confirmCounterPaymentChoice}
+        onCancelCounterPayment={cancelCounterPaymentChoice}
+        onCounterPaymentCancelled={() => {
+          clearCart();
+          goToMenu();
+        }}
         counterCustomerNamePromptOpen={counterCustomerNamePromptOpen}
         counterCustomerNameDraft={counterCustomerNameDraft}
         setCounterCustomerNameDraft={setCounterCustomerNameDraft}
@@ -460,22 +487,7 @@ export function CartScreen({
         />
       )}
 
-      <CartStickyCta
-        checkoutStep={checkoutStep}
-        kioskMode={kioskMode}
-        counterServiceMode={counterServiceMode}
-        missingDelivery={missingDelivery}
-        payment={payment}
-        subtotal={subtotal}
-        fee={fee}
-        serviceFee={serviceFee}
-        discount={discount}
-        total={total}
-        paying={paying}
-        nextActionLabel={nextActionLabel}
-        hideTotalInButton={soldOutEnabled && !kioskMode && !counterServiceMode}
-        onFinalize={handleFinalize}
-      />
+      {(!counterServiceMode || checkoutStep !== "bag") && stickyCheckoutAction}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

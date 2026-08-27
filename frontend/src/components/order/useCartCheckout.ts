@@ -182,7 +182,9 @@ export function useCartCheckout({
   const numberRef = useRef<HTMLInputElement>(null);
   const customerNameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
-  const counterPaymentResolveRef = useRef<((value: "pix" | "atendente") => void) | null>(null);
+  const counterPaymentResolveRef = useRef<
+    ((value: "pix" | "atendente" | "cancelado") => void) | null
+  >(null);
   const counterCustomerNameResolveRef = useRef<((value: string) => void) | null>(null);
   const kioskSuccessResolveRef = useRef<(() => void) | null>(null);
   const kioskKeyboardOpen = (kioskMode || counterServiceMode) && kioskKeyboardTarget !== null;
@@ -207,8 +209,15 @@ export function useCartCheckout({
     resolve?.(value);
   };
 
+  const cancelCounterPaymentPrompt = () => {
+    const resolve = counterPaymentResolveRef.current;
+    counterPaymentResolveRef.current = null;
+    setCounterPaymentPromptOpen(false);
+    resolve?.("cancelado");
+  };
+
   const confirmCounterPayment = (amount: number) =>
-    new Promise<"pix" | "atendente">((resolve) => {
+    new Promise<"pix" | "atendente" | "cancelado">((resolve) => {
       counterPaymentResolveRef.current?.("atendente");
       counterPaymentResolveRef.current = resolve;
       setCounterPaymentTotal(amount);
@@ -952,6 +961,7 @@ export function useCartCheckout({
     soldOutEnabled,
     soldOutMessage,
     confirmCounterPaymentChoice: resolveCounterPaymentPrompt,
+    cancelCounterPaymentChoice: cancelCounterPaymentPrompt,
     stepLabel,
     street,
     streetRef,

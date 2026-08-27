@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Loader2, QrCode, Store } from "lucide-react";
+import { CheckCircle2, CircleX, Loader2, QrCode, Store, X } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { printOrderReceipts } from "@/components/admin/shared";
@@ -27,6 +27,8 @@ export function CartOverlays({
   counterCustomerNameDraft = "",
   kioskSuccessOrder = null,
   onConfirmCounterPayment,
+  onCancelCounterPayment,
+  onCounterPaymentCancelled,
   setCounterCustomerNameDraft,
   onConfirmCounterCustomerName,
   onCloseKioskSuccess,
@@ -50,6 +52,8 @@ export function CartOverlays({
   counterCustomerNameDraft?: string;
   kioskSuccessOrder?: Order | null;
   onConfirmCounterPayment?: (method: "pix" | "atendente") => void;
+  onCancelCounterPayment?: () => void;
+  onCounterPaymentCancelled?: () => void;
   setCounterCustomerNameDraft?: (value: string) => void;
   onConfirmCounterCustomerName?: () => void;
   onCloseKioskSuccess?: () => void;
@@ -57,6 +61,8 @@ export function CartOverlays({
   const [counterPaymentMethod, setCounterPaymentMethod] = useState<"pix" | "atendente" | null>(null);
   const [counterPixSeconds, setCounterPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
   const [counterPixCompleted, setCounterPixCompleted] = useState(false);
+  const [counterPromptSeconds, setCounterPromptSeconds] = useState(60);
+  const [counterOrderCancelled, setCounterOrderCancelled] = useState(false);
   const [receiptPrintStep, setReceiptPrintStep] = useState<"idle" | "printing" | "printed" | "completed" | "error">("idle");
   const [successSecondsLeft, setSuccessSecondsLeft] = useState(10);
   const automaticPrintOrderRef = useRef("");
@@ -67,6 +73,12 @@ export function CartOverlays({
   const canConfirmCounterName = counterCustomerNameDraft.trim().length >= 2;
   const formatMoney = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const cancelCounterOrder = () => {
+    if (counterOrderCancelled) return;
+    setCounterOrderCancelled(true);
+    onCancelCounterPayment?.();
+  };
 
   const handleKioskReceiptPrint = async (retry = false) => {
     if (!kioskSuccessOrder || (!retry && receiptPrintStep !== "idle")) return;
@@ -122,6 +134,31 @@ export function CartOverlays({
     );
     return () => window.clearTimeout(timer);
   }, [counterPaymentMethod, counterPaymentPromptOpen, counterPixCompleted, counterPixSeconds]);
+
+  useEffect(() => {
+    if (!counterPaymentPromptOpen) {
+      setCounterPromptSeconds(60);
+      return;
+    }
+    if (counterPromptSeconds <= 0) {
+      cancelCounterOrder();
+      return;
+    }
+    const timer = window.setTimeout(
+      () => setCounterPromptSeconds((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [counterPaymentPromptOpen, counterPromptSeconds]);
+
+  useEffect(() => {
+    if (!counterOrderCancelled) return;
+    const timer = window.setTimeout(() => {
+      setCounterOrderCancelled(false);
+      onCounterPaymentCancelled?.();
+    }, 2200);
+    return () => window.clearTimeout(timer);
+  }, [counterOrderCancelled, onCounterPaymentCancelled]);
 
   return (
     <>
@@ -520,9 +557,18 @@ export function CartOverlays({
                     initial={{ scale: 0.95, y: 12 }}
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.95, y: 12 }}
-                    className="w-full max-w-md rounded-3xl border bg-white p-6 text-center shadow-2xl"
+                    className="relative w-full max-w-md rounded-3xl border bg-white p-6 text-center shadow-2xl"
                     style={{ borderColor: ROSA }}
                   >
+                    <button
+                      type="button"
+                      onClick={cancelCounterOrder}
+                      aria-label="Fechar e cancelar pedido"
+                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full"
+                      style={{ color: VERDE, background: `${ROSA}55` }}
+                    >
+                      <X size={16} strokeWidth={3} />
+                    </button>
                     <div
                       className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
                       style={{ background: ROSA }}
@@ -628,8 +674,45 @@ export function CartOverlays({
                         >
                           Continuar pedido
                         </button>
+                        <button
+                          type="button"
+                          onClick={cancelCounterOrder}
+                          className="h-12 rounded-2xl text-xs font-black uppercase"
+                          style={{ color: VERDE, border: `1px solid ${ROSA}` }}
+                        >
+                          Cancelar pedido
+                        </button>
                       </div>
                     )}
+                    <p className="mt-4 text-[10px] font-bold uppercase tracking-widest opacity-45">
+                      Cancelamento automático em {counterPromptSeconds}s
+                    </p>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {counterOrderCancelled && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[100] flex items-center justify-center bg-white px-6"
+                >
+                  <motion.div
+                    initial={{ scale: 0.92, y: 14 }}
+                    animate={{ scale: 1, y: 0 }}
+                    className="w-full max-w-md rounded-[32px] p-8 text-center shadow-2xl"
+                    style={{ border: `2px solid ${ROSA}`, color: VERDE }}
+                  >
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full" style={{ background: ROSA }}>
+                      <CircleX size={46} strokeWidth={2.6} />
+                    </div>
+                    <h2 className="mt-5 text-3xl font-black uppercase">Pedido cancelado</h2>
+                    <p className="mt-2 text-sm font-bold opacity-65">
+                      Retornando à tela inicial para começar um novo pedido.
+                    </p>
                   </motion.div>
                 </motion.div>
               )}

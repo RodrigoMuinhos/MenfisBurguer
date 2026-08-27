@@ -146,7 +146,7 @@ export async function submitCheckoutOrder({
   setKioskSuccessOrder?: (order: Order | null) => void;
   setPaymentError: (value: string) => void;
   onRestaurantClosed?: () => void;
-  confirmCounterPayment?: (amount: number) => Promise<"pix" | "atendente">;
+  confirmCounterPayment?: (amount: number) => Promise<"pix" | "atendente" | "cancelado">;
   confirmCounterCustomerName?: () => Promise<string>;
   waitForKioskSuccessConfirm?: (order: Order) => Promise<void>;
   clearCartItems?: () => void;
@@ -158,6 +158,7 @@ export async function submitCheckoutOrder({
   const effectiveChannel = kioskMode || counterServiceMode ? "KIOSK" : "DELIVERY";
   const selectedCounterPayment =
     counterServiceMode ? await confirmCounterPayment?.(total) : undefined;
+  if (selectedCounterPayment === "cancelado") return;
   const counterCustomerName =
     counterServiceMode ? await confirmCounterCustomerName?.() : undefined;
   const orderCustomerName =

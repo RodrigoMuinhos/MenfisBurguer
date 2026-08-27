@@ -86,6 +86,7 @@ export function PaymentStepSection({
   deliveryValid,
   inputStyle,
   total,
+  onChooseCounterPayment,
 }: {
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
@@ -104,6 +105,7 @@ export function PaymentStepSection({
   deliveryValid: boolean;
   inputStyle: (err?: boolean) => React.CSSProperties;
   total: number;
+  onChooseCounterPayment?: () => void | Promise<void>;
 }) {
   const [pixSeconds, setPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
   const [pixExpired, setPixExpired] = useState(false);
@@ -296,7 +298,9 @@ export function PaymentStepSection({
                         </div>
                       </div>
                       {counterServiceMode && (
-                        <div
+                        <button
+                          type="button"
+                          onClick={() => void onChooseCounterPayment?.()}
                           className="grid gap-3 rounded-2xl p-5 text-center"
                           style={{
                             background: "#fff",
@@ -318,7 +322,7 @@ export function PaymentStepSection({
                               Débito, crédito ou Pix.
                             </p>
                           </div>
-                        </div>
+                        </button>
                       )}
                       {!kioskMode && !counterServiceMode && (
                         <div className="grid gap-3">
