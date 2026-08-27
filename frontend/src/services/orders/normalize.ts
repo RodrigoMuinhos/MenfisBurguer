@@ -57,6 +57,7 @@ export function normalizeOrderStatus(status: string): OrderStatus {
     return "CANCELLED";
   if (
     value === "READY" ||
+    value === "PICKED_UP" ||
     value === "ACCEPTED" ||
     value === "OUT_FOR_DELIVERY" ||
     value === "DELIVERED" ||
@@ -139,7 +140,9 @@ export function normalizeBackendOrder(raw: any): Order {
       raw.deliveryCode ?? raw.delivery_code ?? undefined,
     trackingToken: raw.trackingToken ?? raw.tracking_token ?? undefined,
     channel:
-      kioskMobCustomer ||
+      String(raw.channel ?? "").toUpperCase() === "DINING_QR"
+        ? "DINING_QR"
+        : kioskMobCustomer ||
       String(raw.channel ?? "").toUpperCase() === "KIOSK" ||
       (deliveryType === "retirada" &&
         String(raw.paymentMethod ?? raw.payment_method).toUpperCase() ===
@@ -151,6 +154,7 @@ export function normalizeBackendOrder(raw: any): Order {
     customerName: kioskMobCustomer ? "KIOSK-MOB" : customerName,
     customerPhone: raw.customerPhone ?? raw.customer_phone ?? undefined,
     customerAddress: raw.customerAddress ?? raw.customer_address ?? undefined,
+    diningTableName: raw.diningTableName ?? raw.dining_table_name ?? undefined,
     subtotal,
     deliveryFee:
       raw.deliveryFee == null && raw.delivery_fee == null

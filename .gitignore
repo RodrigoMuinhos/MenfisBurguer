@@ -16,6 +16,8 @@ node_modules/
 out/
 dist/
 build/
+**/bin/
+**/obj/
 
 # Logs
 *.log
@@ -34,6 +36,7 @@ Thumbs.db
 # Next.js / temporary files
 next-dev.log
 next-dev.err.log
+*.tsbuildinfo
 
 .vercel
 

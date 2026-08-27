@@ -255,6 +255,16 @@ export function useCartCheckout({
     setKioskSuccessOrder(null);
     kioskSuccessResolveRef.current?.();
     kioskSuccessResolveRef.current = null;
+    setCheckoutStep("bag");
+    setPayment(kioskMode || counterServiceMode ? "pix" : "");
+    setCustomerName(counterServiceMode ? "KIOSK-MOB" : "");
+    setPhone("");
+    setCounterCustomerNameDraft("");
+    setCouponCode("");
+    setAppliedCoupon(null);
+    setRemoved({});
+    setSubmitAttempted(false);
+    closeKioskKeyboard();
   };
 
   useEffect(

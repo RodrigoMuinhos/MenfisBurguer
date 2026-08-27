@@ -1,5 +1,5 @@
-import App from "../App";
+import { ReceptionKds } from "@/components/kds/ReceptionKds";
 
 export default function KdsPage() {
-  return <App mode="kds" />;
+  return <ReceptionKds />;
 }

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -14,12 +15,14 @@ public class KdsService {
   private final OrderService orders;
   private final InventoryService inventory;
   private final SettingsService settings;
+  private final DiningOrderService diningOrders;
 
-  public KdsService(JdbcTemplate jdbc, OrderService orders, InventoryService inventory, SettingsService settings) {
+  public KdsService(JdbcTemplate jdbc, OrderService orders, InventoryService inventory, SettingsService settings, DiningOrderService diningOrders) {
     this.jdbc = jdbc;
     this.orders = orders;
     this.inventory = inventory;
     this.settings = settings;
+    this.diningOrders = diningOrders;
   }
 
   public Map<String, List<OrderResponse>> board() {
@@ -45,14 +48,47 @@ public class KdsService {
     ).stream().map(row -> orders.get((String) row.get("id"))).toList();
   }
 
+  @Scheduled(fixedDelayString = "${menfis.kds-auto-preparation-delay-ms:15000}", initialDelayString = "${menfis.kds-auto-preparation-delay-ms:15000}")
+  @Transactional
+  public void moveDueOrdersToPreparation() {
+    boolean automaticAcceptance = settings.automaticOrderAcceptanceEnabled();
+    String holdInterval = automaticAcceptance ? "0 seconds" : "5 minutes";
+    List<String> dueIds = jdbc.queryForList(
+      """
+      select id from orders
+      where status in ('PAYMENT_APPROVED', 'PAID', 'ACCEPTED')
+        and paid_at <= now() - (?::interval)
+        and test_mode = ?
+      order by paid_at asc
+      for update skip locked
+      """,
+      String.class,
+      holdInterval,
+      settings.testModeEnabled()
+    );
+    for (String id : dueIds) {
+      try {
+        inventory.deductForOrder(id);
+        orders.changeStatus(
+          id,
+          OrderStatus.IN_PREPARATION,
+          "system",
+          automaticAcceptance
+            ? "automatic_order_acceptance_enabled"
+            : "received_hold_5_minutes_elapsed"
+        );
+      } catch (IllegalArgumentException ignored) {
+        // Outro processo pode ter avançado o pedido entre a consulta e a atualização.
+      }
+    }
+  }
+
   @Transactional
   public OrderResponse advance(String id, String actor) {
     OrderResponse order = orders.get(id);
     OrderStatus current = OrderStatus.valueOf(order.status());
     OrderStatus next = switch (current) {
-      case PAYMENT_APPROVED -> OrderStatus.ACCEPTED;
-      case PAID -> OrderStatus.ACCEPTED;
-      case ACCEPTED -> OrderStatus.IN_PREPARATION;
+      case PAYMENT_APPROVED, PAID, ACCEPTED -> OrderStatus.IN_PREPARATION;
       case IN_PREPARATION -> OrderStatus.READY;
       case OUT_FOR_DELIVERY -> OrderStatus.DELIVERED;
       default -> throw new IllegalArgumentException("order_not_advanceable");
@@ -68,6 +104,9 @@ public class KdsService {
       case DELIVERED -> "ORDER_DELIVERED";
       default -> "ORDER_STATUS_CHANGED";
     };
-    return orders.changeStatus(id, next, actor == null ? "kds" : actor, event);
+    OrderResponse changed = orders.changeStatus(id, next, actor == null ? "kds" : actor, event);
+    if (next == OrderStatus.READY) diningOrders.markReady(id, actor == null ? "kds" : actor);
+    return changed;
   }
+
 }

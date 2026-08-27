@@ -16,6 +16,7 @@ import {
   Crown,
   CupSoda,
   Megaphone,
+  Armchair,
 } from "lucide-react";
 import { CartItem, Order, OrderStatus, OrderUpdateOptions } from "@/types/order";
 import {
@@ -49,8 +50,10 @@ import {
   loadStoredCoupons,
   mergeCoupons,
   playAdminPaymentAlert,
+  printOrderReceipts,
   uid,
 } from "./shared";
+import { printBridgeIsRunning } from "@/services/printBridge";
 import { CouponsView } from "./views/CouponsView";
 import { ConfigView } from "./views/ConfigView";
 import { CustomersCrmView, CrmCustomer } from "./views/CustomersCrmView";
@@ -65,6 +68,7 @@ import { SupportView } from "./views/SupportView";
 import { isLoyaltyCustomer, LoyaltyView } from "./views/LoyaltyView";
 import { LemonadeAdminView } from "./views/LemonadeAdminView";
 import { MetaMetricsView } from "./views/MetaMetricsView";
+import { DiningManagementView } from "./views/DiningManagementView";
 import { DEFAULT_LEMONADE_SETTINGS, normalizeLemonadeSettings, type LemonadeSettings } from "@/components/product/LemonadeShowcase";
 import {
   deleteAdminCoupon,
@@ -74,13 +78,25 @@ import {
 import { useAdminBackend } from "./useAdminBackend";
 import { generateDemoOrders, isDemoOrder } from "./demoOrders";
 
-export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "lemonade" | "suporte" | "cupons" | "resultados" | "meta" | "monitoramento" | "config";
+const DINING_FEATURE_ENABLED =
+  process.env.NEXT_PUBLIC_DINING_FEATURE_ENABLED === "true";
+
+export type AdminTab = "dashboard" | "pedidos" | "cozinha" | "notas" | "salao" | "entrega" | "estoque" | "custos" | "clientes" | "fidelidade" | "lemonade" | "suporte" | "cupons" | "resultados" | "meta" | "monitoramento" | "config";
 
 function adminHeaders(adminToken: string, json = false) {
   return {
     ...(json ? { "Content-Type": "application/json" } : {}),
     ...(adminToken && adminToken !== "cookie" ? { Authorization: `Bearer ${adminToken}` } : {}),
   };
+}
+
+function loadAutomaticallyPrintedOrderIds() {
+  try {
+    const stored = JSON.parse(localStorage.getItem("menfis_kitchen_auto_printed_orders") || "[]");
+    return new Set<string>(Array.isArray(stored) ? stored.map(String) : []);
+  } catch {
+    return new Set<string>();
+  }
 }
 
 interface Props {
@@ -105,9 +121,12 @@ export function AdminPanel({
   kitchenOnly = false,
 }: Props) {
   const [tab, setTab] = useState<AdminTab>(() => {
+    if (!DINING_FEATURE_ENABLED && initialTab === "salao") return "dashboard";
     if (kitchenOnly || typeof window === "undefined") return initialTab;
     const stored = localStorage.getItem("menfis_admin_tab") as AdminTab | null;
-    return stored ?? initialTab;
+    return !DINING_FEATURE_ENABLED && stored === "salao"
+      ? "dashboard"
+      : stored ?? initialTab;
   });
   const [, startTabTransition] = useTransition();
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
@@ -132,6 +151,11 @@ export function AdminPanel({
   const [testModeEnabled, setTestModeEnabled] = useState(false);
   const [demoTableEnabled, setDemoTableEnabled] = useState(false);
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
+  const [automaticOrderAcceptanceEnabled, setAutomaticOrderAcceptanceEnabled] = useState(false);
+  const [automaticKitchenPrintingEnabled, setAutomaticKitchenPrintingEnabled] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("menfis_kitchen_auto_print_enabled") === "1",
+  );
+  const [automaticKitchenPrintingStatus, setAutomaticKitchenPrintingStatus] = useState<"off" | "ready" | "printing" | "error">("off");
   const [adminLogin, setAdminLogin] = useState("");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
@@ -144,12 +168,16 @@ export function AdminPanel({
   const [savingPayOnDelivery, setSavingPayOnDelivery] = useState(false);
   const [demoOrders, setDemoOrders] = useState<Order[]>(() => generateDemoOrders());
   const [lemonadeSettings, setLemonadeSettings] = useState<LemonadeSettings>(DEFAULT_LEMONADE_SETTINGS);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("menfis_admin_sidebar_collapsed") === "1",
+  );
 
   const [stockItems, setStockItems] = useState<StockItem[]>(INITIAL_ITEMS);
   const [stockMovements, setStockMovements] = useState<Movement[]>([]);
   const [stockCapacity, setStockCapacity] = useState<CapacityItem[]>([]);
   const stockItemsRef = useRef(stockItems);
   const notifiedPaymentRequestsRef = useRef<Set<string>>(new Set());
+  const automaticPrintInFlightRef = useRef<Set<string>>(new Set());
   stockItemsRef.current = stockItems;
 
   const deductStockForOrder = (order: Order) => {
@@ -194,6 +222,9 @@ export function AdminPanel({
     { id: "pedidos", label: "Pedidos", Icon: ClipboardList },
     { id: "cozinha", label: "Cozinha", Icon: ChefHat },
     { id: "notas", label: "Notas", Icon: ClipboardCheck },
+    ...(DINING_FEATURE_ENABLED
+      ? [{ id: "salao" as const, label: "Salão PDV", Icon: Armchair }]
+      : []),
     { id: "entrega", label: "Entrega", Icon: Bike },
     { id: "estoque", label: "Estoque", Icon: Package },
     { id: "custos", label: "Custos e Precificação", Icon: Calculator },
@@ -231,6 +262,14 @@ export function AdminPanel({
       return;
     }
     await updateOrderStatus(id, status);
+  };
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      localStorage.setItem("menfis_admin_sidebar_collapsed", next ? "1" : "0");
+      return next;
+    });
   };
 
   const handleDeleteOrder = async (id: string) => {
@@ -355,11 +394,48 @@ export function AdminPanel({
     };
   }, [openPaymentRequests.map((order) => order.id).join("|")]);
 
+  useEffect(() => {
+    if (!automaticKitchenPrintingEnabled) {
+      setAutomaticKitchenPrintingStatus("off");
+      return;
+    }
+    const enabledAt = Number(localStorage.getItem("menfis_kitchen_auto_print_enabled_at") || Date.now());
+    const printedIds = loadAutomaticallyPrintedOrderIds();
+    const candidates = orders.filter((order) =>
+      isKioskMobOrder(order)
+      && order.timestamp >= enabledAt
+      && !printedIds.has(order.id)
+      && !automaticPrintInFlightRef.current.has(order.id)
+      && order.status !== "CANCELLED",
+    );
+    if (candidates.length === 0) {
+      void printBridgeIsRunning().then((running) => setAutomaticKitchenPrintingStatus(running ? "ready" : "error"));
+      return;
+    }
+    void (async () => {
+      for (const order of candidates.sort((left, right) => left.timestamp - right.timestamp)) {
+        automaticPrintInFlightRef.current.add(order.id);
+        setAutomaticKitchenPrintingStatus("printing");
+        const printed = await printOrderReceipts(order, { confirm: false, browserFallback: false });
+        automaticPrintInFlightRef.current.delete(order.id);
+        if (!printed) {
+          setAutomaticKitchenPrintingStatus("error");
+          break;
+        }
+        const latest = loadAutomaticallyPrintedOrderIds();
+        latest.add(order.id);
+        localStorage.setItem("menfis_kitchen_auto_printed_orders", JSON.stringify([...latest].slice(-200)));
+        setAutomaticKitchenPrintingStatus("ready");
+      }
+    })();
+  }, [automaticKitchenPrintingEnabled, orders]);
+
   const applyPublicSettings = (settings: Record<string, unknown>) => {
     setPayOnDeliveryEnabled(settings.payOnDeliveryEnabled !== false);
     setTestModeEnabled(settings.testModeEnabled === true);
     setDemoTableEnabled(settings.demoTableEnabled === true);
     setSoldOutEnabled(settings.soldOutEnabled === true);
+    setAutomaticOrderAcceptanceEnabled(settings.automaticOrderAcceptanceEnabled === true);
     const normalizedHours = normalizeOperatingHours(settings.operatingHours);
     setOperatingHours(normalizedHours);
     setSavedOperatingHours(normalizedHours);
@@ -431,6 +507,28 @@ export function AdminPanel({
 
   const toggleSoldOut = () =>
     updateSetting("/settings/sold-out", !soldOutEnabled);
+
+  const toggleAutomaticOrderWorkflow = async () => {
+    const fullyEnabled = automaticOrderAcceptanceEnabled && automaticKitchenPrintingEnabled;
+    if (fullyEnabled) {
+      localStorage.setItem("menfis_kitchen_auto_print_enabled", "0");
+      setAutomaticKitchenPrintingEnabled(false);
+      await updateSetting("/settings/automatic-order-acceptance", false);
+      return;
+    }
+    const bridgeRunning = await printBridgeIsRunning();
+    if (!bridgeRunning) {
+      setAutomaticKitchenPrintingStatus("error");
+      return;
+    }
+    localStorage.setItem("menfis_kitchen_auto_print_enabled_at", String(Date.now()));
+    localStorage.setItem("menfis_kitchen_auto_print_enabled", "1");
+    setAutomaticKitchenPrintingStatus("ready");
+    setAutomaticKitchenPrintingEnabled(true);
+    if (!automaticOrderAcceptanceEnabled) {
+      await updateSetting("/settings/automatic-order-acceptance", true);
+    }
+  };
 
   const updateOperatingHours = (next: OperatingHoursConfig) => {
     const normalized = normalizeOperatingHours(next);
@@ -803,19 +901,28 @@ export function AdminPanel({
     >
       <div className={kitchenOnly ? "" : "lg:flex lg:min-h-dvh"}>
         {!kitchenOnly && (
-          <aside className="hidden w-72 shrink-0 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col" style={{ background: VERDE }}>
+          <aside
+            className={`${sidebarCollapsed ? "w-20" : "w-72"} hidden shrink-0 transition-[width] duration-200 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col`}
+            style={{ background: VERDE }}
+          >
             <AdminHeader
               activeOrders={activeOrders}
               onClose={onClose}
               onOpenConfig={() => changeTab("config")}
+              collapsed={sidebarCollapsed}
+              onToggleCollapsed={toggleSidebar}
             />
-            <p className="px-5 pb-2 pt-4 text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: `${ROSA}75` }}>
-              Gestão da operação
-            </p>
-            <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={changeTab} />
-            <p className="mt-auto p-5 text-xs font-semibold leading-relaxed" style={{ color: `${ROSA}80` }}>
-              Da entrada do pedido ao pós-venda, em uma única operação.
-            </p>
+            {!sidebarCollapsed && (
+              <p className="px-5 pb-2 pt-4 text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: `${ROSA}75` }}>
+                Gestão da operação
+              </p>
+            )}
+            <AdminTabs tabs={tabs} tab={tab} tabCount={tabCount} onChange={changeTab} collapsed={sidebarCollapsed} />
+            {!sidebarCollapsed && (
+              <p className="mt-auto p-5 text-xs font-semibold leading-relaxed" style={{ color: `${ROSA}80` }}>
+                Da entrada do pedido ao pós-venda, em uma única operação.
+              </p>
+            )}
           </aside>
         )}
         <main className={kitchenOnly ? "" : "min-w-0 flex-1"}>
@@ -873,6 +980,9 @@ export function AdminPanel({
             orders={visibleOrders}
             demoTableEnabled={demoTableEnabled}
           />
+        )}
+        {DINING_FEATURE_ENABLED && tab === "salao" && (
+          <DiningManagementView adminToken={adminToken} />
         )}
         {tab === "dashboard" && (
           <DashboardView
@@ -983,6 +1093,9 @@ export function AdminPanel({
             testModeEnabled={testModeEnabled}
             demoTableEnabled={demoTableEnabled}
             soldOutEnabled={soldOutEnabled}
+            automaticOrderAcceptanceEnabled={automaticOrderAcceptanceEnabled}
+            automaticKitchenPrintingEnabled={automaticKitchenPrintingEnabled}
+            automaticKitchenPrintingStatus={automaticKitchenPrintingStatus}
             adminLogin={adminLogin}
             operatingHours={operatingHours}
             presentation={presentation}
@@ -1010,6 +1123,7 @@ export function AdminPanel({
             onToggleTestMode={toggleTestMode}
             onToggleDemoTable={toggleDemoTable}
             onToggleSoldOut={toggleSoldOut}
+            onToggleAutomaticOrderWorkflow={toggleAutomaticOrderWorkflow}
             onSaveAdminCredentials={saveAdminCredentials}
             onOperatingHoursChange={updateOperatingHours}
             onPresentationChange={setPresentation}

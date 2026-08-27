@@ -345,6 +345,14 @@ public class InventoryService {
 
   @Transactional
   public void deductForOrder(String orderId) {
+    jdbc.queryForObject("select id from orders where id = ? for update", String.class, orderId);
+    Integer alreadyDeducted = jdbc.queryForObject(
+      "select count(*) from stock_movements where order_id = ? and note = 'Baixa automática por pedido em produção'",
+      Integer.class,
+      orderId
+    );
+    if (alreadyDeducted != null && alreadyDeducted > 0) return;
+
     List<Map<String, Object>> deductions = jdbc.queryForList(
       """
       select inventory_item_id, sum(quantity) as quantity

@@ -131,7 +131,7 @@ function KitchenKanbanCard({
           </span>
         </div>
         <p style={{ marginTop: 4, fontSize: 11, fontWeight: 950, color: style.text }}>
-          {order.channel} · {paymentMethodLabel(order)} · {order.items.length} itens
+          {order.diningTableName ? `${order.diningTableName} · ` : ""}{order.channel} · {paymentMethodLabel(order)} · {order.items.length} itens
         </p>
         <p style={{ marginTop: 8, fontSize: compact ? 13 : 12, fontWeight: 900, color: VERDE }}>
           {order.items.map((item) => `${item.qty}x ${item.name}`).join(" · ")}

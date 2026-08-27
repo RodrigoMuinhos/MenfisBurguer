@@ -1,7 +1,7 @@
 import { CartItem, Order, OrderStatus } from "@/types/order";
 
 export type Screen = "product" | "cart" | "tracking" | "queue" | "admin";
-export type AppMode = "kiosk" | "delivery" | "admin" | "kds" | "notes";
+export type AppMode = "kiosk" | "dining" | "delivery" | "admin" | "kds" | "notes";
 
 export const MEMBER_KEY = "menfis_member";
 export const PENDING_ORDER_KEY = "menfis_pending_order_id";

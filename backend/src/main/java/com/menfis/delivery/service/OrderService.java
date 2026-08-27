@@ -20,8 +20,11 @@ import java.sql.SQLException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.time.OffsetDateTime;
 import java.util.Base64;
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.time.Duration;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,7 @@ public class OrderService {
   private static final BigDecimal DELIVERY_FEE = new BigDecimal("7.10");
   private static final BigDecimal SERVICE_FEE = new BigDecimal("0.99");
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+  static final Duration RECEIVED_HOLD_DURATION = Duration.ofMinutes(5);
 
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
@@ -91,6 +95,9 @@ public class OrderService {
       : request.channel() == null
       ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
       : request.channel();
+    if (channel == OrderChannel.DINING_QR) {
+      throw new IllegalArgumentException("use_dining_order_endpoint");
+    }
     DeliveryType deliveryType = kioskLocalCustomer ? DeliveryType.RETIRADA : request.deliveryType();
     String customerName = kioskLocalCustomer
       ? "KIOSK-MOB"
@@ -242,7 +249,8 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code,
+        (select t.name from dining_sessions s join dining_tables t on t.id = s.table_id where s.id = orders.dining_session_id) dining_table_name
       from orders where id = ?
       """,
       this::mapOrder,
@@ -297,7 +305,8 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code,
+        (select t.name from dining_sessions s join dining_tables t on t.id = s.table_id where s.id = orders.dining_session_id) dining_table_name
       from orders
       where test_mode = ?
       order by created_at desc
@@ -323,7 +332,16 @@ public class OrderService {
     if (!OrderStatus.CANCELLED.name().equals(status) && !OrderStatus.DELIVERED.name().equals(status)) {
       throw new IllegalArgumentException("only_cancelled_or_delivered_orders_can_be_deleted");
     }
-    jdbc.update("delete from orders where id = ?", id);
+    // stock_movements intentionally has no ON DELETE CASCADE because it is normally
+    // part of the permanent inventory ledger. A definitive admin deletion is the
+    // exception: remove its inventory references and non-FK Rabbit log first, then
+    // let the remaining order-owned records cascade from orders.
+    jdbc.update("delete from stock_movements where order_id = ?", id);
+    jdbc.update("delete from order_event_log where order_id = ?", id);
+    int deleted = jdbc.update("delete from orders where id = ?", id);
+    if (deleted != 1) {
+      throw new EmptyResultDataAccessException(1);
+    }
     audit.log("admin", "ORDER_DELETED", "ORDER", id, Map.of("status", status));
   }
 
@@ -451,7 +469,8 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code,
+        (select t.name from dining_sessions s join dining_tables t on t.id = s.table_id where s.id = orders.dining_session_id) dining_table_name
       from orders
       where delivery_type = 'DELIVERY'
         and status = 'OUT_FOR_DELIVERY'
@@ -469,7 +488,8 @@ public class OrderService {
       """
       select o.id, o.number, o.items, o.channel, o.delivery_type, o.customer_name, o.customer_phone, o.customer_address,
         o.subtotal, o.delivery_fee, o.coupon_code, o.discount_total, o.total, o.payment_provider, o.payment_method, o.payment_status,
-        o.payment_id, o.timestamp, o.created_at, o.updated_at, o.status, o.paid_at, o.confirmed_at, o.delivery_code
+        o.payment_id, o.timestamp, o.created_at, o.updated_at, o.status, o.paid_at, o.confirmed_at, o.delivery_code,
+        (select t.name from dining_sessions s join dining_tables t on t.id = s.table_id where s.id = o.dining_session_id) dining_table_name
       from orders o
       join customers c on c.id = ?
       where o.test_mode = ?
@@ -523,11 +543,17 @@ public class OrderService {
   @Transactional
   public OrderResponse changeStatus(String id, OrderStatus toStatus, String actor, String reason) {
     Map<String, Object> row = jdbc.queryForMap(
-      "select status, customer_name from orders where id = ?",
+      "select status, customer_name, paid_at from orders where id = ?",
       id
     );
     String from = String.valueOf(row.get("status"));
     OrderStatus fromStatus = OrderStatus.valueOf(from);
+    if (toStatus == OrderStatus.IN_PREPARATION
+        && isReceivedStatus(fromStatus)
+        && "system".equalsIgnoreCase(actor)
+        && !receivedHoldElapsed(asOffsetDateTime(row.get("paid_at")), OffsetDateTime.now())) {
+      throw new IllegalArgumentException("order_received_hold_not_elapsed");
+    }
     boolean kioskMobOrder = isKioskMobName(String.valueOf(row.get("customer_name")));
     if (kioskMobOrder && toStatus == OrderStatus.OUT_FOR_DELIVERY) {
       throw new IllegalArgumentException("kiosk_mob_counter_service_required");
@@ -948,16 +974,44 @@ public class OrderService {
       case PAID -> to == OrderStatus.ACCEPTED || to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case ACCEPTED -> to == OrderStatus.IN_PREPARATION || to == OrderStatus.CANCELLED;
       case IN_PREPARATION -> to == OrderStatus.READY || to == OrderStatus.CANCELLED;
-      case READY -> to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
+      case READY -> to == OrderStatus.PICKED_UP || to == OrderStatus.OUT_FOR_DELIVERY || to == OrderStatus.DELIVERED;
       case OUT_FOR_DELIVERY -> to == OrderStatus.DELIVERED;
       case CANCELLED -> to == OrderStatus.PAYMENT_APPROVED || to == OrderStatus.PAID || to == OrderStatus.ACCEPTED;
       default -> false;
     };
   }
 
+  public PricedOrder priceDiningItems(List<OrderItemRequest> requestedItems) {
+    if (requestedItems == null || requestedItems.isEmpty()) {
+      throw new IllegalArgumentException("order_must_have_at_least_one_item");
+    }
+    requestedItems.forEach(this::validateProductAddons);
+    PriceResult price = calculate(requestedItems);
+    return new PricedOrder(price.subtotal(), price.items());
+  }
+
+  static boolean receivedHoldElapsed(OffsetDateTime paidAt, OffsetDateTime now) {
+    return paidAt != null && !paidAt.plus(RECEIVED_HOLD_DURATION).isAfter(now);
+  }
+
+  private OffsetDateTime asOffsetDateTime(Object value) {
+    if (value instanceof OffsetDateTime offset) return offset;
+    if (value instanceof Timestamp timestamp) return timestamp.toInstant().atOffset(ZoneOffset.UTC);
+    return null;
+  }
+
+  private boolean isReceivedStatus(OrderStatus status) {
+    return status == OrderStatus.PAYMENT_PENDING
+      || status == OrderStatus.PAYMENT_PROOF_PENDING
+      || status == OrderStatus.PAYMENT_APPROVED
+      || status == OrderStatus.PAID
+      || status == OrderStatus.ACCEPTED;
+  }
+
   private boolean isKitchenOrTerminal(OrderStatus status) {
     return status == OrderStatus.IN_PREPARATION
       || status == OrderStatus.READY
+      || status == OrderStatus.PICKED_UP
       || status == OrderStatus.OUT_FOR_DELIVERY
       || status == OrderStatus.DELIVERED
       || status == OrderStatus.CANCELLED;
@@ -985,6 +1039,7 @@ public class OrderService {
       case ACCEPTED -> "ORDER_ACCEPTED";
       case IN_PREPARATION -> "ORDER_IN_PREPARATION";
       case READY -> "ORDER_READY";
+      case PICKED_UP -> "ORDER_PICKED_UP";
       case OUT_FOR_DELIVERY -> "ORDER_OUT_FOR_DELIVERY";
       case DELIVERED -> "ORDER_DELIVERED";
       case CANCELLED -> "ORDER_CANCELLED";
@@ -1034,7 +1089,8 @@ public class OrderService {
       rs.getString("status"),
       offset(rs, "paid_at"),
       offset(rs, "confirmed_at"),
-      null
+      null,
+      rs.getString("dining_table_name")
     );
   }
 
@@ -1044,7 +1100,7 @@ public class OrderService {
       order.customerName(), order.customerPhone(), order.customerAddress(), order.subtotal(), order.deliveryFee(),
       order.couponCode(), order.discountTotal(), order.total(), order.paymentProvider(), order.paymentMethod(),
       order.paymentStatus(), order.paymentId(), order.timestamp(), order.createdAt(), order.updatedAt(), order.status(),
-      order.paidAt(), order.confirmedAt(), trackingToken
+      order.paidAt(), order.confirmedAt(), trackingToken, order.diningTableName()
     );
   }
 
@@ -1214,5 +1270,6 @@ public class OrderService {
   }
 
   private record PriceResult(BigDecimal subtotal, List<Map<String, Object>> items) {}
+  public record PricedOrder(BigDecimal subtotal, List<Map<String, Object>> items) {}
   private record CouponResult(String code, BigDecimal discount, boolean freeShipping) {}
 }

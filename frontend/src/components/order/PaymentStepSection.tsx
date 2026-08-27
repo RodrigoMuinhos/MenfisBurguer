@@ -106,12 +106,12 @@ export function PaymentStepSection({
   total: number;
 }) {
   const [pixSeconds, setPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
+  const [pixExpired, setPixExpired] = useState(false);
 
   useEffect(() => {
     if (!kioskMode || checkoutStep !== "payment" || !["pix", "pix_qrcode"].includes(payment)) return;
     if (pixSeconds <= 0) {
-      setCheckoutStep("customer");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setPixExpired(true);
       return;
     }
     const timer = window.setTimeout(() => setPixSeconds((seconds) => seconds - 1), 1000);
@@ -120,7 +120,10 @@ export function PaymentStepSection({
 
   const choosePayment = (id: Exclude<PaymentMethod, "">) => {
     setPayment(id);
-    if (id === "pix" || id === "pix_qrcode") setPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
+    if (id === "pix" || id === "pix_qrcode") {
+      setPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
+      setPixExpired(false);
+    }
     window.setTimeout(() => {
       document
         .querySelector("[data-checkout-submit]")
@@ -553,6 +556,33 @@ export function PaymentStepSection({
                               </p>
                             </div>
                           )}
+                          {payment === "pix" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPixExpired(false);
+                                setCheckoutStep("customer");
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                              className="min-h-14 rounded-2xl px-5 text-sm font-black uppercase text-white"
+                              style={{ background: VERDE }}
+                            >
+                              Confirmar que o PIX deu certo
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {kioskMode && pixExpired && (
+                        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-white px-6">
+                          <div className="w-full max-w-md rounded-[32px] border-2 bg-white p-8 text-center shadow-2xl" style={{ borderColor: ROSA, color: VERDE }}>
+                            <QrCode size={52} className="mx-auto" />
+                            <h2 className="mt-5 text-3xl font-black uppercase">O PIX deu certo?</h2>
+                            <p className="mt-3 text-sm font-bold opacity-70">Você pode confirmar o pagamento ou abrir novamente o prazo de 45 segundos.</p>
+                            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                              <button type="button" onClick={() => { setPixExpired(false); setPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS); }} className="min-h-14 rounded-2xl border px-4 text-xs font-black uppercase" style={{ borderColor: VERDE }}>Repetir 45 segundos</button>
+                              <button type="button" onClick={() => { setPixExpired(false); setCheckoutStep("customer"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="min-h-14 rounded-2xl px-4 text-xs font-black uppercase text-white" style={{ background: VERDE }}>Confirmar pagamento</button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

@@ -30,7 +30,7 @@ public class KioskBoardService {
       where channel = 'KIOSK'
         and status in (
           'CREATED', 'PAYMENT_PENDING', 'PAYMENT_PROOF_PENDING',
-          'PAID', 'ACCEPTED', 'IN_PREPARATION', 'READY'
+          'PAYMENT_APPROVED', 'PAID', 'ACCEPTED', 'IN_PREPARATION', 'READY'
         )
         and created_at >= current_date
         and test_mode = ?

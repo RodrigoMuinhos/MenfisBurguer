@@ -157,7 +157,7 @@ function KitchenNoteCard({ order, position }: { order: Order; position: number }
         </div>
         <button
           type="button"
-          onClick={() => printOrderReceipts(order, { confirm: false })}
+          onClick={() => printOrderReceipts(order, { confirm: false, browserFallback: false })}
           style={{
             minHeight: 58,
             minWidth: 120,

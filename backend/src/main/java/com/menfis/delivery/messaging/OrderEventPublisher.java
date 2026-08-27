@@ -53,6 +53,10 @@ public class OrderEventPublisher {
     log.info("ORDER_PAID stored in transactional outbox orderId={} origin={}", orderId, origin);
   }
 
+  public void publishOrderPaid(String orderId, String origin, OffsetDateTime paidAt) {
+    publish(new OrderPaidEvent("ORDER_PAID", orderId, origin, paidAt));
+  }
+
   @Scheduled(fixedDelayString = "${menfis.order-outbox-dispatch-delay-ms:5000}", initialDelayString = "${menfis.order-outbox-dispatch-delay-ms:5000}")
   public void dispatchPending() {
     List<Map<String, Object>> pending = jdbc.queryForList(

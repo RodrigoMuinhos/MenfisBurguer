@@ -36,11 +36,19 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers(HttpMethod.GET, "/settings/public").permitAll()
         .requestMatchers(HttpMethod.POST, "/settings/sitef-supervisor/verify").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/public/dining/kits/*/session").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/public/dining/kits/*/account").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/public/dining/kits/*/orders/*").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/public/dining/kits/*/session/customer-name").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/public/dining/kits/*/orders").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/public/dining/kits/*/account/close").permitAll()
         .requestMatchers(HttpMethod.GET, "/orders/events", "/api/orders/events")
           .hasRole("ADMIN")
         .requestMatchers("/orders/delivery-route", "/orders/*/delivery-confirmation",
           "/api/orders/delivery-route", "/api/orders/*/delivery-confirmation")
           .hasAnyRole("DELIVERY", "ADMIN")
+        .requestMatchers("/api/admin/dining/**").hasAnyRole("MANAGER", "ADMIN")
+        .requestMatchers("/api/staff/dining/**").hasAnyRole("STAFF", "MANAGER", "ADMIN")
         .requestMatchers(
           "/dashboard/**",
           "/monitoring/**",
