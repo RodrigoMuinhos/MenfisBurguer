@@ -301,7 +301,7 @@ export function PaymentStepSection({
                         <button
                           type="button"
                           onClick={() => void onChooseCounterPayment?.()}
-                          className="grid gap-3 rounded-2xl p-5 text-center"
+                          className="grid min-h-[160px] w-full place-content-center justify-items-center gap-3 rounded-2xl px-6 py-7 text-center"
                           style={{
                             background: "#fff",
                             border: `2px solid ${VERDE}`,
