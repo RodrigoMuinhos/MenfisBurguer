@@ -25,7 +25,7 @@ const SANDWICH_TO_COMBO: Record<string, string> = {
 };
 
 const PRODUCT_LOOKUP: Record<string, { name: string; price: number }> = {
-  burger: { name: "Menfi's Burger", price: 25.9 },
+  burger: { name: "Menfi's Burger Classic", price: 29.9 },
   "double-burger": { name: "BIG Menfi's", price: 29.9 },
   "menfis-chicken": { name: "Menfi's Chicken", price: 24.9 },
   "double-menfis-chicken": { name: "BIG Menfi's Chicken", price: 32.9 },
@@ -126,7 +126,7 @@ const EXTRA_SUGGESTIONS: SuggestedExtra[] = [
 ];
 
 const BURGER_SUGGESTIONS: SuggestedExtra[] = [
-  { id: "burger", name: "Menfi's Burger", price: 25.9, description: "Burger 130g", image: "/menu/menfisburguer.png" },
+  { id: "burger", name: "Menfi's Burger Classic", price: 29.9, description: "Burger 130g", image: "/menu/menfisburguer.png" },
   { id: "menfis-chicken", name: "Menfi's Chicken", price: 24.9, description: "Chicken crocante", image: "/menu/CHICKEN.png" },
   { id: "menfis-bacon", name: "Menfi's Bacon", price: 27.9, description: "Burger 130g com bacon", image: "/menu/BACON.png" },
 ];
