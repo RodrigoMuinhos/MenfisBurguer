@@ -1,0 +1,9 @@
+.git/
+.vercel/
+KIOSK-MENFIS/
+frontend/
+docs/
+backend/target/
+backend/*.log
+backend/*.err.log
+frontend/tsconfig.tsbuildinfo
