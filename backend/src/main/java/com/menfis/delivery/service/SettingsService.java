@@ -22,6 +22,7 @@ public class SettingsService {
   public static final String PROMO_CARDS = "promo_cards";
   public static final String SPECIAL_OFFER = "special_offer_settings";
   public static final String LEMONADE_SETTINGS = "lemonade_settings";
+  public static final String SITEF_SUPERVISOR_PASSWORD = "sitef_supervisor_password";
   private static final String DEFAULT_LEMONADE_SETTINGS = """
     {"badgeLabels":{"pink-lemonade":"","purple-lemonade":"","sunset-lemonade":"Em breve"},"enabledFlavors":["pink-lemonade","purple-lemonade","sunset-lemonade"],"flavorOrder":["pink-lemonade","purple-lemonade","sunset-lemonade"],"heroOrder":["hero.png","hero2.png","hero3.png"]}
     """;
@@ -84,6 +85,11 @@ public class SettingsService {
 
   public boolean soldOutEnabled() {
     return Boolean.parseBoolean(value(SOLD_OUT, "false"));
+  }
+
+  public boolean verifySitefSupervisorPassword(String password) {
+    String configured = value(SITEF_SUPERVISOR_PASSWORD, "");
+    return !configured.isBlank() && configured.equals(password == null ? "" : password.trim());
   }
 
   public Map<String, Object> operatingHours() {

@@ -19,7 +19,11 @@ import {
   playAttendantBeep,
   resolveRuntimeDeliveryType,
 } from "./checkout";
-import { submitCheckoutOrder } from "./cartFinalize";
+import {
+  CounterTerminalMethod,
+  submitCheckoutOrder,
+  TerminalPaymentProgress,
+} from "./cartFinalize";
 import { inputStyle } from "./cartInputStyle";
 import { MEMBER_TOKEN_KEY, readMemberProfile } from "@/components/product/shared";
 import { SOLD_OUT_MESSAGE } from "@/components/product/SoldOutNotice";
@@ -142,6 +146,8 @@ export function useCartCheckout({
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [paymentSlow, setPaymentSlow] = useState(false);
+  const [terminalPaymentProgress, setTerminalPaymentProgress] =
+    useState<TerminalPaymentProgress | null>(null);
   const [payOnDeliveryEnabled, setPayOnDeliveryEnabled] = useState(false);
   const [operatingNow, setOperatingNow] = useState(true);
   const [withinOperatingHours, setWithinOperatingHours] = useState(true);
@@ -182,7 +188,7 @@ export function useCartCheckout({
   const numberRef = useRef<HTMLInputElement>(null);
   const customerNameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
-  const counterPaymentResolveRef = useRef<((value: "pix" | "atendente") => void) | null>(null);
+  const counterPaymentResolveRef = useRef<((value: CounterTerminalMethod) => void) | null>(null);
   const counterCustomerNameResolveRef = useRef<((value: string) => void) | null>(null);
   const kioskSuccessResolveRef = useRef<(() => void) | null>(null);
   const kioskKeyboardOpen = (kioskMode || counterServiceMode) && kioskKeyboardTarget !== null;
@@ -200,7 +206,7 @@ export function useCartCheckout({
   const [counterCustomerNamePromptOpen, setCounterCustomerNamePromptOpen] = useState(false);
   const [counterCustomerNameDraft, setCounterCustomerNameDraft] = useState("");
 
-  const resolveCounterPaymentPrompt = (value: "pix" | "atendente") => {
+  const resolveCounterPaymentPrompt = (value: CounterTerminalMethod) => {
     const resolve = counterPaymentResolveRef.current;
     counterPaymentResolveRef.current = null;
     setCounterPaymentPromptOpen(false);
@@ -208,8 +214,8 @@ export function useCartCheckout({
   };
 
   const confirmCounterPayment = (amount: number) =>
-    new Promise<"pix" | "atendente">((resolve) => {
-      counterPaymentResolveRef.current?.("atendente");
+    new Promise<CounterTerminalMethod>((resolve) => {
+      counterPaymentResolveRef.current?.("DEBIT");
       counterPaymentResolveRef.current = resolve;
       setCounterPaymentTotal(amount);
       setCounterPaymentPromptOpen(true);
@@ -253,7 +259,7 @@ export function useCartCheckout({
 
   useEffect(
     () => () => {
-      counterPaymentResolveRef.current?.("atendente");
+      counterPaymentResolveRef.current?.("DEBIT");
       counterPaymentResolveRef.current = null;
       counterCustomerNameResolveRef.current?.("Cliente balcão");
       counterCustomerNameResolveRef.current = null;
@@ -612,6 +618,7 @@ export function useCartCheckout({
       setKioskSuccessOpen,
       setKioskSuccessOrder,
       setPaymentError,
+      setTerminalPaymentProgress,
       onRestaurantClosed: () => {
         setPaymentError("");
         setClosedHoursAlertOpen(true);
@@ -620,6 +627,13 @@ export function useCartCheckout({
       confirmCounterCustomerName,
       waitForKioskSuccessConfirm,
       clearCartItems: clearCart,
+      onTerminalCancelled: () => {
+        clearCart();
+        setCheckoutStep(initialCheckoutStep ?? "bag");
+        setPaymentError("");
+        setTerminalPaymentProgress(null);
+        goToMenu();
+      },
     });
     if (appliedCoupon) {
       const userId = memberProfile?.id ? String(memberProfile.id) : "";
@@ -914,6 +928,7 @@ export function useCartCheckout({
     payment,
     paymentError,
     paymentSlow,
+    terminalPaymentProgress,
     phone,
     phoneRef,
     removed,

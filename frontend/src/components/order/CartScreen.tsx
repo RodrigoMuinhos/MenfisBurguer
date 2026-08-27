@@ -118,6 +118,7 @@ export function CartScreen({
     paying,
     payment,
     paymentError,
+    terminalPaymentProgress,
     paymentSlow,
     phone,
     phoneRef,
@@ -395,6 +396,7 @@ export function CartScreen({
         kioskSuccessOrder={kioskSuccessOrder}
         payment={payment}
         paymentSlow={paymentSlow}
+        terminalPaymentProgress={terminalPaymentProgress}
         kioskKeyboardOpen={kioskKeyboardOpen}
         kioskKeyboardTarget={kioskKeyboardTarget}
         typeKioskKey={typeKioskKey}

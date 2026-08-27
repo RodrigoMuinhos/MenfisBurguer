@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
@@ -294,18 +295,127 @@ public class PaymentService {
 
     if (eventId == null || eventId.isBlank()) eventId = payload.path("id").asText();
     if (eventId == null || eventId.isBlank()) eventId = java.util.UUID.randomUUID().toString();
-    int inserted = jdbc.update(
-      "insert into webhook_events(id, provider, event_type, payload) values (?, 'MERCADO_PAGO', ?, ?::jsonb) on conflict (id) do nothing",
+    String paymentId = mercadoPagoResourceId(payload, dataId);
+    jdbc.update(
+      """
+      insert into webhook_events(
+        id, provider, event_type, payload, status, received_at, processed_at, resource_id
+      ) values (?, 'MERCADO_PAGO', ?, ?::jsonb, 'RECEIVED', now(), null, ?)
+      on conflict (id) do update set
+        event_type = coalesce(excluded.event_type, webhook_events.event_type),
+        payload = excluded.payload,
+        resource_id = coalesce(nullif(excluded.resource_id, ''), webhook_events.resource_id)
+      """,
       eventId,
       payload.path("type").asText(null),
-      payload.toString()
+      payload.toString(),
+      paymentId
     );
-    if (inserted == 0) return;
 
+    if (!claimWebhookEvent(eventId, true)) return;
+    processClaimedWebhook(eventId, paymentId);
+  }
+
+  @Scheduled(fixedDelayString = "${menfis.webhook-inbox-retry-delay-ms:60000}", initialDelayString = "${menfis.webhook-inbox-retry-delay-ms:60000}")
+  public void retryMercadoPagoWebhookInbox() {
+    List<Map<String, Object>> pending = jdbc.queryForList(
+      """
+      select id, resource_id
+      from webhook_events
+      where provider = 'MERCADO_PAGO'
+        and (
+          (status in ('RECEIVED', 'FAILED') and coalesce(next_retry_at, received_at) <= now())
+          or (status = 'PROCESSING' and processing_started_at < now() - interval '5 minutes')
+        )
+      order by coalesce(next_retry_at, received_at)
+      limit 50
+      """
+    );
+    for (Map<String, Object> event : pending) {
+      String eventId = String.valueOf(event.get("id"));
+      String resourceId = event.get("resource_id") == null ? "" : String.valueOf(event.get("resource_id"));
+      if (!claimWebhookEvent(eventId, false)) continue;
+      try {
+        processClaimedWebhook(eventId, resourceId);
+      } catch (RuntimeException ignored) {
+        // O estado FAILED e o próximo retry já foram persistidos.
+      }
+    }
+  }
+
+  private boolean claimWebhookEvent(String eventId, boolean incomingDelivery) {
+    Boolean claimed = jdbc.queryForObject(
+      """
+      with claimed as (
+        update webhook_events
+        set status = 'PROCESSING', processing_started_at = now(), attempts = attempts + 1,
+            next_retry_at = null, last_error = null
+        where id = ? and provider = 'MERCADO_PAGO'
+          and (
+            status = 'RECEIVED'
+            or (status = 'FAILED' and (? or coalesce(next_retry_at, now()) <= now()))
+            or (status = 'PROCESSING' and processing_started_at < now() - interval '5 minutes')
+          )
+        returning 1
+      )
+      select exists(select 1 from claimed)
+      """,
+      Boolean.class,
+      eventId,
+      incomingDelivery
+    );
+    return Boolean.TRUE.equals(claimed);
+  }
+
+  private void processClaimedWebhook(String eventId, String paymentId) {
+    try {
+      if (paymentId == null || paymentId.isBlank()) {
+        markWebhookProcessed(eventId);
+        return;
+      }
+      if (accessToken == null || accessToken.isBlank()) {
+        throw new IllegalStateException("mercado_pago_not_configured");
+      }
+
+      processMercadoPagoResource(paymentId);
+      markWebhookProcessed(eventId);
+    } catch (RuntimeException ex) {
+      String message = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
+      jdbc.update(
+        """
+        update webhook_events
+        set status = 'FAILED', processing_started_at = null,
+            next_retry_at = now() + (least(power(2, attempts), 300) * interval '1 second'),
+            last_error = left(?, 1000)
+        where id = ? and status = 'PROCESSING'
+        """,
+        message,
+        eventId
+      );
+      throw ex;
+    }
+  }
+
+  private void markWebhookProcessed(String eventId) {
+    jdbc.update(
+      """
+      update webhook_events
+      set status = 'PROCESSED', processed_at = now(), processing_started_at = null,
+          next_retry_at = null, last_error = null
+      where id = ? and status = 'PROCESSING'
+      """,
+      eventId
+    );
+  }
+
+  private static String mercadoPagoResourceId(JsonNode payload, String dataId) {
     String paymentId = payload.path("data").path("id").asText("");
     if (paymentId.isBlank() && dataId != null) paymentId = dataId;
     if (paymentId.isBlank()) paymentId = payload.path("id").asText("");
-    if (paymentId.isBlank() || accessToken == null || accessToken.isBlank()) return;
+    return paymentId;
+  }
+
+  private void processMercadoPagoResource(String paymentId) {
 
     if (paymentId.startsWith("ORD")) {
       processMercadoPagoOrder(paymentId);
@@ -365,6 +475,9 @@ public class PaymentService {
     }
     if (backendUrl == null || !backendUrl.startsWith("https://")) {
       throw new IllegalStateException("Production BACKEND_URL must use HTTPS");
+    }
+    if (webhookSecret == null || webhookSecret.isBlank()) {
+      throw new IllegalStateException("Production MERCADO_PAGO_WEBHOOK_SECRET is required");
     }
   }
 

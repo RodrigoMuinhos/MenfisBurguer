@@ -16,6 +16,7 @@ import {
   CART_STORAGE_KEY,
   CHECKOUT_RETURN_STEP_KEY,
   PENDING_ORDER_KEY,
+  PENDING_ORDER_TOKEN_KEY,
   Screen,
   normalizeStoredCart,
   registerMemberOrder,
@@ -127,6 +128,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     const memberToken = localStorage.getItem(MEMBER_TOKEN_KEY);
     const memberProfile = localStorage.getItem(MEMBER_KEY);
     const pendingOrderId = localStorage.getItem(PENDING_ORDER_KEY);
+    const pendingOrderToken = localStorage.getItem(PENDING_ORDER_TOKEN_KEY);
     const adminSession = localStorage.getItem("menfis_admin_session");
     const appScreen = localStorage.getItem(APP_SCREEN_KEY);
     if (!cacheIsCurrent) {
@@ -134,6 +136,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       if (memberToken) localStorage.setItem(MEMBER_TOKEN_KEY, memberToken);
       if (memberProfile) localStorage.setItem(MEMBER_KEY, memberProfile);
       if (pendingOrderId) localStorage.setItem(PENDING_ORDER_KEY, pendingOrderId);
+      if (pendingOrderToken) localStorage.setItem(PENDING_ORDER_TOKEN_KEY, pendingOrderToken);
       if (adminSession) localStorage.setItem("menfis_admin_session", adminSession);
       if (appScreen) localStorage.setItem(APP_SCREEN_KEY, appScreen);
       localStorage.setItem("menfis_cache_version", CACHE_VERSION);
@@ -228,6 +231,7 @@ export default function App({ mode }: { mode?: AppMode }) {
   const goHome = () => setScreen("product");
   const leaveTrackingToMenu = () => {
     localStorage.removeItem(PENDING_ORDER_KEY);
+    localStorage.removeItem(PENDING_ORDER_TOKEN_KEY);
     const selectedOrder = orders.find((order) => order.id === lastOrderId);
     if (!isKioskMobOrder(selectedOrder)) {
       setLastOrderId("");
@@ -399,6 +403,9 @@ export default function App({ mode }: { mode?: AppMode }) {
       const kioskMobOrder = isKioskMobOrder(createdOrder);
       if (!kioskMode && !kioskMobOrder) {
         localStorage.setItem(PENDING_ORDER_KEY, createdOrder.id);
+        if (createdOrder.trackingToken) {
+          localStorage.setItem(PENDING_ORDER_TOKEN_KEY, createdOrder.trackingToken);
+        }
       }
       setOrders((prev) => [
         createdOrder,

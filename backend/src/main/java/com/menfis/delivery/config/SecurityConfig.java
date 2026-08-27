@@ -15,7 +15,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-  public SecurityConfig(@Value("${menfis.jwt-secret}") String jwtSecret) {
+  public SecurityConfig(
+      @Value("${menfis.jwt-secret}") String jwtSecret,
+      @Value("${menfis.environment:local}") String environment) {
+    if ("production".equalsIgnoreCase(environment)
+        && (jwtSecret == null
+          || jwtSecret.length() < 32
+          || "dev-only-change-me-dev-only-change-me".equals(jwtSecret))) {
+      throw new IllegalStateException("Production JWT_SECRET must be a strong secret with at least 32 characters");
+    }
     this.jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtSecret);
   }
 
@@ -27,6 +35,7 @@ public class SecurityConfig {
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers(HttpMethod.GET, "/settings/public").permitAll()
+        .requestMatchers(HttpMethod.POST, "/settings/sitef-supervisor/verify").permitAll()
         .requestMatchers(HttpMethod.GET, "/orders/events", "/api/orders/events")
           .hasRole("ADMIN")
         .requestMatchers("/orders/delivery-route", "/orders/*/delivery-confirmation",
@@ -59,11 +68,10 @@ public class SecurityConfig {
           "/orders/kiosk-board",
           "/orders/*",
           "/orders/*/status",
-          "/orders/*/events",
+          "/support/tickets/order/*",
           "/api/orders/kiosk-board",
           "/api/orders/*",
           "/api/orders/*/status",
-          "/api/orders/*/events",
           "/terminal-payments/availability",
           "/api/terminal-payments/availability",
           "/terminal-payments/*",

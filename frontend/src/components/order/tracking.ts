@@ -108,12 +108,7 @@ export function scheduledOrderInfo(order: Order) {
 
 export function deliveryConfirmationCode(order: Order) {
   if (order.deliveryCode) return order.deliveryCode;
-  const seed = Number(order.number || order.id.replace(/\D/g, "") || Date.now());
-  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const a = letters[seed % letters.length];
-  const b = letters[Math.floor(seed / letters.length) % letters.length];
-  const digits = String((seed * 73 + 19) % 100).padStart(2, "0");
-  return `${a}${b}${digits}`;
+  return "INDISPONÍVEL";
 }
 
 export const SUPPORT_TOPICS = [

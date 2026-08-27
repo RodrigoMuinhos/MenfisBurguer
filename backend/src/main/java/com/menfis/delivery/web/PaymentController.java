@@ -7,6 +7,7 @@ import com.menfis.delivery.dto.ApiDtos.PixRequest;
 import com.menfis.delivery.dto.ApiDtos.PixResponse;
 import com.menfis.delivery.service.AuthService;
 import com.menfis.delivery.service.PaymentService;
+import com.menfis.delivery.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -21,19 +22,29 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentController {
   private final PaymentService payments;
   private final AuthService auth;
+  private final OrderService orders;
 
-  public PaymentController(PaymentService payments, AuthService auth) {
+  public PaymentController(PaymentService payments, AuthService auth, OrderService orders) {
     this.payments = payments;
     this.auth = auth;
+    this.orders = orders;
   }
 
   @PostMapping("/pix")
-  public PixResponse pix(@Valid @RequestBody PixRequest request) {
+  public PixResponse pix(
+      @RequestHeader(name = "Authorization", required = false) String authorization,
+      @RequestHeader(name = "X-Order-Token", required = false) String trackingToken,
+      @Valid @RequestBody PixRequest request) {
+    orders.requireOrderAccess(request.orderId(), authorization, trackingToken, auth);
     return payments.createPix(request.orderId());
   }
 
   @PostMapping("/checkout")
-  public PixResponse checkout(@Valid @RequestBody PixRequest request) {
+  public PixResponse checkout(
+      @RequestHeader(name = "Authorization", required = false) String authorization,
+      @RequestHeader(name = "X-Order-Token", required = false) String trackingToken,
+      @Valid @RequestBody PixRequest request) {
+    orders.requireOrderAccess(request.orderId(), authorization, trackingToken, auth);
     return payments.createCheckout(request.orderId());
   }
 

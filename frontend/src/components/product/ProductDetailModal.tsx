@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { motion } from "motion/react";
+import { useEffect, useRef } from "react";
 import {
   ChefHat,
   CheckCircle2,
@@ -184,6 +185,24 @@ export function ProductDetailModal({
   const accent = chilli ? "#FF315C" : "#A2E61B";
   const modalBg = chilli ? "#21090F" : "#061C18";
   const surface = chilli ? "#351018" : "#0A2520";
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    closeButtonRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -191,6 +210,9 @@ export function ProductDetailModal({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[90] flex items-end justify-center bg-black/80 p-0 sm:items-center sm:p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`product-detail-title-${item.id}`}
     >
       <motion.div
         initial={{ y: 28, scale: 0.98 }}
@@ -215,6 +237,7 @@ export function ProductDetailModal({
             </div>
           )}
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full"
@@ -230,6 +253,7 @@ export function ProductDetailModal({
           </p>
           <div className="mt-1 flex items-start justify-between gap-4">
             <h2
+              id={`product-detail-title-${item.id}`}
               className="uppercase"
               style={{
                 color: dark ? accent : VERDE,

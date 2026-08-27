@@ -169,8 +169,8 @@ export function SpecialOfferModal({
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 16, scale: 0.96 }}
         transition={{ type: "spring", stiffness: 260, damping: 24 }}
-        className="relative max-h-[92dvh] w-full max-w-[720px] overflow-hidden rounded-[32px] border shadow-[0_36px_110px_rgba(0,0,0,0.62)]"
-        style={{ color: "#fff", borderColor: "rgba(255,63,135,.4)", background: "radial-gradient(circle at 30% 20%,#750020 0%,#2a0713 48%,#12070b 100%)" }}
+        className="relative max-h-[92dvh] min-h-[680px] w-full max-w-[620px] overflow-hidden rounded-[32px] border shadow-[0_36px_110px_rgba(0,0,0,0.62)]"
+        style={{ color: "#fff", borderColor: "rgba(255,63,135,.42)", background: "transparent" }}
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -183,47 +183,50 @@ export function SpecialOfferModal({
           <X size={19} strokeWidth={2.7} />
         </button>
 
-        <div className="grid max-h-[92dvh] overflow-y-auto md:grid-cols-[1.25fr_.85fr]">
-          <div className="relative min-h-[46dvh] overflow-hidden md:min-h-[660px]">
-            <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(circle at center,rgba(255,63,135,.24),transparent 62%)" }} />
-            {offer.image ? (
-              <img
-                src={offer.image}
-                alt={offer.title}
-                className="relative z-[1] h-full w-full object-contain p-5 pt-16 drop-shadow-[0_28px_30px_rgba(0,0,0,.55)] md:p-8 md:pt-20"
-                loading="eager"
-              />
-            ) : (
-              <div className="grid h-full place-items-center" style={{ background: `${ROSA}35` }}>
-                <Sparkles size={54} strokeWidth={1.7} />
-              </div>
-            )}
-            <span
-              className="absolute left-5 top-5 z-[2] rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em]"
-              style={{ background: ROSA, color: "#330810", boxShadow: "0 10px 28px rgba(255,63,135,.3)" }}
-            >
-              Produto em destaque
-            </span>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-40 bg-gradient-to-t from-[#210810] to-transparent md:hidden" />
-          </div>
+        <div className="relative min-h-[680px] overflow-y-auto">
+          {offer.image ? (
+            <img
+              src={offer.image}
+              alt={offer.title}
+              className="absolute inset-0 h-full w-full object-cover object-top"
+              loading="eager"
+            />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center" style={{ background: `${ROSA}35` }}>
+              <Sparkles size={54} strokeWidth={1.7} />
+            </div>
+          )}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to bottom,rgba(15,3,7,0.04) 0%,rgba(15,3,7,0.08) 28%,rgba(15,3,7,.72) 54%,rgba(15,3,7,.97) 78%,rgba(15,3,7,1) 100%)",
+            }}
+          />
+          <span
+            className="absolute left-5 top-5 z-[2] rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em]"
+            style={{ background: ROSA, color: "#330810", boxShadow: "0 10px 28px rgba(255,63,135,.3)" }}
+          >
+            Produto em destaque
+          </span>
 
-          <div className="relative z-[3] flex flex-col justify-center border-t border-white/10 p-6 md:border-l md:border-t-0 md:p-8">
+          <div className="relative z-[3] flex min-h-[680px] flex-col justify-end p-6 pt-[270px] md:p-8 md:pt-[330px]">
             <p className="text-[10px] font-black uppercase tracking-[.24em] text-[#ff8fb7]">Menfi's seleciona</p>
             <h2
               className="mt-3 uppercase text-white"
               style={{
                 fontFamily: "var(--menfis-font-display)",
-                fontSize: "clamp(2.5rem, 9vw, 4.2rem)",
-                lineHeight: 0.86,
+                fontSize: "clamp(2.35rem, 8vw, 4rem)",
+                lineHeight: 0.9,
                 letterSpacing: 0,
               }}
             >
               {offer.title}
             </h2>
-            <p className="mt-5 text-sm font-semibold leading-relaxed text-white/72">
+            <p className="mt-4 text-sm font-semibold leading-relaxed text-white/85">
               {offer.description}
             </p>
-            <div className="mt-7 flex items-end justify-between gap-4 border-y border-white/10 py-5">
+            <div className="mt-5 flex items-end justify-between gap-4 border-y border-white/15 py-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">
                   Peça agora por
@@ -240,7 +243,7 @@ export function SpecialOfferModal({
                 </p>
               </div>
             </div>
-            <div className="mt-6 grid gap-3">
+            <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_.65fr]">
               <button
                 type="button"
                 onClick={onAdd}

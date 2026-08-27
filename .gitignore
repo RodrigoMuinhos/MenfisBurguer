@@ -36,3 +36,7 @@ next-dev.log
 next-dev.err.log
 
 .vercel
+
+# Aplicativo desktop KIOSK-MENFIS (não faz parte do deploy)
+KIOSK-MENFIS/node_modules/
+KIOSK-MENFIS/dist/

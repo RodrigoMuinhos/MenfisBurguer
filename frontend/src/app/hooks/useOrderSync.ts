@@ -6,6 +6,7 @@ import {
   ADMIN_API_URL,
   API_URL as PUBLIC_API_URL,
   PENDING_ORDER_KEY,
+  PENDING_ORDER_TOKEN_KEY,
   Screen,
   keepHighestVisibleStatus,
   keepPendingStatus,
@@ -48,6 +49,16 @@ function authHeaders(adminToken: string, json = false) {
   };
 }
 
+function customerOrderHeaders(json = false) {
+  const trackingToken = localStorage.getItem(PENDING_ORDER_TOKEN_KEY) ?? "";
+  const customerToken = localStorage.getItem("menfis_member_token") ?? "";
+  return {
+    ...(json ? { "Content-Type": "application/json" } : {}),
+    ...(customerToken ? { Authorization: `Bearer ${customerToken}` } : {}),
+    ...(trackingToken ? { "X-Order-Token": trackingToken } : {}),
+  };
+}
+
 export function useOrderSync({
   adminToken,
   lastOrderId,
@@ -69,6 +80,7 @@ export function useOrderSync({
       if (!API_URL || !orderId) return;
       const res = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}`, {
         cache: "no-store",
+        headers: adminToken ? authHeaders(adminToken) : customerOrderHeaders(),
       });
       if (!res.ok) return;
       const order = normalizeBackendOrder(await res.json());
@@ -81,11 +93,12 @@ export function useOrderSync({
       });
       if (order.status === "DELIVERED" || order.status === "CANCELLED") {
         localStorage.removeItem(PENDING_ORDER_KEY);
+        localStorage.removeItem(PENDING_ORDER_TOKEN_KEY);
       }
     } catch {
       // O retorno do pagamento nao pode derrubar a tela se o backend demorar.
     }
-  }, []);
+  }, [API_URL, adminToken]);
 
   const syncOrders = useCallback(async (options?: { force?: boolean }) => {
     try {
@@ -215,41 +228,6 @@ export function useOrderSync({
       source.close();
     };
   }, [adminToken, screen, started, syncOrders]);
-
-  useEffect(() => {
-    if (!started || screen !== "tracking" || !API_URL || !lastOrderId) return;
-
-    let source: EventSource;
-    try {
-      source = new EventSource(
-        `${API_URL}/orders/${encodeURIComponent(lastOrderId)}/events`,
-      );
-    } catch {
-      return;
-    }
-
-    source.addEventListener("order.updated", (event) => {
-      try {
-        const order = normalizeBackendOrder(JSON.parse(event.data));
-        setOrders((prev) => {
-          const existing = prev.find((item) => item.id === order.id);
-          return [
-            keepHighestVisibleStatus(order, existing),
-            ...prev.filter((item) => item.id !== order.id),
-          ];
-        });
-      } catch {
-        // Invalid event payload: polling fallback remains active.
-      }
-    });
-
-    source.onerror = () => {
-      source.close();
-      void loadOrderById(lastOrderId);
-    };
-
-    return () => source.close();
-  }, [lastOrderId, loadOrderById, screen, started]);
 
   const updateOrderStatus = useCallback(
     async (id: string, status: OrderStatus) => {

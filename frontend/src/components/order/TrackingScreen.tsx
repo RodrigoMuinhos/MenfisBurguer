@@ -96,6 +96,11 @@ export function TrackingScreen({
   const [idlePromptOpen, setIdlePromptOpen] = useState(false);
   const [reviewActivityTick, setReviewActivityTick] = useState(0);
   const [kioskReviews, setKioskReviews] = useState<KioskReview[]>([]);
+  const trackingToken = order?.trackingToken ||
+    (typeof window !== "undefined" ? localStorage.getItem("menfis_pending_order_token") : null);
+  const orderAccessHeaders: Record<string, string> = trackingToken
+    ? { "X-Order-Token": trackingToken }
+    : {};
   const current = order ? STATUS_INDEX[order.status] : -1;
   const delayed = order
     ? (Date.now() - order.timestamp) / 60000 > 50 &&
@@ -119,7 +124,7 @@ export function TrackingScreen({
       try {
         const res = await fetch(
           `${API_URL}/support/tickets/order/${encodeURIComponent(order.id)}`,
-          { cache: "no-store" },
+          { cache: "no-store", headers: orderAccessHeaders },
         );
         if (!res.ok) return;
         setSupportTickets(await res.json());
@@ -346,7 +351,15 @@ export function TrackingScreen({
     try {
       const res = await fetch(`${API_URL}/payments/checkout`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(order.trackingToken || localStorage.getItem("menfis_pending_order_token")
+            ? { "X-Order-Token": order.trackingToken || localStorage.getItem("menfis_pending_order_token")! }
+            : {}),
+          ...(localStorage.getItem("menfis_member_token")
+            ? { Authorization: `Bearer ${localStorage.getItem("menfis_member_token")}` }
+            : {}),
+        },
         body: JSON.stringify({ orderId: order.id }),
       });
       const data = await res.json().catch(() => ({}));
@@ -388,7 +401,17 @@ export function TrackingScreen({
     try {
       const response = await fetch(
         `${API_URL}/orders/${encodeURIComponent(order.id)}/payment-proof`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: {
+            ...(order.trackingToken || localStorage.getItem("menfis_pending_order_token")
+              ? { "X-Order-Token": order.trackingToken || localStorage.getItem("menfis_pending_order_token")! }
+              : {}),
+            ...(localStorage.getItem("menfis_member_token")
+              ? { Authorization: `Bearer ${localStorage.getItem("menfis_member_token")}` }
+              : {}),
+          },
+        },
       );
       if (!response.ok) throw new Error("payment_proof_request_failed");
       window.location.assign(`${WHATSAPP_URL}?text=${paymentProofWhatsappText}`);
@@ -526,7 +549,7 @@ export function TrackingScreen({
       if (API_URL) {
         await fetch(`${API_URL}/support/tickets`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...orderAccessHeaders },
           body: JSON.stringify({
             orderId: order.id,
             type,
@@ -539,7 +562,7 @@ export function TrackingScreen({
       if (API_URL) {
         const res = await fetch(
           `${API_URL}/support/tickets/order/${encodeURIComponent(order.id)}`,
-          { cache: "no-store" },
+          { cache: "no-store", headers: orderAccessHeaders },
         );
         if (res.ok) setSupportTickets(await res.json());
       }

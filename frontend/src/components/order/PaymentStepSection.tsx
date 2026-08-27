@@ -224,7 +224,7 @@ export function PaymentStepSection({
                     <div className={kioskMode ? "" : "mx-auto max-w-3xl"}>
                       <SectionLabel>
                         {counterServiceMode
-                          ? "Pagamento no balcão"
+                          ? "Pagamento"
                           : kioskMode
                             ? "Pagamento no atendimento"
                             : "Como vai pagar?"}
@@ -252,7 +252,7 @@ export function PaymentStepSection({
                               style={{ color: VERDE }}
                             >
                               {counterServiceMode
-                                ? "Pagamento presencial no balcão"
+                                ? "Pagamento seguro"
                                 : kioskMode
                                 ? "Escolha a forma de pagamento"
                                   : payment === "mercadopago"
@@ -274,7 +274,7 @@ export function PaymentStepSection({
                               style={{ color: VERDE, opacity: 0.62 }}
                             >
                               {counterServiceMode
-                                ? "A via do pedido será impressa e o pedido já entra para a cozinha. O cliente paga pessoalmente no balcão."
+                                ? "Escolha débito, crédito ou Pix. Siga as instruções no terminal e aguarde a aprovação."
                                 : kioskMode
                                 ? "Se for PIX, confira os dados abaixo. Se for atendente, aguarde a equipe no balcão."
                                 : payment === "pagar_na_entrega"
@@ -309,10 +309,10 @@ export function PaymentStepSection({
                           </div>
                           <div>
                             <p className="text-lg font-black uppercase tracking-wide">
-                              Pagar no balcão
+                              Escolher pagamento
                             </p>
                             <p className="mt-1 text-xs font-bold opacity-65">
-                              Único método disponível para KIOSK-MOB.
+                              Débito, crédito ou Pix.
                             </p>
                           </div>
                         </div>

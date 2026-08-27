@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +26,12 @@ public class SettingsController {
   @GetMapping("/public")
   public Map<String, Object> publicSettings() {
     return settings.publicSettings();
+  }
+
+  @PostMapping("/sitef-supervisor/verify")
+  public Map<String, Object> verifySitefSupervisor(
+      @RequestBody SitefSupervisorPasswordRequest request) {
+    return Map.of("valid", settings.verifySitefSupervisorPassword(request.password()));
   }
 
   @PatchMapping("/pay-on-delivery")
@@ -139,4 +146,5 @@ public class SettingsController {
   public record SpecialOfferRequest(Map<String, Object> specialOffer) {}
   public record LemonadeRequest(Map<String, Object> lemonade) {}
   public record AdminCredentialsRequest(String login, String password) {}
+  public record SitefSupervisorPasswordRequest(String password) {}
 }

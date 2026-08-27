@@ -149,6 +149,7 @@ export function freshApiUrl(path: string) {
   return `${API_URL}${path}${separator}_=${Date.now()}`;
 }
 
+
 export function preloadClientImages(srcs: Array<string | undefined>) {
   if (typeof window === "undefined") return;
   srcs

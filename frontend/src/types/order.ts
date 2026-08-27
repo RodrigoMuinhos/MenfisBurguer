@@ -42,6 +42,7 @@ export interface Order {
   id: string;
   number: number;
   deliveryCode?: string;
+  trackingToken?: string;
   channel: OrderChannel;
   items: CartItem[];
   removedByItemId?: Record<string, string[]>;

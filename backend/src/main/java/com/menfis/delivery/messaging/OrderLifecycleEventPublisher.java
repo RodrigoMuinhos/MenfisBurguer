@@ -31,6 +31,9 @@ public class OrderLifecycleEventPublisher {
   @Value("${menfis.rabbitmq.lifecycle-routing-key}")
   private String lifecycleRoutingKey;
 
+  @Value("${menfis.rabbitmq.enabled:true}")
+  private boolean rabbitEnabled;
+
   public OrderLifecycleEventPublisher(RabbitTemplate rabbit, ObjectMapper mapper, JdbcTemplate jdbc) {
     this.rabbit = rabbit;
     this.mapper = mapper;
@@ -93,6 +96,13 @@ public class OrderLifecycleEventPublisher {
     );
 
     Runnable publish = () -> {
+      if (!rabbitEnabled) {
+        log.info(
+          "ORDER_LIFECYCLE desktop mode without RabbitMQ eventId={} eventType={} orderId={}",
+          event.eventId(), event.eventType(), event.orderId()
+        );
+        return;
+      }
       rabbit.convertAndSend(
         exchange,
         lifecycleRoutingKey,

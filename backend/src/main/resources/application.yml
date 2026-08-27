@@ -21,6 +21,7 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:menfis}
     password: ${RABBITMQ_PASSWORD:menfis}
+    publisher-confirm-type: correlated
     listener:
       simple:
         acknowledge-mode: manual
@@ -30,6 +31,8 @@ menfis:
   environment: ${MENFIS_ENVIRONMENT:${RAILWAY_ENVIRONMENT_NAME:local}}
   backend-url: ${BACKEND_URL:}
   frontend-url: ${FRONTEND_URL:}
+  terminal-payment-enabled: ${MENFIS_TERMINAL_PAYMENT_ENABLED:false}
+  terminal-payment-url: ${TERMINAL_PAYMENT_URL:http://127.0.0.1:8081}
   jwt-secret: ${JWT_SECRET:dev-only-change-me-dev-only-change-me}
   mercado-pago-access-token: ${MERCADO_PAGO_ACCESS_TOKEN:${MP_ACCESS_TOKEN:}}
   mercado-pago-webhook-secret: ${MERCADO_PAGO_WEBHOOK_SECRET:}
@@ -42,6 +45,7 @@ menfis:
   whatsapp-business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:864066526222050}
   whatsapp-graph-api-version: ${WHATSAPP_GRAPH_API_VERSION:v20.0}
   rabbitmq:
+    enabled: ${MENFIS_RABBITMQ_ENABLED:true}
     orders-exchange: ${MENFIS_ORDERS_EXCHANGE:menfis.orders.exchange}
     kitchen-queue: ${MENFIS_KITCHEN_QUEUE:menfis.kitchen.queue}
     kitchen-dlq: ${MENFIS_KITCHEN_DLQ:menfis.kitchen.dlq}

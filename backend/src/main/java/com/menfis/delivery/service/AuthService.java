@@ -232,6 +232,32 @@ public class AuthService {
     return requireCustomer(authorization);
   }
 
+  public OrderIdentity optionalOrderIdentity(String authorization) {
+    String resolved = resolveAuthorization(authorization);
+    if (resolved == null || resolved.isBlank()) return null;
+    var claims = requireAnyRole(resolved, "ADMIN", "DELIVERY", "CUSTOMER");
+    String role = claims.get("role", String.class);
+    Long customerId = null;
+    if ("CUSTOMER".equals(role)) {
+      String subject = claims.getSubject();
+      if (subject == null || !subject.startsWith("customer:")) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_customer_token");
+      }
+      try {
+        customerId = Long.parseLong(subject.substring("customer:".length()));
+      } catch (NumberFormatException ex) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_customer_token");
+      }
+    }
+    return new OrderIdentity(role, customerId);
+  }
+
+  public record OrderIdentity(String role, Long customerId) {
+    public boolean operational() {
+      return "ADMIN".equals(role) || "DELIVERY".equals(role);
+    }
+  }
+
   private io.jsonwebtoken.Claims requireRole(String authorization, String requiredRole) {
     return requireAnyRole(authorization, requiredRole);
   }

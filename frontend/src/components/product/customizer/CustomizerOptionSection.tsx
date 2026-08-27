@@ -1,4 +1,5 @@
 import type React from "react";
+import Image from "next/image";
 import { ROSA, VERDE } from "@/utils/theme";
 
 export function OptionSection({ title, subtitle, count, total, required, children }: { title: string; subtitle: string; count?: number; total?: number; required?: boolean; children: React.ReactNode }) {
@@ -7,5 +8,5 @@ export function OptionSection({ title, subtitle, count, total, required, childre
 }
 
 export function OptionThumb({ src, alt }: { src: string; alt: string }) {
-  return <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl" style={{ background: "#F4F4F4" }}><img src={src} alt={alt} loading="lazy" className="block h-full w-full object-cover" /></span>;
+  return <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl" style={{ background: "#F4F4F4" }}><Image src={src} alt={alt} width={44} height={44} className="block h-full w-full object-cover" /></span>;
 }

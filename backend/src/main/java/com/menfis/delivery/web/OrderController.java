@@ -70,12 +70,19 @@ public class OrderController {
   }
 
   @GetMapping("/{id}")
-  public OrderResponse get(@PathVariable String id) {
-    return orders.get(id);
+  public OrderResponse get(
+      @PathVariable String id,
+      @RequestHeader(name = "Authorization", required = false) String authorization,
+      @RequestHeader(name = "X-Order-Token", required = false) String trackingToken) {
+    return orders.getAuthorized(id, authorization, trackingToken, auth);
   }
 
   @GetMapping("/{id}/status")
-  public StatusResponse status(@PathVariable String id) {
+  public StatusResponse status(
+      @PathVariable String id,
+      @RequestHeader(name = "Authorization", required = false) String authorization,
+      @RequestHeader(name = "X-Order-Token", required = false) String trackingToken) {
+    orders.requireOrderAccess(id, authorization, trackingToken, auth);
     return orders.status(id);
   }
 
@@ -88,7 +95,10 @@ public class OrderController {
   }
 
   @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter events(@PathVariable String id) {
+  public SseEmitter events(
+      @PathVariable String id,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    orders.requireOrderAccess(id, authorization, null, auth);
     return events.subscribe(id, orders.get(id));
   }
 
@@ -114,7 +124,11 @@ public class OrderController {
   }
 
   @PostMapping("/{id}/payment-proof")
-  public OrderResponse requestPaymentProof(@PathVariable String id) {
+  public OrderResponse requestPaymentProof(
+      @PathVariable String id,
+      @RequestHeader(name = "Authorization", required = false) String authorization,
+      @RequestHeader(name = "X-Order-Token", required = false) String trackingToken) {
+    orders.requireOrderAccess(id, authorization, trackingToken, auth);
     return orders.changeStatus(
       id,
       OrderStatus.PAYMENT_PROOF_PENDING,

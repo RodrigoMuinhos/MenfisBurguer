@@ -136,7 +136,8 @@ export function normalizeBackendOrder(raw: any): Order {
       (raw.number ?? String(raw.id).replace(/\D/g, "")) || Date.now(),
     ),
     deliveryCode:
-      raw.deliveryCode ?? raw.delivery_code ?? deliveryConfirmationCode(raw),
+      raw.deliveryCode ?? raw.delivery_code ?? undefined,
+    trackingToken: raw.trackingToken ?? raw.tracking_token ?? undefined,
     channel:
       kioskMobCustomer ||
       String(raw.channel ?? "").toUpperCase() === "KIOSK" ||
@@ -186,11 +187,9 @@ export function normalizeBackendOrder(raw: any): Order {
 }
 
 export function deliveryConfirmationCode(raw: { number?: unknown; id?: unknown }) {
-  const number = Number(raw.number ?? String(raw.id ?? "").replace(/\D/g, ""));
-  const seed = Number.isFinite(number) && number > 0 ? number : Date.now();
-  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const a = letters[seed % letters.length];
-  const b = letters[Math.floor(seed / letters.length) % letters.length];
-  const digits = String((seed * 73 + 19) % 100).padStart(2, "0");
-  return `${a}${b}${digits}`;
+  void raw;
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(6);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("");
 }

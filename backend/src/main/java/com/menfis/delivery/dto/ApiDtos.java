@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -18,7 +19,7 @@ import java.util.Map;
 public class ApiDtos {
   public record OrderItemRequest(
     @NotBlank String productId,
-    String name,
+    @Size(max = 160) String name,
     @Positive int quantity,
     List<String> addonIds,
     Map<String, Object> metadata
@@ -29,12 +30,12 @@ public class ApiDtos {
     OrderChannel channel,
     @NotNull DeliveryType deliveryType,
     @NotNull PaymentMethod paymentMethod,
-    String customerName,
-    String customerPhone,
-    String customerAddress,
-    String cpf,
-    String idempotencyKey,
-    String couponCode,
+    @Size(max = 160) String customerName,
+    @Size(max = 32) String customerPhone,
+    @Size(max = 500) String customerAddress,
+    @Size(max = 20) String cpf,
+    @Size(max = 128) String idempotencyKey,
+    @Size(max = 64) String couponCode,
     BigDecimal couponDiscount
   ) {}
 
@@ -62,7 +63,8 @@ public class ApiDtos {
     OffsetDateTime updatedAt,
     String status,
     OffsetDateTime paidAt,
-    OffsetDateTime confirmedAt
+    OffsetDateTime confirmedAt,
+    String trackingToken
   ) {}
 
   public record StatusResponse(String id, String status, OffsetDateTime paidAt, OffsetDateTime confirmedAt) {}
@@ -85,11 +87,11 @@ public class ApiDtos {
   public record ConfirmDeliveryRequest(@NotBlank String code, String actor) {}
 
   public record SupportTicketRequest(
-    @NotBlank String orderId,
-    @NotBlank String type,
-    @NotBlank String reason,
-    String message,
-    String customerPhone
+    @NotBlank @Size(max = 64) String orderId,
+    @NotBlank @Size(max = 64) String type,
+    @NotBlank @Size(max = 300) String reason,
+    @Size(max = 2000) String message,
+    @Size(max = 32) String customerPhone
   ) {}
 
   public record SupportTicketResponse(

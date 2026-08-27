@@ -25,7 +25,7 @@ public class KioskBoardService {
   public List<BoardOrder> listToday() {
     return jdbc.query(
       """
-      select id, number, customer_name, status, created_at
+      select id, number, split_part(trim(coalesce(customer_name, '')), ' ', 1) as customer_name, status, created_at
       from orders
       where channel = 'KIOSK'
         and status in (

@@ -17,7 +17,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,18 +29,19 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class OrderService {
   private static final Logger log = LoggerFactory.getLogger(OrderService.class);
   private static final BigDecimal DELIVERY_FEE = new BigDecimal("7.10");
   private static final BigDecimal SERVICE_FEE = new BigDecimal("0.99");
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
@@ -78,7 +83,7 @@ public class OrderService {
   public OrderResponse create(CreateOrderRequest request, Long authenticatedCustomerId) {
     if (request.idempotencyKey() != null && !request.idempotencyKey().isBlank()) {
       OrderResponse existing = findByIdempotencyKey(request.idempotencyKey());
-      if (existing != null) return existing;
+      if (existing != null) return rotateTrackingToken(existing);
     }
     boolean kioskLocalCustomer = isKioskMobName(request.customerName());
     OrderChannel channel = kioskLocalCustomer
@@ -103,6 +108,8 @@ public class OrderService {
 
     long number = jdbc.queryForObject("select nextval('order_number_seq')", Long.class);
     String id = "#" + number;
+    String trackingToken = randomToken(32);
+    String deliveryCode = randomDeliveryCode();
     boolean testMode = settings.testModeEnabled();
     PriceResult price = calculate(request.items());
     boolean chargeDeliveryFees =
@@ -138,16 +145,20 @@ public class OrderService {
     }
     OffsetDateTime confirmedAt = paidKiosk ? OffsetDateTime.now() : null;
     String itemsJson = toJson(price.items());
-    Long customerId = authenticatedCustomerId;
+    // KIOSK-MOB is the shared counter terminal, not a CRM customer. Its saved
+    // browser token may have been issued against another database, so never
+    // persist that token's customer id on an official kiosk order.
+    Long customerId = kioskLocalCustomer ? null : authenticatedCustomerId;
 
     jdbc.update(
       """
       insert into orders (
         id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, total, payment_provider, payment_method, payment_status,
-        timestamp, status, idempotency_key, confirmed_at, coupon_code, discount_total, test_mode, customer_id, updated_at
+        timestamp, status, idempotency_key, confirmed_at, coupon_code, discount_total, test_mode, customer_id,
+        tracking_token_hash, delivery_code, updated_at
       )
-      values (?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+      values (?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())
       """,
       id,
       number,
@@ -174,7 +185,9 @@ public class OrderService {
       coupon.code(),
       coupon.discount(),
       testMode,
-      customerId
+      customerId,
+      sha256(trackingToken),
+      deliveryCode
     );
 
     for (Map<String, Object> item : price.items()) {
@@ -203,7 +216,7 @@ public class OrderService {
       "order_created"
     );
     audit.log("system", "ORDER_CREATED", "ORDER", id, Map.of("total", total, "status", status.name()));
-    OrderResponse created = get(id);
+    OrderResponse created = withTrackingToken(get(id), trackingToken);
     events.publish(id, created);
     log.info(
       "ORDER_CREATED orderId={} number={} channel={} deliveryType={} status={} paymentMethod={} paymentStatus={} total={}",
@@ -219,7 +232,7 @@ public class OrderService {
     publishLifecycle(created, "ORDER_CREATED", null, created.status(), "system", "order_created");
     if (isPaymentConfirmedStatus(OrderStatus.valueOf(created.status()))) {
       publishLifecycle(created, "PAYMENT_CONFIRMED", null, created.status(), "system", "order_created_paid");
-      publishOrderPaidAfterCommit(created.id(), orderPaidOrigin(created), created.paidAt());
+      enqueueOrderPaid(created.id(), orderPaidOrigin(created), created.paidAt());
     }
     return created;
   }
@@ -229,7 +242,7 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code
       from orders where id = ?
       """,
       this::mapOrder,
@@ -237,12 +250,54 @@ public class OrderService {
     );
   }
 
+  public OrderResponse getAuthorized(
+      String id,
+      String authorization,
+      String trackingToken,
+      AuthService auth) {
+    requireOrderAccess(id, authorization, trackingToken, auth);
+    return get(id);
+  }
+
+  public void requireOrderAccess(
+      String id,
+      String authorization,
+      String trackingToken,
+      AuthService auth) {
+    Map<String, Object> access;
+    try {
+      access = jdbc.queryForMap(
+        "select customer_id, tracking_token_hash from orders where id = ?",
+        id
+      );
+    } catch (EmptyResultDataAccessException ex) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "order_not_found");
+    }
+    AuthService.OrderIdentity identity = auth.optionalOrderIdentity(authorization);
+    if (identity != null && identity.operational()) return;
+    if (identity != null && identity.customerId() != null
+        && access.get("customer_id") != null
+        && identity.customerId().longValue() == Number.class.cast(access.get("customer_id")).longValue()) {
+      return;
+    }
+    String expectedHash = access.get("tracking_token_hash") == null
+      ? null
+      : String.valueOf(access.get("tracking_token_hash"));
+    if (trackingToken != null && !trackingToken.isBlank() && expectedHash != null
+        && MessageDigest.isEqual(
+          expectedHash.getBytes(StandardCharsets.US_ASCII),
+          sha256(trackingToken.trim()).getBytes(StandardCharsets.US_ASCII))) {
+      return;
+    }
+    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "order_not_found");
+  }
+
   public List<OrderResponse> listRecent() {
     return jdbc.query(
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code
       from orders
       where test_mode = ?
       order by created_at desc
@@ -396,7 +451,7 @@ public class OrderService {
       """
       select id, number, items, channel, delivery_type, customer_name, customer_phone, customer_address,
         subtotal, delivery_fee, coupon_code, discount_total, total, payment_provider, payment_method, payment_status,
-        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at
+        payment_id, timestamp, created_at, updated_at, status, paid_at, confirmed_at, delivery_code
       from orders
       where delivery_type = 'DELIVERY'
         and status = 'OUT_FOR_DELIVERY'
@@ -414,7 +469,7 @@ public class OrderService {
       """
       select o.id, o.number, o.items, o.channel, o.delivery_type, o.customer_name, o.customer_phone, o.customer_address,
         o.subtotal, o.delivery_fee, o.coupon_code, o.discount_total, o.total, o.payment_provider, o.payment_method, o.payment_status,
-        o.payment_id, o.timestamp, o.created_at, o.updated_at, o.status, o.paid_at, o.confirmed_at
+        o.payment_id, o.timestamp, o.created_at, o.updated_at, o.status, o.paid_at, o.confirmed_at, o.delivery_code
       from orders o
       join customers c on c.id = ?
       where o.test_mode = ?
@@ -518,7 +573,7 @@ public class OrderService {
     );
     if (shouldPublishOrderPaid(fromStatus, toStatus)) {
       publishLifecycle(updated, "PAYMENT_CONFIRMED", from, toStatus.name(), actor == null ? "system" : actor, reason);
-      publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
+      enqueueOrderPaid(updated.id(), orderPaidOrigin(updated), updated.paidAt());
     }
     String lifecycleEventType = lifecycleEventType(toStatus);
     if (lifecycleEventType != null) {
@@ -527,10 +582,119 @@ public class OrderService {
     return updated;
   }
 
+  public record PendingTerminalOrder(long amountCents) {}
+
+  public PendingTerminalOrder requirePendingKioskMobOrder(String id) {
+    Map<String, Object> row = jdbc.queryForMap(
+      "select total, status, customer_name from orders where id = ?",
+      id
+    );
+    if (!isKioskMobName(String.valueOf(row.get("customer_name")))) {
+      throw new IllegalArgumentException("terminal_payment_kiosk_order_required");
+    }
+    if (!OrderStatus.PAYMENT_PENDING.name().equals(String.valueOf(row.get("status")))) {
+      throw new IllegalArgumentException("terminal_payment_order_not_pending");
+    }
+    BigDecimal total = (BigDecimal) row.get("total");
+    return new PendingTerminalOrder(total.movePointRight(2).longValueExact());
+  }
+
+  @Transactional
+  public OrderResponse approveTerminalPayment(
+      String id,
+      String paymentId,
+      String method,
+      String authorizationCode,
+      String sitefNsu) {
+    requirePendingKioskMobOrder(id);
+    jdbc.update(
+      """
+      update orders
+      set payment_provider = 'PPC930_SITEF',
+          payment_method = ?,
+          payment_status = 'approved',
+          payment_id = ?,
+          paid_at = now(),
+          updated_at = now()
+      where id = ? and status = 'PAYMENT_PENDING'
+      """,
+      method,
+      paymentId,
+      id
+    );
+    OrderResponse updated = get(id);
+    events.publish(id, updated);
+    return updated;
+  }
+
+  @Transactional
+  public void failTerminalPayment(String id, String paymentId, String terminalStatus) {
+    String cleanStatus = cleanTerminalReference(terminalStatus).toLowerCase();
+    if ("cancelled".equals(cleanStatus)) {
+      int updated = jdbc.update(
+        "update orders set payment_provider = 'PPC930_SITEF', payment_id = ?, payment_status = ?, status = 'CANCELLED', updated_at = now() where id = ? and status = 'PAYMENT_PENDING'",
+        paymentId,
+        cleanStatus,
+        id
+      );
+      if (updated == 0) {
+        String status = jdbc.queryForObject("select status from orders where id = ?", String.class, id);
+        if (!"CANCELLED".equals(status)) requirePendingKioskMobOrder(id);
+      }
+      OrderResponse cancelled = get(id);
+      events.publish(id, cancelled);
+      return;
+    }
+    requirePendingKioskMobOrder(id);
+    jdbc.update(
+        "update orders set payment_provider = 'PPC930_SITEF', payment_id = ?, payment_status = ?, updated_at = now() where id = ?",
+        paymentId,
+        cleanStatus,
+        id
+      );
+  }
+
+  @Transactional
+  public void completeTerminalCustomerName(String id, String customerName) {
+    String cleanName = customerName == null ? "" : customerName.trim();
+    if (cleanName.length() < 2 || cleanName.length() > 80) {
+      throw new IllegalArgumentException("terminal_customer_name_invalid");
+    }
+    int updated = jdbc.update(
+      """
+      update orders
+      set customer_name = ?, status = 'PAID', confirmed_at = now(), updated_at = now()
+      where id = ?
+        and channel = 'KIOSK'
+        and payment_provider = 'PPC930_SITEF'
+        and payment_status = 'approved'
+        and status = 'PAYMENT_PENDING'
+      """,
+      cleanName,
+      id
+    );
+    if (updated != 1) {
+      throw new IllegalArgumentException("terminal_customer_name_order_invalid");
+    }
+    jdbc.update(
+      "insert into order_status_history(order_id, from_status, to_status, changed_by, reason) values (?, 'PAYMENT_PENDING', 'PAID', 'ppc930', 'SITEF_APPROVED_NAME_CONFIRMED')",
+      id
+    );
+    OrderResponse order = get(id);
+    events.publish(id, order);
+    publishLifecycle(order, "PAYMENT_CONFIRMED", "PAYMENT_PENDING", "PAID", "ppc930", "SITEF_APPROVED_NAME_CONFIRMED");
+    enqueueOrderPaid(order.id(), "ppc930", order.paidAt());
+  }
+
+  private static String cleanTerminalReference(String value) {
+    if (value == null) return "";
+    return value.replaceAll("[^A-Za-z0-9._-]", "").substring(0, Math.min(64, value.replaceAll("[^A-Za-z0-9._-]", "").length()));
+  }
+
   @Transactional
   public OrderResponse confirmDelivery(String id, String code, String actor) {
     Map<String, Object> row = jdbc.queryForMap(
-      "select number, status, delivery_type from orders where id = ?",
+      "select status, delivery_type, delivery_code from orders where id = ?",
       id
     );
     OrderStatus current = OrderStatus.valueOf(String.valueOf(row.get("status")));
@@ -538,7 +702,7 @@ public class OrderService {
     if (deliveryType != DeliveryType.DELIVERY || current != OrderStatus.OUT_FOR_DELIVERY) {
       throw new IllegalArgumentException("delivery_confirmation_not_available");
     }
-    String expected = deliveryConfirmationCode(Number.class.cast(row.get("number")).longValue());
+    String expected = String.valueOf(row.get("delivery_code"));
     String provided = code == null ? "" : code.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
     if (!expected.equals(provided)) {
       throw new IllegalArgumentException("invalid_delivery_code");
@@ -600,7 +764,7 @@ public class OrderService {
       updated.total()
     );
     publishLifecycle(updated, "PAYMENT_CONFIRMED", from, updated.status(), actor == null ? "admin" : actor, "PAYMENT_APPROVED_SIMULATION");
-    publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
+    enqueueOrderPaid(updated.id(), orderPaidOrigin(updated), updated.paidAt());
     return updated;
   }
 
@@ -669,7 +833,7 @@ public class OrderService {
     );
     if (approved && !alreadyInKitchenFlow) {
       publishLifecycle(updated, "PAYMENT_CONFIRMED", previous, target.name(), "mercado_pago", "PAYMENT_APPROVED");
-      publishOrderPaidAfterCommit(updated.id(), orderPaidOrigin(updated), updated.paidAt());
+      enqueueOrderPaid(updated.id(), orderPaidOrigin(updated), updated.paidAt());
     }
     if (failed && !alreadyInKitchenFlow) {
       publishLifecycle(updated, "ORDER_CANCELLED", previous, target.name(), "mercado_pago", "PAYMENT_FAILED");
@@ -838,37 +1002,17 @@ public class OrderService {
     lifecyclePublisher.publish(eventType, order, fromStatus, toStatus, actor, reason);
   }
 
-  private void publishOrderPaidAfterCommit(String orderId, String origin, OffsetDateTime paidAt) {
+  private void enqueueOrderPaid(String orderId, String origin, OffsetDateTime paidAt) {
     OffsetDateTime effectivePaidAt = paidAt == null ? OffsetDateTime.now() : paidAt;
-    Runnable publish = () -> {
-      log.info("ORDER_PAID_EVENT_READY orderId={} origin={} paidAt={}", orderId, origin, effectivePaidAt);
-      orderPublisher.publishOrderPaid(orderId, origin, effectivePaidAt);
-    };
-    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-      publish.run();
-      return;
-    }
-    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-      @Override
-      public void afterCommit() {
-        publish.run();
-      }
-    });
-  }
-
-  private String deliveryConfirmationCode(long number) {
-    String letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-    char first = letters.charAt((int) (number % letters.length()));
-    char second = letters.charAt((int) ((number / letters.length()) % letters.length()));
-    long digits = Math.floorMod(number * 73 + 19, 100);
-    return "%c%c%02d".formatted(first, second, digits);
+    log.info("ORDER_PAID_OUTBOX_READY orderId={} origin={} paidAt={}", orderId, origin, effectivePaidAt);
+    orderPublisher.enqueueOrderPaid(orderId, origin, effectivePaidAt);
   }
 
   private OrderResponse mapOrder(ResultSet rs, int rowNum) throws SQLException {
     return new OrderResponse(
       rs.getString("id"),
       rs.getLong("number"),
-      deliveryConfirmationCode(rs.getLong("number")),
+      rs.getString("delivery_code"),
       readItems(rs.getString("items")),
       OrderChannel.valueOf(rs.getString("channel").toUpperCase()),
       DeliveryType.valueOf(rs.getString("delivery_type").toUpperCase()),
@@ -889,8 +1033,52 @@ public class OrderService {
       offset(rs, "updated_at"),
       rs.getString("status"),
       offset(rs, "paid_at"),
-      offset(rs, "confirmed_at")
+      offset(rs, "confirmed_at"),
+      null
     );
+  }
+
+  private OrderResponse withTrackingToken(OrderResponse order, String trackingToken) {
+    return new OrderResponse(
+      order.id(), order.number(), order.deliveryCode(), order.items(), order.channel(), order.deliveryType(),
+      order.customerName(), order.customerPhone(), order.customerAddress(), order.subtotal(), order.deliveryFee(),
+      order.couponCode(), order.discountTotal(), order.total(), order.paymentProvider(), order.paymentMethod(),
+      order.paymentStatus(), order.paymentId(), order.timestamp(), order.createdAt(), order.updatedAt(), order.status(),
+      order.paidAt(), order.confirmedAt(), trackingToken
+    );
+  }
+
+  private OrderResponse rotateTrackingToken(OrderResponse order) {
+    String trackingToken = randomToken(32);
+    jdbc.update(
+      "update orders set tracking_token_hash = ?, updated_at = now() where id = ?",
+      sha256(trackingToken),
+      order.id()
+    );
+    return withTrackingToken(order, trackingToken);
+  }
+
+  private String randomToken(int byteCount) {
+    byte[] bytes = new byte[byteCount];
+    SECURE_RANDOM.nextBytes(bytes);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+  }
+
+  private String randomDeliveryCode() {
+    String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    StringBuilder code = new StringBuilder(6);
+    for (int i = 0; i < 6; i++) code.append(alphabet.charAt(SECURE_RANDOM.nextInt(alphabet.length())));
+    return code.toString();
+  }
+
+  private String sha256(String value) {
+    try {
+      return java.util.HexFormat.of().formatHex(
+        MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))
+      );
+    } catch (java.security.NoSuchAlgorithmException ex) {
+      throw new IllegalStateException("sha256_unavailable", ex);
+    }
   }
 
   private String blankToNull(String value) {

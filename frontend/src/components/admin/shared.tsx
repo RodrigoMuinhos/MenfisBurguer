@@ -193,18 +193,27 @@ export function localDateKey(timestamp: number) {
 export function paymentMethodLabel(order: Order) {
   const method = String(order.paymentMethod ?? "").toLowerCase();
   const provider = String(order.paymentProvider ?? "").toLowerCase();
-  const mercadoPago =
-    provider === "mercado_pago" ||
-    provider === "mercado pago" ||
-    ["pix", "cartao", "credito", "debito", "credit_card", "debit_card"].includes(method);
+  const mercadoPago = provider === "mercado_pago" || provider === "mercado pago";
+  const sitef = provider.includes("sitef") || provider.includes("ppc930");
 
   if (isKioskMobOrder(order) && method === "presencial") return "Pagamento no Balcão";
-  if (method === "pix") return mercadoPago ? "PIX Mercado Pago" : "PIX";
+  if (method === "pix") {
+    if (sitef) return "PIX - Maquineta SiTef";
+    return mercadoPago ? "PIX Mercado Pago" : "PIX";
+  }
   if (method === "credit_card" || method === "credito")
-    return "Cartão de Crédito Mercado Pago";
+    return sitef
+      ? "Cartão de Crédito - Maquineta SiTef"
+      : mercadoPago
+        ? "Cartão de Crédito Mercado Pago"
+        : "Cartão de Crédito";
   if (method === "debit_card" || method === "debito")
-    return "Cartão de Débito Mercado Pago";
-  if (method === "cartao") return "Cartão Mercado Pago";
+    return sitef
+      ? "Cartão de Débito - Maquineta SiTef"
+      : mercadoPago
+        ? "Cartão de Débito Mercado Pago"
+        : "Cartão de Débito";
+  if (method === "cartao") return mercadoPago ? "Cartão Mercado Pago" : "Cartão";
   if (method === "presencial") return "Pagamento Presencial com Atendente";
   if (method === "pagar_na_entrega") return "Pagamento Presencial com Atendente";
   if (method === "whatsapp") return "Pagamento Presencial com Atendente";
@@ -555,7 +564,9 @@ export async function copyOrderTxt(order: Order) {
   }
 }
 
-const LINE_WIDTH = 23;
+// POS-58 em fonte normal comporta 32 colunas. O valor anterior (23) cortava
+// nomes, preços, códigos e observações antes de enviar o texto à impressora.
+const LINE_WIDTH = 32;
 
 function receiptText(value: string) {
   return String(value ?? "")
@@ -575,6 +586,13 @@ function center(text: string) {
   if (clean.length >= LINE_WIDTH) return clean.slice(0, LINE_WIDTH);
   const left = Math.floor((LINE_WIDTH - clean.length) / 2);
   return " ".repeat(left) + clean;
+}
+
+function boxedLine(text: string) {
+  const innerWidth = LINE_WIDTH - 2;
+  const clean = receiptText(text).slice(0, innerWidth);
+  const left = Math.floor((innerWidth - clean.length) / 2);
+  return `|${" ".repeat(left)}${clean}${" ".repeat(innerWidth - clean.length - left)}|`;
 }
 
 function money(value: number) {
@@ -639,6 +657,10 @@ function itemLine(quantity: number, name: string, price: number) {
   return [...wrap(left, LINE_WIDTH), right.padStart(LINE_WIDTH).slice(0, LINE_WIDTH)];
 }
 
+function receiptOrderNumber(order: Order) {
+  return receiptText(String(order.number || order.id || "").replace(/^#/, ""));
+}
+
 function receiptFinancials(order: Order) {
   const itemsSubtotal = Number(
     order.subtotal ?? order.items.reduce((sum, item) => sum + item.price * item.qty, 0),
@@ -661,66 +683,134 @@ export function generateCustomerReceipt(order: Order) {
   const lines: string[] = [];
   const financials = receiptFinancials(order);
   const pushWrapped = (value: string, indent = 0) => lines.push(...wrapIndented(value, indent));
-  const customerName = receiptText(order.customerName || "Nao informado").toUpperCase();
-  const customerAddress = formatAddressForReceipt(order.customerAddress || "Nao informado").toUpperCase();
+  const rawCustomerName = receiptText(order.customerName || "");
+  const customerName =
+    rawCustomerName.toUpperCase().replace(/_/g, "-") === "KIOSK-MOB"
+      ? "CLIENTE"
+      : (rawCustomerName || "Cliente").toUpperCase();
+  const isDelivery = receiptType(order) === "ENTREGA";
+  const customerAddress = order.customerAddress
+    ? formatAddressForReceipt(order.customerAddress).toUpperCase()
+    : "";
+  const orderNumber = receiptOrderNumber(order);
+  const confirmationCode = receiptText(deliveryConfirmationCode(order));
+  const orderDate = new Date(order.timestamp);
+  const dateLabel = orderDate.toLocaleDateString("pt-BR");
+  const timeLabel = orderDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const pushSection = (title: string) => {
+    const label = `[ ${receiptText(title).toUpperCase()} ]`;
+    const remaining = Math.max(2, LINE_WIDTH - label.length);
+    const left = Math.floor(remaining / 2);
+    lines.push("-".repeat(left) + label + "-".repeat(remaining - left));
+  };
 
   lines.push(center("MENFI'S BURGER"));
-  lines.push(center("NOTA DO PEDIDO"));
+  lines.push(`+${"-".repeat(LINE_WIDTH - 2)}+`);
+  lines.push(boxedLine("PEDIDO"));
+  lines.push(boxedLine(`#${orderNumber}`));
+  lines.push(`+${"-".repeat(LINE_WIDTH - 2)}+`);
+  if (confirmationCode && confirmationCode !== orderNumber) {
+    lines.push(center(`CODIGO DE RETIRADA: ${confirmationCode}`));
+  }
+  lines.push(center("OBRIGADO POR ESCOLHER A MENFI'S!"));
+  lines.push(center("FEITO COM CARINHO PELA MENFI'S"));
+  lines.push(center("<3"));
   lines.push(line());
-  lines.push(leftRight(receiptType(order), deliveryConfirmationCode(order)));
-  lines.push(new Date(order.timestamp).toLocaleString("pt-BR"));
-  lines.push(line("="));
-  lines.push("CLIENTE");
-  pushWrapped(customerName);
-  if (order.customerPhone) pushWrapped(`TEL ${order.customerPhone}`);
-  lines.push(line("="));
-  lines.push("ENDERECO");
-  customerAddress.split("\n").forEach((addressLine) => pushWrapped(addressLine));
+  lines.push(center("CLIENTE"));
+  lines.push(center(customerName));
+  if (order.customerPhone) lines.push(center(`TEL ${order.customerPhone}`));
   lines.push(line());
-  lines.push("ITENS");
+  lines.push(leftRight(dateLabel, `${timeLabel}  ${receiptType(order)}`));
+  if (isDelivery && customerAddress) {
+    pushSection("ENDERECO");
+    customerAddress.split("\n").forEach((addressLine) => pushWrapped(addressLine));
+  }
+  pushSection("ITENS DO PEDIDO");
 
   order.items.forEach((item) => {
     lines.push(...itemLine(item.qty, item.name, item.price * item.qty));
     orderItemComponents(item).forEach((component) => pushWrapped(`- ${component}`, 2));
+    const removedForItem = order.removedByItemId?.[item.id] ?? [];
+    removedForItem.forEach((removed) => pushWrapped(`SEM: ${removed}`, 2));
     const note = orderItemNote(item);
-    if (note) pushWrapped(`Obs: ${note}`, 2);
-    lines.push("");
+    if (note) pushWrapped(`OBS: ${note}`, 2);
+    lines.push(line("."));
   });
 
-  const removed = Object.entries(order.removedByItemId ?? {})
-    .flatMap(([, values]) => values)
-    .filter((value, index, values) => values.indexOf(value) === index);
-  if (removed.length) {
-    pushWrapped(`RETIRAR: ${removed.join(", ")}`);
-    lines.push("");
+  pushSection("RESUMO");
+  lines.push(leftRight("Subtotal:", money(financials.itemsSubtotal)));
+  if (financials.deliveryFee > 0) {
+    lines.push(leftRight("Taxa de entrega:", money(financials.deliveryFee)));
   }
-
-  lines.push(line());
-  lines.push("RESUMO");
-  lines.push(leftRight("Subtotal itens:", money(financials.itemsSubtotal)));
-  lines.push(leftRight("Taxa entrega:", money(financials.deliveryFee)));
   if (financials.serviceFee > 0) lines.push(leftRight("Taxa servico:", money(financials.serviceFee)));
   if (order.couponCode && financials.discount > 0) {
-    pushWrapped(`Cupom usado: ${order.couponCode}`);
-  } else {
-    pushWrapped("Cupom: nao usado");
+    pushWrapped(`Cupom: ${order.couponCode}`);
   }
   if (financials.discount > 0) lines.push(leftRight("Desconto:", `-${money(financials.discount)}`));
   lines.push(line());
   lines.push(leftRight("TOTAL:", money(financials.total)));
+  lines.push(line("="));
+  pushSection("PAGAMENTO");
+  pushWrapped(`FORMA: ${paymentMethodLabel(order)}`);
+  pushWrapped(`STATUS: ${paymentStatusLabel(order)}`);
+  if (order.paymentId) pushWrapped(`ID PAGAMENTO: ${order.paymentId}`);
+  if (paymentStatusLabel(order) === "Pago") lines.push(center("[ APROVADO ]"));
   lines.push(line());
-  pushWrapped(`Pagto: ${paymentMethodLabel(order)}`);
-  pushWrapped(`Status: ${paymentStatusLabel(order)}`);
-  lines.push(line());
-  lines.push(center("Menfi's Burger"));
+  lines.push(center("VOCE APOIA, NOS CRIAMOS."));
+  lines.push(center("SEU PEDIDO MOVE A MENFI'S!"));
+  lines.push(center("ATE A PROXIMA!"));
+  lines.push(line("="));
+  lines.push(center("@MENFISBURGUER"));
+  lines.push(center("MENFISBURGUER.COM.BR"));
 
-  const receipt = lines.map((value) => value.slice(0, LINE_WIDTH)).join("\n").replace(/\n{3,}/g, "\n\n");
+  const receipt = lines.join("\n").replace(/\n{3,}/g, "\n\n");
   for (const receiptLine of receipt.split("\n")) {
     if (receiptLine.length > LINE_WIDTH) {
       console.warn(`Linha excedeu ${LINE_WIDTH} caracteres:`, receiptLine);
     }
   }
   return receipt;
+}
+
+function logReceiptTextWidth(receipt: string) {
+  const lines = receipt.replace(/\r/g, "").split("\n");
+  const lengths = lines.map((value) => value.length);
+  console.info("[receipt-width:text]", {
+    configuredColumns: LINE_WIDTH,
+    longestLine: Math.max(0, ...lengths),
+    shortestNonEmptyLine: Math.min(...lengths.filter(Boolean), 0),
+    lineCount: lines.length,
+    overflowingLines: lengths.filter((length) => length > LINE_WIDTH).length,
+  });
+}
+
+function logReceiptDomWidth(frame: HTMLIFrameElement) {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+  const selectors = ["html", "body", ".paper", ".receipt"];
+  console.info(
+    "[receipt-width:dom]",
+    selectors.map((selector) => {
+      const element = doc.querySelector(selector);
+      if (!element) return { selector, missing: true };
+      const style = frame.contentWindow!.getComputedStyle(element);
+      return {
+        selector,
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        width: style.width,
+        minWidth: style.minWidth,
+        maxWidth: style.maxWidth,
+        display: style.display,
+        flexShrink: style.flexShrink,
+        wordBreak: style.wordBreak,
+        overflowWrap: style.overflowWrap,
+        whiteSpace: style.whiteSpace,
+        zoom: style.zoom,
+        transform: style.transform,
+      };
+    }),
+  );
 }
 
 function printBridgeUrls() {
@@ -792,6 +882,18 @@ export async function printOrderReceipts(
   if (options?.confirm !== false && !window.confirm("Imprimir via do cliente agora?")) return;
 
   const rawReceipt = generateCustomerReceipt(order);
+  logReceiptTextWidth(rawReceipt);
+  const desktopPrinter = (window as Window & {
+    kioskMenfis?: {
+      printOrder?: (content: string) => Promise<{ ok: boolean; error?: string }>;
+    };
+  }).kioskMenfis;
+  if (desktopPrinter?.printOrder) {
+    const result = await desktopPrinter.printOrder(rawReceipt);
+    if (result.ok) return;
+    console.error("Impressão direta POS-58 falhou:", result.error);
+  }
+
   const silentPrinted = await trySilentReceiptPrint(order, rawReceipt);
   if (silentPrinted) return;
 
@@ -801,34 +903,46 @@ export async function printOrderReceipts(
     if (retriedSilentPrint) return;
   }
 
-  if (!browserPrintFallbackEnabled(options)) return;
-
   const receipt = escapeReceipt(rawReceipt);
   const orderId = escapeReceipt(String(order.id || order.number || ""));
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
     <style>
-      @page { size: 48mm auto; margin: 0; }
+      @page { size: 58mm auto; margin: 0; }
       * { box-sizing: border-box; }
-      html, body { width: 48mm; margin: 0; padding: 0; background: #fff; }
-      body {
+      html, body {
+        width: 58mm;
+        min-width: 58mm;
+        max-width: 58mm;
         margin: 0;
         padding: 0;
+        background: #fff;
+        zoom: 1;
+        transform: none;
+      }
+      body {
         display: flex;
+        width: 58mm;
+        min-width: 58mm;
+        max-width: 58mm;
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
       }
       .paper {
-        width: 39.5mm;
+        box-sizing: border-box;
+        width: 48mm;
+        min-width: 48mm;
+        max-width: 48mm;
+        flex: 0 0 48mm;
         margin: 0 auto;
-        padding: 0 0 4mm;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        padding: 1mm 0 4mm;
       }
       .order-box {
-        width: 37.5mm;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 100%;
+        max-width: 100%;
         margin: 1mm auto 1.5mm;
         padding: 1mm 0.75mm;
         border: 1px solid #000;
@@ -850,8 +964,12 @@ export async function printOrderReceipts(
         letter-spacing: 0.02em;
       }
       .receipt {
+        display: block;
+        box-sizing: border-box;
         width: 100%;
+        min-width: 100%;
         max-width: 100%;
+        flex: none;
         margin: 0 auto;
         padding: 0;
         font-family: "Courier New", monospace;
@@ -860,14 +978,26 @@ export async function printOrderReceipts(
         color: #000;
         font-weight: 800;
         white-space: pre-wrap;
-        overflow-wrap: normal;
+        overflow-wrap: break-word;
         word-break: normal;
+        zoom: 1;
+        transform: none;
       }
       @media print {
-        @page { size: 48mm auto; margin: 0; }
-        html, body { width: 48mm; margin: 0; padding: 0; }
+        @page { size: 58mm auto; margin: 0; }
+        html, body {
+          width: 58mm;
+          min-width: 58mm;
+          max-width: 58mm;
+          margin: 0;
+          padding: 0;
+          zoom: 1;
+          transform: none;
+        }
         .paper {
-          width: 39.5mm;
+          width: 48mm;
+          min-width: 48mm;
+          max-width: 48mm;
           margin-left: auto;
           margin-right: auto;
           padding-left: 0;
@@ -880,11 +1010,15 @@ export async function printOrderReceipts(
     </main></body></html>
   `;
 
+  if (!browserPrintFallbackEnabled(options)) return;
+
   const iframe = document.createElement("iframe");
   iframe.style.position = "fixed";
   iframe.style.left = "0";
   iframe.style.top = "0";
-  iframe.style.width = "48mm";
+  iframe.style.width = "58mm";
+  iframe.style.minWidth = "58mm";
+  iframe.style.maxWidth = "58mm";
   iframe.style.height = "1px";
   iframe.style.border = "0";
   iframe.style.opacity = "0";
@@ -899,6 +1033,7 @@ export async function printOrderReceipts(
   doc.open();
   doc.write(html);
   doc.close();
+  logReceiptDomWidth(iframe);
 
   let printed = false;
   const printFrame = () => {
@@ -910,6 +1045,7 @@ export async function printOrderReceipts(
       return;
     }
     frameWindow.focus();
+    logReceiptDomWidth(iframe);
     frameWindow.print();
     window.setTimeout(() => iframe.remove(), 5000);
   };
