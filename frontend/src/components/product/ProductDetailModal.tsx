@@ -119,7 +119,7 @@ function productWeight(item: MenuItem) {
   const isBig = item.id.includes("double");
   const isSuper = name.includes("super");
   if (isSuperProduct(item)) return "1 carne bovina de 130g.";
-  if (item.id === "chicken-menfis-salad") return "1 filé de frango grelhado de 120g.";
+  if (item.id === "chicken-menfis-salad") return "Escolha 150g de frango ou carne.";
   if (name.includes("chicken")) {
     const chicken = isBig || isSuper ? "2 filés de 120g (240g no total)" : "1 filé de 120g";
     return item.category === "combo"

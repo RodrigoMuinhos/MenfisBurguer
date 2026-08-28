@@ -35,6 +35,7 @@ import {
   MEAT_POINT_OPTIONS,
   MemberProfile,
   SAUCE_OPTIONS,
+  SALAD_PROTEIN_OPTIONS,
   SAUCE_PRICE,
   SWEET_BOX_REQUIRED_COUNT,
   buildBurger,
@@ -44,6 +45,7 @@ import {
   imageSrc,
   isChickenProduct,
   isNuggetsProduct,
+  isSaladProduct,
   isSpecialOfferOnlyProduct,
   isSuperProduct,
   isSweetBoxProduct,
@@ -487,8 +489,14 @@ export function ProductScreen({
     const sauceRequiredCount = requiresFreeMayo ? 1 : requiredCount;
     const requiresDrink = customizer.item.category === "combo";
     const requiresSpice = requiresSpiceLevel(customizer.item);
+    const requiresSaladProtein = isSaladProduct(customizer.item);
+    const saladProteinCount = SALAD_PROTEIN_OPTIONS.reduce(
+      (sum, option) => sum + (customizer.extras[option.id] ?? 0),
+      0,
+    );
     if (
       (requiresSweetBox && sweetCount !== SWEET_BOX_REQUIRED_COUNT) ||
+      (requiresSaladProtein && saladProteinCount !== 1) ||
       (meatRequired && customizer.meatPoints.length < requiredCount) ||
       (!requiresSweetBox &&
         (requiresSauce || requiresFreeMayo) &&

@@ -118,11 +118,14 @@ export const SALAD_LEMONADE_OPTIONS = [
   { id: "salad-coca-zero", label: "Coca-Cola Zero", price: 4, image: "/EXTRAS/cocazero.jpg" },
   { id: "salad-guarana-zero", label: "Guaraná Zero", price: 2, image: "/EXTRAS/GuraranaZero.jpg" },
   { id: "salad-agua-com-gas", label: "Água com gás", price: 4, image: "/EXTRAS/aguaComGas.png" },
-  { id: "salad-extra-tomate-cereja", label: "Tomate-cereja", price: 2.99, image: "/EXTRAS/tomate-cereja.jpg" },
-  { id: "salad-extra-manga", label: "Manga", price: 1.99, image: "/EXTRAS/manga.jpg" },
-  { id: "salad-extra-abacaxi", label: "Abacaxi", price: 1.99, image: "/EXTRAS/abacaxi.jpg" },
-  { id: "salad-extra-queijo", label: "Adicional de queijo", price: 2, image: "/EXTRAS/queijo.jpg" },
 ];
+
+export const SALAD_PROTEIN_OPTIONS = [
+  { id: "salad-protein-frango", label: "Frango 150g", price: 0, image: "/AdicionalFrango.jpg" },
+  { id: "salad-protein-carne", label: "Carne 150g", price: 0, image: "/carne.jpg" },
+];
+
+export const isSaladProduct = (item: MenuItem) => item.id === "chicken-menfis-salad";
 
 export const SWEET_BOX_REQUIRED_COUNT = 4;
 export const SWEET_PREMIUM_PRICE = 0;
@@ -299,7 +302,7 @@ export function getExtraOptionsForItem(item: MenuItem) {
     return LEMONADE_TOPPING_OPTIONS;
   }
   if (item.id === "chicken-menfis-salad") {
-    return SALAD_LEMONADE_OPTIONS;
+    return [...SALAD_PROTEIN_OPTIONS, ...SALAD_LEMONADE_OPTIONS];
   }
   if (item.category !== "burger" && item.category !== "combo") {
     return EXTRA_OPTIONS;

@@ -7,6 +7,7 @@ import {
   DRINK_OPTIONS,
   MEAT_POINT_OPTIONS,
   SAUCE_OPTIONS,
+  SALAD_PROTEIN_OPTIONS,
   SWEET_BOX_REQUIRED_COUNT,
   fmt,
   imageSrc,
@@ -25,7 +26,7 @@ export function ProductCustomizer({
 }) {
   const { needsMeatPoint, requiredCount, needsSauce, needsFreeMayo, needsDrink, isSweetBox, isLemonade,
     isSweetPlus, needsSpiceLevel, superTheme, chilliTheme, superBackground, superSurface, superAccent,
-    sweetOptions, sauceRequiredCount, extraOptions, sweetCount, total, valid, spiceValid,
+    sweetOptions, sauceRequiredCount, extraOptions, sweetCount, total, valid, spiceValid, isSalad, saladProteinCount,
     toggleLimited, countSelected, updateExtraQty, updateSweetQty } = useProductCustomizerModel(state, setState);
 
   return (
@@ -232,6 +233,44 @@ export function ProductCustomizer({
             </OptionSection>
           )}
 
+          {isSalad && (
+            <OptionSection
+              title="Escolha sua proteína"
+              subtitle="Escolha exatamente 1 opção de 150g"
+              count={saladProteinCount}
+              total={1}
+              required
+            >
+              {SALAD_PROTEIN_OPTIONS.map((protein) => {
+                const active = (state.extras[protein.id] ?? 0) > 0;
+                return (
+                  <button
+                    key={protein.id}
+                    type="button"
+                    onClick={() => updateExtraQty(protein.id, active ? -1 : 1)}
+                    className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
+                    style={{ borderColor: `${VERDE}10`, background: "#fff" }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <OptionThumb src={protein.image} alt={protein.label} />
+                      <span className="text-sm font-bold">{protein.label}</span>
+                    </span>
+                    <span
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-black"
+                      style={{
+                        background: active ? VERDE : "#fff",
+                        border: `2px solid ${active ? VERDE : "#E9D9DF"}`,
+                        color: active ? ROSA : "transparent",
+                      }}
+                    >
+                      ✓
+                    </span>
+                  </button>
+                );
+              })}
+            </OptionSection>
+          )}
+
           {needsSpiceLevel && (
             <div className="border-t px-5 py-5" style={{ borderColor: superTheme ? `${superAccent}3D` : `${VERDE}10`, background: superTheme ? superSurface : "#fff" }}>
               <div className="flex items-start justify-between gap-3">
@@ -366,7 +405,7 @@ export function ProductCustomizer({
                   : "Escolha até 3 de cada opção"
             }
           >
-            {extraOptions.map((extra) => {
+            {extraOptions.filter((extra) => !SALAD_PROTEIN_OPTIONS.some((protein) => protein.id === extra.id)).map((extra) => {
               const quantity = state.extras[extra.id] ?? 0;
               const active = quantity > 0;
               return (

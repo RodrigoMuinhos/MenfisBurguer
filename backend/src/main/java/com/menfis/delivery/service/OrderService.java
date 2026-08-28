@@ -1246,15 +1246,19 @@ public class OrderService {
         || "salad-coca-zero".equals(addonId)
         || "salad-guarana-zero".equals(addonId)
         || "salad-agua-com-gas".equals(addonId)
-        || "salad-extra-tomate-cereja".equals(addonId)
-        || "salad-extra-manga".equals(addonId)
-        || "salad-extra-abacaxi".equals(addonId)
-        || "salad-extra-queijo".equals(addonId);
+        || "salad-protein-frango".equals(addonId)
+        || "salad-protein-carne".equals(addonId);
       if (lemonade) return !lemonadeTopping;
       if (salad) return !saladLemonade;
       return lemonadeTopping || saladLemonade;
     });
     if (invalid) throw new IllegalArgumentException("invalid_product_addon");
+    if (salad) {
+      long proteins = item.addonIds().stream()
+        .filter(addonId -> "salad-protein-frango".equals(addonId) || "salad-protein-carne".equals(addonId))
+        .count();
+      if (proteins != 1) throw new IllegalArgumentException("salad_protein_required");
+    }
   }
 
   private boolean isBlank(String value) {

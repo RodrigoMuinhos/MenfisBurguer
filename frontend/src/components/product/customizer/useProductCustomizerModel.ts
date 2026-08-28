@@ -3,7 +3,7 @@ import type { CustomizerState } from "../shared";
 import {
   COMBO_DRINK_SURCHARGE_PRODUCT_ID, DRINK_OPTIONS, SWEET_BOX_REQUIRED_COUNT,
   getExtraOptionsForItem, getSweetOptionsForItem, isChickenProduct, isNuggetsProduct,
-  isSuperProduct, isSweetBoxProduct, isSweetPlusProduct, requiredCustomizerCount,
+  isSaladProduct, SALAD_PROTEIN_OPTIONS, isSuperProduct, isSweetBoxProduct, isSweetPlusProduct, requiredCustomizerCount,
   requiresSpiceLevel, isLemonadeProduct,
 } from "../shared";
 
@@ -18,6 +18,7 @@ export function useProductCustomizerModel(
   const needsDrink = state.item.category === "combo";
   const isSweetBox = isSweetBoxProduct(state.item);
   const isLemonade = isLemonadeProduct(state.item);
+  const isSalad = isSaladProduct(state.item);
   const isSweetPlus = isSweetPlusProduct(state.item);
   const needsSpiceLevel = requiresSpiceLevel(state.item);
   const superTheme = isSuperProduct(state.item);
@@ -34,12 +35,17 @@ export function useProductCustomizerModel(
     const extra = extraOptions.find((option) => option.id === extraId);
     return sum + (extra?.price ?? 0) * quantity;
   }, 0);
+  const saladProteinCount = SALAD_PROTEIN_OPTIONS.reduce(
+    (sum, option) => sum + (state.extras[option.id] ?? 0),
+    0,
+  );
   const drinkSurchargeTotal = state.drinks.reduce((sum, drinkId) => {
     const drink = DRINK_OPTIONS.find((option) => option.id === drinkId);
     return sum + (COMBO_DRINK_SURCHARGE_PRODUCT_ID[drinkId] ? drink?.comboPrice ?? 0 : 0);
   }, 0);
   const total = (state.item.price + drinkSurchargeTotal + (isSweetBox ? sweetTotal : extrasTotal)) * state.qty;
   const valid = (!isSweetBox || sweetCount === SWEET_BOX_REQUIRED_COUNT)
+    && (!isSalad || saladProteinCount === 1)
     && (!needsMeatPoint || state.meatPoints.length === requiredCount)
     && (!(needsSauce || needsFreeMayo) || isSweetBox || state.sauces.length === sauceRequiredCount)
     && (!needsDrink || state.drinks.length === requiredCount);
@@ -71,6 +77,16 @@ export function useProductCustomizerModel(
     });
   };
   const updateExtraQty = (id: string, delta: number) => {
+    if (SALAD_PROTEIN_OPTIONS.some((option) => option.id === id)) {
+      setState((prev) => {
+        if (!prev) return prev;
+        const extras = { ...prev.extras };
+        SALAD_PROTEIN_OPTIONS.forEach((option) => delete extras[option.id]);
+        if (delta > 0) extras[id] = 1;
+        return { ...prev, extras };
+      });
+      return;
+    }
     if (!isLemonade) {
       updateOptionQty(id, delta, 3);
       return;
@@ -90,7 +106,7 @@ export function useProductCustomizerModel(
   };
   const updateSweetQty = (id: string, delta: number) => updateOptionQty(id, delta, SWEET_BOX_REQUIRED_COUNT);
 
-  return { needsMeatPoint, requiredCount, needsSauce, needsFreeMayo, needsDrink, isSweetBox, isLemonade, chilliTheme,
+  return { needsMeatPoint, requiredCount, needsSauce, needsFreeMayo, needsDrink, isSweetBox, isLemonade, isSalad, saladProteinCount, chilliTheme,
     isSweetPlus, needsSpiceLevel, superTheme, superBackground, superSurface, superAccent,
     sweetOptions, sauceRequiredCount, extraOptions, sweetCount, total, valid, spiceValid,
     toggleLimited, countSelected, updateExtraQty, updateSweetQty };

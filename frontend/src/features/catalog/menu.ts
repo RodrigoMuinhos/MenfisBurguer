@@ -69,12 +69,12 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "chicken-menfis-salad",
-    name: "Chicken Menfi's Salad",
+    name: "Menfi's Salad",
     eyebrow: "Salad",
-    desc: "Frango grelhado 120g, cebola roxa, alface, alho frito, molho Caesar, cenoura ralada e queijo derretido.",
+    desc: "Escolha frango ou carne 150g, com alface 100g, cebola 30g, cenoura ralada 20g, alho frito e 15ml de molho Caesar.",
     price: 39.9,
     image: "/menu/chicken-menfis-salad.png",
-    tags: ["Frango 120g", "Queijo derretido", "Molho Caesar"],
+    tags: ["Proteína 150g", "Alface 100g", "Caesar 15ml"],
     category: "salad",
   },
   {

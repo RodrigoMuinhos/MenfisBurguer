@@ -10,6 +10,8 @@ export const TRIPLE_COMBO_IMAGE = "/menu/supercombomnfis.png";
 export const PUBLIC_SETTINGS_CACHE_KEY = "menfis_public_settings_cache_v2";
 export const PRICING_ROWS_CACHE_KEY = "menfis_pricing_rows_cache_v2";
 export const CUSTOMIZER_ADDON_IDS = new Set([
+  "salad-protein-frango",
+  "salad-protein-carne",
   "extra-carne",
   "extra-frango",
   "extra-queijo",
