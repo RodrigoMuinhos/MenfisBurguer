@@ -115,7 +115,12 @@ export function pricingRowToMenuItem(row: Record<string, unknown>): MenuItem | n
 }
 
 export function canonicalProductImage(id: string, imageUrl: string) {
-  return id === DEFAULT_FEATURED_PRODUCT_ID ? TRIPLE_COMBO_IMAGE : imageUrl;
+  if (id === DEFAULT_FEATURED_PRODUCT_ID) return TRIPLE_COMBO_IMAGE;
+  if (["monster", "agua-sem-gas", "heineken-longneck"].includes(id)
+    && (!imageUrl || imageUrl === "/logo_M.jpeg")) {
+    return `/bebidas/${id}.png`;
+  }
+  return imageUrl;
 }
 
 export function pricingKindToMenuCategory(kind: string, categoryLabel = ""): ProductCategory {
