@@ -94,6 +94,14 @@ public class OrderController {
     return orders.approvePayment(id, "admin");
   }
 
+  @PostMapping("/{id}/counter-payment")
+  public OrderResponse confirmCounterPayment(
+      @PathVariable String id,
+      @RequestHeader(name = "Authorization", required = false) String authorization) {
+    auth.requireAdmin(authorization);
+    return orders.confirmCounterPayment(id, "admin");
+  }
+
   @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter events(
       @PathVariable String id,

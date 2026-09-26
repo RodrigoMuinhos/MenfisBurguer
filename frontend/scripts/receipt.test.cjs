@@ -87,3 +87,12 @@ test('browser fallback text has no printer control codes', () => {
   assert.ok(!receipt.includes(ESC) && !receipt.includes(GS));
   assert.ok(receipt.includes('*** NAO PAGO ***'));
 });
+
+test('admin shows unpaid counter orders as Nao pago until confirmed at the till', () => {
+  const { paymentStatusLabel, paymentBadge } = loadShared();
+  assert.equal(paymentStatusLabel(order()), 'Não pago');
+  assert.equal(paymentBadge(order()).bg, '#000000');
+  assert.equal(paymentStatusLabel(order({ status: 'IN_PREPARATION' })), 'Não pago');
+  assert.equal(paymentStatusLabel(order({ paymentStatus: 'approved' })), 'Pago');
+  assert.equal(paymentStatusLabel(order({ status: 'CANCELLED' })), 'Cancelado');
+});

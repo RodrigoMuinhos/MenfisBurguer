@@ -737,6 +737,33 @@ public class OrderService {
     return changeStatus(id, OrderStatus.DELIVERED, actor == null ? "motoboy" : actor, "delivery_code_confirmed");
   }
 
+  /**
+   * Dá baixa em um pedido "Pague no Caixa": registra o pagamento recebido sem
+   * mudar a etapa do pedido, então funciona mesmo com a cozinha já em preparo.
+   */
+  @Transactional
+  public OrderResponse confirmCounterPayment(String orderId, String actor) {
+    int updated = jdbc.update(
+      """
+      update orders
+      set payment_status = 'approved',
+          paid_at = coalesce(paid_at, now()),
+          updated_at = now()
+      where id = ?
+        and upper(payment_method) = 'PRESENCIAL'
+        and status <> 'CANCELLED'
+      """,
+      orderId
+    );
+    if (updated != 1) {
+      throw new IllegalArgumentException("counter_payment_not_applicable");
+    }
+    audit.log(actor, "COUNTER_PAYMENT_CONFIRMED", "ORDER", orderId, Map.of("paymentMethod", "PRESENCIAL"));
+    OrderResponse order = get(orderId);
+    events.publish(orderId, order);
+    return order;
+  }
+
   @Transactional
   public OrderResponse approvePayment(String orderId, String actor) {
     Map<String, Object> row = jdbc.queryForMap(

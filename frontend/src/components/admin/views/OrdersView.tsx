@@ -10,6 +10,7 @@ import {
   copyOrderTxt,
   fmt,
   isKioskMobOrder,
+  isUnpaidCounterPayment,
   localDateKey,
   orderReadyWhatsappUrl,
   orderStageLabel,
@@ -68,12 +69,27 @@ export function OrdersView({
   updateOrderStatus,
   deleteOrder,
   updateOrderItems,
+  confirmCounterPayment,
 }: {
   orders: Order[];
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   deleteOrder: (id: string) => void | Promise<void>;
   updateOrderItems: (id: string, items: CartItem[], options?: OrderUpdateOptions) => void | Promise<void>;
+  confirmCounterPayment?: (id: string) => Promise<void>;
 }) {
+  const [confirmingPaymentId, setConfirmingPaymentId] = useState("");
+  const confirmCounterPaymentFor = async (order: Order) => {
+    if (!confirmCounterPayment || confirmingPaymentId) return;
+    if (!window.confirm(`Confirmar que o pedido ${order.id} foi pago no caixa?`)) return;
+    setConfirmingPaymentId(order.id);
+    try {
+      await confirmCounterPayment(order.id);
+    } catch {
+      window.alert("Não foi possível registrar o pagamento. Tente novamente.");
+    } finally {
+      setConfirmingPaymentId("");
+    }
+  };
   const [channelFilter, setChannelFilter] = useState<"ALL" | Order["channel"]>(
     "ALL",
   );
@@ -388,6 +404,11 @@ export function OrdersView({
                             <span>{ageMinutes} min</span>
                             <span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
                             <span>{isKioskMobOrder(order) ? "Balcão" : order.deliveryType === "delivery" ? "Entrega" : "Retirada"}</span>
+                            {order.status !== "CANCELLED" && isUnpaidCounterPayment(order) && (
+                              <span className="rounded px-2 py-0.5" style={{ background: "#000", color: "#fff" }}>
+                                Não pago
+                              </span>
+                            )}
                           </div>
                           <p className="mt-2 truncate text-[11px] font-bold opacity-65" style={{ color: VERDE }}>
                             {order.items.slice(0, 2).map((item) => `${item.qty}x ${item.name}`).join(" · ")}
@@ -724,6 +745,16 @@ export function OrdersView({
           </div>
 
           <div className="admin-order-actions mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {confirmCounterPayment && selected.status !== "CANCELLED" && isUnpaidCounterPayment(selected) && (
+              <button
+                onClick={() => void confirmCounterPaymentFor(selected)}
+                disabled={confirmingPaymentId === selected.id}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase disabled:opacity-60"
+                style={{ background: "#000", color: "#fff" }}
+              >
+                <Check size={15} /> {confirmingPaymentId === selected.id ? "Registrando..." : "Confirmar pago no caixa"}
+              </button>
+            )}
             {canReleasePayment && (
               <button
                 onClick={() => runAfterNextPaint(() => updateOrderStatus(selected.id, "PAID"))}

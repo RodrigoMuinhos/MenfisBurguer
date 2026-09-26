@@ -104,6 +104,7 @@ interface Props {
   updateOrderStatus: (id: string, status: OrderStatus) => void | Promise<void>;
   deleteOrder: (id: string) => void | Promise<void>;
   updateOrderItems: (id: string, items: CartItem[], options?: OrderUpdateOptions) => void | Promise<void>;
+  confirmCounterPayment?: (id: string) => Promise<void>;
   onClose: () => void;
   initialTab?: AdminTab;
   adminToken: string;
@@ -115,6 +116,7 @@ export function AdminPanel({
   updateOrderStatus,
   deleteOrder,
   updateOrderItems,
+  confirmCounterPayment,
   onClose,
   initialTab = "pedidos",
   adminToken,
@@ -964,6 +966,7 @@ export function AdminPanel({
             updateOrderStatus={handleUpdateOrderStatus}
             deleteOrder={handleDeleteOrder}
             updateOrderItems={handleUpdateOrderItems}
+            confirmCounterPayment={confirmCounterPayment}
           />
         )}
         {tab === "cozinha" && (

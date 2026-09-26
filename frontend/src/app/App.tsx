@@ -123,6 +123,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     updateOrderStatus,
     deleteOrder,
     updateOrderItems,
+    confirmCounterPayment,
   } = useOrderSync({
     adminToken,
     lastOrderId,
@@ -576,6 +577,7 @@ export default function App({ mode }: { mode?: AppMode }) {
             updateOrderStatus={updateOrderStatus}
             deleteOrder={deleteOrder}
             updateOrderItems={updateOrderItems}
+            confirmCounterPayment={confirmCounterPayment}
             onClose={closeAdmin}
             initialTab={
               appMode === "notes"
@@ -663,6 +665,7 @@ export default function App({ mode }: { mode?: AppMode }) {
               updateOrderStatus={updateOrderStatus}
               deleteOrder={deleteOrder}
               updateOrderItems={updateOrderItems}
+              confirmCounterPayment={confirmCounterPayment}
               onClose={closeAdmin}
               initialTab="pedidos"
               adminToken={adminToken}
@@ -714,6 +717,7 @@ export default function App({ mode }: { mode?: AppMode }) {
               updateOrderStatus={updateOrderStatus}
               deleteOrder={deleteOrder}
               updateOrderItems={updateOrderItems}
+              confirmCounterPayment={confirmCounterPayment}
               onClose={closeAdmin}
               initialTab="pedidos"
               adminToken={adminToken}

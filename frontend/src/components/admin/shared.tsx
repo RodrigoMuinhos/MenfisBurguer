@@ -231,6 +231,7 @@ export function paymentMethodLabel(order: Order) {
 
 export function paymentStatusLabel(order: Order) {
   const status = String(order.paymentStatus ?? "").toLowerCase();
+  if (isUnpaidCounterPayment(order)) return order.status === "CANCELLED" ? "Cancelado" : "Não pago";
   if (
     status === "approved" ||
     status === "paid" ||
@@ -286,6 +287,14 @@ export function playAdminPaymentAlert() {
 
 export function paymentBadge(order: Order) {
   const label = paymentStatusLabel(order);
+  if (label === "Não pago") {
+    return {
+      label,
+      bg: "#000000",
+      text: "#FFFFFF",
+      border: "#000000",
+    };
+  }
   if (label === "Pago") {
     return {
       label,
