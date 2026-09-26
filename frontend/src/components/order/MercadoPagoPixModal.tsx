@@ -60,9 +60,9 @@ export function MercadoPagoPixModal({ request, onClose }: {
           method: "POST", headers: { "Content-Type": "application/json", ...request.headers },
           body: JSON.stringify({ orderId: request.order.id }), signal: controller.signal,
         });
-        if (!response.ok) throw new Error();
-        const data = await response.json();
-        if (!data.qrCode && !data.qrCodeBase64) throw new Error();
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(pixErrorMessage(data?.error));
+        if (!data.qrCode && !data.qrCodeBase64) throw new Error("O Mercado Pago não devolveu o QR Code.");
         const image = data.qrCodeBase64
           ? `data:image/png;base64,${data.qrCodeBase64}`
           : await QRCode.toDataURL(data.qrCode, { width: 420, margin: 4 });
@@ -70,8 +70,10 @@ export function MercadoPagoPixModal({ request, onClose }: {
         setCode(data.qrCode || "");
         setQrImage(image);
         await poll();
-      } catch {
-        if (!stopped) setError("Não foi possível gerar o Pix no Mercado Pago. Tente novamente para este mesmo pedido.");
+      } catch (reason) {
+        if (stopped) return;
+        const detail = reason instanceof Error && reason.message ? ` ${reason.message}` : "";
+        setError(`Não foi possível gerar o Pix no Mercado Pago.${detail}`);
       }
     };
     void start();
@@ -102,4 +104,11 @@ export function MercadoPagoPixModal({ request, onClose }: {
       </div>
     </div>
   );
+}
+
+function pixErrorMessage(error: unknown) {
+  const text = typeof error === "string" ? error : "";
+  if (text.includes("mercado_pago_not_configured")) return "Credencial do Mercado Pago não configurada no servidor.";
+  if (text.includes("mercado_pago_pix_failed:")) return `Motivo: ${text.split("mercado_pago_pix_failed:")[1].trim()}`;
+  return text ? `Motivo: ${text}` : "Tente novamente.";
 }

@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,10 +25,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class PaymentService {
+  private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
   private final JdbcTemplate jdbc;
   private final ObjectMapper mapper;
   private final OrderService orders;
@@ -233,9 +237,14 @@ public class PaymentService {
   }
 
   private PixResponse createPixOrder(com.menfis.delivery.dto.ApiDtos.OrderResponse order) {
+    PixResponse pending = pendingPix(order);
+    if (pending != null) return pending;
+
     String amount = money(order.total());
-    String idempotencyKey = java.util.UUID.nameUUIDFromBytes(
-      ("pix:" + order.id()).getBytes(StandardCharsets.UTF_8)).toString();
+    // Chave nova por tentativa: uma chave fixa por pedido faria o Mercado Pago
+    // devolver o mesmo erro em cache quando o cliente toca em "Tentar novamente".
+    // Cliques duplicados reaproveitam o Pix pendente acima.
+    String idempotencyKey = UUID.randomUUID().toString();
     Map<String, Object> payload = new LinkedHashMap<>();
     payload.put("type", "online");
     payload.put("total_amount", amount);
@@ -252,18 +261,24 @@ public class PaymentService {
       ))
     ));
     String payerEmail = configuredPayerEmail(defaultPayerEmail, "test_user_br@testuser.com");
-    if (payerEmail != null) {
-      payload.put("payer", Map.of("email", payerEmail));
-    }
+    if (payerEmail == null) payerEmail = orderPayerEmail(order.id());
+    payload.put("payer", Map.of("email", payerEmail));
 
-    JsonNode response = restClient.post()
-      .uri("/v1/orders")
-      .header("Authorization", "Bearer " + accessToken)
-      .header("X-Idempotency-Key", idempotencyKey)
-      .contentType(MediaType.APPLICATION_JSON)
-      .body(payload)
-      .retrieve()
-      .body(JsonNode.class);
+    JsonNode response;
+    try {
+      response = restClient.post()
+        .uri("/v1/orders")
+        .header("Authorization", "Bearer " + accessToken)
+        .header("X-Idempotency-Key", idempotencyKey)
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(payload)
+        .retrieve()
+        .body(JsonNode.class);
+    } catch (RestClientResponseException ex) {
+      String reason = mercadoPagoErrorReason(ex);
+      log.warn("MERCADO_PAGO_PIX_REJECTED orderId={} httpStatus={} reason={}", order.id(), ex.getStatusCode().value(), reason);
+      throw new IllegalStateException("mercado_pago_pix_failed: " + reason);
+    }
 
     JsonNode payment = response.path("transactions").path("payments").path(0);
     JsonNode method = payment.path("payment_method");
@@ -475,6 +490,60 @@ public class PaymentService {
 
   private boolean isProduction() {
     return "production".equalsIgnoreCase(environment);
+  }
+
+  /** Reaproveita um Pix ainda válido do mesmo pedido em vez de criar outro. */
+  private PixResponse pendingPix(com.menfis.delivery.dto.ApiDtos.OrderResponse order) {
+    List<Map<String, Object>> rows = jdbc.queryForList(
+      """
+      select provider_payment_id, provider_preference_id, status, checkout_url, qr_code, raw_payload::text as raw
+      from payments
+      where order_id = ? and provider = 'MERCADO_PAGO' and upper(method) = 'PIX'
+        and qr_code is not null
+        and lower(coalesce(status, '')) in ('action_required', 'pending', 'waiting_payment', 'waiting_transfer', 'created')
+        and created_at > now() - interval '25 minutes'
+      order by created_at desc
+      limit 1
+      """,
+      order.id()
+    );
+    if (rows.isEmpty()) return null;
+    Map<String, Object> row = rows.get(0);
+    String qrCodeBase64 = null;
+    try {
+      JsonNode raw = mapper.readTree(String.valueOf(row.get("raw")));
+      qrCodeBase64 = raw.path("transactions").path("payments").path(0)
+        .path("payment_method").path("qr_code_base64").asText(null);
+    } catch (Exception ignored) {
+      // Sem a imagem, o frontend gera o QR a partir do copia e cola.
+    }
+    String ticketUrl = (String) row.get("checkout_url");
+    return new PixResponse(
+      order.id(), ticketUrl, null, null,
+      (String) row.get("provider_preference_id"), (String) row.get("provider_payment_id"),
+      (String) row.get("status"), null, ticketUrl, (String) row.get("qr_code"), qrCodeBase64
+    );
+  }
+
+  /** O Mercado Pago exige e-mail do pagador; totem e balcão não coletam e-mail. */
+  private String orderPayerEmail(String orderId) {
+    return "pedido" + orderId.replaceAll("[^0-9A-Za-z]", "") + "@menfisburguer.com.br";
+  }
+
+  private String mercadoPagoErrorReason(RestClientResponseException ex) {
+    String body = ex.getResponseBodyAsString();
+    try {
+      JsonNode error = mapper.readTree(body);
+      JsonNode first = error.path("errors").path(0);
+      String reason = firstText(
+        first.path("message"), first.path("details").path(0), first.path("code"),
+        error.path("message"), error.path("error"));
+      if (!reason.isBlank()) return reason;
+    } catch (Exception ignored) {
+      // Corpo não-JSON: usa o texto bruto abaixo.
+    }
+    String text = body == null ? "" : body.replaceAll("\\s+", " ").trim();
+    return text.isBlank() ? "HTTP " + ex.getStatusCode().value() : text.substring(0, Math.min(200, text.length()));
   }
 
   private String configuredPayerEmail(String configured, String localDefault) {
