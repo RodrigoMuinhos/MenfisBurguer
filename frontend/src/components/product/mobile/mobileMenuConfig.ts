@@ -32,11 +32,11 @@ import {
 import { MenuItem } from "@/features/catalog/types";
 import { ROSA } from "@/utils/theme";
 import { API_URL, PromoCard, PromoCardIcon, SUPPORT_WHATSAPP_URL, normalizePromoCards } from "@/components/order/checkout";
-import { fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "../shared";
+import { BEVERAGE_PRODUCT_IDS, fmt, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, isSweetBoxProduct, MemberProfile, sortCatalogItems, sweetCardPriceLabel } from "../shared";
 import { SoldOutAlertModal, SoldOutBanner, SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { SuperLaunchCard } from "../ProductParts";
 
-export type MobileCategory = "combo" | "burger" | "lemonade" | "super" | "fries" | "extras" | "sweet" | "salad";
+export type MobileCategory = "bebida" | "combo" | "burger" | "lemonade" | "super" | "fries" | "extras" | "sweet" | "salad";
 
 export const VINHO = "#65001F";
 export const MAGENTA = "#B20B47";
@@ -54,6 +54,7 @@ export const MOBILE_CATEGORIES: Array<{
   { id: "fries", label: "Fries", icon: Utensils },
   { id: "sweet", label: "Sweet", icon: Candy },
   { id: "lemonade", label: "Lemonade", icon: CupSoda },
+  { id: "bebida", label: "Bebidas", icon: CupSoda },
   { id: "super", label: "SUPER", icon: Star },
   { id: "salad", label: "Salad", icon: Salad },
   { id: "extras", label: "Extras", icon: Plus },
@@ -71,6 +72,7 @@ export function itemSearchText(item: MenuItem) {
 }
 
 export function categoryMatches(item: MenuItem, category: MobileCategory) {
+  if (category === "bebida") return BEVERAGE_PRODUCT_IDS.has(item.id);
   if (category === "lemonade") return item.id.endsWith("-lemonade");
   if (category === "super") return isSuperProduct(item);
   if (category === "burger") {

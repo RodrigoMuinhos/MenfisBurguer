@@ -42,10 +42,16 @@ export const CATEGORIES = [
   { id: "fries", label: "Fries", Icon: Utensils },
   { id: "sweet", label: "Sweet", Icon: Candy },
   { id: "lemonade", label: "Lemonade", Icon: CupSoda },
+  { id: "bebida", label: "Bebidas", Icon: CupSoda },
   { id: "super", label: "SUPER", Icon: Candy },
   { id: "salad", label: "Salad", Icon: Salad },
   { id: "extras", label: "Extras", Icon: Plus },
 ] as const;
+
+export const BEVERAGE_PRODUCT_IDS = new Set([
+  "coca-cola", "coca-zero", "guarana-zero", "heineken-longneck",
+  "agua-sem-gas", "agua-com-gas", "monster",
+]);
 
 export const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 export const BURGER_ID = "burger";
@@ -98,11 +104,11 @@ export const EXTRA_OPTIONS = [
   { id: "extra-cheddar", label: "Adicional de cheddar", price: 6.9, image: "/queijo.jpg" },
   { id: "extra-maionese-barbecue", label: "Maionse Grill", price: 2.5, image: "/EXTRAS/MaioneseBarbecue.jpg" },
   { id: "extra-maionese-alho-frito", label: "Maionese Alho Frito", price: 2.5, image: "/EXTRAS/MaionseAlhoFrito.jpg" },
-  { id: "coca-cola", label: "Coca-Cola", price: 9.9, image: "/EXTRAS/cocacola.png" },
+  { id: "coca-cola", label: "Coca-Cola", price: 8.9, image: "/EXTRAS/cocacola.png" },
   { id: "guarana", label: "Guaraná", price: 9.9, image: "/EXTRAS/Gurarana.jpg" },
-  { id: "coca-zero", label: "Coca-Cola Zero", price: 9.9, image: "/EXTRAS/cocazero.jpg" },
-  { id: "guarana-zero", label: "Guaraná Zero", price: 9.9, image: "/EXTRAS/GuraranaZero.jpg" },
-  { id: "agua-com-gas", label: "Água com gás", price: 6.9, image: "/EXTRAS/aguaComGas.png" },
+  { id: "coca-zero", label: "Coca-Cola Zero", price: 8.9, image: "/EXTRAS/cocazero.jpg" },
+  { id: "guarana-zero", label: "Guaraná Zero", price: 8.9, image: "/EXTRAS/GuraranaZero.jpg" },
+  { id: "agua-com-gas", label: "Água com gás", price: 4.9, image: "/EXTRAS/aguaComGas.png" },
 ];
 
 export const LEMONADE_TOPPING_OPTIONS = [
