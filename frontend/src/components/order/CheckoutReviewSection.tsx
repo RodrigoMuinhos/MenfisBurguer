@@ -10,6 +10,9 @@ import {
   fmt,
 } from "./checkout";
 
+// Temporarily hide coupon entry in every checkout mode.
+const COUPON_ENTRY_ENABLED = false;
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
@@ -80,7 +83,7 @@ export function CheckoutReviewSection({
         </div>
       )}
 
-      {!kioskMode && (checkoutStep === "bag" || checkoutStep === "review") && (
+      {COUPON_ENTRY_ENABLED && (checkoutStep === "bag" || checkoutStep === "review") && (
         <div
           className="rounded-2xl p-4"
           style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
