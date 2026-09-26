@@ -351,7 +351,7 @@ export function ProductScreenView({
                   backdropFilter: "blur(16px)",
                 }}
               >
-                {CATEGORIES.filter(
+                {CATEGORIES.filter(({ id }) => id !== "salad" && id !== "extras").filter(
                   ({ id }) =>
                     (kioskMode ||
                       kioskMobLoggedIn ||

@@ -98,8 +98,7 @@ export function useProductCustomizerModel(
         delete extras[id];
         return { ...prev, extras };
       }
-      if (id === "adicional-cachaca") delete extras["adicional-vodka"];
-      if (id === "adicional-vodka") delete extras["adicional-cachaca"];
+      extraOptions.forEach((option) => delete extras[option.id]);
       extras[id] = 1;
       return { ...prev, extras };
     });

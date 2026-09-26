@@ -106,6 +106,7 @@ export const EXTRA_OPTIONS = [
 ];
 
 export const LEMONADE_TOPPING_OPTIONS = [
+  { id: "lemonade-sem-alcool", label: "Sem álcool", price: 0, image: "/logo_M.jpeg" },
   { id: "adicional-cachaca", label: "Cachaça", price: 3, image: "/logo_M.jpeg" },
   { id: "adicional-vodka", label: "Vodka", price: 3, image: "/logo_M.jpeg" },
 ];

@@ -1240,7 +1240,8 @@ public class OrderService {
       boolean lemonadeTopping = "topping-chantilly".equals(addonId)
         || "topping-espuma-ginger".equals(addonId)
         || "adicional-vodka".equals(addonId)
-        || "adicional-cachaca".equals(addonId);
+        || "adicional-cachaca".equals(addonId)
+        || "lemonade-sem-alcool".equals(addonId);
       boolean saladLemonade = "salad-pink-lemonade".equals(addonId)
         || "salad-purple-lemonade".equals(addonId)
         || "salad-sunset-lemonade".equals(addonId)

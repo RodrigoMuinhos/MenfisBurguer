@@ -399,7 +399,7 @@ export function ProductCustomizer({
             title={isLemonade ? "Adicionais" : state.item.id === "chicken-menfis-salad" ? "Bebidas e adicionais" : "Extras"}
             subtitle={
               isLemonade
-                ? "Escolha Cachaça ou Vodka por + R$ 3,00"
+                ? "Escolha Sem álcool (R$ 0,00), Cachaça ou Vodka (+ R$ 3,00)"
                 : state.item.id === "chicken-menfis-salad"
                   ? "Escolha bebidas e ingredientes extras"
                   : "Escolha até 3 de cada opção"

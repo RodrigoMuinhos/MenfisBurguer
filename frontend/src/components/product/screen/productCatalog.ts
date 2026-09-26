@@ -24,6 +24,8 @@ export const CUSTOMIZER_ADDON_IDS = new Set([
   "topping-chantilly",
   "topping-espuma-ginger",
   "adicional-vodka",
+  "adicional-cachaca",
+  "lemonade-sem-alcool",
 ]);
 
 export function hasRequiredCustomerProfile(profile: MemberProfile | null) {
