@@ -1,21 +1,17 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { CategoryId } from "@/components/product/shared";
+import { CATEGORIES, type CategoryId } from "@/components/product/shared";
 import { preloadClientImages } from "@/components/product/screen/productCatalog";
 
 const BACKGROUND_SRC = "/event/TelaInicalEventoFundo.png";
 
-// The card art is opaque with white corners outside its rounded border;
-// `radius` (horizontal % / vertical % of the image) clips them away.
-const IDLE_MENU_BUTTONS: Array<{
-  category: CategoryId;
-  src: string;
-  alt: string;
-  radius: string;
-}> = [
-  { category: "combo", src: "/event/btcombo.png", alt: "Combos", radius: "4.2% / 11.9%" },
-  { category: "lemonade", src: "/event/bt%20lemon.png", alt: "Lemonades", radius: "4% / 9.4%" },
-  { category: "bebida", src: "/event/tbebida.png", alt: "Bebidas", radius: "3.3% / 7.6%" },
+// Normalized cards (same size and frame) generated from the event art by
+// scripts/build-idle-cards.py. "Menu" opens the cardápio on its first tab.
+const IDLE_MENU_BUTTONS: Array<{ category: CategoryId; src: string; alt: string }> = [
+  { category: CATEGORIES[0].id, src: "/event/cards/menu.webp", alt: "Menu" },
+  { category: "combo", src: "/event/cards/combos.webp", alt: "Combos" },
+  { category: "lemonade", src: "/event/cards/lemonades.webp", alt: "Lemonades" },
+  { category: "bebida", src: "/event/cards/bebidas.webp", alt: "Bebidas" },
 ];
 
 export function IdleMenuScreen({
@@ -68,18 +64,18 @@ export function IdleMenuScreen({
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             // Keep the cards below the "Menfi's Burger" logo.
-            paddingTop: "22vh",
-            paddingBottom: "8vh",
-            gap: "2.4vh",
+            paddingTop: "21vh",
+            paddingBottom: "4vh",
+            gap: "1.8vh",
             touchAction: "manipulation",
           }}
           onClick={() => {
             if (!selectedRef.current) onDismiss();
           }}
         >
-          {IDLE_MENU_BUTTONS.map(({ category, src, alt, radius }, index) => (
+          {IDLE_MENU_BUTTONS.map(({ category, src, alt }, index) => (
             <motion.button
-              key={category}
+              key={alt}
               type="button"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -88,12 +84,12 @@ export function IdleMenuScreen({
                 event.stopPropagation();
                 select(category);
               }}
-              className="block shrink-0 cursor-pointer overflow-hidden border-0 bg-transparent p-0 outline-none"
-              // ~2.3–2.8:1 cards: 43vh wide keeps all three (plus gaps) within ~57vh.
+              className="block shrink-0 cursor-pointer border-0 bg-transparent p-0 outline-none"
+              // 2.96:1 cards: 50vh wide keeps all four (plus gaps) within ~73vh.
               style={{
-                width: "min(84vw, 43vh)",
-                borderRadius: radius,
-                boxShadow: "0 12px 32px rgba(101,0,31,0.16)",
+                width: "min(86vw, 50vh)",
+                aspectRatio: "1800 / 608",
+                filter: "drop-shadow(0 10px 24px rgba(101,0,31,0.16))",
                 WebkitTapHighlightColor: "transparent",
               }}
             >
@@ -101,7 +97,7 @@ export function IdleMenuScreen({
                 src={src}
                 alt={alt}
                 draggable={false}
-                className="pointer-events-none block h-auto w-full"
+                className="pointer-events-none block h-full w-full"
               />
             </motion.button>
           ))}
