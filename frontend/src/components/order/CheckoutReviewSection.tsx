@@ -80,7 +80,7 @@ export function CheckoutReviewSection({
         </div>
       )}
 
-      {(checkoutStep === "bag" || checkoutStep === "review") && (
+      {!kioskMode && (checkoutStep === "bag" || checkoutStep === "review") && (
         <div
           className="rounded-2xl p-4"
           style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
