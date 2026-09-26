@@ -216,14 +216,13 @@ export function paymentMethodLabel(order: Order) {
     provider === "mercado pago" ||
     ["pix", "cartao", "credito", "debito", "credit_card", "debit_card"].includes(method);
 
-  if (isKioskMobOrder(order) && method === "presencial") return "Pagamento no Balcão";
+  if (method === "presencial") return "Pague no Caixa";
   if (method === "pix") return mercadoPago ? "PIX Mercado Pago" : "PIX";
   if (method === "credit_card" || method === "credito")
     return "Cartão de Crédito Mercado Pago";
   if (method === "debit_card" || method === "debito")
     return "Cartão de Débito Mercado Pago";
   if (method === "cartao") return "Cartão Mercado Pago";
-  if (method === "presencial") return "Pagamento Presencial com Atendente";
   if (method === "pagar_na_entrega") return "Pagamento Presencial com Atendente";
   if (method === "whatsapp") return "Pagamento Presencial com Atendente";
   if (method === "dinheiro") return "Pagamento Presencial com Atendente";
@@ -575,6 +574,34 @@ export async function copyOrderTxt(order: Order) {
 
 const LINE_WIDTH = 23;
 
+// Comandos ESC/POS da POS-58. A ponte de impressão envia o texto cru (CP850),
+// então estes bytes chegam à impressora. Cada linha, contando os comandos, deve
+// ficar abaixo do limite de 32 caracteres que a ponte aceita.
+const ESC = "\x1b";
+const GS = "\x1d";
+const POS_CENTER = `${ESC}a\x01`;
+const POS_LEFT = `${ESC}a\x00`;
+const POS_SIZE_3X = `${GS}!\x22`;
+const POS_SIZE_2X = `${GS}!\x11`;
+const POS_SIZE_NORMAL = `${GS}!\x00`;
+const POS_INVERT_ON = `${GS}B\x01`;
+const POS_INVERT_OFF = `${GS}B\x00`;
+const RECEIPT_ORDER_TOKEN = "@@PEDIDO@@";
+const RECEIPT_UNPAID_TOKEN = "@@NAOPAGO@@";
+
+/** Número do pedido sem o "#", ex.: "#1432" -> "1432". */
+export function receiptOrderNumber(order: Order) {
+  const digits = String(order.id ?? "").replace(/\D/g, "");
+  return digits || String(order.number ?? "").replace(/\D/g, "");
+}
+
+/** Pedido "Pague no Caixa" cujo pagamento ainda não foi recebido. */
+export function isUnpaidCounterPayment(order: Order) {
+  const method = String(order.paymentMethod ?? "").toLowerCase();
+  const status = String(order.paymentStatus ?? "").toLowerCase();
+  return method === "presencial" && !["approved", "paid", "accredited", "pago"].includes(status);
+}
+
 function receiptText(value: string) {
   return String(value ?? "")
     .normalize("NFD")
@@ -675,7 +702,9 @@ function receiptType(order: Order) {
   return order.deliveryType === "delivery" ? "ENTREGA" : "RETIRADA";
 }
 
-export function generateCustomerReceipt(order: Order) {
+export function generateCustomerReceipt(order: Order, options: { escpos?: boolean } = {}) {
+  const escpos = options.escpos !== false;
+  const unpaid = isUnpaidCounterPayment(order);
   const lines: string[] = [];
   const financials = receiptFinancials(order);
   const pushWrapped = (value: string, indent = 0) => lines.push(...wrapIndented(value, indent));
@@ -685,6 +714,7 @@ export function generateCustomerReceipt(order: Order) {
   lines.push(center("MENFI'S BURGER"));
   lines.push(center("NOTA DO PEDIDO"));
   lines.push(line());
+  if (escpos) lines.push(RECEIPT_ORDER_TOKEN);
   lines.push(leftRight(receiptType(order), deliveryConfirmationCode(order)));
   lines.push(new Date(order.timestamp).toLocaleString("pt-BR"));
   lines.push(line("="));
@@ -728,13 +758,33 @@ export function generateCustomerReceipt(order: Order) {
   lines.push(leftRight("TOTAL:", money(financials.total)));
   lines.push(line());
   pushWrapped(`Pagto: ${paymentMethodLabel(order)}`);
-  pushWrapped(`Status: ${paymentStatusLabel(order)}`);
+  if (unpaid) {
+    lines.push("Status:");
+    lines.push(escpos ? RECEIPT_UNPAID_TOKEN : center("*** NAO PAGO ***"));
+  } else {
+    pushWrapped(`Status: ${paymentStatusLabel(order)}`);
+  }
   lines.push(line());
   lines.push(center("Menfi's Burger"));
 
-  const receipt = lines.map((value) => value.slice(0, LINE_WIDTH)).join("\n").replace(/\n{3,}/g, "\n\n");
+  const orderNumber = receiptOrderNumber(order);
+  const receipt = lines
+    .map((value) => value.slice(0, LINE_WIDTH))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(
+      RECEIPT_ORDER_TOKEN,
+      orderNumber
+        ? `${POS_CENTER}${POS_SIZE_3X}${POS_INVERT_ON} ${orderNumber} ${POS_INVERT_OFF}${POS_SIZE_NORMAL}${POS_LEFT}`
+        : "",
+    )
+    .replace(
+      RECEIPT_UNPAID_TOKEN,
+      `${POS_CENTER}${POS_SIZE_2X}${POS_INVERT_ON} NAO PAGO ${POS_INVERT_OFF}${POS_SIZE_NORMAL}${POS_LEFT}`,
+    );
   for (const receiptLine of receipt.split("\n")) {
-    if (receiptLine.length > LINE_WIDTH) {
+    // Comandos ESC/POS (3 caracteres cada) não ocupam colunas no papel.
+    if (receiptLine.replace(/[\x1b\x1d][\s\S]{2}/g, "").length > LINE_WIDTH) {
       console.warn(`Linha excedeu ${LINE_WIDTH} caracteres:`, receiptLine);
     }
   }
@@ -838,8 +888,9 @@ export async function printOrderReceipts(
 
   if (!browserPrintFallbackEnabled(options)) return false;
 
-  const receipt = escapeReceipt(rawReceipt);
-  const orderId = escapeReceipt(String(order.id || order.number || ""));
+  const receipt = escapeReceipt(generateCustomerReceipt(order, { escpos: false }));
+  const orderId = escapeReceipt(receiptOrderNumber(order) || String(order.id || order.number || ""));
+  const unpaidBox = isUnpaidCounterPayment(order) ? `<div class="unpaid-box">NÃO PAGO</div>` : "";
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
     <style>
@@ -867,9 +918,25 @@ export async function printOrderReceipts(
         margin: 1mm auto 1.5mm;
         padding: 1mm 0.75mm;
         border: 1px solid #000;
+        background: #000;
         text-align: center;
         font-family: "Arial Black", Arial, sans-serif;
-        color: #000;
+        color: #fff;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .unpaid-box {
+        width: 37.5mm;
+        margin: 1.5mm auto 0;
+        padding: 1.2mm 0.75mm;
+        background: #000;
+        color: #fff;
+        text-align: center;
+        font-family: "Arial Black", Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
       .order-box span {
         display: block;
@@ -880,7 +947,7 @@ export async function printOrderReceipts(
       .order-box strong {
         display: block;
         margin-top: 0.4mm;
-        font-size: 22px;
+        font-size: 30px;
         line-height: 0.95;
         letter-spacing: 0.02em;
       }
@@ -912,6 +979,7 @@ export async function printOrderReceipts(
     </style></head><body><main class="paper">
       <div class="order-box"><span>PEDIDO</span><strong>${orderId}</strong></div>
       <pre class="receipt">${receipt}</pre>
+      ${unpaidBox}
     </main></body></html>
   `;
 
