@@ -4,7 +4,7 @@ import { CheckCircle2, CircleX, Loader2, QrCode, Store, X } from "lucide-react";
 import { Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import { printOrderReceipts } from "@/components/admin/shared";
-import { KIOSK_PIX_CODE, KIOSK_PIX_TIMEOUT_SECONDS, KioskKeyboardTarget, PaymentMethod, pixCodeWithAmount } from "./checkout";
+import { KioskKeyboardTarget, PaymentMethod } from "./checkout";
 import { KioskVirtualKeyboard } from "./KioskVirtualKeyboard";
 
 export function CartOverlays({
@@ -59,8 +59,6 @@ export function CartOverlays({
   onCloseKioskSuccess?: () => void;
 }) {
   const [counterPaymentMethod, setCounterPaymentMethod] = useState<"pix" | "atendente" | null>(null);
-  const [counterPixSeconds, setCounterPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
-  const [counterPixCompleted, setCounterPixCompleted] = useState(false);
   const [counterPromptSeconds, setCounterPromptSeconds] = useState(60);
   const [counterOrderCancelled, setCounterOrderCancelled] = useState(false);
   const [receiptPrintStep, setReceiptPrintStep] = useState<"idle" | "printing" | "printed" | "completed" | "error">("idle");
@@ -117,23 +115,8 @@ export function CartOverlays({
   }, [receiptPrintStep, successSecondsLeft]);
 
   useEffect(() => {
-    if (!counterPaymentPromptOpen) {
-      setCounterPaymentMethod(null);
-      setCounterPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
-      setCounterPixCompleted(false);
-      return;
-    }
-    if (counterPaymentMethod !== "pix" || counterPixCompleted) return;
-    if (counterPixSeconds <= 0) {
-      setCounterPixCompleted(true);
-      return;
-    }
-    const timer = window.setTimeout(
-      () => setCounterPixSeconds((seconds) => Math.max(0, seconds - 1)),
-      1000,
-    );
-    return () => window.clearTimeout(timer);
-  }, [counterPaymentMethod, counterPaymentPromptOpen, counterPixCompleted, counterPixSeconds]);
+    if (!counterPaymentPromptOpen) setCounterPaymentMethod(null);
+  }, [counterPaymentPromptOpen]);
 
   useEffect(() => {
     if (!counterPaymentPromptOpen) {
@@ -591,9 +574,7 @@ export function CartOverlays({
                           <button
                             type="button"
                             onClick={() => {
-                              setCounterPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
-                              setCounterPixCompleted(false);
-                              setCounterPaymentMethod("pix");
+                              onConfirmCounterPayment?.("pix");
                             }}
                             className="flex h-16 items-center justify-center gap-2 rounded-2xl border text-sm font-black uppercase"
                             style={{ borderColor: ROSA, color: VERDE }}
@@ -612,46 +593,6 @@ export function CartOverlays({
                           </button>
                         </div>
                       </>
-                    )}
-                    {counterPaymentMethod === "pix" && (
-                      <div className="mt-5 grid gap-4">
-                        <div className="rounded-3xl p-4" style={{ background: "#fff", border: `1px solid ${ROSA}` }}>
-                          <img src="/pix-menfis.png" alt="QR Code Pix Menfi's" className="mx-auto h-56 w-56 object-contain" />
-                          <p className="mt-4 text-[10px] font-black uppercase tracking-widest opacity-55">
-                            Valor a pagar
-                          </p>
-                          <p className="text-4xl font-black" style={{ color: "#8A0030" }}>
-                            {formatMoney(counterPaymentTotal)}
-                          </p>
-                          <div className="mx-auto mt-3 max-w-[220px] rounded-2xl px-4 py-3" style={{ background: `${ROSA}40` }}>
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
-                              Próxima etapa em
-                            </p>
-                            <p className="mt-1 text-3xl font-black tabular-nums" style={{ color: VERDE }}>
-                              00:{String(counterPixSeconds).padStart(2, "0")}
-                            </p>
-                            <p className="mt-1 text-[10px] font-bold opacity-65">
-                              Depois, informe o nome para concluir o pedido.
-                            </p>
-                          </div>
-                          <p className="mt-3 break-all rounded-2xl px-3 py-2 text-[10px] font-bold leading-relaxed" style={{ background: `${ROSA}40` }}>
-                            {pixCodeWithAmount(counterPaymentTotal) || KIOSK_PIX_CODE}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCounterPaymentMethod(null);
-                            setCounterPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
-                            setCounterPixCompleted(false);
-                            onConfirmCounterPayment?.("pix");
-                          }}
-                          className="h-14 rounded-2xl text-sm font-black uppercase text-white"
-                          style={{ background: VERDE }}
-                        >
-                          Continuar agora
-                        </button>
-                      </div>
                     )}
                     {counterPaymentMethod === "atendente" && (
                       <div className="mt-5 grid gap-4">
@@ -718,49 +659,7 @@ export function CartOverlays({
               )}
             </AnimatePresence>
 
-            <AnimatePresence>
-              {counterPaymentPromptOpen && counterPixCompleted && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[90] flex items-center justify-center bg-white px-6"
-                >
-                  <motion.div
-                    initial={{ scale: 0.9, y: 18 }}
-                    animate={{ scale: 1, y: 0 }}
-                    className="w-full max-w-md rounded-[32px] p-8 text-center shadow-2xl"
-                    style={{ border: `2px solid ${ROSA}`, color: VERDE }}
-                  >
-                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full" style={{ background: ROSA }}>
-                      <CheckCircle2 size={56} strokeWidth={2.8} />
-                    </div>
-                    <p className="mt-6 text-xs font-black uppercase tracking-[0.18em] opacity-60">
-                      Pix finalizado
-                    </p>
-                    <h2 className="mt-2 text-4xl font-black uppercase">
-                      Pagamento concluído
-                    </h2>
-                    <p className="mt-3 text-sm font-bold leading-relaxed opacity-70">
-                      Agora informe o nome do cliente para concluir e enviar o pedido.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCounterPixCompleted(false);
-                        setCounterPaymentMethod(null);
-                        setCounterPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
-                        onConfirmCounterPayment?.("pix");
-                      }}
-                      className="mt-7 min-h-14 w-full rounded-2xl text-sm font-black uppercase text-white"
-                      style={{ background: VERDE }}
-                    >
-                      Continuar
-                    </button>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+
       
             <AnimatePresence>
               {kioskKeyboardOpen && (

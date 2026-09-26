@@ -1,3 +1,4 @@
+import { MercadoPagoPixModal } from "./MercadoPagoPixModal";
 import { useState } from "react";
 import { CartItem, Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
@@ -85,6 +86,8 @@ export function CartScreen({
     couponCode,
     couponError,
     counterServiceMode,
+    pixPaymentRequest,
+    closePixPayment,
     counterPaymentPromptOpen,
     counterPaymentTotal,
     counterCustomerNamePromptOpen,
@@ -409,6 +412,7 @@ export function CartScreen({
           inputStyle={inputStyle}
         />
       </div>
+      {pixPaymentRequest && <MercadoPagoPixModal request={pixPaymentRequest} onClose={closePixPayment} />}
       <CartOverlays
         kioskSuccessOpen={kioskSuccessOpen}
         paying={paying}

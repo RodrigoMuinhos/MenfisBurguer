@@ -64,6 +64,16 @@ public class PaymentService {
     return createPayment(orderId, false);
   }
 
+  public com.menfis.delivery.dto.ApiDtos.OrderResponse refreshPix(String orderId) {
+    var order = orders.get(orderId);
+    if ("approved".equalsIgnoreCase(order.paymentStatus())) return order;
+    var providerOrders = jdbc.queryForList(
+      "select provider_preference_id from payments where order_id = ? and provider = 'MERCADO_PAGO' and method = 'PIX' and provider_preference_id is not null order by created_at desc limit 1",
+      String.class, orderId);
+    if (!providerOrders.isEmpty()) processMercadoPagoOrder(providerOrders.get(0));
+    return orders.get(orderId);
+  }
+
   public PixResponse createCheckout(String orderId) {
     return createPayment(orderId, true);
   }
@@ -224,7 +234,8 @@ public class PaymentService {
 
   private PixResponse createPixOrder(com.menfis.delivery.dto.ApiDtos.OrderResponse order) {
     String amount = money(order.total());
-    String idempotencyKey = java.util.UUID.randomUUID().toString();
+    String idempotencyKey = java.util.UUID.nameUUIDFromBytes(
+      ("pix:" + order.id()).getBytes(StandardCharsets.UTF_8)).toString();
     Map<String, Object> payload = new LinkedHashMap<>();
     payload.put("type", "online");
     payload.put("total_amount", amount);
@@ -268,6 +279,9 @@ public class PaymentService {
       """
       insert into payments(order_id, provider, provider_payment_id, provider_preference_id, method, status, amount, checkout_url, qr_code, raw_payload)
       values (?, 'MERCADO_PAGO', ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
+      on conflict (provider, provider_payment_id) where provider_payment_id is not null
+      do update set qr_code = excluded.qr_code, checkout_url = excluded.checkout_url,
+        raw_payload = excluded.raw_payload, updated_at = now()
       """,
       order.id(),
       providerPaymentId,
@@ -281,7 +295,7 @@ public class PaymentService {
     );
 
     jdbc.update(
-      "update orders set payment_status = ?, payment_id = ?, updated_at = now() where id = ?",
+      "update orders set payment_status = case when payment_status = 'approved' then payment_status else ? end, payment_id = ?, updated_at = now() where id = ?",
       status,
       providerPaymentId == null ? mpOrderId : providerPaymentId,
       order.id()

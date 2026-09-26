@@ -35,6 +35,7 @@ public class SecurityConfig {
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers(HttpMethod.GET, "/settings/public").permitAll()
+        .requestMatchers(HttpMethod.GET, "/payments/pix/*/status").permitAll()
         .requestMatchers(HttpMethod.POST, "/settings/sitef-supervisor/verify").permitAll()
         .requestMatchers(HttpMethod.GET, "/api/public/dining/kits/*/session").permitAll()
         .requestMatchers(HttpMethod.GET, "/api/public/dining/kits/*/account").permitAll()

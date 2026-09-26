@@ -10,6 +10,7 @@ import com.menfis.delivery.service.PaymentService;
 import com.menfis.delivery.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -46,6 +47,15 @@ public class PaymentController {
       @Valid @RequestBody PixRequest request) {
     orders.requireOrderAccess(request.orderId(), authorization, trackingToken, auth);
     return payments.createCheckout(request.orderId());
+  }
+
+  @GetMapping("/pix/{id}/status")
+  public com.menfis.delivery.dto.ApiDtos.OrderResponse pixStatus(
+      @PathVariable String id,
+      @RequestHeader(name = "Authorization", required = false) String authorization,
+      @RequestHeader(name = "X-Order-Token", required = false) String trackingToken) {
+    orders.requireOrderAccess(id, authorization, trackingToken, auth);
+    return payments.refreshPix(id);
   }
 
   @PostMapping("/club/preference")

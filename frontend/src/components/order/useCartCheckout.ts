@@ -1,3 +1,4 @@
+import type { PixPaymentRequest } from "./MercadoPagoPixModal";
 import { useEffect, useRef, useState } from "react";
 import { CartItem, Order } from "@/types/order";
 import {
@@ -197,6 +198,9 @@ export function useCartCheckout({
     }
   };
 
+  const [pixPaymentRequest, setPixPaymentRequest] = useState<PixPaymentRequest | null>(null);
+  const waitForPixPayment = (order: Record<string, unknown>, headers: Record<string, string>) =>
+    new Promise<Record<string, unknown> | null>((resolve) => setPixPaymentRequest({ order, headers, resolve }));
   const [counterPaymentPromptOpen, setCounterPaymentPromptOpen] = useState(false);
   const [counterPaymentTotal, setCounterPaymentTotal] = useState(0);
   const [counterCustomerNamePromptOpen, setCounterCustomerNamePromptOpen] = useState(false);
@@ -635,6 +639,7 @@ export function useCartCheckout({
         setPaymentError("");
         setClosedHoursAlertOpen(true);
       },
+      waitForPixPayment,
       confirmCounterPayment,
       confirmCounterCustomerName,
       waitForKioskSuccessConfirm,
@@ -899,6 +904,8 @@ export function useCartCheckout({
     couponCode,
     couponError,
     counterServiceMode,
+    pixPaymentRequest,
+    closePixPayment: () => setPixPaymentRequest(null),
     counterPaymentPromptOpen,
     counterPaymentTotal,
     counterCustomerNamePromptOpen,

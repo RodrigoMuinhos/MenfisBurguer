@@ -116,6 +116,7 @@ export async function submitCheckoutOrder({
   setKioskSuccessOrder,
   setPaymentError,
   onRestaurantClosed,
+  waitForPixPayment,
   confirmCounterPayment,
   confirmCounterCustomerName,
   waitForKioskSuccessConfirm,
@@ -146,6 +147,7 @@ export async function submitCheckoutOrder({
   setKioskSuccessOrder?: (order: Order | null) => void;
   setPaymentError: (value: string) => void;
   onRestaurantClosed?: () => void;
+  waitForPixPayment?: (order: Record<string, unknown>, headers: Record<string, string>) => Promise<Record<string, unknown> | null>;
   confirmCounterPayment?: (amount: number) => Promise<"pix" | "atendente" | "cancelado">;
   confirmCounterCustomerName?: () => Promise<string>;
   waitForKioskSuccessConfirm?: (order: Order) => Promise<void>;
@@ -230,7 +232,7 @@ export async function submitCheckoutOrder({
     if (!orderRes.ok || !createdOrder?.id) {
       throw new Error(createdOrder?.error || "order_creation_failed");
     }
-    const createdOrderAccessHeaders = {
+    const createdOrderAccessHeaders: Record<string, string> = {
       ...(createdOrder?.trackingToken
         ? { "X-Order-Token": String(createdOrder.trackingToken) }
         : {}),
@@ -238,6 +240,19 @@ export async function submitCheckoutOrder({
     };
 
     if (kioskMode || counterServiceMode) {
+      const isMercadoPagoPix = counterServiceMode ? selectedCounterPayment === "pix" : ["pix", "pix_qrcode"].includes(payment);
+      if (isMercadoPagoPix) {
+        if (!waitForPixPayment) throw new Error("pix_confirmation_unavailable");
+        if (slowTimer) window.clearTimeout(slowTimer);
+        setPaymentSlow(false);
+        setPaying(false);
+        const paidOrder = await waitForPixPayment(createdOrder, createdOrderAccessHeaders);
+        if (!paidOrder) {
+          setPaymentError("Pagamento não confirmado. Se já pagou, aguarde a confirmação com o atendente antes de refazer o pedido.");
+          return;
+        }
+        Object.assign(createdOrder, paidOrder, { trackingToken: createdOrder.trackingToken });
+      }
       const kioskOrder = buildLocalCreatedOrder({
         createdOrder,
         cart,
@@ -266,15 +281,8 @@ export async function submitCheckoutOrder({
                   : "awaiting_counter"
                 : "approved"),
           ),
-          paymentProvider:
-            counterServiceMode && selectedCounterPayment === "pix"
-              ? "menfis_pix"
-              : undefined,
-          pixQrCode:
-            counterServiceMode && selectedCounterPayment === "pix"
-              ? KIOSK_PIX_CODE
-              : undefined,
-          status: counterServiceMode
+          paymentProvider: isMercadoPagoPix ? "mercado_pago" : undefined,
+          status: isMercadoPagoPix ? "PAID" : counterServiceMode
             ? "PAYMENT_PENDING"
             : String(createdOrder.status ?? "PAID") === "PAYMENT_PENDING"
               ? "PAYMENT_PENDING"

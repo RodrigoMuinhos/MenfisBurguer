@@ -20,6 +20,15 @@ export function useKioskIdle({
 }) {
   const [showIdlePrompt, setShowIdlePrompt] = useState(false);
   const [showIdleScreen, setShowIdleScreen] = useState(false);
+  const paymentActiveRef = useRef(false);
+  useEffect(() => {
+    const update = (event: Event) => {
+      paymentActiveRef.current = Boolean((event as CustomEvent).detail);
+      lastInteractionRef.current = Date.now();
+    };
+    window.addEventListener("menfis-payment-active", update);
+    return () => window.removeEventListener("menfis-payment-active", update);
+  }, []);
   const lastInteractionRef = useRef<number>(Date.now());
 
   const resetKioskActivity = useCallback(() => {
@@ -72,7 +81,7 @@ export function useKioskIdle({
 
     const timer = window.setInterval(() => {
       const idleFor = Date.now() - lastInteractionRef.current;
-      if (showIdleScreen || idleFor < KIOSK_IDLE_SCREEN_MS) return;
+      if (paymentActiveRef.current || showIdleScreen || idleFor < KIOSK_IDLE_SCREEN_MS) return;
       openKioskIdleScreen();
     }, 1000);
 
