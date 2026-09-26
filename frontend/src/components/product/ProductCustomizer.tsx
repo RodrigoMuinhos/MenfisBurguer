@@ -396,10 +396,10 @@ export function ProductCustomizer({
 
           {!isSweetBox && (
           <OptionSection
-            title={isLemonade ? "Topping" : state.item.id === "chicken-menfis-salad" ? "Bebidas e adicionais" : "Extras"}
+            title={isLemonade ? "Adicionais" : state.item.id === "chicken-menfis-salad" ? "Bebidas e adicionais" : "Extras"}
             subtitle={
               isLemonade
-                ? "Escolha Chantilly ou Espuma Ginger e, se quiser, adicione Vodka"
+                ? "Escolha Cachaça ou Vodka por + R$ 3,00"
                 : state.item.id === "chicken-menfis-salad"
                   ? "Escolha bebidas e ingredientes extras"
                   : "Escolha até 3 de cada opção"

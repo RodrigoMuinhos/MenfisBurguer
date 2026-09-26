@@ -98,8 +98,8 @@ export function useProductCustomizerModel(
         delete extras[id];
         return { ...prev, extras };
       }
-      if (id === "topping-chantilly") delete extras["topping-espuma-ginger"];
-      if (id === "topping-espuma-ginger") delete extras["topping-chantilly"];
+      if (id === "adicional-cachaca") delete extras["adicional-vodka"];
+      if (id === "adicional-vodka") delete extras["adicional-cachaca"];
       extras[id] = 1;
       return { ...prev, extras };
     });
