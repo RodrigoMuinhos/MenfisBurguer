@@ -34,6 +34,7 @@ public class SecurityConfig {
       .csrf(csrf -> csrf.disable())
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .requestMatchers("/error").permitAll()
         .requestMatchers(HttpMethod.GET, "/settings/public").permitAll()
         .requestMatchers(HttpMethod.GET, "/payments/pix/*/status").permitAll()
         .requestMatchers(HttpMethod.POST, "/settings/sitef-supervisor/verify").permitAll()
