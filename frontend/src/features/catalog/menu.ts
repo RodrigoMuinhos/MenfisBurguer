@@ -413,12 +413,12 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     id: "purple-lemonade",
-    name: "Purple Lemonade",
+    name: "Classic Lemonade",
     eyebrow: "Lemonade",
-    desc: "Mirtilo e framboesa. Sabor marcante. Copo 500ml.",
+    desc: "Limão Taiti e Siciliano. Sabor marcante. Copo 500ml.",
     price: 14.9,
     image: "/Lemonade/purple.jpeg",
-    tags: ["Lemonade", "Mirtilo", "Framboesa", "500ml"],
+    tags: ["Lemonade", "Limão Taiti", "Limão Siciliano", "500ml"],
     category: "bebida",
   },
   {

@@ -6,7 +6,7 @@ import { fmt } from "./shared";
 
 const LEMONADE_IDS = ["pink-lemonade", "purple-lemonade", "sunset-lemonade"] as const;
 const LEMONADE_HEROS = [
-  { src: "/Lemonade/Hero evento.png", alt: "Lemonades especiais Menfi's" },
+  { src: "/event/heroevent.png", alt: "Lemonades especiais Menfi's" },
 ] as const;
 
 export type LemonadeSettings = {
@@ -24,14 +24,14 @@ export const DEFAULT_LEMONADE_SETTINGS: LemonadeSettings = {
   },
   enabledFlavors: [...LEMONADE_IDS],
   flavorOrder: [...LEMONADE_IDS],
-  heroOrder: ["Hero evento.png"],
+  heroOrder: ["heroevent.png"],
 };
 
 export function normalizeLemonadeSettings(value: unknown): LemonadeSettings {
   const row = value && typeof value === "object" ? value as Partial<LemonadeSettings> & { badgeLabel?: string } : {};
   const enabled = Array.isArray(row.enabledFlavors) ? row.enabledFlavors.filter((id) => LEMONADE_IDS.includes(id as never)) : [...LEMONADE_IDS];
   const flavorOrder = Array.isArray(row.flavorOrder) ? row.flavorOrder.filter((id) => LEMONADE_IDS.includes(id as never)) : [...LEMONADE_IDS];
-  const heroOrder = Array.isArray(row.heroOrder) ? row.heroOrder.filter((name) => ["Hero evento.png"].includes(name)) : DEFAULT_LEMONADE_SETTINGS.heroOrder;
+  const heroOrder = Array.isArray(row.heroOrder) ? row.heroOrder.filter((name) => ["heroevent.png"].includes(name)) : DEFAULT_LEMONADE_SETTINGS.heroOrder;
   return {
     badgeLabels: {
       "pink-lemonade": String(row.badgeLabels?.["pink-lemonade"] ?? "").trim(),

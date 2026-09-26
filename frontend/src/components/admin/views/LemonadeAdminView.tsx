@@ -12,6 +12,7 @@ const HERO_LABELS: Record<string, string> = {
   "hero.png": "Hero geral",
   "hero2.png": "Hero Sunset",
   "hero3.png": "Hero Purple",
+  "heroevent.png": "Hero evento",
 };
 
 export function LemonadeAdminView({
