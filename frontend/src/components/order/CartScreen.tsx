@@ -1,5 +1,5 @@
 import { MercadoPagoPixModal } from "./MercadoPagoPixModal";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CartItem, Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -38,6 +38,8 @@ interface Props {
   goToMenu: () => void;
   kioskMode?: boolean;
   initialCheckoutStep?: CheckoutStep;
+  /** Reports whether review/payment/finalization is on screen (blocks kiosk idle; the Pix modal reports itself). */
+  onCheckoutLockChange?: (locked: boolean) => void;
 }
 
 export function CartScreen({
@@ -48,6 +50,7 @@ export function CartScreen({
   goToMenu,
   kioskMode = false,
   initialCheckoutStep,
+  onCheckoutLockChange,
 }: Props) {
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(() => {
     if (kioskMode || typeof window === "undefined") return null;
@@ -232,6 +235,20 @@ export function CartScreen({
       setMemberSaving(false);
     }
   };
+
+  const checkoutLocked =
+    checkoutStep === "review" ||
+    checkoutStep === "payment" ||
+    paying ||
+    kioskSuccessOpen ||
+    counterPaymentPromptOpen ||
+    counterCustomerNamePromptOpen;
+
+  useEffect(() => {
+    onCheckoutLockChange?.(checkoutLocked);
+  }, [checkoutLocked, onCheckoutLockChange]);
+
+  useEffect(() => () => onCheckoutLockChange?.(false), [onCheckoutLockChange]);
 
   if (cart.length === 0) {
     return <EmptyCartState onBack={handleBack} />;

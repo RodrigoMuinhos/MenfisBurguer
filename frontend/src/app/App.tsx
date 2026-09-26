@@ -25,15 +25,9 @@ import {
 import { useAdminSession } from "./hooks/useAdminSession";
 import { useKioskIdle } from "./hooks/useKioskIdle";
 import { useOrderSync } from "./hooks/useOrderSync";
-import { KioskIdleOverlays } from "./KioskIdleOverlays";
+import { IdleMenuScreen } from "@/components/idle/IdleMenuScreen";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
-import {
-  DEFAULT_PRESENTATION_SETTINGS,
-  DELIVERY_FEE,
-  PresentationSettings,
-  SERVICE_FEE,
-  normalizePresentationSettings,
-} from "@/components/order/checkout";
+import { DELIVERY_FEE, SERVICE_FEE } from "@/components/order/checkout";
 import {
   deliveryConfirmationCode,
   normalizeBackendOrder,
@@ -44,6 +38,7 @@ import {
   MEMBER_TOKEN_KEY,
   imageSrc,
   readMemberProfile,
+  type CategoryId,
 } from "@/components/product/shared";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import type { MenuItem } from "@/features/catalog/types";
@@ -136,17 +131,31 @@ export default function App({ mode }: { mode?: AppMode }) {
   const [paymentTimeoutOrder, setPaymentTimeoutOrder] = useState<Order | null>(
     null,
   );
-  const [presentation, setPresentation] = useState<PresentationSettings>(
-    DEFAULT_PRESENTATION_SETTINGS,
+  const [checkoutLocked, setCheckoutLocked] = useState(false);
+  const [requestedCategory, setRequestedCategory] = useState<CategoryId | null>(
+    null,
   );
   const orderStatusSnapshotRef = useRef(new Map<string, string>());
   const paymentTimeoutHandledRef = useRef(new Set<string>());
   const {
-    showIdlePrompt,
     showIdleScreen,
     resetKioskActivity,
+    openIdleScreen,
     openKioskIdleScreen,
-  } = useKioskIdle({ kioskMode, screen, started: true, setCart, setScreen });
+  } = useKioskIdle({
+    kioskMode,
+    screen,
+    started: true,
+    blocked: checkoutLocked || Boolean(paymentTimeoutOrder),
+    setCart,
+    setScreen,
+  });
+
+  const openCategoryFromIdle = (category: CategoryId) => {
+    resetKioskActivity();
+    setScreen("product");
+    setRequestedCategory(category);
+  };
 
   useEffect(() => {
     const cacheIsCurrent =
@@ -218,22 +227,6 @@ export default function App({ mode }: { mode?: AppMode }) {
         openDiningAccount,
       );
   }, [diningMode]);
-
-  useEffect(() => {
-    if (!API_URL) return;
-    fetch(`${API_URL}/settings/public?_=${Date.now()}`, {
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
-    })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((settings) => {
-        setPresentation(normalizePresentationSettings(settings?.presentation));
-      })
-      .catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (selfServiceMenuMode || !clientStorageReady) return;
@@ -625,6 +618,9 @@ export default function App({ mode }: { mode?: AppMode }) {
                     : openAdmin
               }
               onOpenIdleScreen={kioskMode ? openKioskIdleScreen : undefined}
+              onOpenRestScreen={openIdleScreen}
+              requestedCategory={requestedCategory}
+              onCategoryRequestHandled={() => setRequestedCategory(null)}
               kioskMode={kioskMode}
               modernMobileMode={diningMode}
               activeOrder={
@@ -696,6 +692,7 @@ export default function App({ mode }: { mode?: AppMode }) {
             goToMenu={goHome}
             kioskMode={kioskMode}
             initialCheckoutStep={returnToPaymentStep ? "payment" : undefined}
+            onCheckoutLockChange={setCheckoutLocked}
           />
         )}
         {screen === "tracking" && (
@@ -731,13 +728,12 @@ export default function App({ mode }: { mode?: AppMode }) {
           ))}
       </div>
 
-      <KioskIdleOverlays
-        kioskMode={kioskMode}
-        showIdlePrompt={showIdlePrompt}
-        showIdleScreen={showIdleScreen}
-        screen={screen}
-        onActivity={resetKioskActivity}
-        presentation={presentation}
+      <IdleMenuScreen
+        enabled={screen !== "admin"}
+        preload={kioskMode}
+        open={showIdleScreen}
+        onSelectCategory={openCategoryFromIdle}
+        onDismiss={resetKioskActivity}
       />
       {paymentTimeoutOrder && (
         <PaymentTimeoutModal onClose={() => setPaymentTimeoutOrder(null)} />

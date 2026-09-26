@@ -48,6 +48,8 @@ export const CATEGORIES = [
   { id: "extras", label: "Extras", Icon: Plus },
 ] as const;
 
+export type CategoryId = (typeof CATEGORIES)[number]["id"];
+
 export const BEVERAGE_PRODUCT_IDS = new Set([
   "coca-cola", "coca-zero", "guarana-zero", "heineken-longneck",
   "agua-sem-gas", "agua-com-gas", "monster",

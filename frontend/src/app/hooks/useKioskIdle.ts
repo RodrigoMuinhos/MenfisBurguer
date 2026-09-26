@@ -1,97 +1,108 @@
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 import { CartItem } from "@/types/order";
-import {
-  KIOSK_IDLE_SCREEN_MS,
-  Screen,
-} from "../appState";
+import { KIOSK_IDLE_TIMEOUT_MS, Screen } from "../appState";
+
+const ACTIVITY_EVENTS = [
+  "pointerdown",
+  "pointermove",
+  "touchstart",
+  "click",
+  "keydown",
+  "wheel",
+] as const;
 
 export function useKioskIdle({
   kioskMode,
   screen,
   started,
+  blocked,
   setCart,
   setScreen,
 }: {
   kioskMode: boolean;
   screen: Screen;
   started: boolean;
+  /** True while a payment/Pix/finalization step is on screen. */
+  blocked: boolean;
   setCart: Dispatch<SetStateAction<CartItem[]>>;
   setScreen: (screen: Screen) => void;
 }) {
-  const [showIdlePrompt, setShowIdlePrompt] = useState(false);
   const [showIdleScreen, setShowIdleScreen] = useState(false);
-  const paymentActiveRef = useRef(false);
+  const [paymentActive, setPaymentActive] = useState(false);
+  const lastInteractionRef = useRef<number>(Date.now());
+  const enabled =
+    started &&
+    kioskMode &&
+    screen !== "admin" &&
+    !blocked &&
+    !paymentActive &&
+    !showIdleScreen;
+
+  // MercadoPagoPixModal announces itself through this window event.
   useEffect(() => {
     const update = (event: Event) => {
-      paymentActiveRef.current = Boolean((event as CustomEvent).detail);
-      lastInteractionRef.current = Date.now();
+      setPaymentActive(Boolean((event as CustomEvent).detail));
     };
     window.addEventListener("menfis-payment-active", update);
     return () => window.removeEventListener("menfis-payment-active", update);
   }, []);
-  const lastInteractionRef = useRef<number>(Date.now());
 
   const resetKioskActivity = useCallback(() => {
     lastInteractionRef.current = Date.now();
-    setShowIdlePrompt(false);
     setShowIdleScreen(false);
   }, []);
+
+  const openIdleScreen = useCallback(() => {
+    setScreen("product");
+    setShowIdleScreen(true);
+  }, [setScreen]);
 
   const openKioskIdleScreen = useCallback(() => {
     setCart([]);
     setScreen("product");
-    setShowIdlePrompt(false);
     setShowIdleScreen(true);
-    lastInteractionRef.current = Date.now();
   }, [setCart, setScreen]);
 
   useEffect(() => {
-    if (!started || !kioskMode) return;
+    if (!enabled) return;
 
-    let lastMouseMoveAt = 0;
-    const mark = (event?: Event) => {
-      if (showIdleScreen) return;
-      if (event?.type === "mousemove") {
-        const now = Date.now();
-        if (now - lastMouseMoveAt < 1200) return;
-        lastMouseMoveAt = now;
+    // Each (re)activation — app start, leaving a blocked flow, closing the
+    // idle screen — gets a full timeout window.
+    lastInteractionRef.current = Date.now();
+    let timer = 0;
+
+    // Activity only stamps a ref; the single timeout re-arms itself for the
+    // remaining time instead of being cleared on every pointermove.
+    const schedule = () => {
+      const remaining =
+        KIOSK_IDLE_TIMEOUT_MS - (Date.now() - lastInteractionRef.current);
+      if (remaining <= 0) {
+        setShowIdleScreen(true);
+        return;
       }
-      resetKioskActivity();
+      timer = window.setTimeout(schedule, remaining);
+    };
+    const mark = () => {
+      lastInteractionRef.current = Date.now();
     };
 
-    const opts: AddEventListenerOptions = { passive: true };
-    window.addEventListener("pointerdown", mark, opts);
-    window.addEventListener("touchstart", mark, opts);
-    window.addEventListener("keydown", mark);
-    window.addEventListener("mousemove", mark, opts);
-    window.addEventListener("wheel", mark, opts);
+    // Capture phase so components that stopPropagation still count as activity.
+    const opts: AddEventListenerOptions = { capture: true, passive: true };
+    ACTIVITY_EVENTS.forEach((event) => window.addEventListener(event, mark, opts));
+    schedule();
 
     return () => {
-      window.removeEventListener("pointerdown", mark);
-      window.removeEventListener("touchstart", mark);
-      window.removeEventListener("keydown", mark);
-      window.removeEventListener("mousemove", mark);
-      window.removeEventListener("wheel", mark);
+      window.clearTimeout(timer);
+      ACTIVITY_EVENTS.forEach((event) =>
+        window.removeEventListener(event, mark, { capture: true }),
+      );
     };
-  }, [kioskMode, resetKioskActivity, showIdleScreen, started]);
-
-  useEffect(() => {
-    if (!started || !kioskMode) return;
-    if (screen === "admin") return;
-
-    const timer = window.setInterval(() => {
-      const idleFor = Date.now() - lastInteractionRef.current;
-      if (paymentActiveRef.current || showIdleScreen || idleFor < KIOSK_IDLE_SCREEN_MS) return;
-      openKioskIdleScreen();
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [kioskMode, screen, openKioskIdleScreen, showIdleScreen, started]);
+  }, [enabled]);
 
   return {
-    showIdlePrompt,
     showIdleScreen,
     resetKioskActivity,
+    openIdleScreen,
     openKioskIdleScreen,
   };
 }

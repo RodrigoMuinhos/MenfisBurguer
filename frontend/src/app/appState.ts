@@ -12,7 +12,7 @@ export const APP_SCREEN_KEY = "menfis_app_screen";
 export const CART_STORAGE_KEY = "menfis_cart";
 export const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 export const ADMIN_API_URL = "/backend";
-export const KIOSK_IDLE_SCREEN_MS = 2 * 60 * 1000;
+export const KIOSK_IDLE_TIMEOUT_MS = 60_000;
 export const CACHE_VERSION = "2026-07-10-catalog-no-ghosts-1";
 
 export function normalizeStoredCart(value: unknown): CartItem[] {
