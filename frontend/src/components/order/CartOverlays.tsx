@@ -562,7 +562,7 @@ export function CartOverlays({
                       {counterPaymentMethod === "pix"
                         ? "Pagamento Pix"
                         : counterPaymentMethod === "atendente"
-                          ? "Pagar com atendente"
+                          ? "Pague no Caixa"
                           : "Como será o pagamento?"}
                     </h2>
                     {!counterPaymentMethod && (
@@ -589,7 +589,7 @@ export function CartOverlays({
                             style={{ background: VERDE }}
                           >
                             <Store size={20} />
-                            Atendente
+                            Pague no Caixa
                           </button>
                         </div>
                       </>

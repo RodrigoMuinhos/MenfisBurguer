@@ -413,7 +413,7 @@ export function PaymentStepSection({
                                 },
                                 {
                                   id: "presencial" as PaymentMethod,
-                                  label: "Atendente",
+                                  label: "Pague no Caixa",
                                   copy: "Pagar no balcão",
                                   Icon: Store,
                                 },

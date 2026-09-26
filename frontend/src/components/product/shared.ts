@@ -310,6 +310,10 @@ export function getExtraOptionsForItem(item: MenuItem) {
   if (item.id === "chicken-menfis-salad") {
     return [...SALAD_PROTEIN_OPTIONS, ...SALAD_LEMONADE_OPTIONS];
   }
+  // Bebidas não têm adicionais de lanche (queijo, bacon, molhos...).
+  if (item.category === "bebida" || BEVERAGE_PRODUCT_IDS.has(item.id)) {
+    return [];
+  }
   if (item.category !== "burger" && item.category !== "combo") {
     return EXTRA_OPTIONS;
   }

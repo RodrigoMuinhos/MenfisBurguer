@@ -394,7 +394,7 @@ export function ProductCustomizer({
             </OptionSection>
           )}
 
-          {!isSweetBox && (
+          {!isSweetBox && extraOptions.length > 0 && (
           <OptionSection
             title={isLemonade ? "Adicionais" : state.item.id === "chicken-menfis-salad" ? "Bebidas e adicionais" : "Extras"}
             subtitle={
