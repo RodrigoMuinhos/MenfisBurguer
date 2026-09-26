@@ -6,9 +6,7 @@ import { fmt } from "./shared";
 
 const LEMONADE_IDS = ["pink-lemonade", "purple-lemonade", "sunset-lemonade"] as const;
 const LEMONADE_HEROS = [
-  { src: "/Lemonade/hero.png", alt: "Lemonades especiais Menfi's" },
-  { src: "/Lemonade/hero2.png", alt: "Sunset Lemonade Menfi's" },
-  { src: "/Lemonade/hero3.png", alt: "Purple Lemonade Menfi's" },
+  { src: "/Lemonade/Hero evento.png", alt: "Lemonades especiais Menfi's" },
 ] as const;
 
 export type LemonadeSettings = {
@@ -26,14 +24,14 @@ export const DEFAULT_LEMONADE_SETTINGS: LemonadeSettings = {
   },
   enabledFlavors: [...LEMONADE_IDS],
   flavorOrder: [...LEMONADE_IDS],
-  heroOrder: ["hero.png", "hero2.png", "hero3.png"],
+  heroOrder: ["Hero evento.png"],
 };
 
 export function normalizeLemonadeSettings(value: unknown): LemonadeSettings {
   const row = value && typeof value === "object" ? value as Partial<LemonadeSettings> & { badgeLabel?: string } : {};
   const enabled = Array.isArray(row.enabledFlavors) ? row.enabledFlavors.filter((id) => LEMONADE_IDS.includes(id as never)) : [...LEMONADE_IDS];
   const flavorOrder = Array.isArray(row.flavorOrder) ? row.flavorOrder.filter((id) => LEMONADE_IDS.includes(id as never)) : [...LEMONADE_IDS];
-  const heroOrder = Array.isArray(row.heroOrder) ? row.heroOrder.filter((name) => ["hero.png", "hero2.png", "hero3.png"].includes(name)) : DEFAULT_LEMONADE_SETTINGS.heroOrder;
+  const heroOrder = Array.isArray(row.heroOrder) ? row.heroOrder.filter((name) => ["Hero evento.png"].includes(name)) : DEFAULT_LEMONADE_SETTINGS.heroOrder;
   return {
     badgeLabels: {
       "pink-lemonade": String(row.badgeLabels?.["pink-lemonade"] ?? "").trim(),
@@ -117,31 +115,35 @@ export function LemonadeShowcase({
             />
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => changeHero(-1)}
-          className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#A81249] shadow-lg backdrop-blur-sm md:left-5 md:h-12 md:w-12"
-          aria-label="Hero anterior"
-        ><ChevronLeft size={24} strokeWidth={2.8} /></button>
-        <button
-          type="button"
-          onClick={() => changeHero(1)}
-          className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#A81249] shadow-lg backdrop-blur-sm md:right-5 md:h-12 md:w-12"
-          aria-label="Próximo hero"
-        ><ChevronRight size={24} strokeWidth={2.8} /></button>
-        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-2 rounded-full bg-white/75 px-3 py-2 shadow-md backdrop-blur-sm md:bottom-5">
-          {heroes.map((hero, index) => (
+        {heroes.length > 1 && (
+          <>
             <button
-              key={hero.src}
               type="button"
-              onClick={() => setActiveHero(index)}
-              className="h-2.5 rounded-full transition-all"
-              style={{ width: activeHero === index ? 28 : 10, background: activeHero === index ? "#EC1767" : "#DCA7BA" }}
-              aria-label={`Mostrar hero ${index + 1}`}
-              aria-current={activeHero === index}
-            />
-          ))}
-        </div>
+              onClick={() => changeHero(-1)}
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#A81249] shadow-lg backdrop-blur-sm md:left-5 md:h-12 md:w-12"
+              aria-label="Hero anterior"
+            ><ChevronLeft size={24} strokeWidth={2.8} /></button>
+            <button
+              type="button"
+              onClick={() => changeHero(1)}
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#A81249] shadow-lg backdrop-blur-sm md:right-5 md:h-12 md:w-12"
+              aria-label="Próximo hero"
+            ><ChevronRight size={24} strokeWidth={2.8} /></button>
+            <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-2 rounded-full bg-white/75 px-3 py-2 shadow-md backdrop-blur-sm md:bottom-5">
+              {heroes.map((hero, index) => (
+                <button
+                  key={hero.src}
+                  type="button"
+                  onClick={() => setActiveHero(index)}
+                  className="h-2.5 rounded-full transition-all"
+                  style={{ width: activeHero === index ? 28 : 10, background: activeHero === index ? "#EC1767" : "#DCA7BA" }}
+                  aria-label={`Mostrar hero ${index + 1}`}
+                  aria-current={activeHero === index}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       <section id="lemonade-flavors" className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-16">
