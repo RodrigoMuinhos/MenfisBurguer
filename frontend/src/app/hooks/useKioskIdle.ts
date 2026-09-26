@@ -27,7 +27,9 @@ export function useKioskIdle({
   /** Called after the inactivity timeout; expected to end the session and show the idle screen. */
   onIdle: () => void;
 }) {
-  const [showIdleScreen, setShowIdleScreen] = useState(false);
+  // The idle screen is the kiosk's home: every session starts there. The kiosk
+  // mode comes from the URL on the server too, so this renders without a flash.
+  const [showIdleScreen, setShowIdleScreen] = useState(started && kioskMode);
   const [paymentActive, setPaymentActive] = useState(false);
   const lastInteractionRef = useRef<number>(Date.now());
   const onIdleRef = useRef(onIdle);
@@ -42,11 +44,6 @@ export function useKioskIdle({
   useEffect(() => {
     onIdleRef.current = onIdle;
   });
-
-  // The idle screen is the kiosk's home: every session starts there.
-  useEffect(() => {
-    if (started && kioskMode) setShowIdleScreen(true);
-  }, [kioskMode, started]);
 
   // MercadoPagoPixModal announces itself through this window event.
   useEffect(() => {

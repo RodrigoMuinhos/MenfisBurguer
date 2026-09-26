@@ -46,7 +46,8 @@ export function IdleMenuScreen({
   };
 
   return (
-    <AnimatePresence>
+    // initial={false}: when the page loads on the idle screen, show it at once.
+    <AnimatePresence initial={false}>
       {enabled && open && (
         <motion.div
           key="idle-menu"
