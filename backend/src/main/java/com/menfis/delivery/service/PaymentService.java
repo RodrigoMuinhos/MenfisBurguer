@@ -290,24 +290,37 @@ public class PaymentService {
     String qrCode = method.path("qr_code").asText(null);
     String qrCodeBase64 = method.path("qr_code_base64").asText(null);
 
-    jdbc.update(
+    // Update-then-insert em vez de ON CONFLICT: o banco de produção não tem o
+    // índice único ux_payments_provider_payment_id, e o ON CONFLICT quebrava
+    // (BadSqlGrammarException) depois que o Mercado Pago já tinha criado o Pix.
+    int updated = providerPaymentId == null ? 0 : jdbc.update(
       """
-      insert into payments(order_id, provider, provider_payment_id, provider_preference_id, method, status, amount, checkout_url, qr_code, raw_payload)
-      values (?, 'MERCADO_PAGO', ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
-      on conflict (provider, provider_payment_id) where provider_payment_id is not null
-      do update set qr_code = excluded.qr_code, checkout_url = excluded.checkout_url,
-        raw_payload = excluded.raw_payload, updated_at = now()
+      update payments set qr_code = ?, checkout_url = ?, status = ?, raw_payload = ?::jsonb, updated_at = now()
+      where provider = 'MERCADO_PAGO' and provider_payment_id = ?
       """,
-      order.id(),
-      providerPaymentId,
-      mpOrderId,
-      order.paymentMethod(),
-      status,
-      order.total(),
-      ticketUrl,
       qrCode,
-      response.toString()
+      ticketUrl,
+      status,
+      response.toString(),
+      providerPaymentId
     );
+    if (updated == 0) {
+      jdbc.update(
+        """
+        insert into payments(order_id, provider, provider_payment_id, provider_preference_id, method, status, amount, checkout_url, qr_code, raw_payload)
+        values (?, 'MERCADO_PAGO', ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
+        """,
+        order.id(),
+        providerPaymentId,
+        mpOrderId,
+        order.paymentMethod(),
+        status,
+        order.total(),
+        ticketUrl,
+        qrCode,
+        response.toString()
+      );
+    }
 
     jdbc.update(
       "update orders set payment_status = case when payment_status = 'approved' then payment_status else ? end, payment_id = ?, updated_at = now() where id = ?",
