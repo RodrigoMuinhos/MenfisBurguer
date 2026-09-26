@@ -5,10 +5,17 @@ import { preloadClientImages } from "@/components/product/screen/productCatalog"
 
 const BACKGROUND_SRC = "/event/TelaInicalEventoFundo.png";
 
-const IDLE_MENU_BUTTONS: Array<{ category: CategoryId; src: string; alt: string }> = [
-  { category: "combo", src: "/event/btcombo.png", alt: "Combos" },
-  { category: "lemonade", src: "/event/bt%20lemon.png", alt: "Lemonades" },
-  { category: "bebida", src: "/event/tbebida.png", alt: "Bebidas" },
+// The card art is opaque with white corners outside its rounded border;
+// `radius` (horizontal % / vertical % of the image) clips them away.
+const IDLE_MENU_BUTTONS: Array<{
+  category: CategoryId;
+  src: string;
+  alt: string;
+  radius: string;
+}> = [
+  { category: "combo", src: "/event/btcombo.png", alt: "Combos", radius: "4.2% / 11.9%" },
+  { category: "lemonade", src: "/event/bt%20lemon.png", alt: "Lemonades", radius: "4% / 9.4%" },
+  { category: "bebida", src: "/event/tbebida.png", alt: "Bebidas", radius: "3.3% / 7.6%" },
 ];
 
 export function IdleMenuScreen({
@@ -53,14 +60,16 @@ export function IdleMenuScreen({
           transition={{ duration: 0.2 }}
           className="fixed inset-0 z-[120] flex select-none flex-col items-center justify-center overflow-hidden"
           style={{
-            backgroundColor: "#fff",
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "#fde4ea",
             backgroundImage: `url("${BACKGROUND_SRC}")`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
-            // Keep the buttons inside the white area, below the logo.
-            paddingTop: "25vh",
-            paddingBottom: "10vh",
+            // Keep the cards below the "Menfi's Burger" logo.
+            paddingTop: "22vh",
+            paddingBottom: "8vh",
             gap: "2.4vh",
             touchAction: "manipulation",
           }}
@@ -68,7 +77,7 @@ export function IdleMenuScreen({
             if (!selectedRef.current) onDismiss();
           }}
         >
-          {IDLE_MENU_BUTTONS.map(({ category, src, alt }, index) => (
+          {IDLE_MENU_BUTTONS.map(({ category, src, alt, radius }, index) => (
             <motion.button
               key={category}
               type="button"
@@ -79,9 +88,14 @@ export function IdleMenuScreen({
                 event.stopPropagation();
                 select(category);
               }}
-              className="block shrink-0 cursor-pointer border-0 bg-transparent p-0 outline-none"
-              // 3:1 banners: 54vh wide keeps all three (plus gaps) within ~59vh.
-              style={{ width: "min(86vw, 54vh)", WebkitTapHighlightColor: "transparent" }}
+              className="block shrink-0 cursor-pointer overflow-hidden border-0 bg-transparent p-0 outline-none"
+              // ~2.3–2.8:1 cards: 43vh wide keeps all three (plus gaps) within ~57vh.
+              style={{
+                width: "min(84vw, 43vh)",
+                borderRadius: radius,
+                boxShadow: "0 12px 32px rgba(101,0,31,0.16)",
+                WebkitTapHighlightColor: "transparent",
+              }}
             >
               <img
                 src={src}

@@ -137,19 +137,30 @@ export default function App({ mode }: { mode?: AppMode }) {
   );
   const orderStatusSnapshotRef = useRef(new Map<string, string>());
   const paymentTimeoutHandledRef = useRef(new Set<string>());
-  const {
-    showIdleScreen,
-    resetKioskActivity,
-    openIdleScreen,
-    openKioskIdleScreen,
-  } = useKioskIdle({
+  const { showIdleScreen, showIdle, resetKioskActivity } = useKioskIdle({
     kioskMode,
     screen,
     started: true,
     blocked: checkoutLocked || Boolean(paymentTimeoutOrder),
-    setCart,
-    setScreen,
+    onIdle: () => returnToIdle(),
   });
+
+  /** Ends the current kiosk session: every finished or abandoned flow lands here. */
+  const returnToIdle = () => {
+    setCart([]);
+    localStorage.removeItem(CART_STORAGE_KEY);
+    localStorage.removeItem(CHECKOUT_RETURN_STEP_KEY);
+    setReturnToPaymentStep(false);
+    setRequestedCategory(null);
+    setScreen("product");
+    showIdle();
+  };
+
+  /** Manual shortcut (logo taps): shows the idle screen but keeps the cart. */
+  const openIdleScreen = () => {
+    setScreen("product");
+    showIdle();
+  };
 
   const openCategoryFromIdle = (category: CategoryId) => {
     resetKioskActivity();
@@ -281,7 +292,8 @@ export default function App({ mode }: { mode?: AppMode }) {
     if (!isKioskMobOrder(selectedOrder)) {
       setLastOrderId("");
     }
-    setScreen("product");
+    if (kioskMode) returnToIdle();
+    else setScreen("product");
   };
   const activeOrder = lastOrderId
     ? orders.find((order) => order.id === lastOrderId)
@@ -467,8 +479,8 @@ export default function App({ mode }: { mode?: AppMode }) {
       setLastOrderId(createdOrder.id);
       setCart([]);
       localStorage.removeItem(CART_STORAGE_KEY);
-      setScreen(kioskMode || kioskMobOrder ? "product" : "tracking");
-      resetKioskActivity();
+      if (kioskMode) returnToIdle();
+      else setScreen(kioskMobOrder ? "product" : "tracking");
       registerMemberOrder();
       return;
     }
@@ -541,8 +553,8 @@ export default function App({ mode }: { mode?: AppMode }) {
     setLastOrderId(newOrder.id);
     setCart([]);
     localStorage.removeItem(CART_STORAGE_KEY);
-    setScreen(kioskMode || isKioskMobOrder(newOrder) ? "product" : "tracking");
-    resetKioskActivity();
+    if (kioskMode) returnToIdle();
+    else setScreen(isKioskMobOrder(newOrder) ? "product" : "tracking");
     registerMemberOrder();
   };
 
@@ -617,7 +629,7 @@ export default function App({ mode }: { mode?: AppMode }) {
                     ? undefined
                     : openAdmin
               }
-              onOpenIdleScreen={kioskMode ? openKioskIdleScreen : undefined}
+              onOpenIdleScreen={kioskMode ? returnToIdle : undefined}
               onOpenRestScreen={openIdleScreen}
               requestedCategory={requestedCategory}
               onCategoryRequestHandled={() => setRequestedCategory(null)}
@@ -693,6 +705,7 @@ export default function App({ mode }: { mode?: AppMode }) {
             kioskMode={kioskMode}
             initialCheckoutStep={returnToPaymentStep ? "payment" : undefined}
             onCheckoutLockChange={setCheckoutLocked}
+            onFlowEnd={kioskMode ? returnToIdle : goHome}
           />
         )}
         {screen === "tracking" && (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { API_URL, fmt } from "./checkout";
 
@@ -8,9 +8,11 @@ export type PixPaymentRequest = {
   resolve: (order: Record<string, unknown> | null) => void;
 };
 
-export function MercadoPagoPixModal({ request, onClose }: {
+export function MercadoPagoPixModal({ request, onClose, autoCloseExpiredMs }: {
   request: PixPaymentRequest;
   onClose: () => void;
+  /** Kiosk: close an expired charge on its own after this delay. */
+  autoCloseExpiredMs?: number;
 }) {
   const [qrImage, setQrImage] = useState("");
   const [code, setCode] = useState("");
@@ -19,10 +21,23 @@ export function MercadoPagoPixModal({ request, onClose }: {
   const [expired, setExpired] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Critical while Mercado Pago is generating or awaiting the charge; an expired
+  // charge or a failed generation no longer holds the kiosk idle timer.
+  const paymentActive = !expired && !(error && !qrImage);
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent("menfis-payment-active", { detail: true }));
-    return () => { window.dispatchEvent(new CustomEvent("menfis-payment-active", { detail: false })); };
+    window.dispatchEvent(new CustomEvent("menfis-payment-active", { detail: paymentActive }));
+  }, [paymentActive]);
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent("menfis-payment-active", { detail: false }));
   }, []);
+
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+  useEffect(() => {
+    if (!expired || autoCloseExpiredMs === undefined) return;
+    const timer = setTimeout(() => { request.resolve(null); onCloseRef.current(); }, autoCloseExpiredMs);
+    return () => clearTimeout(timer);
+  }, [autoCloseExpiredMs, expired, request]);
 
   useEffect(() => {
     const controller = new AbortController();

@@ -1,5 +1,5 @@
 import { MercadoPagoPixModal } from "./MercadoPagoPixModal";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CartItem, Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
 import {
@@ -38,8 +38,10 @@ interface Props {
   goToMenu: () => void;
   kioskMode?: boolean;
   initialCheckoutStep?: CheckoutStep;
-  /** Reports whether review/payment/finalization is on screen (blocks kiosk idle; the Pix modal reports itself). */
+  /** Reports whether an order is being sent or confirmed (blocks kiosk idle; the Pix modal reports itself). */
   onCheckoutLockChange?: (locked: boolean) => void;
+  /** Called when the checkout ends without an order (cart emptied, payment cancelled/expired). */
+  onFlowEnd?: () => void;
 }
 
 export function CartScreen({
@@ -51,6 +53,7 @@ export function CartScreen({
   kioskMode = false,
   initialCheckoutStep,
   onCheckoutLockChange,
+  onFlowEnd,
 }: Props) {
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(() => {
     if (kioskMode || typeof window === "undefined") return null;
@@ -236,19 +239,38 @@ export function CartScreen({
     }
   };
 
-  const checkoutLocked =
-    checkoutStep === "review" ||
-    checkoutStep === "payment" ||
-    paying ||
-    kioskSuccessOpen ||
-    counterPaymentPromptOpen ||
-    counterCustomerNamePromptOpen;
+  const checkoutLocked = paying || kioskSuccessOpen;
 
   useEffect(() => {
     onCheckoutLockChange?.(checkoutLocked);
   }, [checkoutLocked, onCheckoutLockChange]);
 
   useEffect(() => () => onCheckoutLockChange?.(false), [onCheckoutLockChange]);
+
+  const endFlow = onFlowEnd ?? goToMenu;
+  const endFlowRef = useRef(endFlow);
+  useEffect(() => {
+    endFlowRef.current = endFlow;
+  });
+
+  // Kiosk: an emptied cart ends the session (back to the idle screen).
+  useEffect(() => {
+    if (!kioskMode || cart.length > 0) return;
+    if (paying || kioskSuccessOpen || pixPaymentRequest) return;
+    endFlowRef.current();
+  }, [cart.length, kioskMode, kioskSuccessOpen, paying, pixPaymentRequest]);
+
+  // Kiosk: a Pix closed without payment (cancelled or expired) ends the session.
+  const kioskPixRequest = useMemo(() => {
+    if (!pixPaymentRequest || !kioskMode) return pixPaymentRequest;
+    return {
+      ...pixPaymentRequest,
+      resolve: (order: Record<string, unknown> | null) => {
+        pixPaymentRequest.resolve(order);
+        if (!order) endFlowRef.current();
+      },
+    };
+  }, [kioskMode, pixPaymentRequest]);
 
   if (cart.length === 0) {
     return <EmptyCartState onBack={handleBack} />;
@@ -429,7 +451,13 @@ export function CartScreen({
           inputStyle={inputStyle}
         />
       </div>
-      {pixPaymentRequest && <MercadoPagoPixModal request={pixPaymentRequest} onClose={closePixPayment} />}
+      {kioskPixRequest && (
+        <MercadoPagoPixModal
+          request={kioskPixRequest}
+          onClose={closePixPayment}
+          autoCloseExpiredMs={kioskMode ? 8000 : undefined}
+        />
+      )}
       <CartOverlays
         kioskSuccessOpen={kioskSuccessOpen}
         paying={paying}
@@ -451,7 +479,7 @@ export function CartScreen({
         onCancelCounterPayment={cancelCounterPaymentChoice}
         onCounterPaymentCancelled={() => {
           clearCart();
-          goToMenu();
+          endFlow();
         }}
         counterCustomerNamePromptOpen={counterCustomerNamePromptOpen}
         counterCustomerNameDraft={counterCustomerNameDraft}

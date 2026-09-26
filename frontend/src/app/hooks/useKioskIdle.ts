@@ -1,14 +1,15 @@
-import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
-import { CartItem } from "@/types/order";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { KIOSK_IDLE_TIMEOUT_MS, Screen } from "../appState";
 
 const ACTIVITY_EVENTS = [
   "pointerdown",
   "pointermove",
+  "mousemove",
   "touchstart",
   "click",
   "keydown",
   "wheel",
+  "scroll",
 ] as const;
 
 export function useKioskIdle({
@@ -16,20 +17,20 @@ export function useKioskIdle({
   screen,
   started,
   blocked,
-  setCart,
-  setScreen,
+  onIdle,
 }: {
   kioskMode: boolean;
   screen: Screen;
   started: boolean;
-  /** True while a payment/Pix/finalization step is on screen. */
+  /** True while an order is being sent or a payment is being confirmed. */
   blocked: boolean;
-  setCart: Dispatch<SetStateAction<CartItem[]>>;
-  setScreen: (screen: Screen) => void;
+  /** Called after the inactivity timeout; expected to end the session and show the idle screen. */
+  onIdle: () => void;
 }) {
   const [showIdleScreen, setShowIdleScreen] = useState(false);
   const [paymentActive, setPaymentActive] = useState(false);
   const lastInteractionRef = useRef<number>(Date.now());
+  const onIdleRef = useRef(onIdle);
   const enabled =
     started &&
     kioskMode &&
@@ -37,6 +38,15 @@ export function useKioskIdle({
     !blocked &&
     !paymentActive &&
     !showIdleScreen;
+
+  useEffect(() => {
+    onIdleRef.current = onIdle;
+  });
+
+  // The idle screen is the kiosk's home: every session starts there.
+  useEffect(() => {
+    if (started && kioskMode) setShowIdleScreen(true);
+  }, [kioskMode, started]);
 
   // MercadoPagoPixModal announces itself through this window event.
   useEffect(() => {
@@ -52,16 +62,9 @@ export function useKioskIdle({
     setShowIdleScreen(false);
   }, []);
 
-  const openIdleScreen = useCallback(() => {
-    setScreen("product");
+  const showIdle = useCallback(() => {
     setShowIdleScreen(true);
-  }, [setScreen]);
-
-  const openKioskIdleScreen = useCallback(() => {
-    setCart([]);
-    setScreen("product");
-    setShowIdleScreen(true);
-  }, [setCart, setScreen]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
@@ -77,7 +80,7 @@ export function useKioskIdle({
       const remaining =
         KIOSK_IDLE_TIMEOUT_MS - (Date.now() - lastInteractionRef.current);
       if (remaining <= 0) {
-        setShowIdleScreen(true);
+        onIdleRef.current();
         return;
       }
       timer = window.setTimeout(schedule, remaining);
@@ -86,7 +89,8 @@ export function useKioskIdle({
       lastInteractionRef.current = Date.now();
     };
 
-    // Capture phase so components that stopPropagation still count as activity.
+    // Capture phase so components that stopPropagation (and non-bubbling
+    // scroll events) still count as activity.
     const opts: AddEventListenerOptions = { capture: true, passive: true };
     ACTIVITY_EVENTS.forEach((event) => window.addEventListener(event, mark, opts));
     schedule();
@@ -101,8 +105,7 @@ export function useKioskIdle({
 
   return {
     showIdleScreen,
+    showIdle,
     resetKioskActivity,
-    openIdleScreen,
-    openKioskIdleScreen,
   };
 }
