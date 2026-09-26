@@ -57,10 +57,10 @@ test('order number prints large and inverted before the customer block', () => {
   assert.ok(numberLine < lines.indexOf('CLIENTE'), 'order number must come before CLIENTE');
 });
 
-test('pay-at-counter order prints NAO PAGO inverted', () => {
+test('pay-at-counter order prints PAGUE NO CAIXA inverted', () => {
   const { generateCustomerReceipt, paymentMethodLabel } = loadShared();
   const receipt = generateCustomerReceipt(order());
-  const unpaidLine = receipt.split('\n').find((value) => value.includes('NAO PAGO'));
+  const unpaidLine = receipt.split('\n').find((value) => value.includes('PAGUE NO CAIXA'));
   assert.ok(unpaidLine && unpaidLine.includes(INVERT_ON));
   assert.ok(!receipt.includes('Status: Pago'));
   assert.equal(paymentMethodLabel(order()), 'Pague no Caixa');
@@ -69,7 +69,7 @@ test('pay-at-counter order prints NAO PAGO inverted', () => {
 test('paid orders keep the normal status line', () => {
   const { generateCustomerReceipt } = loadShared();
   const receipt = generateCustomerReceipt(order({ paymentMethod: 'pix', paymentProvider: 'MERCADO_PAGO', paymentStatus: 'approved' }));
-  assert.ok(!receipt.includes('NAO PAGO'));
+  assert.ok(!receipt.includes('PAGUE NO CAIXA'));
   assert.ok(receipt.includes('Status: Pago'));
 });
 
@@ -85,7 +85,7 @@ test('browser fallback text has no printer control codes', () => {
   const { generateCustomerReceipt } = loadShared();
   const receipt = generateCustomerReceipt(order(), { escpos: false });
   assert.ok(!receipt.includes(ESC) && !receipt.includes(GS));
-  assert.ok(receipt.includes('*** NAO PAGO ***'));
+  assert.ok(receipt.includes('*** PAGUE NO CAIXA ***'));
 });
 
 test('admin shows unpaid counter orders as Nao pago until confirmed at the till', () => {
@@ -97,12 +97,22 @@ test('admin shows unpaid counter orders as Nao pago until confirmed at the till'
   assert.equal(paymentStatusLabel(order({ status: 'CANCELLED' })), 'Cancelado');
 });
 
-test('pay-at-counter receipt always prints NAO PAGO, even after the till confirms', () => {
+test('pay-at-counter receipt always prints PAGUE NO CAIXA, even after the till confirms', () => {
   const { generateCustomerReceipt } = loadShared();
   for (const paymentStatus of ['approved', 'awaiting_counter', undefined]) {
     const receipt = generateCustomerReceipt(order({ paymentStatus }));
-    const unpaidLine = receipt.split(/\r?\n/).find((value) => value.includes('NAO PAGO'));
-    assert.ok(unpaidLine && unpaidLine.includes(INVERT_ON), `missing inverted NAO PAGO for ${paymentStatus}`);
+    const unpaidLine = receipt.split(/\r?\n/).find((value) => value.includes('PAGUE NO CAIXA'));
+    assert.ok(unpaidLine && unpaidLine.includes(INVERT_ON), `missing inverted PAGUE NO CAIXA for ${paymentStatus}`);
     assert.ok(!receipt.includes('Status: Pago'));
   }
+});
+
+test('whole receipt is centered and the unpaid status is only double height', () => {
+  const { generateCustomerReceipt } = loadShared();
+  const receipt = generateCustomerReceipt(order());
+  assert.ok(receipt.startsWith(`${ESC}a\x01`), 'receipt must start centered');
+  assert.ok(!receipt.includes(`${ESC}a\x00`), 'receipt must never switch back to left');
+  const unpaidLine = receipt.split(/\r?\n/).find((value) => value.includes('PAGUE NO CAIXA'));
+  assert.ok(unpaidLine.includes(`${GS}!\x01`), 'unpaid status should be double height only');
+  for (const value of receipt.split(/\r?\n/)) assert.equal(value, value.trim().length ? value.replace(/^\s+/, '') : value);
 });

@@ -589,9 +589,8 @@ const LINE_WIDTH = 23;
 const ESC = "\x1b";
 const GS = "\x1d";
 const POS_CENTER = `${ESC}a\x01`;
-const POS_LEFT = `${ESC}a\x00`;
 const POS_SIZE_3X = `${GS}!\x22`;
-const POS_SIZE_2X = `${GS}!\x11`;
+const POS_SIZE_TALL = `${GS}!\x01`;
 const POS_SIZE_NORMAL = `${GS}!\x00`;
 const POS_INVERT_ON = `${GS}B\x01`;
 const POS_INVERT_OFF = `${GS}B\x00`;
@@ -625,10 +624,9 @@ function line(char = "-") {
 }
 
 function center(text: string) {
-  const clean = receiptText(text);
-  if (clean.length >= LINE_WIDTH) return clean.slice(0, LINE_WIDTH);
-  const left = Math.floor((LINE_WIDTH - clean.length) / 2);
-  return " ".repeat(left) + clean;
+  // A nota inteira sai centralizada (ESC a 1 na impressora, text-align no
+  // HTML), então não é preciso preencher com espaços.
+  return receiptText(text).slice(0, LINE_WIDTH);
 }
 
 function money(value: number) {
@@ -713,7 +711,7 @@ function receiptType(order: Order) {
 
 export function generateCustomerReceipt(order: Order, options: { escpos?: boolean } = {}) {
   const escpos = options.escpos !== false;
-  // Nota impressa: "Pague no Caixa" sempre sai como NAO PAGO em negativo.
+  // Nota impressa: "Pague no Caixa" sempre sai com o status PAGUE NO CAIXA em negativo.
   const unpaid = String(order.paymentMethod ?? "").toLowerCase() === "presencial";
   const lines: string[] = [];
   const financials = receiptFinancials(order);
@@ -770,7 +768,7 @@ export function generateCustomerReceipt(order: Order, options: { escpos?: boolea
   pushWrapped(`Pagto: ${paymentMethodLabel(order)}`);
   if (unpaid) {
     lines.push("Status:");
-    lines.push(escpos ? RECEIPT_UNPAID_TOKEN : center("*** NAO PAGO ***"));
+    lines.push(escpos ? RECEIPT_UNPAID_TOKEN : center("*** PAGUE NO CAIXA ***"));
   } else {
     pushWrapped(`Status: ${paymentStatusLabel(order)}`);
   }
@@ -778,20 +776,21 @@ export function generateCustomerReceipt(order: Order, options: { escpos?: boolea
   lines.push(center("Menfi's Burger"));
 
   const orderNumber = receiptOrderNumber(order);
-  const receipt = lines
-    .map((value) => value.slice(0, LINE_WIDTH))
+  const body = lines
+    .map((value) => value.slice(0, LINE_WIDTH).trim())
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .replace(
       RECEIPT_ORDER_TOKEN,
       orderNumber
-        ? `${POS_CENTER}${POS_SIZE_3X}${POS_INVERT_ON} ${orderNumber} ${POS_INVERT_OFF}${POS_SIZE_NORMAL}${POS_LEFT}`
+        ? `${POS_SIZE_3X}${POS_INVERT_ON} ${orderNumber} ${POS_INVERT_OFF}${POS_SIZE_NORMAL}`
         : "",
     )
     .replace(
       RECEIPT_UNPAID_TOKEN,
-      `${POS_CENTER}${POS_SIZE_2X}${POS_INVERT_ON} NAO PAGO ${POS_INVERT_OFF}${POS_SIZE_NORMAL}${POS_LEFT}`,
+      `${POS_SIZE_TALL}${POS_INVERT_ON} PAGUE NO CAIXA ${POS_INVERT_OFF}${POS_SIZE_NORMAL}`,
     );
+  const receipt = escpos ? `${POS_CENTER}${body}` : body;
   for (const receiptLine of receipt.split("\n")) {
     // Comandos ESC/POS (3 caracteres cada) não ocupam colunas no papel.
     if (receiptLine.replace(/[\x1b\x1d][\s\S]{2}/g, "").length > LINE_WIDTH) {
@@ -900,7 +899,7 @@ export async function printOrderReceipts(
 
   const receipt = escapeReceipt(generateCustomerReceipt(order, { escpos: false }));
   const orderId = escapeReceipt(receiptOrderNumber(order) || String(order.id || order.number || ""));
-  const unpaidBox = isUnpaidCounterPayment(order) ? `<div class="unpaid-box">NÃO PAGO</div>` : "";
+  const unpaidBox = isUnpaidCounterPayment(order) ? `<div class="unpaid-box">PAGUE NO CAIXA</div>` : "";
   const html = `
     <!doctype html><html><head><title>${escapeReceipt(order.id)} - via</title>
     <style>
@@ -943,7 +942,7 @@ export async function printOrderReceipts(
         color: #fff;
         text-align: center;
         font-family: "Arial Black", Arial, sans-serif;
-        font-size: 16px;
+        font-size: 12px;
         line-height: 1;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
@@ -971,6 +970,7 @@ export async function printOrderReceipts(
         line-height: 1.14;
         color: #000;
         font-weight: 800;
+        text-align: center;
         white-space: pre-wrap;
         overflow-wrap: normal;
         word-break: normal;
