@@ -713,7 +713,8 @@ function receiptType(order: Order) {
 
 export function generateCustomerReceipt(order: Order, options: { escpos?: boolean } = {}) {
   const escpos = options.escpos !== false;
-  const unpaid = isUnpaidCounterPayment(order);
+  // Nota impressa: "Pague no Caixa" sempre sai como NAO PAGO em negativo.
+  const unpaid = String(order.paymentMethod ?? "").toLowerCase() === "presencial";
   const lines: string[] = [];
   const financials = receiptFinancials(order);
   const pushWrapped = (value: string, indent = 0) => lines.push(...wrapIndented(value, indent));

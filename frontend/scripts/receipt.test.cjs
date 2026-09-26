@@ -96,3 +96,13 @@ test('admin shows unpaid counter orders as Nao pago until confirmed at the till'
   assert.equal(paymentStatusLabel(order({ paymentStatus: 'approved' })), 'Pago');
   assert.equal(paymentStatusLabel(order({ status: 'CANCELLED' })), 'Cancelado');
 });
+
+test('pay-at-counter receipt always prints NAO PAGO, even after the till confirms', () => {
+  const { generateCustomerReceipt } = loadShared();
+  for (const paymentStatus of ['approved', 'awaiting_counter', undefined]) {
+    const receipt = generateCustomerReceipt(order({ paymentStatus }));
+    const unpaidLine = receipt.split(/\r?\n/).find((value) => value.includes('NAO PAGO'));
+    assert.ok(unpaidLine && unpaidLine.includes(INVERT_ON), `missing inverted NAO PAGO for ${paymentStatus}`);
+    assert.ok(!receipt.includes('Status: Pago'));
+  }
+});

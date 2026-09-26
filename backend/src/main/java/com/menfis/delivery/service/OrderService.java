@@ -141,8 +141,11 @@ public class OrderService {
     boolean payOnDelivery = request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA;
     boolean payByWhatsapp = request.paymentMethod() == PaymentMethod.WHATSAPP;
     boolean payAtCounter = request.paymentMethod() == PaymentMethod.PRESENCIAL;
+    // "Pague no Caixa" (PRESENCIAL) segue direto para a cozinha como PAID, mas o
+    // pagamento fica awaiting_counter até o caixa dar baixa no admin.
     boolean paidKiosk = channel == OrderChannel.KIOSK && !kioskLocalCustomer
-      && request.paymentMethod() != PaymentMethod.PIX;
+      && request.paymentMethod() != PaymentMethod.PIX
+      && request.paymentMethod() != PaymentMethod.PRESENCIAL;
     OrderStatus status = payOnDelivery || paidKiosk || payAtCounter ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
     if (channel == OrderChannel.KIOSK
         && isBlank(customerName)) {
@@ -151,7 +154,9 @@ public class OrderService {
     if (channel == OrderChannel.DELIVERY && authenticatedCustomerId == null) {
       throw new IllegalArgumentException("customer_session_required");
     }
-    OffsetDateTime confirmedAt = paidKiosk ? OffsetDateTime.now() : null;
+    OffsetDateTime confirmedAt = paidKiosk || (channel == OrderChannel.KIOSK && !kioskLocalCustomer && payAtCounter)
+      ? OffsetDateTime.now()
+      : null;
     String itemsJson = toJson(price.items());
     // KIOSK-MOB is the shared counter terminal, not a CRM customer. Its saved
     // browser token may have been issued against another database, so never
