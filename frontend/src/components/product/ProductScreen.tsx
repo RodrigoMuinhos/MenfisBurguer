@@ -341,8 +341,6 @@ export function ProductScreen({
   };
 
   const handleIdleShortcutTap = () => {
-    if (!onOpenIdleScreen) return;
-    if (!kioskMobLoggedIn) return;
     idleShortcutTapCountRef.current += 1;
     if (idleShortcutTimerRef.current)
       clearTimeout(idleShortcutTimerRef.current);
@@ -350,7 +348,9 @@ export function ProductScreen({
     if (idleShortcutTapCountRef.current >= 3) {
       idleShortcutTapCountRef.current = 0;
       idleShortcutTimerRef.current = null;
-      onOpenIdleScreen();
+      // The KIOSK-MOB operator shortcut also resets the cart.
+      if (kioskMobLoggedIn && onOpenIdleScreen) onOpenIdleScreen();
+      else onOpenRestScreen?.();
       return;
     }
 

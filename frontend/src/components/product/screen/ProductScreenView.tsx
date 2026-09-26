@@ -425,7 +425,7 @@ export function ProductScreenView({
         )}
         <ProductHeader
           kioskMode={kioskMode}
-          idleShortcutEnabled={kioskMobLoggedIn}
+          idleShortcutEnabled
           cartCount={cartCount}
           onAdminTap={handleAdminTap}
           onIdleShortcutTap={handleIdleShortcutTap}
