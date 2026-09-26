@@ -9,7 +9,9 @@ import {
   customerWhatsappUrl,
   copyOrderTxt,
   fmt,
+  isKioskMercadoPagoPix,
   isKioskMobOrder,
+  isMercadoPagoProvider,
   localDateKey,
   orderReadyWhatsappUrl,
   orderStageLabel,
@@ -80,6 +82,8 @@ export function OrdersView({
   const [selectedId, setSelectedId] = useState(orders[0]?.id ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
+  const [printingReceipt, setPrintingReceipt] = useState(false);
+  const [receiptPrintMessage, setReceiptPrintMessage] = useState("");
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [editingOrderId, setEditingOrderId] = useState("");
   const [draftItems, setDraftItems] = useState<CartItem[]>([]);
@@ -160,7 +164,8 @@ export function OrdersView({
     selected &&
     (selected.status === "PAYMENT_PENDING" ||
       selected.status === "PAYMENT_PROOF_PENDING" ||
-      (selected.status === "CANCELLED" && selected.paymentProvider === "mercado_pago" && paymentRejected));
+      (selected.status === "CANCELLED" && isMercadoPagoProvider(selected) && paymentRejected));
+  const selectedIsTotemPix = isKioskMercadoPagoPix(selected);
   const selectedIsKioskMob = isKioskMobOrder(selected);
   const selectedAddress = formatAddressForReceipt(selected?.customerAddress || "Não informado");
   const editingItems = selected?.id === editingOrderId;
@@ -388,6 +393,18 @@ export function OrdersView({
                             <span>{ageMinutes} min</span>
                             <span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
                             <span>{isKioskMobOrder(order) ? "Balcão" : order.deliveryType === "delivery" ? "Entrega" : "Retirada"}</span>
+                            {isKioskMercadoPagoPix(order) && (
+                              <span
+                                className="rounded-full px-2 py-0.5"
+                                style={
+                                  order.status === "PAYMENT_PENDING"
+                                    ? { background: "#FFFBEB", color: "#92400E" }
+                                    : { background: "#ECFDF5", color: "#065F46" }
+                                }
+                              >
+                                {order.status === "PAYMENT_PENDING" ? "Pix totem · aguardando" : "Pix totem"}
+                              </span>
+                            )}
                           </div>
                           <p className="mt-2 truncate text-[11px] font-bold opacity-65" style={{ color: VERDE }}>
                             {order.items.slice(0, 2).map((item) => `${item.qty}x ${item.name}`).join(" · ")}
@@ -456,11 +473,27 @@ export function OrdersView({
                 <XCircle size={16} /> Fechar
               </button>
               <button
-                onClick={() => runAfterNextPaint(() => printOrderReceipts(selected, { confirm: false, browserFallback: false }))}
+                type="button"
+                disabled={printingReceipt}
+                onClick={async () => {
+                  if (printingReceipt) return;
+                  setPrintingReceipt(true);
+                  setReceiptPrintMessage("Conectando à ponte de impressão e enviando a via...");
+                  try {
+                    const printed = await printOrderReceipts(selected, { confirm: false, browserFallback: false });
+                    setReceiptPrintMessage(printed
+                      ? "Via enviada para a impressora."
+                      : "Não foi possível imprimir. Verifique a instalação da ponte, a impressora POS-58 e a permissão de acesso à rede local no navegador.");
+                  } catch {
+                    setReceiptPrintMessage("Falha ao enviar a via. Verifique a ponte de impressão e tente novamente.");
+                  } finally {
+                    setPrintingReceipt(false);
+                  }
+                }}
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-xs font-black uppercase"
                 style={{ background: VERDE, color: ROSA }}
               >
-                <Printer size={15} /> Imprimir via
+                <Printer size={15} /> {printingReceipt ? "Imprimindo..." : "Imprimir via"}
               </button>
               <button
                 onClick={() => runAfterNextPaint(() => void copyOrderTxt(selected))}
@@ -472,6 +505,11 @@ export function OrdersView({
             </div>
           </div>
 
+          {receiptPrintMessage && (
+            <p role="status" className="mt-3 text-sm font-bold" style={{ color: VERDE }}>
+              {receiptPrintMessage}
+            </p>
+          )}
           <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
             <p className="text-[10px] font-black uppercase tracking-widest opacity-45">
               Dados do pedido
@@ -631,6 +669,11 @@ export function OrdersView({
                   {paymentStatusLabel(selected)}
                 </p>
               )}
+              {!editingDetails && isMercadoPagoProvider(selected) && selected.paymentId && (
+                <p className="mt-1 break-all text-[10px] font-bold opacity-60">
+                  ID Mercado Pago: {selected.paymentId}
+                </p>
+              )}
             </div>
             <div
               className="rounded-xl p-3"
@@ -724,6 +767,15 @@ export function OrdersView({
           </div>
 
           <div className="admin-order-actions mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {canReleasePayment && selectedIsTotemPix && selected.status === "PAYMENT_PENDING" && (
+              <p
+                className="rounded-xl px-3 py-2 text-[11px] font-bold leading-snug sm:col-span-2 xl:col-span-3"
+                style={{ background: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A" }}
+              >
+                Pix do totem: a liberação é automática quando o Mercado Pago confirma.
+                Só libere manualmente depois de conferir o recebimento no app do Mercado Pago.
+              </p>
+            )}
             {canReleasePayment && (
               <button
                 onClick={() => runAfterNextPaint(() => updateOrderStatus(selected.id, "PAID"))}

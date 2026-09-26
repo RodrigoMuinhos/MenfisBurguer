@@ -35,8 +35,12 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.event.EventListener;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -56,6 +60,7 @@ public class OrderService {
   private final OrderEventPublisher orderPublisher;
   private final OrderLifecycleEventPublisher lifecyclePublisher;
   private final PricingService pricing;
+  private final TaskScheduler taskScheduler;
 
   public OrderService(
       JdbcTemplate jdbc,
@@ -66,7 +71,8 @@ public class OrderService {
       CustomerService customers,
       OrderEventPublisher orderPublisher,
       OrderLifecycleEventPublisher lifecyclePublisher,
-      PricingService pricing) {
+      PricingService pricing,
+      TaskScheduler taskScheduler) {
     this.jdbc = jdbc;
     this.mapper = mapper;
     this.audit = audit;
@@ -76,6 +82,7 @@ public class OrderService {
     this.orderPublisher = orderPublisher;
     this.lifecyclePublisher = lifecyclePublisher;
     this.pricing = pricing;
+    this.taskScheduler = taskScheduler;
   }
 
   @Transactional
@@ -141,15 +148,23 @@ public class OrderService {
     boolean payOnDelivery = request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA;
     boolean payByWhatsapp = request.paymentMethod() == PaymentMethod.WHATSAPP;
     boolean payAtCounter = request.paymentMethod() == PaymentMethod.PRESENCIAL;
-    boolean paidKiosk = channel == OrderChannel.KIOSK && !kioskLocalCustomer;
+    // Totem PIX is charged through Mercado Pago and only reaches the kitchen after
+    // the webhook confirms it; other totem methods keep the paid-on-creation flow.
+    boolean paidKiosk = channel == OrderChannel.KIOSK
+      && !kioskLocalCustomer
+      && request.paymentMethod() != PaymentMethod.PIX;
     OrderStatus status = payOnDelivery || paidKiosk || payAtCounter ? OrderStatus.PAID : OrderStatus.PAYMENT_PENDING;
     if (channel == OrderChannel.KIOSK
         && isBlank(customerName)) {
       throw new IllegalArgumentException("kiosk_customer_required");
     }
-    if (channel == OrderChannel.DELIVERY && authenticatedCustomerId == null) {
-      throw new IllegalArgumentException("customer_session_required");
-    }
+    validateGuestCheckout(
+      channel,
+      deliveryType,
+      authenticatedCustomerId,
+      customerName,
+      request.customerAddress()
+    );
     OffsetDateTime confirmedAt = paidKiosk ? OffsetDateTime.now() : null;
     String itemsJson = toJson(price.items());
     // KIOSK-MOB is the shared counter terminal, not a CRM customer. Its saved
@@ -237,6 +252,7 @@ public class OrderService {
       created.total()
     );
     publishLifecycle(created, "ORDER_CREATED", null, created.status(), "system", "order_created");
+    if (status == OrderStatus.PAYMENT_PENDING) schedulePaymentExpiryAfterCommit(created.id(), OffsetDateTime.now().plusMinutes(10));
     if (isPaymentConfirmedStatus(OrderStatus.valueOf(created.status()))) {
       publishLifecycle(created, "PAYMENT_CONFIRMED", null, created.status(), "system", "order_created_paid");
       enqueueOrderPaid(created.id(), orderPaidOrigin(created), created.paidAt());
@@ -507,7 +523,30 @@ public class OrderService {
   }
 
   /** Cancels unpaid orders after ten minutes so they never reserve production capacity indefinitely. */
-  @Scheduled(fixedDelay = 60_000, initialDelay = 60_000)
+  @EventListener(ApplicationReadyEvent.class)
+  public void recoverPaymentExpiryDeadlines() {
+    jdbc.query(
+      "select id, created_at from orders where status = 'PAYMENT_PENDING'",
+      (rs, rowNum) -> Map.entry(rs.getString("id"), rs.getObject("created_at", OffsetDateTime.class))
+    ).forEach(entry -> schedulePaymentExpiry(entry.getKey(), entry.getValue().plusMinutes(10)));
+  }
+
+  static void validateGuestCheckout(
+      OrderChannel channel,
+      DeliveryType deliveryType,
+      Long authenticatedCustomerId,
+      String customerName,
+      String customerAddress) {
+    if (channel != OrderChannel.DELIVERY || authenticatedCustomerId != null) return;
+    if (customerName == null || customerName.isBlank() || customerName.trim().length() < 2) {
+      throw new IllegalArgumentException("guest_customer_name_required");
+    }
+    if (deliveryType == DeliveryType.DELIVERY
+        && (customerAddress == null || customerAddress.isBlank())) {
+      throw new IllegalArgumentException("guest_customer_address_required");
+    }
+  }
+
   @Transactional
   public void cancelExpiredPaymentPendingOrders() {
     List<String> candidates = jdbc.queryForList(
@@ -1259,6 +1298,40 @@ public class OrderService {
         .count();
       if (proteins != 1) throw new IllegalArgumentException("salad_protein_required");
     }
+  }
+
+  @Transactional
+  public void cancelExpiredPaymentPendingOrder(String id) {
+    int updated = jdbc.update(
+      """
+      update orders
+      set status = 'CANCELLED', payment_status = 'expired', updated_at = now()
+      where id = ? and status = 'PAYMENT_PENDING'
+        and created_at < now() - interval '10 minutes'
+      """,
+      id
+    );
+    if (updated == 0) return;
+    jdbc.update(
+      "insert into order_status_history(order_id, from_status, to_status, changed_by, reason) values (?, 'PAYMENT_PENDING', 'CANCELLED', 'system', 'payment_timeout_10_minutes')",
+      id
+    );
+    audit.log("system", "ORDER_PAYMENT_TIMEOUT", "ORDER", id, Map.of("timeoutMinutes", 10));
+    events.publish(id, get(id));
+  }
+
+  private void schedulePaymentExpiryAfterCommit(String id, OffsetDateTime deadline) {
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      schedulePaymentExpiry(id, deadline);
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+      @Override public void afterCommit() { schedulePaymentExpiry(id, deadline); }
+    });
+  }
+
+  private void schedulePaymentExpiry(String id, OffsetDateTime deadline) {
+    taskScheduler.schedule(() -> cancelExpiredPaymentPendingOrder(id), deadline.plusNanos(100_000_000).toInstant());
   }
 
   private boolean isBlank(String value) {

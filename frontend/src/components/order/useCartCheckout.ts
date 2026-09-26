@@ -6,6 +6,8 @@ import {
   CheckoutStep,
   DeliveryType,
   KioskKeyboardTarget,
+  KioskPixCharge,
+  KioskPixResult,
   PICKUP_ADDRESS,
   PaymentMethod,
   STORAGE_KEY,
@@ -47,11 +49,6 @@ function readCouponUsage() {
   } catch {
     return {};
   }
-}
-
-function hasCustomerSession() {
-  if (typeof window === "undefined") return false;
-  return Boolean(localStorage.getItem(MEMBER_TOKEN_KEY));
 }
 
 function minutesFromTime(value: string) {
@@ -161,10 +158,10 @@ export function useCartCheckout({
   const [couponError, setCouponError] = useState("");
 
   const saved = kioskMode ? {} : loadSaved();
-  const [cep, setCep] = useState<string>("");
-  const [street, setStreet] = useState<string>("");
-  const [number, setNumber] = useState<string>("");
-  const [complement, setComplement] = useState<string>("");
+  const [cep, setCep] = useState<string>(saved.cep ?? "");
+  const [street, setStreet] = useState<string>(saved.street ?? "");
+  const [number, setNumber] = useState<string>(saved.number ?? "");
+  const [complement, setComplement] = useState<string>(saved.complement ?? "");
   const [addressConfirmOpen, setAddressConfirmOpen] = useState(false);
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   const [confirmedDeliveryAddress, setConfirmedDeliveryAddress] = useState("");
@@ -187,6 +184,7 @@ export function useCartCheckout({
   >(null);
   const counterCustomerNameResolveRef = useRef<((value: string) => void) | null>(null);
   const kioskSuccessResolveRef = useRef<(() => void) | null>(null);
+  const kioskPixResolveRef = useRef<((result: KioskPixResult) => void) | null>(null);
   const kioskKeyboardOpen = (kioskMode || counterServiceMode) && kioskKeyboardTarget !== null;
 
   const closeKioskKeyboard = () => {
@@ -253,6 +251,28 @@ export function useCartCheckout({
       setKioskSuccessOpen(true);
     });
 
+  const [kioskPixCharge, setKioskPixCharge] = useState<KioskPixCharge | null>(null);
+
+  const waitForKioskPixPayment = (charge: KioskPixCharge) =>
+    new Promise<KioskPixResult>((resolve) => {
+      kioskPixResolveRef.current?.("cancelled");
+      kioskPixResolveRef.current = resolve;
+      setKioskPixCharge(charge);
+    });
+
+  const finishKioskPixPayment = (result: KioskPixResult) => {
+    const resolve = kioskPixResolveRef.current;
+    kioskPixResolveRef.current = null;
+    setKioskPixCharge(null);
+    resolve?.(result);
+    if (result === "cancelled") {
+      clearCart();
+      goToMenu();
+    } else if (result === "expired") {
+      setCheckoutStep("payment");
+    }
+  };
+
   const closeKioskSuccess = () => {
     setKioskSuccessOpen(false);
     setKioskSuccessOrder(null);
@@ -278,6 +298,8 @@ export function useCartCheckout({
       counterCustomerNameResolveRef.current = null;
       kioskSuccessResolveRef.current?.();
       kioskSuccessResolveRef.current = null;
+      kioskPixResolveRef.current?.("cancelled");
+      kioskPixResolveRef.current = null;
     },
     [],
   );
@@ -358,15 +380,15 @@ export function useCartCheckout({
       setSavedBadge(false);
       return;
     }
-    if (!phone && !customerName) return;
+    if (!phone && !customerName && !cep) return;
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ phone, customerName }),
+      JSON.stringify({ phone, customerName, cep, street, number, complement }),
     );
     setSavedBadge(true);
     const timer = setTimeout(() => setSavedBadge(false), 2000);
     return () => clearTimeout(timer);
-  }, [phone, customerName, kioskMode]);
+  }, [phone, customerName, cep, street, number, complement, kioskMode]);
 
   useEffect(() => {
     setAddressConfirmed(false);
@@ -418,7 +440,7 @@ export function useCartCheckout({
 
   const deliveryValid =
     (kioskMode || counterServiceMode || customerName.trim().length >= 2) &&
-    phone.replace(/\D/g, "").length >= 10 &&
+    (kioskMode || counterServiceMode || phone.replace(/\D/g, "").length >= 10) &&
     (!kioskMode || customerName.trim().length >= 2) &&
     (kioskMode ||
       (effectiveDelivery === "retirada" ||
@@ -437,7 +459,7 @@ export function useCartCheckout({
       : "",
     effectiveDelivery === "delivery" && !street.length ? "endereço" : "",
     effectiveDelivery === "delivery" && !number.trim().length ? "número" : "",
-    phone.replace(/\D/g, "").length < 10 ? "WhatsApp" : "",
+    !kioskMode && !counterServiceMode && phone.replace(/\D/g, "").length < 10 ? "WhatsApp" : "",
   ].filter(Boolean);
 
   const invalidDeliveryFields = {
@@ -447,7 +469,7 @@ export function useCartCheckout({
       (cep.replace(/\D/g, "").length !== 8 || cepError),
     street: effectiveDelivery === "delivery" && !street.trim().length,
     number: effectiveDelivery === "delivery" && !number.trim().length,
-    phone: phone.replace(/\D/g, "").length < 10,
+    phone: !kioskMode && !counterServiceMode && phone.replace(/\D/g, "").length < 10,
   };
 
   const focusFirstMissingDeliveryField = () => {
@@ -552,6 +574,7 @@ export function useCartCheckout({
               : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30."
             : "",
           formatDeliveryAddress({ street, number, complement }),
+          `CEP: ${cep}`,
         ].filter(Boolean).join("\n");
 
   const deliveryAddressRequiresConfirmation = effectiveDelivery === "delivery";
@@ -563,6 +586,7 @@ export function useCartCheckout({
         : "PEDIDO ANTECIPADO: entregar assim que abrir as 18:30."
       : "",
     formatDeliveryAddress({ street, number, complement }),
+    `CEP: ${cep}`,
   ].filter(Boolean).join("\n");
 
   const confirmDeliveryAddress = () => {
@@ -583,11 +607,6 @@ export function useCartCheckout({
 
   const submitSelectedPayment = async (selectedPayment: PaymentMethod) => {
     if (paying || !deliveryValid) return;
-    if (!kioskMode && !counterServiceMode && !hasCustomerSession()) {
-      setPaymentError("Entre ou crie seu perfil Menfi's para finalizar o pedido.");
-      setCheckoutStep("delivery");
-      return;
-    }
     if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
       setAddressConfirmOpen(true);
       setCheckoutStep("delivery");
@@ -638,6 +657,7 @@ export function useCartCheckout({
       confirmCounterPayment,
       confirmCounterCustomerName,
       waitForKioskSuccessConfirm,
+      waitForKioskPixPayment,
       clearCartItems: clearCart,
     });
     if (appliedCoupon) {
@@ -737,11 +757,6 @@ export function useCartCheckout({
     }
 
     if (checkoutStep === "review" && !kioskMode && !counterServiceMode) {
-      if (!hasCustomerSession()) {
-        setPaymentError("Entre ou crie seu perfil Menfi's para finalizar o pedido.");
-        setCheckoutStep("delivery");
-        return;
-      }
       if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
         setAddressConfirmOpen(true);
         setCheckoutStep("delivery");
@@ -846,6 +861,9 @@ export function useCartCheckout({
     soldOutEnabled && !kioskMode && !counterServiceMode
       ? "Avise-me quando voltar"
       :
+    checkoutStep === "customer" && kioskMode && payment === "pix"
+      ? "Gerar QR Code Pix"
+      :
     checkoutStep === "payment" && (kioskMode || counterServiceMode)
       ? counterServiceMode
         ? "Pagar no balcão"
@@ -923,6 +941,8 @@ export function useCartCheckout({
     kioskSuccessOpen,
     kioskSuccessOrder,
     closeKioskSuccess,
+    kioskPixCharge,
+    finishKioskPixPayment,
     missingDelivery,
     nextActionLabel,
     number,

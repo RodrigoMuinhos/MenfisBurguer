@@ -6,6 +6,8 @@ import {
   Coupon,
   DeliveryType,
   KIOSK_PIX_CODE,
+  KioskPixCharge,
+  KioskPixResult,
   PaymentMethod,
   SUPPORT_WHATSAPP_URL,
   fmt,
@@ -119,6 +121,7 @@ export async function submitCheckoutOrder({
   confirmCounterPayment,
   confirmCounterCustomerName,
   waitForKioskSuccessConfirm,
+  waitForKioskPixPayment,
   clearCartItems,
 }: {
   cart: CartItem[];
@@ -149,6 +152,7 @@ export async function submitCheckoutOrder({
   confirmCounterPayment?: (amount: number) => Promise<"pix" | "atendente" | "cancelado">;
   confirmCounterCustomerName?: () => Promise<string>;
   waitForKioskSuccessConfirm?: (order: Order) => Promise<void>;
+  waitForKioskPixPayment?: (charge: KioskPixCharge) => Promise<KioskPixResult>;
   clearCartItems?: () => void;
 }) {
   let slowTimer: number | null = null;
@@ -238,6 +242,41 @@ export async function submitCheckoutOrder({
     };
 
     if (kioskMode || counterServiceMode) {
+      // Totem Pix: cobra via Mercado Pago e só segue quando o webhook aprovar.
+      const kioskPix = kioskMode && payment === "pix";
+      let kioskPixPaymentId: string | undefined;
+      if (kioskPix) {
+        const pixRes = await fetch(`${API_URL}/payments/pix`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...createdOrderAccessHeaders,
+          },
+          body: JSON.stringify({ orderId: createdOrder.id }),
+        });
+        const pixData = await pixRes.json().catch(() => ({}));
+        const qrCode = typeof pixData?.qrCode === "string" ? pixData.qrCode : "";
+        const qrCodeBase64 =
+          typeof pixData?.qrCodeBase64 === "string" ? pixData.qrCodeBase64 : "";
+        if (!pixRes.ok || (!qrCode && !qrCodeBase64)) {
+          throw new Error(`pix_generation_failed:${pixData?.error ?? pixData?.message ?? pixRes.status}`);
+        }
+        if (slowTimer) window.clearTimeout(slowTimer);
+        setPaymentSlow(false);
+        setPaying(false);
+        const result = await waitForKioskPixPayment?.({
+          orderId: String(createdOrder.id),
+          trackingToken: createdOrder.trackingToken
+            ? String(createdOrder.trackingToken)
+            : undefined,
+          total: Number(createdOrder.total ?? total),
+          qrCode,
+          qrCodeBase64,
+        });
+        if (result !== "approved") return;
+        kioskPixPaymentId = String(pixData.paymentId ?? pixData.mercadoPagoOrderId ?? "") || undefined;
+      }
+
       const kioskOrder = buildLocalCreatedOrder({
         createdOrder,
         cart,
@@ -258,7 +297,7 @@ export async function submitCheckoutOrder({
             : payment === "presencial"
               ? "presencial"
               : "pix",
-          paymentStatus: String(
+          paymentStatus: kioskPix ? "approved" : String(
             createdOrder.paymentStatus ??
               (counterServiceMode
                 ? selectedCounterPayment === "pix"
@@ -266,17 +305,21 @@ export async function submitCheckoutOrder({
                   : "awaiting_counter"
                 : "approved"),
           ),
-          paymentProvider:
-            counterServiceMode && selectedCounterPayment === "pix"
+          paymentProvider: kioskPix
+            ? "mercado_pago"
+            : counterServiceMode && selectedCounterPayment === "pix"
               ? "menfis_pix"
               : undefined,
+          ...(kioskPixPaymentId ? { paymentId: kioskPixPaymentId } : {}),
           pixQrCode:
             counterServiceMode && selectedCounterPayment === "pix"
               ? KIOSK_PIX_CODE
               : undefined,
           status: counterServiceMode
             ? "PAYMENT_PENDING"
-            : String(createdOrder.status ?? "PAID") === "PAYMENT_PENDING"
+            : kioskPix
+              ? "PAID"
+              : String(createdOrder.status ?? "PAID") === "PAYMENT_PENDING"
               ? "PAYMENT_PENDING"
               : "PAID",
         },
@@ -367,7 +410,7 @@ export async function submitCheckoutOrder({
       });
       if (isMobileWhatsappTarget()) {
         await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
-        sendWhatsappReceipt(whatsappOrder, { sameTabOnMobile: true });
+        sendWhatsappReceipt(whatsappOrder);
         return;
       }
       sendWhatsappReceipt(whatsappOrder);
@@ -524,10 +567,10 @@ export async function submitCheckoutOrder({
     setPaymentError(
       reason.includes("api_url_missing")
         ? "Backend não configurado no kiosk. Defina NEXT_PUBLIC_API_URL apontando para o backend conectado ao Neon."
-        : reason.includes("customer_session_required")
-          ? "Entre ou crie seu perfil Menfi's para finalizar o pedido."
-        : reason.includes("MERCADO_PAGO_ACCESS_TOKEN")
+        : reason.includes("MERCADO_PAGO_ACCESS_TOKEN") || reason.includes("mercado_pago_not_configured")
           ? "Pagamento indisponível: falta configurar a credencial do Mercado Pago."
+          : reason.includes("pix_generation_failed")
+            ? "Não foi possível gerar o QR Code Pix. Tente novamente ou pague com o atendente."
           : reason.includes("order_creation_failed")
             ? "Não foi possível registrar o pedido. Confira os dados de entrega e tente novamente."
             : counterServiceMode
@@ -545,16 +588,9 @@ export async function submitCheckoutOrder({
   }
 }
 
-function sendWhatsappReceipt(
-  order: Order,
-  options?: { sameTabOnMobile?: boolean },
-) {
+function sendWhatsappReceipt(order: Order) {
   const text = buildOrderWhatsappReceipt(order);
   const url = buildWhatsappUrl(text);
-  if (options?.sameTabOnMobile && isMobileWhatsappTarget()) {
-    window.location.assign(url);
-    return;
-  }
   window.open(url, "_blank", "noopener,noreferrer");
 }
 

@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useState } from "react";
+import { RefObject } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   CreditCard,
@@ -10,8 +10,6 @@ import {
 import { ROSA, VERDE } from "@/utils/theme";
 import {
   CheckoutStep,
-  KIOSK_PIX_CODE,
-  KIOSK_PIX_TIMEOUT_SECONDS,
   KioskKeyboardTarget,
   PaymentMethod,
   fmt,
@@ -107,25 +105,8 @@ export function PaymentStepSection({
   total: number;
   onChooseCounterPayment?: () => void | Promise<void>;
 }) {
-  const [pixSeconds, setPixSeconds] = useState(KIOSK_PIX_TIMEOUT_SECONDS);
-  const [pixExpired, setPixExpired] = useState(false);
-
-  useEffect(() => {
-    if (!kioskMode || checkoutStep !== "payment" || !["pix", "pix_qrcode"].includes(payment)) return;
-    if (pixSeconds <= 0) {
-      setPixExpired(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setPixSeconds((seconds) => seconds - 1), 1000);
-    return () => window.clearTimeout(timer);
-  }, [checkoutStep, kioskMode, payment, pixSeconds, setCheckoutStep]);
-
   const choosePayment = (id: Exclude<PaymentMethod, "">) => {
     setPayment(id);
-    if (id === "pix" || id === "pix_qrcode") {
-      setPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS);
-      setPixExpired(false);
-    }
     window.setTimeout(() => {
       document
         .querySelector("[data-checkout-submit]")
@@ -391,7 +372,7 @@ export function PaymentStepSection({
                           {payment === "whatsapp" && (
                             <PaymentHint
                               title="Pagar pelo WhatsApp"
-                              copy="Ao finalizar, abrimos o WhatsApp com o resumo do pedido. A equipe confirma a forma de pagamento por lá e libera a cozinha depois da confirmação."
+                              copy="Ao finalizar, seu pedido segue imediatamente para o acompanhamento e o WhatsApp abre separadamente para combinar o pagamento."
                               total={total}
                             />
                           )}
@@ -470,72 +451,27 @@ export function PaymentStepSection({
       
                           {payment === "pix" ? (
                             <div
-                              className="grid gap-4 rounded-2xl p-4 md:grid-cols-[240px_1fr]"
+                              className="rounded-2xl p-5"
                               style={{
                                 background: "#fff",
                                 border: `2px solid ${VERDE}`,
                                 color: VERDE,
                               }}
                             >
-                              <div
-                                className="rounded-2xl bg-white p-3"
-                                style={{ border: `1.5px solid ${ROSA}` }}
-                              >
-                                <img
-                                  src="/pix-menfis.png"
-                                  alt="QR Code Pix Menfi's Burger"
-                                  className="h-auto w-full"
-                                />
-                              </div>
-                              <div className="min-w-0">
-                                {kioskMode && (
-                                  <div className="mb-3 rounded-xl px-4 py-3 text-center" style={{ background: ROSA }}>
-                                    <p className="text-[10px] font-black uppercase tracking-widest">Tempo para escanear</p>
-                                    <p className="mt-1 text-2xl font-black">00:{String(pixSeconds).padStart(2, "0")}</p>
-                                    <p className="mt-1 text-[10px] font-bold opacity-65">Depois, você informará o nome do cliente.</p>
-                                  </div>
-                                )}
-                                <p className="text-sm font-black uppercase tracking-wide">
-                                  Pix Menfi's Burger
-                                </p>
-                                <p className="mt-1 text-xs font-bold opacity-65">
-                                  Escaneie o QR Code ou use o copia e cola. Ao
-                                  finalizar, seu pedido será enviado para a cozinha.
-                                </p>
-                                <div
-                                  className="mt-3 rounded-xl p-3"
-                                  style={{
-                                    background: "#fff",
-                                    border: `1px solid ${ROSA}`,
-                                  }}
-                                >
-                                  <p className="text-[11px] font-black uppercase tracking-wide">
-                                    Como pagar no Pix
-                                  </p>
-                                  <ol className="mt-2 list-decimal space-y-1 pl-4 text-[11px] font-bold leading-relaxed opacity-75">
-                                    <li>Abra o app do seu banco.</li>
-                                    <li>Escolha Pix e escaneie o QR Code.</li>
-                                    <li>Confira ou insira o valor {fmt(total)}.</li>
-                                    <li>Finalize o pagamento no app.</li>
-                                    <li>Depois toque em enviar pedido para a cozinha.</li>
-                                  </ol>
-                                </div>
-                                <div
-                                  className="mt-3 rounded-xl p-3 text-[11px] font-bold leading-relaxed"
-                                  style={{
-                                    background: `${ROSA}55`,
-                                    overflowWrap: "anywhere",
-                                  }}
-                                >
-                                  {KIOSK_PIX_CODE}
-                                </div>
-                                <p className="mt-3 text-[11px] font-black uppercase tracking-wide opacity-70">
-                                  Beneficiário: Rodrigo Araujo Muinhos
-                                </p>
-                                <p className="mt-1 text-[11px] font-bold opacity-60">
-                                  Depois de pagar, toque em finalizar pedido.
-                                </p>
-                              </div>
+                              <QrCode size={34} strokeWidth={2.5} />
+                              <p className="mt-3 text-sm font-black uppercase tracking-wide">
+                                Pix Mercado Pago
+                              </p>
+                              <p className="mt-1 text-xs font-bold opacity-65">
+                                Informe seu nome e geramos um QR Code Pix exclusivo
+                                de {fmt(total)}. Assim que o pagamento for aprovado,
+                                o pedido segue direto para a cozinha.
+                              </p>
+                              <ol className="mt-3 list-decimal space-y-1 pl-4 text-[11px] font-bold leading-relaxed opacity-75">
+                                <li>Informe nome e telefone.</li>
+                                <li>Escaneie o QR Code com o app do banco.</li>
+                                <li>Aguarde a confirmação automática na tela.</li>
+                              </ol>
                             </div>
                           ) : (
                             <div
@@ -564,29 +500,15 @@ export function PaymentStepSection({
                             <button
                               type="button"
                               onClick={() => {
-                                setPixExpired(false);
                                 setCheckoutStep("customer");
                                 window.scrollTo({ top: 0, behavior: "smooth" });
                               }}
                               className="min-h-14 rounded-2xl px-5 text-sm font-black uppercase text-white"
                               style={{ background: VERDE }}
                             >
-                              Confirmar que o PIX deu certo
+                              Continuar para o Pix
                             </button>
                           )}
-                        </div>
-                      )}
-                      {kioskMode && pixExpired && (
-                        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-white px-6">
-                          <div className="w-full max-w-md rounded-[32px] border-2 bg-white p-8 text-center shadow-2xl" style={{ borderColor: ROSA, color: VERDE }}>
-                            <QrCode size={52} className="mx-auto" />
-                            <h2 className="mt-5 text-3xl font-black uppercase">O PIX deu certo?</h2>
-                            <p className="mt-3 text-sm font-bold opacity-70">Você pode confirmar o pagamento ou abrir novamente o prazo de 45 segundos.</p>
-                            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                              <button type="button" onClick={() => { setPixExpired(false); setPixSeconds(KIOSK_PIX_TIMEOUT_SECONDS); }} className="min-h-14 rounded-2xl border px-4 text-xs font-black uppercase" style={{ borderColor: VERDE }}>Repetir 45 segundos</button>
-                              <button type="button" onClick={() => { setPixExpired(false); setCheckoutStep("customer"); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="min-h-14 rounded-2xl px-4 text-xs font-black uppercase text-white" style={{ background: VERDE }}>Confirmar pagamento</button>
-                            </div>
-                          </div>
                         </div>
                       )}
                     </div>

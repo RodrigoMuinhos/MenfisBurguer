@@ -1,4 +1,5 @@
 import type { ElementType } from "react";
+import { startPrintBridge } from "@/services/printBridge";
 import { deliveryConfirmationCode, scheduledOrderInfo } from "@/components/order/tracking";
 import {
   Bike,
@@ -14,10 +15,8 @@ import { formatAddressForReceipt } from "@/utils/address";
 export const API_URL = "/backend";
 export const COUPON_STORAGE_KEY = "menfis_coupons";
 const PRINT_BRIDGE_URL_KEY = "menfis_print_bridge_url";
-const PRINT_BRIDGE_LAUNCH_URL_KEY = "menfis_print_bridge_launch_url";
 const PRINT_BROWSER_FALLBACK_KEY = "menfis_print_browser_fallback";
 const DEFAULT_PRINT_BRIDGE_URL = "http://127.0.0.1:17777/print";
-const DEFAULT_PRINT_BRIDGE_LAUNCH_URL = "";
 
 export type Coupon = {
   code: string;
@@ -208,6 +207,22 @@ export function localDateKey(timestamp: number) {
   return `${year}-${month}-${day}`;
 }
 
+export function isMercadoPagoProvider(order: Order | null | undefined) {
+  const provider = String(order?.paymentProvider ?? "").toLowerCase().replace(/[\s_]/g, "");
+  return provider === "mercadopago";
+}
+
+/** Pedido do totem pago com o Pix dinâmico do Mercado Pago (confirmado por webhook). */
+export function isKioskMercadoPagoPix(order: Order | null | undefined) {
+  return (
+    !!order &&
+    order.channel === "KIOSK" &&
+    !isKioskMobOrder(order) &&
+    String(order.paymentMethod ?? "").toLowerCase() === "pix" &&
+    isMercadoPagoProvider(order)
+  );
+}
+
 export function paymentMethodLabel(order: Order) {
   const method = String(order.paymentMethod ?? "").toLowerCase();
   const provider = String(order.paymentProvider ?? "").toLowerCase();
@@ -217,6 +232,7 @@ export function paymentMethodLabel(order: Order) {
     ["pix", "cartao", "credito", "debito", "credit_card", "debit_card"].includes(method);
 
   if (isKioskMobOrder(order) && method === "presencial") return "Pagamento no Balcão";
+  if (isKioskMercadoPagoPix(order)) return "PIX Mercado Pago · Totem";
   if (method === "pix") return mercadoPago ? "PIX Mercado Pago" : "PIX";
   if (method === "credit_card" || method === "credito")
     return "Cartão de Crédito Mercado Pago";
@@ -258,6 +274,9 @@ export function paymentStatusLabel(order: Order) {
   ) {
     return "Estornado";
   }
+  if (status === "rejected" || status === "failed") return "Recusado";
+  if (status === "expired") return "Expirado";
+  if (isKioskMercadoPagoPix(order)) return "Aguardando Pix";
   return "Aguardando Pagamento";
 }
 
@@ -295,7 +314,12 @@ export function paymentBadge(order: Order) {
       border: "#6EE7B7",
     };
   }
-  if (label === "Cancelado" || label === "Estornado") {
+  if (
+    label === "Cancelado" ||
+    label === "Estornado" ||
+    label === "Recusado" ||
+    label === "Expirado"
+  ) {
     return {
       label,
       bg: "#FEF2F2",
@@ -319,7 +343,7 @@ export function canAdvanceOrder(order: Order) {
     return true;
   }
   return (
-    order.paymentProvider !== "mercado_pago" ||
+    !isMercadoPagoProvider(order) ||
     order.paymentStatus === "approved" ||
     order.status !== "PAID"
   );
@@ -758,6 +782,7 @@ async function trySilentReceiptPrint(order: Order, receipt: string) {
     try {
       const response = await fetch(url, {
         method: "POST",
+        signal: AbortSignal.timeout(15000),
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "customer_receipt",
@@ -772,28 +797,6 @@ async function trySilentReceiptPrint(order: Order, receipt: string) {
     }
   }
   return false;
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function launchPrintBridge() {
-  if (typeof window === "undefined") return false;
-  const launchUrl = String(
-    process.env.NEXT_PUBLIC_PRINT_BRIDGE_LAUNCH_URL ||
-      localStorage.getItem(PRINT_BRIDGE_LAUNCH_URL_KEY) ||
-      DEFAULT_PRINT_BRIDGE_LAUNCH_URL,
-  ).trim();
-  if (!launchUrl) return false;
-
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.setAttribute("aria-hidden", "true");
-  iframe.src = launchUrl;
-  document.body.appendChild(iframe);
-  window.setTimeout(() => iframe.remove(), 3000);
-  return true;
 }
 
 function browserPrintFallbackEnabled(options?: { browserFallback?: boolean }) {
@@ -813,8 +816,7 @@ export async function printOrderReceipts(
   const silentPrinted = await trySilentReceiptPrint(order, rawReceipt);
   if (silentPrinted) return true;
 
-  if (launchPrintBridge()) {
-    await sleep(1800);
+  if (await startPrintBridge()) {
     const retriedSilentPrint = await trySilentReceiptPrint(order, rawReceipt);
     if (retriedSilentPrint) return true;
   }

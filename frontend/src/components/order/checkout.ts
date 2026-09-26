@@ -182,6 +182,18 @@ export const SERVICE_FEE = 0.99;
 export const KIOSK_PIX_CODE =
   "00020126330014br.gov.bcb.pix0111044117503175204000053039865802BR5922RODRIGO ARAUJO MUINHOS6009FORTALEZA62070503***63044AEB";
 export const KIOSK_PIX_TIMEOUT_SECONDS = 45;
+/** Janela do Pix Mercado Pago no totem; o backend expira o pedido em 10 min. */
+export const KIOSK_MP_PIX_TIMEOUT_SECONDS = 300;
+
+export type KioskPixCharge = {
+  orderId: string;
+  trackingToken?: string;
+  total: number;
+  qrCode?: string;
+  qrCodeBase64?: string;
+};
+
+export type KioskPixResult = "approved" | "cancelled" | "expired";
 
 /** Gera um payload Pix copia-e-cola com o valor do pedido embutido (campo 54). */
 export function pixCodeWithAmount(amount: number) {
