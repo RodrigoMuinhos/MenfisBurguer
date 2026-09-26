@@ -1,8 +1,7 @@
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from "react";
 import { CartItem } from "@/types/order";
 import {
-  KIOSK_IDLE_PROMPT_GRACE_MS,
-  KIOSK_IDLE_PROMPT_MS,
+  KIOSK_IDLE_SCREEN_MS,
   Screen,
 } from "../appState";
 
@@ -42,6 +41,7 @@ export function useKioskIdle({
 
     let lastMouseMoveAt = 0;
     const mark = (event?: Event) => {
+      if (showIdleScreen) return;
       if (event?.type === "mousemove") {
         const now = Date.now();
         if (now - lastMouseMoveAt < 1200) return;
@@ -64,7 +64,7 @@ export function useKioskIdle({
       window.removeEventListener("mousemove", mark);
       window.removeEventListener("wheel", mark);
     };
-  }, [kioskMode, resetKioskActivity, started]);
+  }, [kioskMode, resetKioskActivity, showIdleScreen, started]);
 
   useEffect(() => {
     if (!started || !kioskMode) return;
@@ -72,21 +72,12 @@ export function useKioskIdle({
 
     const timer = window.setInterval(() => {
       const idleFor = Date.now() - lastInteractionRef.current;
-      if (showIdleScreen) return;
-      if (showIdlePrompt) {
-        if (idleFor < KIOSK_IDLE_PROMPT_MS + KIOSK_IDLE_PROMPT_GRACE_MS) return;
-        setShowIdlePrompt(false);
-        setShowIdleScreen(true);
-        setCart([]);
-        setScreen("product");
-        return;
-      }
-      if (idleFor < KIOSK_IDLE_PROMPT_MS) return;
-      setShowIdlePrompt(true);
+      if (showIdleScreen || idleFor < KIOSK_IDLE_SCREEN_MS) return;
+      openKioskIdleScreen();
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [kioskMode, screen, setCart, setScreen, showIdlePrompt, showIdleScreen, started]);
+  }, [kioskMode, screen, openKioskIdleScreen, showIdleScreen, started]);
 
   return {
     showIdlePrompt,

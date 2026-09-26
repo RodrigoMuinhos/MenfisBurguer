@@ -92,7 +92,37 @@ export function KioskIdleOverlays({
       </AnimatePresence>
 
       <AnimatePresence>
-        {showIdleScreen && !hidden && settings.enabled && (
+        {kioskMode && showIdleScreen && !hidden && (
+          <button
+            type="button"
+            onClick={onActivity}
+            aria-label="Toque para começar seu pedido"
+            className="fixed inset-0 z-[120] flex h-[100dvh] w-full items-center justify-center overflow-hidden bg-[#ffe7ef] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[#65001f]"
+          >
+            <div className="relative h-full w-full max-w-[56.28dvh]">
+              <img
+                src="/event/TelaInicalEventoFundo.png"
+                alt="Menfi’s Burger"
+                draggable={false}
+                className="absolute inset-0 h-full w-full object-contain"
+              />
+              <div className="absolute inset-x-[7%] top-[30%] flex flex-col gap-[2dvh]">
+                <img src="/event/btcombo.png" alt="Combos" draggable={false} className="w-full object-contain" />
+                <img src="/event/bt%20lemon.png" alt="Lemonades" draggable={false} className="w-full object-contain" />
+                <img src="/event/tbebida.png" alt="Bebidas" draggable={false} className="w-full object-contain" />
+              </div>
+              <div className="absolute inset-x-[8%] bottom-[4%] rounded-full bg-[#65001f] px-5 py-[2dvh] text-center text-white shadow-lg">
+                <span className="block text-[clamp(1rem,2.5dvh,2.5rem)] font-black uppercase tracking-wide">
+                  Toque para começar
+                </span>
+                <span className="mt-1 block text-[clamp(0.75rem,1.3dvh,1.2rem)] text-pink-100">
+                  Seu próximo favorito está aqui
+                </span>
+              </div>
+            </div>
+          </button>
+        )}
+        {!kioskMode && showIdleScreen && !hidden && settings.enabled && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -9,6 +9,11 @@ export const metadata = publicPageMetadata({
   absoluteTitle: true,
 });
 
-export default function Page() {
-  return <App mode="delivery" />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  return <App mode={params.kiosk === "1" || params.desktop === "1" ? "kiosk" : "delivery"} />;
 }
