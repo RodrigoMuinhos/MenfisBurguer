@@ -42,6 +42,8 @@ interface Props {
   onCheckoutLockChange?: (locked: boolean) => void;
   /** Called when the checkout ends without an order (cart emptied, payment cancelled/expired). */
   onFlowEnd?: () => void;
+  /** Kiosk session (?kiosk=1 or KIOSK-MOB): abandoned checkouts end the session. */
+  idleHomeMode?: boolean;
 }
 
 export function CartScreen({
@@ -54,6 +56,7 @@ export function CartScreen({
   initialCheckoutStep,
   onCheckoutLockChange,
   onFlowEnd,
+  idleHomeMode = kioskMode,
 }: Props) {
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(() => {
     if (kioskMode || typeof window === "undefined") return null;
@@ -255,14 +258,14 @@ export function CartScreen({
 
   // Kiosk: an emptied cart ends the session (back to the idle screen).
   useEffect(() => {
-    if (!kioskMode || cart.length > 0) return;
+    if (!idleHomeMode || cart.length > 0) return;
     if (paying || kioskSuccessOpen || pixPaymentRequest) return;
     endFlowRef.current();
-  }, [cart.length, kioskMode, kioskSuccessOpen, paying, pixPaymentRequest]);
+  }, [cart.length, idleHomeMode, kioskSuccessOpen, paying, pixPaymentRequest]);
 
   // Kiosk: a Pix closed without payment (cancelled or expired) ends the session.
   const kioskPixRequest = useMemo(() => {
-    if (!pixPaymentRequest || !kioskMode) return pixPaymentRequest;
+    if (!pixPaymentRequest || !idleHomeMode) return pixPaymentRequest;
     return {
       ...pixPaymentRequest,
       resolve: (order: Record<string, unknown> | null) => {
@@ -270,7 +273,7 @@ export function CartScreen({
         if (!order) endFlowRef.current();
       },
     };
-  }, [kioskMode, pixPaymentRequest]);
+  }, [idleHomeMode, pixPaymentRequest]);
 
   if (cart.length === 0) {
     return <EmptyCartState onBack={handleBack} />;
@@ -455,7 +458,7 @@ export function CartScreen({
         <MercadoPagoPixModal
           request={kioskPixRequest}
           onClose={closePixPayment}
-          autoCloseExpiredMs={kioskMode ? 8000 : undefined}
+          autoCloseExpiredMs={idleHomeMode ? 8000 : undefined}
         />
       )}
       <CartOverlays

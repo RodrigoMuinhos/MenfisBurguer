@@ -137,8 +137,12 @@ export default function App({ mode }: { mode?: AppMode }) {
   );
   const orderStatusSnapshotRef = useRef(new Map<string, string>());
   const paymentTimeoutHandledRef = useRef(new Set<string>());
+  // The idle screen is the home of the kiosk: the ?kiosk=1 app or the site
+  // logged in as KIOSK-MOB (known only once localStorage is readable).
+  const idleHomeMode =
+    kioskMode || (clientStorageReady && isKioskMobSession());
   const { showIdleScreen, showIdle, resetKioskActivity } = useKioskIdle({
-    kioskMode,
+    kioskMode: idleHomeMode,
     screen,
     started: true,
     blocked: checkoutLocked || Boolean(paymentTimeoutOrder),
@@ -292,7 +296,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     if (!isKioskMobOrder(selectedOrder)) {
       setLastOrderId("");
     }
-    if (kioskMode) returnToIdle();
+    if (idleHomeMode) returnToIdle();
     else setScreen("product");
   };
   const activeOrder = lastOrderId
@@ -479,7 +483,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       setLastOrderId(createdOrder.id);
       setCart([]);
       localStorage.removeItem(CART_STORAGE_KEY);
-      if (kioskMode) returnToIdle();
+      if (idleHomeMode) returnToIdle();
       else setScreen(kioskMobOrder ? "product" : "tracking");
       registerMemberOrder();
       return;
@@ -553,7 +557,7 @@ export default function App({ mode }: { mode?: AppMode }) {
     setLastOrderId(newOrder.id);
     setCart([]);
     localStorage.removeItem(CART_STORAGE_KEY);
-    if (kioskMode) returnToIdle();
+    if (idleHomeMode) returnToIdle();
     else setScreen(isKioskMobOrder(newOrder) ? "product" : "tracking");
     registerMemberOrder();
   };
@@ -629,7 +633,7 @@ export default function App({ mode }: { mode?: AppMode }) {
                     ? undefined
                     : openAdmin
               }
-              onOpenIdleScreen={kioskMode ? returnToIdle : undefined}
+              onOpenIdleScreen={idleHomeMode ? returnToIdle : undefined}
               onOpenRestScreen={openIdleScreen}
               requestedCategory={requestedCategory}
               onCategoryRequestHandled={() => setRequestedCategory(null)}
@@ -705,7 +709,8 @@ export default function App({ mode }: { mode?: AppMode }) {
             kioskMode={kioskMode}
             initialCheckoutStep={returnToPaymentStep ? "payment" : undefined}
             onCheckoutLockChange={setCheckoutLocked}
-            onFlowEnd={kioskMode ? returnToIdle : goHome}
+            idleHomeMode={idleHomeMode}
+            onFlowEnd={idleHomeMode ? returnToIdle : goHome}
           />
         )}
         {screen === "tracking" && (
@@ -743,7 +748,7 @@ export default function App({ mode }: { mode?: AppMode }) {
 
       <IdleMenuScreen
         enabled={screen !== "admin"}
-        preload={kioskMode}
+        preload={idleHomeMode}
         open={showIdleScreen}
         onSelectCategory={openCategoryFromIdle}
         onDismiss={resetKioskActivity}

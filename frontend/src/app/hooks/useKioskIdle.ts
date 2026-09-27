@@ -45,6 +45,11 @@ export function useKioskIdle({
     onIdleRef.current = onIdle;
   });
 
+  // Sessions detected only on the client (KIOSK-MOB) also start on the idle screen.
+  useEffect(() => {
+    if (started && kioskMode) setShowIdleScreen(true);
+  }, [kioskMode, started]);
+
   // MercadoPagoPixModal announces itself through this window event.
   useEffect(() => {
     const update = (event: Event) => {
