@@ -34,6 +34,8 @@ export interface CartItem {
   productId?: string;
   name: string;
   price: number;
+  /** Product price without add-ons (used by the lemonade pair promotion). */
+  basePrice?: number;
   qty: number;
   components?: string[];
   addonIds?: string[];

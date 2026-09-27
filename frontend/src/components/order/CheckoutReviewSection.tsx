@@ -46,6 +46,7 @@ export function CheckoutReviewSection({
   fee,
   serviceFee,
   discount,
+  promoDiscount = 0,
   total,
 }: {
   checkoutStep: CheckoutStep;
@@ -69,6 +70,7 @@ export function CheckoutReviewSection({
   fee: number;
   serviceFee: number;
   discount: number;
+  promoDiscount?: number;
   total: number;
 }) {
   const counterFlow = kioskMode || counterServiceMode;
@@ -194,10 +196,16 @@ export function CheckoutReviewSection({
                   <span>{fmt(serviceFee)}</span>
                 </div>
               )}
-              {discount > 0 && (
+              {promoDiscount > 0 && (
+                <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
+                  <span>Promo Lemonade 2 por R$ 37,80</span>
+                  <span>- {fmt(promoDiscount)}</span>
+                </div>
+              )}
+              {discount - promoDiscount > 0 && (
                 <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
                   <span>Desconto aplicado</span>
-                  <span>- {fmt(discount)}</span>
+                  <span>- {fmt(discount - promoDiscount)}</span>
                 </div>
               )}
               {appliedCoupon?.type === "free_shipping" && (

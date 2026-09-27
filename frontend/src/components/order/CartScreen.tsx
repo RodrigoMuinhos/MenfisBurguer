@@ -112,6 +112,7 @@ export function CartScreen({
     deliveryValid,
     editDeliveryAddress,
     discount,
+    promoDiscount,
     fee,
     handleBack,
     handleFinalize,
@@ -290,6 +291,7 @@ export function CartScreen({
       fee={fee}
       serviceFee={serviceFee}
       discount={discount}
+          promoDiscount={promoDiscount}
       total={total}
       paying={paying}
       nextActionLabel={nextActionLabel}
@@ -363,6 +365,7 @@ export function CartScreen({
           subtotal={subtotal}
           appliedCoupon={appliedCoupon}
           discount={discount}
+          promoDiscount={promoDiscount}
           total={total}
         />
 
@@ -416,6 +419,7 @@ export function CartScreen({
           fee={fee}
           serviceFee={serviceFee}
           discount={discount}
+          promoDiscount={promoDiscount}
           total={total}
         />
 

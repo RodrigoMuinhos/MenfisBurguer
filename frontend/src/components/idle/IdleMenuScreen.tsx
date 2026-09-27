@@ -6,13 +6,47 @@ import { preloadClientImages } from "@/components/product/screen/productCatalog"
 const BACKGROUND_SRC = "/event/TelaInicalEventoFundo.png";
 
 // Normalized cards (same size and frame) generated from the event art by
-// scripts/build-idle-cards.py. "Menu" opens the cardápio on its first tab.
-const IDLE_MENU_BUTTONS: Array<{ category: CategoryId; src: string; alt: string }> = [
-  { category: CATEGORIES[0].id, src: "/event/cards/menu.webp", alt: "Menu" },
-  { category: "combo", src: "/event/cards/combos.webp", alt: "Combos" },
-  { category: "lemonade", src: "/event/cards/lemonades.webp", alt: "Lemonades" },
-  { category: "bebida", src: "/event/cards/bebidas.webp", alt: "Bebidas" },
+// scripts/build-idle-cards.py: wide cards stacked in portrait, square cards in
+// a 2x2 grid in landscape. "Menu" opens the cardápio on its first tab.
+const IDLE_MENU_BUTTONS: Array<{ category: CategoryId; card: string; alt: string }> = [
+  { category: CATEGORIES[0].id, card: "menu", alt: "Menu" },
+  { category: "combo", card: "combos", alt: "Combos" },
+  { category: "lemonade", card: "lemonades", alt: "Lemonades" },
+  { category: "bebida", card: "bebidas", alt: "Bebidas" },
 ];
+const wideSrc = (card: string) => `/event/cards/${card}.webp`;
+const squareSrc = (card: string) => `/event/cards/${card}-square.webp`;
+const LANDSCAPE = "(orientation: landscape)";
+
+const IDLE_MENU_CSS = `
+.idle-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.8vh;
+  /* Keep the cards below the "Menfi's Burger" logo. */
+  padding: 21vh 0 4vh;
+}
+.idle-menu-card {
+  width: min(86vw, 50vh);
+  aspect-ratio: 1800 / 608;
+}
+@media ${LANDSCAPE} {
+  .idle-menu {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    align-content: center;
+    justify-content: center;
+    gap: 3vh;
+    padding: 4vh 0;
+  }
+  .idle-menu-card {
+    width: min(42vh, 40vw);
+    aspect-ratio: 1;
+  }
+}
+`;
 
 export function IdleMenuScreen({
   open,
@@ -31,7 +65,10 @@ export function IdleMenuScreen({
 
   useEffect(() => {
     if (!preload) return;
-    preloadClientImages([BACKGROUND_SRC, ...IDLE_MENU_BUTTONS.map(({ src }) => src)]);
+    preloadClientImages([
+      BACKGROUND_SRC,
+      ...IDLE_MENU_BUTTONS.flatMap(({ card }) => [wideSrc(card), squareSrc(card)]),
+    ]);
   }, [preload]);
 
   useEffect(() => {
@@ -55,7 +92,7 @@ export function IdleMenuScreen({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[120] flex select-none flex-col items-center justify-center overflow-hidden"
+          className="idle-menu fixed inset-0 z-[120] select-none overflow-hidden"
           style={{
             width: "100vw",
             height: "100vh",
@@ -64,17 +101,14 @@ export function IdleMenuScreen({
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
-            // Keep the cards below the "Menfi's Burger" logo.
-            paddingTop: "21vh",
-            paddingBottom: "4vh",
-            gap: "1.8vh",
             touchAction: "manipulation",
           }}
           onClick={() => {
             if (!selectedRef.current) onDismiss();
           }}
         >
-          {IDLE_MENU_BUTTONS.map(({ category, src, alt }, index) => (
+          <style>{IDLE_MENU_CSS}</style>
+          {IDLE_MENU_BUTTONS.map(({ category, card, alt }, index) => (
             <motion.button
               key={alt}
               type="button"
@@ -85,21 +119,21 @@ export function IdleMenuScreen({
                 event.stopPropagation();
                 select(category);
               }}
-              className="block shrink-0 cursor-pointer border-0 bg-transparent p-0 outline-none"
-              // 2.96:1 cards: 50vh wide keeps all four (plus gaps) within ~73vh.
+              className="idle-menu-card block shrink-0 cursor-pointer border-0 bg-transparent p-0 outline-none"
               style={{
-                width: "min(86vw, 50vh)",
-                aspectRatio: "1800 / 608",
                 filter: "drop-shadow(0 10px 24px rgba(101,0,31,0.16))",
                 WebkitTapHighlightColor: "transparent",
               }}
             >
-              <img
-                src={src}
-                alt={alt}
-                draggable={false}
-                className="pointer-events-none block h-full w-full"
-              />
+              <picture className="block h-full w-full">
+                <source media={LANDSCAPE} srcSet={squareSrc(card)} />
+                <img
+                  src={wideSrc(card)}
+                  alt={alt}
+                  draggable={false}
+                  className="pointer-events-none block h-full w-full"
+                />
+              </picture>
             </motion.button>
           ))}
         </motion.div>

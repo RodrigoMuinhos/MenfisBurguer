@@ -80,6 +80,7 @@ import {
 import {
   DEFAULT_SPECIAL_OFFER_SETTINGS,
   PromoCard,
+  cartItemsTotal,
   SpecialOfferSettings,
   normalizePresentationSettings,
   normalizePromoCards,
@@ -266,7 +267,7 @@ export function ProductScreen({
   );
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
-  const cartTotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const cartTotal = cartItemsTotal(cart);
   const savedDelivery = readSavedDelivery();
   const kioskMobLoggedIn =
     String(memberProfile?.name ?? "")
@@ -551,6 +552,7 @@ export function ProductScreen({
         id: `${customizer.item.id}-${Date.now()}-${i}`,
         productId: customizer.item.id,
         name: customizer.item.name.toUpperCase(),
+        basePrice: customizer.item.price,
         price:
           customizer.item.price +
           sweetPremiumTotal +

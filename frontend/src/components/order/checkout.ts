@@ -426,9 +426,45 @@ export type CheckoutPricing = {
   deliveryFee: number;
   serviceFee: number;
   grossTotal: number;
+  /** Lemonade pair promotion. */
+  promoDiscount: number;
+  /** Coupon only (what the backend receives as couponDiscount). */
+  couponDiscount: number;
+  /** promoDiscount + couponDiscount. */
   discount: number;
   total: number;
 };
+
+/** Two lemonades cost this together; mirrors LemonadePairPromotion on the backend. */
+export const LEMONADE_PAIR_PRICE = 37.8;
+
+export function isLemonadeItem(item: Pick<CartItem, "id" | "productId">) {
+  return String(item.productId ?? item.id).endsWith("-lemonade");
+}
+
+/**
+ * Every second lemonade completes a pair that costs LEMONADE_PAIR_PRICE; an
+ * unpaired one keeps its price. Flavors mix; add-ons are not discounted.
+ */
+export function lemonadePairDiscount(items: CartItem[]) {
+  const units = items
+    .filter(isLemonadeItem)
+    .flatMap((item) =>
+      Array.from({ length: Math.max(0, item.qty) }, () => item.basePrice ?? item.price),
+    );
+  let discount = 0;
+  for (let index = 1; index < units.length; index += 2) {
+    discount += Math.max(0, units[index - 1] + units[index] - LEMONADE_PAIR_PRICE);
+  }
+  return roundMoney(discount);
+}
+
+/** Cart items total with the lemonade pair promotion applied. */
+export function cartItemsTotal(items: CartItem[]) {
+  return roundMoney(
+    items.reduce((sum, item) => sum + item.price * item.qty, 0) - lemonadePairDiscount(items),
+  );
+}
 
 export function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -452,9 +488,21 @@ export function buildCheckoutPricing({
       : 0;
   const serviceFee = delivery === "delivery" && subtotal > 0 ? SERVICE_FEE : 0;
   const grossTotal = roundMoney(subtotal + deliveryFee + serviceFee);
-  const discount = roundMoney(couponDiscount(coupon, grossTotal, items));
+  // The promotion comes first; coupons apply to what is left (same as the backend).
+  const promoDiscount = lemonadePairDiscount(items);
+  const couponValue = roundMoney(couponDiscount(coupon, grossTotal - promoDiscount, items));
+  const discount = roundMoney(promoDiscount + couponValue);
   const total = Math.max(1, roundMoney(grossTotal - discount));
-  return { subtotal, deliveryFee, serviceFee, grossTotal, discount, total };
+  return {
+    subtotal,
+    deliveryFee,
+    serviceFee,
+    grossTotal,
+    promoDiscount,
+    couponDiscount: couponValue,
+    discount,
+    total,
+  };
 }
 
 function minutesFromTime(value: string) {

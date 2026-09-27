@@ -8,6 +8,7 @@
     "dev": "next dev",
     "typecheck": "tsc --noEmit",
     "test:seo": "node --test scripts/seo.test.cjs",
+    "test:lemonade-promo": "node --test scripts/lemonade-promo.test.cjs",
     "test:e2e:kds": "node scripts/e2e-kds-flow.cjs",
     "test:e2e": "node scripts/e2e-operation.cjs",
     "start": "next start"

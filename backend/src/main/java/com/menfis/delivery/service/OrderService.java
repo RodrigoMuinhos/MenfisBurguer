@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
@@ -126,14 +127,17 @@ public class OrderService {
         && price.subtotal().compareTo(BigDecimal.ZERO) > 0;
     BigDecimal serviceFee = chargeDeliveryFees ? SERVICE_FEE : BigDecimal.ZERO;
     BigDecimal initialDeliveryFee = chargeDeliveryFees ? DELIVERY_FEE : BigDecimal.ZERO;
+    // The lemonade pair promotion comes first; coupons apply to what is left.
+    BigDecimal promoDiscount = price.promoDiscount();
     CouponResult coupon = applyCoupon(
       request.couponCode(),
       request.couponDiscount(),
-      price.subtotal().add(initialDeliveryFee).add(serviceFee)
+      price.subtotal().subtract(promoDiscount).add(initialDeliveryFee).add(serviceFee)
     );
     BigDecimal deliveryFee = coupon.freeShipping() ? BigDecimal.ZERO : initialDeliveryFee;
     BigDecimal grossTotal = price.subtotal().add(deliveryFee).add(serviceFee);
-    BigDecimal total = grossTotal.subtract(coupon.discount()).max(new BigDecimal("1.00"));
+    BigDecimal discountTotal = promoDiscount.add(coupon.discount());
+    BigDecimal total = grossTotal.subtract(discountTotal).max(new BigDecimal("1.00"));
     if (request.paymentMethod() == PaymentMethod.PAGAR_NA_ENTREGA
         && (channel != OrderChannel.DELIVERY || !settings.payOnDeliveryEnabled())) {
       throw new IllegalArgumentException("pay_on_delivery_disabled");
@@ -196,7 +200,7 @@ public class OrderService {
       cleanIdempotency(request.idempotencyKey()),
       confirmedAt,
       coupon.code(),
-      coupon.discount(),
+      discountTotal,
       testMode,
       customerId,
       sha256(trackingToken),
@@ -900,6 +904,7 @@ public class OrderService {
   }
 
   private PriceResult calculate(List<OrderItemRequest> requestedItems) {
+    List<BigDecimal> lemonadeUnitPrices = new ArrayList<>();
     List<Map<String, Object>> priced = requestedItems.stream().map(item -> {
       Map<String, Object> product = jdbc.queryForMap(
         """
@@ -920,6 +925,9 @@ public class OrderService {
         item.productId()
       );
       BigDecimal unit = (BigDecimal) product.get("base_price");
+      if (LemonadePairPromotion.isLemonade(product.get("id"))) {
+        for (int i = 0; i < item.quantity(); i++) lemonadeUnitPrices.add(unit);
+      }
       BigDecimal addonsTotal = BigDecimal.ZERO;
       if (item.addonIds() != null) {
         for (String addonId : item.addonIds()) {
@@ -947,7 +955,7 @@ public class OrderService {
       return row;
     }).toList();
     BigDecimal subtotal = priced.stream().map(row -> (BigDecimal) row.get("totalPrice")).reduce(BigDecimal.ZERO, BigDecimal::add);
-    return new PriceResult(subtotal, priced);
+    return new PriceResult(subtotal, priced, LemonadePairPromotion.discount(lemonadeUnitPrices));
   }
 
   private CouponResult applyCoupon(String rawCode, BigDecimal requestedDiscount, BigDecimal grossTotal) {
@@ -1020,7 +1028,7 @@ public class OrderService {
     }
     requestedItems.forEach(this::validateProductAddons);
     PriceResult price = calculate(requestedItems);
-    return new PricedOrder(price.subtotal(), price.items());
+    return new PricedOrder(price.subtotal(), price.items(), price.promoDiscount());
   }
 
   static boolean receivedHoldElapsed(OffsetDateTime paidAt, OffsetDateTime now) {
@@ -1308,7 +1316,11 @@ public class OrderService {
     return value == null ? "" : value.replaceAll("\\D", "");
   }
 
-  private record PriceResult(BigDecimal subtotal, List<Map<String, Object>> items) {}
-  public record PricedOrder(BigDecimal subtotal, List<Map<String, Object>> items) {}
+  private record PriceResult(BigDecimal subtotal, List<Map<String, Object>> items, BigDecimal promoDiscount) {}
+  public record PricedOrder(BigDecimal subtotal, List<Map<String, Object>> items, BigDecimal promoDiscount) {
+    public BigDecimal total() {
+      return subtotal.subtract(promoDiscount);
+    }
+  }
   private record CouponResult(String code, BigDecimal discount, boolean freeShipping) {}
 }

@@ -107,6 +107,7 @@ export async function submitCheckoutOrder({
   address,
   appliedCoupon,
   discount,
+  couponDiscount,
   total,
   removedByItemId,
   onPlaceOrder,
@@ -131,7 +132,10 @@ export async function submitCheckoutOrder({
   phone: string;
   address: string;
   appliedCoupon: Coupon | null;
+  /** Promotion + coupon, as shown to the customer. */
   discount: number;
+  /** Coupon part only; the backend computes the promotion itself. */
+  couponDiscount: number;
   total: number;
   removedByItemId: Record<string, string[]>;
   onPlaceOrder: (
@@ -224,7 +228,7 @@ export async function submitCheckoutOrder({
         customerAddress: address,
         idempotencyKey: orderFingerprint,
         couponCode: appliedCoupon?.code,
-        couponDiscount: appliedCoupon ? discount : 0,
+        couponDiscount: appliedCoupon ? couponDiscount : 0,
       }),
     });
 
