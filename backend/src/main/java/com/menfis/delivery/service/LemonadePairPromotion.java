@@ -11,7 +11,7 @@ import java.util.List;
  * part of the promotion.
  */
 final class LemonadePairPromotion {
-  static final BigDecimal PAIR_PRICE = new BigDecimal("37.80");
+  static final BigDecimal PAIR_PRICE = new BigDecimal("37.90");
 
   private LemonadePairPromotion() {}
 

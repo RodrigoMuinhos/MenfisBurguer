@@ -436,7 +436,7 @@ export type CheckoutPricing = {
 };
 
 /** Two lemonades cost this together; mirrors LemonadePairPromotion on the backend. */
-export const LEMONADE_PAIR_PRICE = 37.8;
+export const LEMONADE_PAIR_PRICE = 37.9;
 
 export function isLemonadeItem(item: Pick<CartItem, "id" | "productId">) {
   return String(item.productId ?? item.id).endsWith("-lemonade");

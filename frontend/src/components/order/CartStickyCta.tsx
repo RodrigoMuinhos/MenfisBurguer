@@ -134,7 +134,7 @@ export function CartStickyCta({
                 )}
                 {promoDiscount > 0 && (
                   <div className="flex justify-between gap-3">
-                    <span>Promo Lemonade 2 por R$ 37,80</span>
+                    <span>Promo Lemonade 2 por R$ 37,90</span>
                     <span>- {fmt(promoDiscount)}</span>
                   </div>
                 )}

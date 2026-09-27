@@ -15,14 +15,14 @@ class LemonadePairPromotionTest {
   @ParameterizedTest
   @CsvSource({
     "1, 24.90",
-    "2, 37.80",
-    "3, 62.70",
-    "4, 75.60",
-    "5, 100.50",
-    "6, 113.40",
-    "8, 151.20",
+    "2, 37.90",
+    "3, 62.80",
+    "4, 75.80",
+    "5, 100.70",
+    "6, 113.70",
+    "8, 151.60",
   })
-  void pairsCost3780AndAnUnpairedLemonadeKeepsFullPrice(int quantity, String expectedTotal) {
+  void pairsCost3790AndAnUnpairedLemonadeKeepsFullPrice(int quantity, String expectedTotal) {
     List<BigDecimal> units = Collections.nCopies(quantity, UNIT);
     BigDecimal regular = UNIT.multiply(BigDecimal.valueOf(quantity));
 

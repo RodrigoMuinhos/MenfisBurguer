@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CATEGORIES, type CategoryId } from "@/components/product/shared";
 import { preloadClientImages } from "@/components/product/screen/productCatalog";
@@ -17,6 +17,8 @@ const IDLE_MENU_BUTTONS: Array<{ category: CategoryId; card: string; alt: string
 const wideSrc = (card: string) => `/event/cards/${card}.webp`;
 const squareSrc = (card: string) => `/event/cards/${card}-square.webp`;
 const LANDSCAPE = "(orientation: landscape)";
+// Shown over the idle screen each time it opens; any tap closes it.
+const PROMO_SRC = "/event/cards/promo-lemonades.webp";
 
 const IDLE_MENU_CSS = `
 .idle-menu {
@@ -62,17 +64,21 @@ export function IdleMenuScreen({
   onDismiss: () => void;
 }) {
   const selectedRef = useRef(false);
+  const [promoOpen, setPromoOpen] = useState(open);
 
   useEffect(() => {
     if (!preload) return;
     preloadClientImages([
       BACKGROUND_SRC,
+      PROMO_SRC,
       ...IDLE_MENU_BUTTONS.flatMap(({ card }) => [wideSrc(card), squareSrc(card)]),
     ]);
   }, [preload]);
 
   useEffect(() => {
-    if (open) selectedRef.current = false;
+    if (!open) return;
+    selectedRef.current = false;
+    setPromoOpen(true);
   }, [open]);
 
   const select = (category: CategoryId) => {
@@ -136,6 +142,41 @@ export function IdleMenuScreen({
               </picture>
             </motion.button>
           ))}
+          <AnimatePresence>
+            {promoOpen && (
+              <motion.div
+                key="idle-promo"
+                role="button"
+                aria-label="Duas Lemonades por R$ 37,90. Toque para fechar."
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-10 flex cursor-pointer items-center justify-center"
+                style={{ background: "rgba(40,0,15,0.55)", backdropFilter: "blur(6px)" }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setPromoOpen(false);
+                }}
+              >
+                <motion.img
+                  src={PROMO_SRC}
+                  alt="Duas Lemonades por R$ 37,90"
+                  draggable={false}
+                  initial={{ scale: 0.96 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0.98 }}
+                  transition={{ duration: 0.25 }}
+                  className="pointer-events-none block h-auto w-auto rounded-[28px] object-contain"
+                  style={{
+                    maxWidth: "92vw",
+                    maxHeight: "92vh",
+                    boxShadow: "0 24px 70px rgba(0,0,0,0.35)",
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

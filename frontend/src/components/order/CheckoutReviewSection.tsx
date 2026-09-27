@@ -198,7 +198,7 @@ export function CheckoutReviewSection({
               )}
               {promoDiscount > 0 && (
                 <div className="mt-1 flex justify-between gap-3 text-[11px] font-bold">
-                  <span>Promo Lemonade 2 por R$ 37,80</span>
+                  <span>Promo Lemonade 2 por R$ 37,90</span>
                   <span>- {fmt(promoDiscount)}</span>
                 </div>
               )}

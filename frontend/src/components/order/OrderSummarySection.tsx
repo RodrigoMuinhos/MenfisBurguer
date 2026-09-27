@@ -142,7 +142,7 @@ export function OrderSummarySection({
                       className="flex justify-between text-xs py-2 font-bold"
                       style={{ color: VERDE }}
                     >
-                      <span>Promo Lemonade 2 por R$ 37,80</span>
+                      <span>Promo Lemonade 2 por R$ 37,90</span>
                       <span>- {fmt(promoDiscount)}</span>
                     </div>
                   )}
