@@ -27,7 +27,7 @@ import { useKioskIdle } from "./hooks/useKioskIdle";
 import { useOrderSync } from "./hooks/useOrderSync";
 import { IdleMenuScreen } from "@/components/idle/IdleMenuScreen";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
-import { DELIVERY_FEE, SERVICE_FEE, cartItemsTotal } from "@/components/order/checkout";
+import { DELIVERY_FEE, SERVICE_FEE } from "@/components/order/checkout";
 import {
   deliveryConfirmationCode,
   normalizeBackendOrder,
@@ -1234,7 +1234,7 @@ function DiningCartPreview({
   onBack: () => void;
   onCreated: () => void;
 }) {
-  const total = cartItemsTotal(cart);
+  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showAccount, setShowAccount] = useState(cart.length === 0);

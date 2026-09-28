@@ -18,7 +18,6 @@ export function OrderSummarySection({
   subtotal,
   appliedCoupon,
   discount,
-  promoDiscount,
   total,
 }: {
   checkoutStep: CheckoutStep;
@@ -29,7 +28,6 @@ export function OrderSummarySection({
   subtotal: number;
   appliedCoupon: Coupon | null;
   discount: number;
-  promoDiscount: number;
   total: number;
 }) {
   return (
@@ -137,22 +135,13 @@ export function OrderSummarySection({
                       </div>
                     )}
                   </div>
-                  {promoDiscount > 0 && (
-                    <div
-                      className="flex justify-between text-xs py-2 font-bold"
-                      style={{ color: VERDE }}
-                    >
-                      <span>Promo Lemonade 2 por R$ 37,90</span>
-                      <span>- {fmt(promoDiscount)}</span>
-                    </div>
-                  )}
-                  {appliedCoupon && discount - promoDiscount > 0 && (
+                  {appliedCoupon && discount > 0 && (
                     <div
                       className="flex justify-between text-xs py-2 font-bold"
                       style={{ color: VERDE }}
                     >
                       <span>Desconto {appliedCoupon.code}</span>
-                      <span>- {fmt(discount - promoDiscount)}</span>
+                      <span>- {fmt(discount)}</span>
                     </div>
                   )}
                   {appliedCoupon?.type === "free_shipping" && (

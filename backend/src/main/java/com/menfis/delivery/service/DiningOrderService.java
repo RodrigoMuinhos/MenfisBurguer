@@ -81,14 +81,14 @@ public class DiningOrderService {
       """
       insert into orders(
         id, public_id, number, items, channel, delivery_type, fulfillment_type, dining_session_id,
-        customer_name, subtotal, delivery_fee, total, discount_total, payment_method, payment_status,
+        customer_name, subtotal, delivery_fee, total, payment_method, payment_status,
         status, idempotency_key, payment_requested_at, timestamp, test_mode, updated_at
       ) values (?, ?, ?, ?::jsonb, 'DINING_QR', 'RETIRADA', 'COUNTER_PICKUP', ?,
-        ?, ?, 0, ?, ?, 'PRESENCIAL', 'pending', 'CREATED', ?, null, ?, ?, now())
+        ?, ?, 0, ?, 'PRESENCIAL', 'pending', 'CREATED', ?, null, ?, ?, now())
       on conflict (idempotency_key) where idempotency_key is not null do nothing
       """,
       orderId, publicId, number, json(priced.items()), context.sessionId(), context.customerName(),
-      priced.subtotal(), priced.total(), priced.promoDiscount(), idempotencyKey, System.currentTimeMillis(), settings.testModeEnabled()
+      priced.subtotal(), priced.subtotal(), idempotencyKey, System.currentTimeMillis(), settings.testModeEnabled()
     );
     if (inserted == 0) {
       DiningOrderResponse concurrent = findByIdempotency(idempotencyKey, context.sessionId());
@@ -116,7 +116,7 @@ public class DiningOrderService {
     );
     audit.log("customer", "DINING_ORDER_ADDED_TO_ACCOUNT", "ORDER", orderId, Map.of(
       "sessionId", context.sessionId(), "tableId", context.tableId(), "kitId", context.kitId(),
-      "total", priced.total()
+      "total", priced.subtotal()
     ));
     events.publish(orderId, orders.get(orderId));
     return getByPublicId(qrToken, publicId);

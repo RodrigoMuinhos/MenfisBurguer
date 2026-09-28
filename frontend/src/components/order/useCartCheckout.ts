@@ -418,7 +418,6 @@ export function useCartCheckout({
   const fee = pricing.deliveryFee;
   const serviceFee = pricing.serviceFee;
   const discount = pricing.discount;
-  const promoDiscount = pricing.promoDiscount;
   const total = pricing.total;
 
   const deliveryValid =
@@ -628,7 +627,6 @@ export function useCartCheckout({
       address,
       appliedCoupon,
       discount,
-      couponDiscount: pricing.couponDiscount,
       total,
       removedByItemId,
       onPlaceOrder,
@@ -921,7 +919,6 @@ export function useCartCheckout({
     deliveryValid,
     editDeliveryAddress,
     discount,
-    promoDiscount,
     fee,
     handleBack,
     handleFinalize,

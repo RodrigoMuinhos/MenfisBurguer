@@ -17,7 +17,6 @@ export function CartStickyCta({
   fee,
   serviceFee,
   discount,
-  promoDiscount = 0,
   total,
   paying,
   nextActionLabel,
@@ -33,7 +32,6 @@ export function CartStickyCta({
   fee: number;
   serviceFee: number;
   discount: number;
-  promoDiscount?: number;
   total: number;
   paying: boolean;
   nextActionLabel: string;
@@ -132,16 +130,10 @@ export function CartStickyCta({
                     <span>{fmt(serviceFee)}</span>
                   </div>
                 )}
-                {promoDiscount > 0 && (
-                  <div className="flex justify-between gap-3">
-                    <span>Promo Lemonade 2 por R$ 37,90</span>
-                    <span>- {fmt(promoDiscount)}</span>
-                  </div>
-                )}
-                {discount - promoDiscount > 0 && (
+                {discount > 0 && (
                   <div className="flex justify-between gap-3">
                     <span>Desconto</span>
-                    <span>- {fmt(discount - promoDiscount)}</span>
+                    <span>- {fmt(discount)}</span>
                   </div>
                 )}
               </div>
