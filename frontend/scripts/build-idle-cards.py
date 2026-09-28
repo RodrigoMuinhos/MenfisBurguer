@@ -64,9 +64,6 @@ SQUARE_REGIONS = {
         "photo": (790, 10, 1500, 600),
     },
 }
-# Promo pop-up shown over the idle screen (converted to WebP as is).
-PROMO = ("pre menu.png", "promo-lemonades.webp")
-
 SQUARE_SIZE = 1000
 FEATHER = 36
 
@@ -193,8 +190,6 @@ def main() -> None:
         art = build_art(EVENT_DIR / source, framed)
         save(frame(art), f"{name}.webp")
         save(frame(build_square(art, SQUARE_REGIONS[name])), f"{name}-square.webp")
-    promo_source, promo_output = PROMO
-    save(Image.open(EVENT_DIR / promo_source).convert("RGB"), promo_output)
 
 
 if __name__ == "__main__":
