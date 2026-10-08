@@ -200,7 +200,7 @@ export function MobileMenuExperience({
     if (
       !kioskMobLoggedIn &&
       !fullCatalog &&
-      (category === "lemonade" || category === "salad")
+      category === "lemonade"
     )
       setCategory("combo");
   }, [category, fullCatalog, kioskMobLoggedIn]);
@@ -296,7 +296,7 @@ export function MobileMenuExperience({
             ({ id }) =>
               kioskMobLoggedIn ||
               fullCatalog ||
-              (id !== "lemonade" && id !== "salad"),
+              id !== "lemonade",
           ).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
