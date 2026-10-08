@@ -30,7 +30,7 @@ test("sitemap contains only approved public routes", () => {
   );
 });
 
-test("robots points to the sitemap and excludes internal routes", () => {
+test("robots points to the sitemap without advertising internal routes", () => {
   const robots = read("src/app/robots.ts");
   assert.ok(robots.includes('absoluteUrl("/sitemap.xml")'));
   for (const route of [
@@ -42,7 +42,7 @@ test("robots points to the sitemap and excludes internal routes", () => {
     "/api",
     "/backend",
   ]) {
-    assert.ok(robots.includes(`"${route}"`), `Missing disallow: ${route}`);
+    assert.ok(!robots.includes(`"${route}"`), `Internal route exposed: ${route}`);
   }
 });
 
@@ -64,4 +64,13 @@ test("structured data does not invent sensitive commercial claims", () => {
   );
   assert.match(schema, /Organization/);
   assert.match(schema, /WebSite/);
+});
+
+test("security policy permits only the local Menfis print bridge", () => {
+  const config = read("next.config.mjs");
+  assert.match(config, /connect-src[^;]*http:\/\/127\.0\.0\.1:17777/);
+  assert.match(config, /frame-src 'self' menfis-print-bridge:/);
+  assert.match(config, /local-network-access=\(self\)/);
+  assert.match(config, /https:\/\/fonts\.googleapis\.com/);
+  assert.doesNotMatch(config, /connect-src[^;]*http:\/\/\*/);
 });

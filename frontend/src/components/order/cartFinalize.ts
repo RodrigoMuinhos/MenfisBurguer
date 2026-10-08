@@ -373,13 +373,8 @@ export async function submitCheckoutOrder({
           status: "PAYMENT_PENDING",
         },
       });
-      if (isMobileWhatsappTarget()) {
-        await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
-        sendWhatsappReceipt(whatsappOrder, { sameTabOnMobile: true });
-        return;
-      }
-      sendWhatsappReceipt(whatsappOrder);
       await onPlaceOrder(effectiveDelivery, phone || undefined, address, removedByItemId, whatsappOrder);
+      sendWhatsappReceipt(whatsappOrder);
       return;
     }
 
@@ -532,8 +527,6 @@ export async function submitCheckoutOrder({
     setPaymentError(
       reason.includes("api_url_missing")
         ? "Backend não configurado no kiosk. Defina NEXT_PUBLIC_API_URL apontando para o backend conectado ao Neon."
-        : reason.includes("customer_session_required")
-          ? "Entre ou crie seu perfil Menfi's para finalizar o pedido."
         : reason.includes("MERCADO_PAGO_ACCESS_TOKEN")
           ? "Pagamento indisponível: falta configurar a credencial do Mercado Pago."
           : reason.includes("order_creation_failed")
@@ -559,10 +552,6 @@ function sendWhatsappReceipt(
 ) {
   const text = buildOrderWhatsappReceipt(order);
   const url = buildWhatsappUrl(text);
-  if (options?.sameTabOnMobile && isMobileWhatsappTarget()) {
-    window.location.assign(url);
-    return;
-  }
   window.open(url, "_blank", "noopener,noreferrer");
 }
 

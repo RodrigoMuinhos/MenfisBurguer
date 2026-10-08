@@ -18,6 +18,7 @@ import {
 import { TrackingSupportSection } from "./tracking/TrackingSupportSection";
 import { TrackingTimelineSection } from "./tracking/TrackingTimelineSection";
 import { getOperatingHoursBlockMessage, pixCodeWithAmount } from "./checkout";
+import { MEMBER_TOKEN_KEY } from "@/components/product/shared";
 
 const KIOSK_REVIEWS_KEY = "menfis_kiosk_mob_reviews";
 
@@ -68,6 +69,7 @@ interface Props {
   order?: Order;
   goHome?: () => void;
   autoReturnMs?: number;
+  onCreateProfile?: () => void;
 }
 
 export function TrackingScreen({
@@ -76,6 +78,7 @@ export function TrackingScreen({
   order,
   goHome,
   autoReturnMs = 0,
+  onCreateProfile,
 }: Props) {
   const [supportOpen, setSupportOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<(typeof SUPPORT_TOPICS)[number] | null>(null);
@@ -96,6 +99,7 @@ export function TrackingScreen({
   const [idlePromptOpen, setIdlePromptOpen] = useState(false);
   const [reviewActivityTick, setReviewActivityTick] = useState(0);
   const [kioskReviews, setKioskReviews] = useState<KioskReview[]>([]);
+  const [showGuestProfileOffer, setShowGuestProfileOffer] = useState(false);
   const trackingToken = order?.trackingToken ||
     (typeof window !== "undefined" ? localStorage.getItem("menfis_pending_order_token") : null);
   const orderAccessHeaders: Record<string, string> = trackingToken
@@ -106,6 +110,10 @@ export function TrackingScreen({
     ? (Date.now() - order.timestamp) / 60000 > 50 &&
       !["DELIVERED", "CANCELLED"].includes(order.status)
     : false;
+
+  useEffect(() => {
+    setShowGuestProfileOffer(!localStorage.getItem(MEMBER_TOKEN_KEY));
+  }, [order?.id]);
 
   useEffect(() => {
     if (!orderPlaced || !order || !goHome || autoReturnMs <= 0 || order.status === "PAYMENT_PENDING") return;
@@ -665,6 +673,30 @@ export function TrackingScreen({
       </div>
 
       <div className="flex-1 flex flex-col px-4 py-4 gap-4">
+        {showGuestProfileOffer && onCreateProfile && (
+          <motion.button
+            type="button"
+            onClick={onCreateProfile}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.992 }}
+            className="group relative block min-h-[190px] w-full cursor-pointer overflow-hidden rounded-[28px] p-0 text-left sm:aspect-[2172/724] sm:min-h-0"
+            style={{
+              border: `2px solid ${ROSA}`,
+              boxShadow: `0 18px 46px ${VERDE}1F`,
+            }}
+            aria-label="Criar meu perfil e ganhar 10% de desconto na próxima compra"
+          >
+            <Image
+              src="/FINISH PAY/HEROPROMO.png"
+              alt="Crie seu perfil e ganhe 10% de desconto na próxima compra"
+              fill
+              priority
+              sizes="(max-width: 640px) 100vw, 1100px"
+              className="object-cover object-left transition-transform duration-500 group-hover:scale-[1.008] sm:object-center"
+            />
+            <span className="absolute inset-0 rounded-[26px] ring-2 ring-inset ring-white/35" aria-hidden="true" />
+          </motion.button>
+        )}
         {operatingHoursMessage && (
           <div
             className="rounded-[22px] p-4 text-xs font-bold leading-relaxed whitespace-pre-line"

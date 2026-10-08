@@ -317,26 +317,21 @@ export function DeliveryFormSection({
                       />
                     )}
       
-                    {/* WhatsApp */}
                     <div>
                       <SectionLabel>WhatsApp</SectionLabel>
                       <input
                         ref={phoneRef}
                         value={phone}
-                        onChange={(e) => setPhone(maskPhone(e.target.value))}
+                        onChange={(event) => setPhone(maskPhone(event.target.value))}
                         placeholder="(00) 00000-0000"
+                        inputMode="tel"
                         autoComplete="tel"
-                        style={inputStyle(
-                          submitAttempted && invalidDeliveryFields.phone,
-                        )}
+                        style={inputStyle(submitAttempted && invalidDeliveryFields.phone)}
                         aria-invalid={submitAttempted && invalidDeliveryFields.phone}
                       />
                       {submitAttempted && invalidDeliveryFields.phone && (
-                        <p
-                          className="mt-1 text-[10px] font-bold"
-                          style={{ color: "#DC2626" }}
-                        >
-                          Informe um WhatsApp válido com DDD.
+                        <p className="mt-1 text-[10px] font-bold" style={{ color: "#DC2626" }}>
+                          Informe seu WhatsApp com DDD para identificar e acompanhar o pedido.
                         </p>
                       )}
                     </div>

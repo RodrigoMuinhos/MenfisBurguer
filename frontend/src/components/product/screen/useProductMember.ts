@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { MEMBER_KEY, MEMBER_TOKEN_KEY, type MemberProfile } from "../shared";
 import { hasRequiredCustomerProfile } from "./productCatalog";
 import { loginCustomerSession, loadCustomerSession, logoutCustomerSession, requestCustomerPasswordRecovery, resetCustomerPassword, saveCustomerSession, updateCustomerProfile } from "@/services/customerSession";
+import { isValidMemberPin } from "@/utils/memberPin";
 
 export function useProductMember(kioskMode: boolean, onReadNotifications?: () => void) {
   const [loginOpen, setLoginOpen] = useState(false); const [profileOpen, setProfileOpen] = useState(false); const [historyOpen, setHistoryOpen] = useState(false); const [notificationsOpen, setNotificationsOpen] = useState(false); const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [memberName, setMemberName] = useState(""); const [memberEmail, setMemberEmail] = useState(""); const [memberCpf, setMemberCpf] = useState(""); const [memberPhone, setMemberPhone] = useState(""); const [memberPassword, setMemberPassword] = useState(""); const [memberPasswordConfirm, setMemberPasswordConfirm] = useState(""); const [memberLogin, setMemberLogin] = useState(""); const [loginPassword, setLoginPassword] = useState("");
   const [memberAuthMode, setMemberAuthMode] = useState<"register" | "login">("register"); const [memberBirthday, setMemberBirthday] = useState(""); const [memberCep, setMemberCep] = useState(""); const [memberStreet, setMemberStreet] = useState(""); const [memberNumber, setMemberNumber] = useState(""); const [memberComplement, setMemberComplement] = useState(""); const [memberNeighborhood, setMemberNeighborhood] = useState(""); const [memberCity, setMemberCity] = useState(""); const [memberReference, setMemberReference] = useState("");
   const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null); const [memberError, setMemberError] = useState(""); const [memberSaving, setMemberSaving] = useState(false);
-  useEffect(() => { if (kioskMode) return; void loadCustomerSession().then((profile) => { const hasToken = typeof window !== "undefined" && localStorage.getItem(MEMBER_TOKEN_KEY); if (hasToken && hasRequiredCustomerProfile(profile)) { setMemberProfile(profile); setLoginOpen(false); return; } setMemberProfile(profile ?? null); setMemberAuthMode("register"); }); }, [kioskMode]);
+  useEffect(() => { if (kioskMode) return; void loadCustomerSession().then((profile) => { const hasToken = typeof window !== "undefined" && localStorage.getItem(MEMBER_TOKEN_KEY); const openRegistration = localStorage.getItem("menfis_open_profile_registration") === "1"; if (openRegistration) localStorage.removeItem("menfis_open_profile_registration"); if (hasToken && hasRequiredCustomerProfile(profile)) { setMemberProfile(profile); setLoginOpen(false); return; } setMemberProfile(profile ?? null); setMemberAuthMode("register"); if (openRegistration) setLoginOpen(true); }); }, [kioskMode]);
 
   const openMemberAccess = () => {
     if (memberProfile && hasRequiredCustomerProfile(memberProfile)) {
@@ -83,12 +84,12 @@ export function useProductMember(kioskMode: boolean, onReadNotifications?: () =>
       setMemberError("Falta preencher: WhatsApp com DDD.");
       return;
     }
-    if (password.length !== 6) {
-      setMemberError("Falta preencher: senha de 6 dígitos.");
+    if (!isValidMemberPin(password)) {
+      setMemberError("Crie um PIN com exatamente 6 números.");
       return;
     }
-    if (confirmPassword.length !== 6) {
-      setMemberError("Falta preencher: confirmar senha com 6 dígitos.");
+    if (!isValidMemberPin(confirmPassword)) {
+      setMemberError("Confirme o PIN digitando novamente os mesmos 6 números.");
       return;
     }
     if (password !== confirmPassword) {

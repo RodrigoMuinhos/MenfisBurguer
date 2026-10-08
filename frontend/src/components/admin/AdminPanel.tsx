@@ -53,7 +53,7 @@ import {
   printOrderReceipts,
   uid,
 } from "./shared";
-import { printBridgeIsRunning } from "@/services/printBridge";
+import { startPrintBridge } from "@/services/printBridge";
 import { CouponsView } from "./views/CouponsView";
 import { ConfigView } from "./views/ConfigView";
 import { CustomersCrmView, CrmCustomer } from "./views/CustomersCrmView";
@@ -104,7 +104,6 @@ interface Props {
   updateOrderStatus: (id: string, status: OrderStatus) => void | Promise<void>;
   deleteOrder: (id: string) => void | Promise<void>;
   updateOrderItems: (id: string, items: CartItem[], options?: OrderUpdateOptions) => void | Promise<void>;
-  confirmCounterPayment?: (id: string) => Promise<void>;
   onClose: () => void;
   initialTab?: AdminTab;
   adminToken: string;
@@ -116,7 +115,6 @@ export function AdminPanel({
   updateOrderStatus,
   deleteOrder,
   updateOrderItems,
-  confirmCounterPayment,
   onClose,
   initialTab = "pedidos",
   adminToken,
@@ -157,7 +155,7 @@ export function AdminPanel({
   const [automaticKitchenPrintingEnabled, setAutomaticKitchenPrintingEnabled] = useState(() =>
     typeof window !== "undefined" && localStorage.getItem("menfis_kitchen_auto_print_enabled") === "1",
   );
-  const [automaticKitchenPrintingStatus, setAutomaticKitchenPrintingStatus] = useState<"off" | "ready" | "printing" | "error">("off");
+  const [automaticKitchenPrintingStatus, setAutomaticKitchenPrintingStatus] = useState<"off" | "starting" | "ready" | "printing" | "error">("off");
   const [adminLogin, setAdminLogin] = useState("");
   const [operatingHours, setOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
   const [savedOperatingHours, setSavedOperatingHours] = useState<OperatingHoursConfig>(DEFAULT_OPERATING_HOURS);
@@ -411,14 +409,19 @@ export function AdminPanel({
       && order.status !== "CANCELLED",
     );
     if (candidates.length === 0) {
-      void printBridgeIsRunning().then((running) => setAutomaticKitchenPrintingStatus(running ? "ready" : "error"));
-      return;
+      let cancelled = false;
+      setAutomaticKitchenPrintingStatus("starting");
+      void startPrintBridge().then((running) => {
+        if (!cancelled) setAutomaticKitchenPrintingStatus(running ? "ready" : "error");
+      });
+      return () => { cancelled = true; };
     }
     void (async () => {
       for (const order of candidates.sort((left, right) => left.timestamp - right.timestamp)) {
         automaticPrintInFlightRef.current.add(order.id);
         setAutomaticKitchenPrintingStatus("printing");
-        const printed = await printOrderReceipts(order, { confirm: false, browserFallback: false });
+        const bridgeRunning = await startPrintBridge();
+        const printed = bridgeRunning && await printOrderReceipts(order, { confirm: false, browserFallback: false });
         automaticPrintInFlightRef.current.delete(order.id);
         if (!printed) {
           setAutomaticKitchenPrintingStatus("error");
@@ -511,6 +514,7 @@ export function AdminPanel({
     updateSetting("/settings/sold-out", !soldOutEnabled);
 
   const toggleAutomaticOrderWorkflow = async () => {
+    if (automaticKitchenPrintingStatus === "starting" || automaticKitchenPrintingStatus === "printing") return;
     const fullyEnabled = automaticOrderAcceptanceEnabled && automaticKitchenPrintingEnabled;
     if (fullyEnabled) {
       localStorage.setItem("menfis_kitchen_auto_print_enabled", "0");
@@ -518,7 +522,8 @@ export function AdminPanel({
       await updateSetting("/settings/automatic-order-acceptance", false);
       return;
     }
-    const bridgeRunning = await printBridgeIsRunning();
+    setAutomaticKitchenPrintingStatus("starting");
+    const bridgeRunning = await startPrintBridge();
     if (!bridgeRunning) {
       setAutomaticKitchenPrintingStatus("error");
       return;
@@ -966,7 +971,6 @@ export function AdminPanel({
             updateOrderStatus={handleUpdateOrderStatus}
             deleteOrder={handleDeleteOrder}
             updateOrderItems={handleUpdateOrderItems}
-            confirmCounterPayment={confirmCounterPayment}
           />
         )}
         {tab === "cozinha" && (

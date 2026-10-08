@@ -60,7 +60,7 @@ export function ConfigView({
   soldOutEnabled: boolean;
   automaticOrderAcceptanceEnabled: boolean;
   automaticKitchenPrintingEnabled: boolean;
-  automaticKitchenPrintingStatus: "off" | "ready" | "printing" | "error";
+  automaticKitchenPrintingStatus: "off" | "starting" | "ready" | "printing" | "error";
   adminLogin: string;
   operatingHours: OperatingHoursConfig;
   presentation: PresentationSettings;
@@ -1016,10 +1016,12 @@ export function ConfigView({
             <div>
               <p className="text-sm font-black uppercase" style={{ color: VERDE }}>Receber e imprimir automaticamente</p>
               <p className="mt-1 max-w-2xl text-xs font-bold leading-relaxed opacity-55" style={{ color: VERDE }}>
-                {automaticKitchenPrintingStatus === "printing"
+                {automaticKitchenPrintingStatus === "starting"
+                  ? "Verificando e ligando a ponte de impressão neste computador..."
+                  : automaticKitchenPrintingStatus === "printing"
                   ? "Enviando a nova comanda para a POS-58..."
                   : automaticKitchenPrintingStatus === "error"
-                    ? "Ponte local indisponível. Ligue a ponte de impressão neste computador e tente novamente."
+                    ? "A ponte não respondeu à tentativa de inicialização. Confira se ela está instalada neste computador."
                     : automaticKitchenPrintingEnabled
                       ? "Ligado: ao entrar um novo pedido do PDV, este computador aceita e imprime uma única comanda na POS-58."
                       : "Desligado: os pedidos aguardam conferência e as comandas só saem pelo botão Imprimir via."}
@@ -1029,15 +1031,17 @@ export function ConfigView({
           <button
             type="button"
             onClick={() => void onToggleAutomaticOrderWorkflow()}
-            disabled={saving || disabled || automaticKitchenPrintingStatus === "printing"}
+            disabled={saving || disabled || automaticKitchenPrintingStatus === "printing" || automaticKitchenPrintingStatus === "starting"}
             className="inline-flex min-h-12 min-w-36 items-center justify-center rounded-full px-6 text-xs font-black uppercase"
             style={{
               background: automaticKitchenPrintingEnabled && automaticOrderAcceptanceEnabled ? VERDE : "#E5E7EB",
               color: automaticKitchenPrintingEnabled && automaticOrderAcceptanceEnabled ? ROSA : "#4B5563",
-              opacity: automaticKitchenPrintingStatus === "printing" ? 0.6 : 1,
+              opacity: automaticKitchenPrintingStatus === "printing" || automaticKitchenPrintingStatus === "starting" ? 0.6 : 1,
             }}
           >
-            {automaticKitchenPrintingStatus === "printing"
+            {automaticKitchenPrintingStatus === "starting"
+              ? "Ligando ponte..."
+              : automaticKitchenPrintingStatus === "printing"
               ? "Imprimindo..."
               : saving
                 ? "Salvando..."

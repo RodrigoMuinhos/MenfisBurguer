@@ -18,7 +18,6 @@ type BoardStatus =
 type BoardOrder = {
   id: string;
   number: number;
-  customerName: string;
   status: BoardStatus;
   createdAt: string;
 };
@@ -115,12 +114,6 @@ export function ReceptionKds() {
     };
   }, [playReadySound, soundEnabled]);
 
-  const customerLabel = (value: string) => {
-    const clean = String(value ?? "").trim();
-    if (!clean || clean.toUpperCase().replace("_", "-") === "KIOSK-MOB") return "Cliente";
-    return clean.split(/\s+/)[0];
-  };
-
   return (
     <main className={styles.screen}>
       <div className={styles.container}>
@@ -172,7 +165,6 @@ export function ReceptionKds() {
                     <article key={order.id} className={styles.orderCard}>
                       <p>Pedido</p>
                       <div>
-                        <strong>{customerLabel(order.customerName)}</strong>
                         <strong>#{order.number}</strong>
                       </div>
                     </article>

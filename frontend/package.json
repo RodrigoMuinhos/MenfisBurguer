@@ -8,6 +8,8 @@
     "dev": "next dev",
     "typecheck": "tsc --noEmit",
     "test:seo": "node --test scripts/seo.test.cjs",
+    "test:pin": "node --test scripts/member-pin.test.cjs",
+    "test:guest-checkout": "node --test scripts/guest-checkout.test.cjs",
     "test:e2e:kds": "node scripts/e2e-kds-flow.cjs",
     "test:e2e": "node scripts/e2e-operation.cjs",
     "start": "next start"
@@ -31,5 +33,8 @@
     "playwright-core": "^1.60.0",
     "tailwindcss": "4.1.12",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.23"
   }
 }

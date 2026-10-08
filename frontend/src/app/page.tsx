@@ -12,8 +12,9 @@ export const metadata = publicPageMetadata({
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<{ kiosk?: string; desktop?: string }>;
 }) {
   const params = await searchParams;
-  return <App mode={params.kiosk === "1" || params.desktop === "1" ? "kiosk" : "delivery"} />;
+  const kioskMode = params.kiosk === "1" || params.desktop === "1";
+  return <App mode={kioskMode ? "kiosk" : "delivery"} />;
 }

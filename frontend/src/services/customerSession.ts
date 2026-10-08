@@ -4,6 +4,7 @@ import {
   MEMBER_TOKEN_KEY,
   readMemberProfile,
 } from "@/components/product/shared";
+import { isValidMemberPin } from "@/utils/memberPin";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/backend";
 
@@ -51,6 +52,8 @@ type UpdateProfilePayload = {
 
 export async function saveCustomerSession(payload: CustomerPayload) {
   if (!API_URL) throw new Error("api_missing");
+  if (!payload.password || !isValidMemberPin(payload.password)) throw new Error("customer_pin_invalid");
+  if (payload.password !== payload.confirmPassword) throw new Error("customer_pin_confirmation_invalid");
   const res = await fetch(`${API_URL}/customers/session`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

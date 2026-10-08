@@ -4,6 +4,7 @@ import { Gift, KeyRound, Loader2, X } from "lucide-react";
 import { ROSA, VERDE } from "@/utils/theme";
 import { ProfileInput } from "./MemberUi";
 import { SUPPORT_WHATSAPP_URL } from "@/components/order/checkout";
+import { sanitizeMemberPin } from "@/utils/memberPin";
 type Setter = (value: string) => void;
 
 export function MemberAuthModal(props: { loginOpen: boolean; loginRequired: boolean; canCloseLogin: boolean; memberAuthMode: "register" | "login"; setMemberAuthMode: (value: "register" | "login") => void; registerStep: 1 | 2; setRegisterStep: Dispatch<SetStateAction<1 | 2>>; termsAccepted: boolean; setTermsAccepted: Dispatch<SetStateAction<boolean>>; recoveryOpen: boolean; setRecoveryOpen: Dispatch<SetStateAction<boolean>>; recoveryLogin: string; setRecoveryLogin: Setter; recoveryCode: string; setRecoveryCode: Setter; recoveryPassword: string; setRecoveryPassword: Setter; recoveryPasswordConfirm: string; setRecoveryPasswordConfirm: Setter; recoverySentMessage: string; setRecoverySentMessage: Setter; memberName: string; setMemberName: Setter; memberEmail: string; setMemberEmail: Setter; memberCpf: string; setMemberCpf: Setter; memberPhone: string; setMemberPhone: Setter; memberPassword: string; setMemberPassword: Setter; memberPasswordConfirm: string; setMemberPasswordConfirm: Setter; memberLogin: string; setMemberLogin: Setter; loginPassword: string; setLoginPassword: Setter; memberBirthday: string; setMemberBirthday: Setter; memberCep: string; setMemberCep: Setter; memberStreet: string; setMemberStreet: Setter; memberNumber: string; setMemberNumber: Setter; memberComplement: string; setMemberComplement: Setter; memberNeighborhood: string; setMemberNeighborhood: Setter; memberCity: string; setMemberCity: Setter; memberReference: string; setMemberReference: Setter; memberError: string; memberSaving: boolean; savedDelivery: Record<string,string>; saveMember: () => void; loginMember: () => void; requestPasswordRecovery: (login:string) => Promise<{ expiresInMinutes?: number; delivery?: string } | null>; resetMemberPassword: (login:string, code:string, password:string, confirmPassword:string) => Promise<boolean>; closeLogin: () => void }) {
@@ -244,22 +245,30 @@ export function MemberAuthModal(props: { loginOpen: boolean; loginRequired: bool
                         />
                       </label>
                       <ProfileInput
-                        label="Senha"
+                        label="PIN numérico"
                         value={memberPassword}
-                        onChange={(value) => setMemberPassword(value.replace(/\D/g, "").slice(0, 6))}
+                        onChange={(value) => setMemberPassword(sanitizeMemberPin(value))}
                         type="password"
                         revealable
                         inputMode="numeric"
                         maxLength={6}
+                        pattern="[0-9]*"
+                        autoComplete="new-password"
+                        enterKeyHint="next"
+                        hint="Crie um PIN com exatamente 6 números. Não use letras ou símbolos."
                       />
                       <ProfileInput
-                        label="Confirmar senha"
+                        label="Confirmar PIN numérico"
                         value={memberPasswordConfirm}
-                        onChange={(value) => setMemberPasswordConfirm(value.replace(/\D/g, "").slice(0, 6))}
+                        onChange={(value) => setMemberPasswordConfirm(sanitizeMemberPin(value))}
                         type="password"
                         revealable
                         inputMode="numeric"
                         maxLength={6}
+                        pattern="[0-9]*"
+                        autoComplete="new-password"
+                        enterKeyHint="done"
+                        hint="Digite novamente os mesmos 6 números para confirmar."
                       />
                       <label className="hidden gap-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-black/40">

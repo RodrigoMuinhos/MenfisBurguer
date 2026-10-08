@@ -98,7 +98,8 @@ export function useProductCustomizerModel(
         delete extras[id];
         return { ...prev, extras };
       }
-      extraOptions.forEach((option) => delete extras[option.id]);
+      if (id === "topping-chantilly") delete extras["topping-espuma-ginger"];
+      if (id === "topping-espuma-ginger") delete extras["topping-chantilly"];
       extras[id] = 1;
       return { ...prev, extras };
     });

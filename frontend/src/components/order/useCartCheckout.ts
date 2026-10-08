@@ -50,10 +50,6 @@ function readCouponUsage() {
   }
 }
 
-function hasCustomerSession() {
-  if (typeof window === "undefined") return false;
-  return Boolean(localStorage.getItem(MEMBER_TOKEN_KEY));
-}
 
 function minutesFromTime(value: string) {
   const [hours, minutes] = value.split(":").map((part) => Number(part));
@@ -587,11 +583,6 @@ export function useCartCheckout({
 
   const submitSelectedPayment = async (selectedPayment: PaymentMethod) => {
     if (paying || !deliveryValid) return;
-    if (!kioskMode && !counterServiceMode && !hasCustomerSession()) {
-      setPaymentError("Entre ou crie seu perfil Menfi's para finalizar o pedido.");
-      setCheckoutStep("delivery");
-      return;
-    }
     if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
       setAddressConfirmOpen(true);
       setCheckoutStep("delivery");
@@ -742,11 +733,6 @@ export function useCartCheckout({
     }
 
     if (checkoutStep === "review" && !kioskMode && !counterServiceMode) {
-      if (!hasCustomerSession()) {
-        setPaymentError("Entre ou crie seu perfil Menfi's para finalizar o pedido.");
-        setCheckoutStep("delivery");
-        return;
-      }
       if (deliveryAddressRequiresConfirmation && !addressConfirmed) {
         setAddressConfirmOpen(true);
         setCheckoutStep("delivery");

@@ -6,15 +6,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: [
-        "/adm",
-        "/kds",
-        "/notas",
-        "/entrega",
-        "/relatorios",
-        "/api",
-        "/backend",
-      ],
+      // Rotas internas usam metadados noindex e autorização real no backend.
+      // Não anunciar sua estrutura aqui: robots.txt não é controle de acesso.
+      disallow: [],
     },
     sitemap: absoluteUrl("/sitemap.xml"),
     host: BUSINESS.url,

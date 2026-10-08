@@ -14,6 +14,10 @@ export function ProfileInput({
   revealable = false,
   inputMode,
   maxLength,
+  pattern,
+  autoComplete,
+  enterKeyHint,
+  hint,
 }: {
   label: string;
   value: string;
@@ -23,6 +27,10 @@ export function ProfileInput({
   revealable?: boolean;
   inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
   maxLength?: number;
+  pattern?: string;
+  autoComplete?: string;
+  enterKeyHint?: "enter" | "done" | "go" | "next" | "previous" | "search" | "send";
+  hint?: string;
 }) {
   const [visible, setVisible] = useState(false);
   const inputType = revealable && visible ? "text" : type;
@@ -40,6 +48,9 @@ export function ProfileInput({
           type={inputType}
           inputMode={inputMode}
           maxLength={maxLength}
+          pattern={pattern}
+          autoComplete={autoComplete}
+          enterKeyHint={enterKeyHint}
           className="min-w-0 w-full rounded-2xl px-4 py-3 text-base outline-none"
           style={{
             border: `1.5px solid ${VERDE}16`,
@@ -59,6 +70,7 @@ export function ProfileInput({
           </button>
         )}
       </span>
+      {hint && <span className="px-1 text-[11px] font-bold leading-snug text-black/55">{hint}</span>}
     </label>
   );
 }
@@ -287,4 +299,3 @@ export function ProfileMenuLink({
     </a>
   );
 }
-

@@ -25,9 +25,15 @@ import {
 import { useAdminSession } from "./hooks/useAdminSession";
 import { useKioskIdle } from "./hooks/useKioskIdle";
 import { useOrderSync } from "./hooks/useOrderSync";
-import { IdleMenuScreen } from "@/components/idle/IdleMenuScreen";
+import { KioskIdleOverlays } from "./KioskIdleOverlays";
 import { STATUS_COPY, STATUS_INDEX, STEPS } from "@/components/order/tracking";
-import { DELIVERY_FEE, SERVICE_FEE } from "@/components/order/checkout";
+import {
+  DEFAULT_PRESENTATION_SETTINGS,
+  DELIVERY_FEE,
+  PresentationSettings,
+  SERVICE_FEE,
+  normalizePresentationSettings,
+} from "@/components/order/checkout";
 import {
   deliveryConfirmationCode,
   normalizeBackendOrder,
@@ -38,7 +44,6 @@ import {
   MEMBER_TOKEN_KEY,
   imageSrc,
   readMemberProfile,
-  type CategoryId,
 } from "@/components/product/shared";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import type { MenuItem } from "@/features/catalog/types";
@@ -46,6 +51,7 @@ import { MemberNotification } from "@/components/product/notifications";
 import { formatDeliveryAddress } from "@/utils/address";
 import { KioskVirtualKeyboard } from "@/components/order/KioskVirtualKeyboard";
 import type { KioskKeyboardTarget } from "@/components/order/checkout";
+import { clearGuestOrderIdentity, ensureGuestDeviceId, saveGuestOrderIdentity } from "@/utils/guestDevice";
 
 const NOTIFIABLE_STATUSES = new Set([
   "PAYMENT_PENDING",
@@ -118,7 +124,6 @@ export default function App({ mode }: { mode?: AppMode }) {
     updateOrderStatus,
     deleteOrder,
     updateOrderItems,
-    confirmCounterPayment,
   } = useOrderSync({
     adminToken,
     lastOrderId,
@@ -132,45 +137,38 @@ export default function App({ mode }: { mode?: AppMode }) {
     null,
   );
   const [checkoutLocked, setCheckoutLocked] = useState(false);
-  const [requestedCategory, setRequestedCategory] = useState<CategoryId | null>(
-    null,
+  const [presentation, setPresentation] = useState<PresentationSettings>(
+    DEFAULT_PRESENTATION_SETTINGS,
   );
   const orderStatusSnapshotRef = useRef(new Map<string, string>());
   const paymentTimeoutHandledRef = useRef(new Set<string>());
-  // The idle screen is the home of the kiosk: the ?kiosk=1 app or the site
-  // logged in as KIOSK-MOB (known only once localStorage is readable).
-  const idleHomeMode =
-    kioskMode || (clientStorageReady && isKioskMobSession());
-  const { showIdleScreen, showIdle, resetKioskActivity } = useKioskIdle({
-    kioskMode: idleHomeMode,
-    screen,
-    started: true,
-    blocked: checkoutLocked || Boolean(paymentTimeoutOrder),
-    onIdle: () => returnToIdle(),
-  });
+  const {
+    showIdlePrompt,
+    showIdleScreen,
+    resetKioskActivity,
+    openKioskIdleScreen,
+  } =
+    useKioskIdle({
+      kioskMode,
+      screen,
+      started: true,
+      blocked: checkoutLocked || Boolean(paymentTimeoutOrder),
+      setCart,
+      setScreen,
+    });
 
-  /** Ends the current kiosk session: every finished or abandoned flow lands here. */
-  const returnToIdle = () => {
-    setCart([]);
-    localStorage.removeItem(CART_STORAGE_KEY);
-    localStorage.removeItem(CHECKOUT_RETURN_STEP_KEY);
-    setReturnToPaymentStep(false);
-    setRequestedCategory(null);
-    setScreen("product");
-    showIdle();
-  };
-
-  /** Manual shortcut (logo taps): shows the idle screen but keeps the cart. */
-  const openIdleScreen = () => {
-    setScreen("product");
-    showIdle();
-  };
-
-  const openCategoryFromIdle = (category: CategoryId) => {
-    resetKioskActivity();
-    setScreen("product");
-    setRequestedCategory(category);
-  };
+  useEffect(() => {
+    if (!API_URL) return;
+    fetch(`${API_URL}/settings/public?_=${Date.now()}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((settings) => {
+        setPresentation(normalizePresentationSettings(settings?.presentation));
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const cacheIsCurrent =
@@ -233,6 +231,16 @@ export default function App({ mode }: { mode?: AppMode }) {
   }, [adminOnlyMode, clientStorageReady, diningMode, screen]);
 
   useEffect(() => {
+    if (adminOnlyMode || diningMode || !clientStorageReady) return;
+    const pendingOrderId = localStorage.getItem(PENDING_ORDER_KEY) ?? "";
+    const pendingOrderToken = localStorage.getItem(PENDING_ORDER_TOKEN_KEY) ?? "";
+    if (!pendingOrderId || !pendingOrderToken) return;
+    ensureGuestDeviceId();
+    setLastOrderId(pendingOrderId);
+    void loadOrderById(pendingOrderId);
+  }, [adminOnlyMode, clientStorageReady, diningMode, loadOrderById]);
+
+  useEffect(() => {
     if (!diningMode) return;
     const openDiningAccount = () => setScreen("cart");
     window.addEventListener("menfis:dining-open-account", openDiningAccount);
@@ -290,14 +298,15 @@ export default function App({ mode }: { mode?: AppMode }) {
 
   const goHome = () => setScreen("product");
   const leaveTrackingToMenu = () => {
-    localStorage.removeItem(PENDING_ORDER_KEY);
-    localStorage.removeItem(PENDING_ORDER_TOKEN_KEY);
     const selectedOrder = orders.find((order) => order.id === lastOrderId);
-    if (!isKioskMobOrder(selectedOrder)) {
+    const finished = selectedOrder && ["DELIVERED", "CANCELLED"].includes(selectedOrder.status);
+    if (finished) {
+      localStorage.removeItem(PENDING_ORDER_KEY);
+      localStorage.removeItem(PENDING_ORDER_TOKEN_KEY);
+      clearGuestOrderIdentity();
       setLastOrderId("");
     }
-    if (idleHomeMode) returnToIdle();
-    else setScreen("product");
+    setScreen("product");
   };
   const activeOrder = lastOrderId
     ? orders.find((order) => order.id === lastOrderId)
@@ -475,6 +484,12 @@ export default function App({ mode }: { mode?: AppMode }) {
         if (createdOrder.trackingToken) {
           localStorage.setItem(PENDING_ORDER_TOKEN_KEY, createdOrder.trackingToken);
         }
+        saveGuestOrderIdentity({
+          orderId: createdOrder.id,
+          customerName: String(createdOrder.customerName ?? ""),
+          customerPhone: String(createdOrder.customerPhone ?? ""),
+          cep: readSavedGuestCep(),
+        });
       }
       setOrders((prev) => [
         createdOrder,
@@ -483,8 +498,8 @@ export default function App({ mode }: { mode?: AppMode }) {
       setLastOrderId(createdOrder.id);
       setCart([]);
       localStorage.removeItem(CART_STORAGE_KEY);
-      if (idleHomeMode) returnToIdle();
-      else setScreen(kioskMobOrder ? "product" : "tracking");
+      setScreen(kioskMode || kioskMobOrder ? "product" : "tracking");
+      resetKioskActivity();
       registerMemberOrder();
       return;
     }
@@ -557,8 +572,8 @@ export default function App({ mode }: { mode?: AppMode }) {
     setLastOrderId(newOrder.id);
     setCart([]);
     localStorage.removeItem(CART_STORAGE_KEY);
-    if (idleHomeMode) returnToIdle();
-    else setScreen(isKioskMobOrder(newOrder) ? "product" : "tracking");
+    setScreen(kioskMode || isKioskMobOrder(newOrder) ? "product" : "tracking");
+    resetKioskActivity();
     registerMemberOrder();
   };
 
@@ -586,7 +601,6 @@ export default function App({ mode }: { mode?: AppMode }) {
             updateOrderStatus={updateOrderStatus}
             deleteOrder={deleteOrder}
             updateOrderItems={updateOrderItems}
-            confirmCounterPayment={confirmCounterPayment}
             onClose={closeAdmin}
             initialTab={
               appMode === "notes"
@@ -633,10 +647,7 @@ export default function App({ mode }: { mode?: AppMode }) {
                     ? undefined
                     : openAdmin
               }
-              onOpenIdleScreen={idleHomeMode ? returnToIdle : undefined}
-              onOpenRestScreen={openIdleScreen}
-              requestedCategory={requestedCategory}
-              onCategoryRequestHandled={() => setRequestedCategory(null)}
+              onOpenIdleScreen={kioskMode ? openKioskIdleScreen : undefined}
               kioskMode={kioskMode}
               modernMobileMode={diningMode}
               activeOrder={
@@ -677,7 +688,6 @@ export default function App({ mode }: { mode?: AppMode }) {
               updateOrderStatus={updateOrderStatus}
               deleteOrder={deleteOrder}
               updateOrderItems={updateOrderItems}
-              confirmCounterPayment={confirmCounterPayment}
               onClose={closeAdmin}
               initialTab="pedidos"
               adminToken={adminToken}
@@ -709,8 +719,6 @@ export default function App({ mode }: { mode?: AppMode }) {
             kioskMode={kioskMode}
             initialCheckoutStep={returnToPaymentStep ? "payment" : undefined}
             onCheckoutLockChange={setCheckoutLocked}
-            idleHomeMode={idleHomeMode}
-            onFlowEnd={idleHomeMode ? returnToIdle : goHome}
           />
         )}
         {screen === "tracking" && (
@@ -720,6 +728,14 @@ export default function App({ mode }: { mode?: AppMode }) {
             order={orders.find((o) => o.id === lastOrderId)}
             goHome={leaveTrackingToMenu}
             autoReturnMs={kioskMode ? 20000 : 0}
+            onCreateProfile={
+              kioskMode
+                ? undefined
+                : () => {
+                    localStorage.setItem("menfis_open_profile_registration", "1");
+                    setScreen("product");
+                  }
+            }
           />
         )}
         {screen === "queue" && (
@@ -732,7 +748,6 @@ export default function App({ mode }: { mode?: AppMode }) {
               updateOrderStatus={updateOrderStatus}
               deleteOrder={deleteOrder}
               updateOrderItems={updateOrderItems}
-              confirmCounterPayment={confirmCounterPayment}
               onClose={closeAdmin}
               initialTab="pedidos"
               adminToken={adminToken}
@@ -746,12 +761,13 @@ export default function App({ mode }: { mode?: AppMode }) {
           ))}
       </div>
 
-      <IdleMenuScreen
-        enabled={screen !== "admin"}
-        preload={idleHomeMode}
-        open={showIdleScreen}
-        onSelectCategory={openCategoryFromIdle}
-        onDismiss={resetKioskActivity}
+      <KioskIdleOverlays
+        kioskMode={kioskMode}
+        showIdlePrompt={showIdlePrompt}
+        showIdleScreen={showIdleScreen}
+        screen={screen}
+        onActivity={resetKioskActivity}
+        presentation={presentation}
       />
       {paymentTimeoutOrder && (
         <PaymentTimeoutModal onClose={() => setPaymentTimeoutOrder(null)} />
@@ -944,44 +960,65 @@ function isKioskMobSession() {
 
 function guestDeliveryScope() {
   if (typeof window === "undefined" || localStorage.getItem(MEMBER_TOKEN_KEY)) {
-    return { phone: "", address: "" };
+    return { name: "", phone: "", cep: "", address: "" };
   }
   try {
     const saved = JSON.parse(
       localStorage.getItem(DELIVERY_STORAGE_KEY) ?? "{}",
     ) as {
       phone?: string;
+      customerName?: string;
+      cep?: string;
       street?: string;
       number?: string;
       complement?: string;
     };
     const address =
       saved.street && saved.number
-        ? formatDeliveryAddress({
-            street: saved.street,
-            number: saved.number,
-            complement: saved.complement,
-          })
+        ? [
+            formatDeliveryAddress({
+              street: saved.street,
+              number: saved.number,
+              complement: saved.complement,
+            }),
+            saved.cep ? `CEP: ${saved.cep}` : "",
+          ].filter(Boolean).join("\n")
         : "";
     return {
+      name: normalizeName(saved.customerName),
       phone: digits(saved.phone),
+      cep: digits(saved.cep),
       address: normalizeAddress(address),
     };
   } catch {
-    return { phone: "", address: "" };
+    return { name: "", phone: "", cep: "", address: "" };
+  }
+}
+
+function readSavedGuestCep() {
+  if (typeof window === "undefined") return "";
+  try {
+    const saved = JSON.parse(localStorage.getItem(DELIVERY_STORAGE_KEY) ?? "{}") as {
+      cep?: string;
+    };
+    return String(saved.cep ?? "");
+  } catch {
+    return "";
   }
 }
 
 function guestOrderMatchesScope(
   order: Order,
-  scope: { phone: string; address: string },
+  scope: { name: string; phone: string; cep: string; address: string },
 ) {
-  if (!scope.phone && !scope.address) return true;
+  if (!scope.name && !scope.phone && !scope.cep && !scope.address) return true;
+  const nameMatches =
+    !scope.name || normalizeName(order.customerName) === scope.name;
   const phoneMatches =
     !scope.phone || digits(order.customerPhone) === scope.phone;
   const addressMatches =
     !scope.address || normalizeAddress(order.customerAddress) === scope.address;
-  return phoneMatches && addressMatches;
+  return nameMatches && phoneMatches && addressMatches;
 }
 
 function digits(value?: string) {
@@ -995,6 +1032,10 @@ function normalizeAddress(value?: string) {
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
+}
+
+function normalizeName(value?: string) {
+  return normalizeAddress(value).replace(/[^a-z0-9 ]/g, "");
 }
 
 function resolvePaymentReturnOrderId(params: URLSearchParams) {

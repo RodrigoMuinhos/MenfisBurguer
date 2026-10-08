@@ -151,9 +151,7 @@ public class OrderService {
         && isBlank(customerName)) {
       throw new IllegalArgumentException("kiosk_customer_required");
     }
-    if (channel == OrderChannel.DELIVERY && authenticatedCustomerId == null) {
-      throw new IllegalArgumentException("customer_session_required");
-    }
+    validateGuestCheckout(channel, deliveryType, authenticatedCustomerId, customerName, request.customerAddress());
     OffsetDateTime confirmedAt = paidKiosk || (channel == OrderChannel.KIOSK && !kioskLocalCustomer && payAtCounter)
       ? OffsetDateTime.now()
       : null;
@@ -510,6 +508,22 @@ public class OrderService {
       customerId,
       settings.testModeEnabled()
     );
+  }
+
+  static void validateGuestCheckout(
+      OrderChannel channel,
+      DeliveryType deliveryType,
+      Long authenticatedCustomerId,
+      String customerName,
+      String customerAddress) {
+    if (channel != OrderChannel.DELIVERY || authenticatedCustomerId != null) return;
+    if (customerName == null || customerName.isBlank() || customerName.trim().length() < 2) {
+      throw new IllegalArgumentException("guest_customer_name_required");
+    }
+    if (deliveryType == DeliveryType.DELIVERY
+        && (customerAddress == null || customerAddress.isBlank())) {
+      throw new IllegalArgumentException("guest_customer_address_required");
+    }
   }
 
   /** Cancels unpaid orders after ten minutes so they never reserve production capacity indefinitely. */

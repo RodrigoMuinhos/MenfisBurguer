@@ -15,13 +15,28 @@ export async function printBridgeIsRunning() {
   }
 }
 
-export async function startPrintBridge() {
+let startingBridge: Promise<boolean> | undefined;
+
+export function startPrintBridge(): Promise<boolean> {
+  if (!startingBridge) {
+    startingBridge = ensurePrintBridgeRunning().catch(() => false).finally(() => {
+      startingBridge = undefined;
+    });
+  }
+  return startingBridge;
+}
+
+async function ensurePrintBridgeRunning() {
   if (await printBridgeIsRunning()) return true;
 
   const launcher = document.createElement("iframe");
   launcher.hidden = true;
   launcher.setAttribute("aria-hidden", "true");
-  launcher.src = PRINT_BRIDGE_LAUNCH_URL;
+  launcher.src = String(
+    process.env.NEXT_PUBLIC_PRINT_BRIDGE_LAUNCH_URL ||
+    localStorage.getItem("menfis_print_bridge_launch_url") ||
+    PRINT_BRIDGE_LAUNCH_URL,
+  ).trim();
   document.body.appendChild(launcher);
 
   try {

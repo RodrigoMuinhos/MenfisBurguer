@@ -80,8 +80,7 @@ export function CheckoutReviewSection({
         </div>
       )}
 
-      {!kioskMode &&
-        (checkoutStep === "bag" || checkoutStep === "review" || checkoutStep === "payment") && (
+      {(checkoutStep === "bag" || checkoutStep === "review") && (
         <div
           className="rounded-2xl p-4"
           style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}
@@ -169,7 +168,7 @@ export function CheckoutReviewSection({
               >
                 {counterFlow
                   ? "Ao confirmar, o pedido será enviado para a cozinha e o pagamento será feito no balcão."
-                  : "Confira os itens, entrega e total. Ao continuar, você escolhe entre WhatsApp, Mercado Pago ou QR Code Pix. Depois de pagar fora do app, retorne para a tela do pedido para acompanhar a confirmação."}
+                  : "Confira os itens, entrega e total. Ao continuar, você escolhe entre WhatsApp, Mercado Pago ou QR Code Pix. Seu pedido seguirá para o acompanhamento assim que você abrir o pagamento."}
               </p>
             </div>
           </div>

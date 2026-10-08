@@ -24,8 +24,6 @@ export const CUSTOMIZER_ADDON_IDS = new Set([
   "topping-chantilly",
   "topping-espuma-ginger",
   "adicional-vodka",
-  "adicional-cachaca",
-  "lemonade-sem-alcool",
 ]);
 
 export function hasRequiredCustomerProfile(profile: MemberProfile | null) {
@@ -115,12 +113,7 @@ export function pricingRowToMenuItem(row: Record<string, unknown>): MenuItem | n
 }
 
 export function canonicalProductImage(id: string, imageUrl: string) {
-  if (id === DEFAULT_FEATURED_PRODUCT_ID) return TRIPLE_COMBO_IMAGE;
-  if (["monster", "agua-sem-gas", "heineken-longneck"].includes(id)
-    && (!imageUrl || imageUrl === "/logo_M.jpeg")) {
-    return `/bebidas/${id}.png`;
-  }
-  return imageUrl;
+  return id === DEFAULT_FEATURED_PRODUCT_ID ? TRIPLE_COMBO_IMAGE : imageUrl;
 }
 
 export function pricingKindToMenuCategory(kind: string, categoryLabel = ""): ProductCategory {

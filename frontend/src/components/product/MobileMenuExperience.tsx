@@ -292,7 +292,7 @@ export function MobileMenuExperience({
             backdropFilter: "blur(16px)",
           }}
         >
-          {MOBILE_CATEGORIES.filter(({ id }) => id !== "salad" && id !== "extras").filter(
+          {MOBILE_CATEGORIES.filter(
             ({ id }) =>
               kioskMobLoggedIn ||
               fullCatalog ||

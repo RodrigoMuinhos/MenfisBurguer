@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MENU_ITEMS } from "@/features/catalog/menu";
 import type { MenuItem } from "@/features/catalog/types";
 import { DEFAULT_PRESENTATION_SETTINGS, DEFAULT_SPECIAL_OFFER_SETTINGS, type CarouselCardSettings, type PromoCard, type SpecialOfferSettings, normalizePresentationSettings, normalizePromoCards, normalizeSpecialOfferSettings } from "@/components/order/checkout";
-import { BEVERAGE_PRODUCT_IDS, CATEGORIES, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems, sortComboRows } from "../shared";
+import { CATEGORIES, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems, sortComboRows } from "../shared";
 import { SOLD_OUT_MESSAGE } from "../SoldOutNotice";
 import { specialOfferSessionKey } from "./ProductScreenOverlays";
 import { DEFAULT_LEMONADE_SETTINGS, normalizeLemonadeSettings } from "../LemonadeShowcase";
@@ -33,7 +33,6 @@ export function useProductCatalog(kioskMode: boolean) {
     const visible = catalogItems.filter((item) => !isSpecialOfferOnlyProduct(item));
     let items: MenuItem[];
     if (category === "lemonade") items = visible.filter((item) => item.id.endsWith("-lemonade"));
-    else if (category === "bebida") items = visible.filter((item) => BEVERAGE_PRODUCT_IDS.has(item.id));
     else if (category === "super") items = visible.filter(isSuperProduct);
     else if (category === "burger") items = visible.filter((item) => item.category === "burger" && !isSuperProduct(item));
     else if (category === "extras") items = visible.filter(

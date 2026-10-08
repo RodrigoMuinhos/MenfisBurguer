@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Sparkles,
   UserRound,
+  X,
   Clock3,
   Home,
   PackageSearch,
@@ -30,6 +31,7 @@ import {
   BURGER_ID,
   CHEESE_PRICE,
   MEMBER_KEY,
+  MEMBER_TOKEN_KEY,
   MEAT_POINT_OPTIONS,
   MemberProfile,
   SAUCE_OPTIONS,
@@ -52,7 +54,6 @@ import {
   requiredCustomizerCount,
   requiresSpiceLevel,
   sortCatalogItems,
-  type CategoryId,
 } from "./shared";
 import {
   loginCustomerSession,
@@ -101,6 +102,7 @@ import { useProductMember } from "./screen/useProductMember";
 import { useProductCatalog } from "./screen/useProductCatalog";
 
 import {
+  API_URL,
   CUSTOMIZER_ADDON_IDS,
   DEFAULT_FEATURED_PRODUCT_ID,
   PRICING_ROWS_CACHE_KEY,
@@ -114,6 +116,7 @@ import {
   writeJsonCache,
 } from "./screen/productCatalog";
 import { ProductScreenView } from "./screen/ProductScreenView";
+import { normalizeBackendOrder } from "@/services/orders/normalize";
 
 const SPECIAL_OFFER_SESSION_KEY = "menfis_special_offer_seen";
 
@@ -125,9 +128,6 @@ interface Props {
   goBack?: () => void;
   onAdminOpen?: () => boolean | void | Promise<boolean | void>;
   onOpenIdleScreen?: () => void;
-  onOpenRestScreen?: () => void;
-  requestedCategory?: CategoryId | null;
-  onCategoryRequestHandled?: () => void;
   kioskMode?: boolean;
   modernMobileMode?: boolean;
   activeOrder?: Order | null;
@@ -146,9 +146,6 @@ export function ProductScreen({
   goToCart,
   onAdminOpen,
   onOpenIdleScreen,
-  onOpenRestScreen,
-  requestedCategory,
-  onCategoryRequestHandled,
   kioskMode = false,
   modernMobileMode = false,
   activeOrder,
@@ -255,6 +252,11 @@ export function ProductScreen({
   } = member;
   const [configurationUnavailable, setConfigurationUnavailable] =
     useState(false);
+  const [quickQrOpen, setQuickQrOpen] = useState(false);
+  const [quickQrSeconds, setQuickQrSeconds] = useState(45);
+  const [quickQrOrder, setQuickQrOrder] = useState<Order | null>(
+    lastOrder ?? null,
+  );
   const adminTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const configurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -274,6 +276,23 @@ export function ProductScreen({
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "-")
       .replace(/-+/g, "-") === "KIOSK-MOB";
+  useEffect(() => {
+    if (!quickQrOpen) return;
+    setQuickQrSeconds(45);
+    const countdown = window.setInterval(() => {
+      setQuickQrSeconds((current) => {
+        if (current <= 1) {
+          window.clearInterval(countdown);
+          setQuickQrOpen(false);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(countdown);
+  }, [quickQrOpen]);
+
   useEffect(() => {
     if (kioskMode) return;
     const cepDigits = memberCep.replace(/\D/g, "");
@@ -300,20 +319,32 @@ export function ProductScreen({
     };
   }, [kioskMode, memberCep]);
 
-  useEffect(() => {
-    if (!requestedCategory) return;
-    setCustomizer(null);
-    setDetailItem(null);
-    setCategory(requestedCategory);
-    window.scrollTo({ top: 0 });
-    onCategoryRequestHandled?.();
-  }, [onCategoryRequestHandled, requestedCategory, setCategory]);
-
   const qty = (id: string) => cart.find((item) => item.id === id)?.qty ?? 0;
 
   const handleAdminTap = async () => {
     adminTapCountRef.current += 1;
     if (adminTapTimerRef.current) clearTimeout(adminTapTimerRef.current);
+
+    if (!kioskMode && adminTapCountRef.current === 3) {
+      setQuickQrOrder(lastOrder ?? null);
+      setQuickQrOpen(true);
+      const memberToken = localStorage.getItem(MEMBER_TOKEN_KEY);
+      if (memberToken) {
+        void fetch(`${API_URL}/customers/orders`, {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${memberToken}` },
+        })
+          .then((response) => (response.ok ? response.json() : []))
+          .then((rows) => {
+            if (!Array.isArray(rows)) return;
+            const latestOrder = rows
+              .map(normalizeBackendOrder)
+              .sort((left, right) => right.timestamp - left.timestamp)[0];
+            if (latestOrder) setQuickQrOrder(latestOrder);
+          })
+          .catch(() => {});
+      }
+    }
 
     if (adminTapCountRef.current >= 5) {
       adminTapCountRef.current = 0;
@@ -332,15 +363,14 @@ export function ProductScreen({
     }
 
     adminTapTimerRef.current = setTimeout(() => {
-      // Exactly three taps (sequence ended before the fifth) opens the rest screen.
-      const openRestScreen = adminTapCountRef.current === 3;
       adminTapCountRef.current = 0;
       adminTapTimerRef.current = null;
-      if (openRestScreen) onOpenRestScreen?.();
     }, 700);
   };
 
   const handleIdleShortcutTap = () => {
+    if (!onOpenIdleScreen) return;
+    if (!kioskMobLoggedIn) return;
     idleShortcutTapCountRef.current += 1;
     if (idleShortcutTimerRef.current)
       clearTimeout(idleShortcutTimerRef.current);
@@ -348,9 +378,7 @@ export function ProductScreen({
     if (idleShortcutTapCountRef.current >= 3) {
       idleShortcutTapCountRef.current = 0;
       idleShortcutTimerRef.current = null;
-      // The KIOSK-MOB operator shortcut also resets the cart.
-      if (kioskMobLoggedIn && onOpenIdleScreen) onOpenIdleScreen();
-      else onOpenRestScreen?.();
+      onOpenIdleScreen();
       return;
     }
 
@@ -608,7 +636,7 @@ export function ProductScreen({
         kioskMode,
         modernMobileMode,
         activeOrder,
-        lastOrder,
+        lastOrder: quickQrOrder ?? lastOrder,
         notifications,
         unreadNotificationCount,
         onOpenActiveOrder,
@@ -618,10 +646,13 @@ export function ProductScreen({
         addedConfirmation,
         detailItem,
         configurationUnavailable,
+        quickQrOpen,
+        quickQrSeconds,
         setCustomizer,
         setAddedConfirmation,
         setDetailItem,
         setConfigurationUnavailable,
+        setQuickQrOpen,
         cartCount,
         cartTotal,
         savedDelivery,

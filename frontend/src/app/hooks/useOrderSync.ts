@@ -11,6 +11,7 @@ import {
   keepHighestVisibleStatus,
   keepPendingStatus,
 } from "../appState";
+import { clearGuestOrderIdentity } from "@/utils/guestDevice";
 
 const STATUS_RANK: Partial<Record<OrderStatus, number>> = {
   CREATED: 0,
@@ -94,6 +95,7 @@ export function useOrderSync({
       if (order.status === "DELIVERED" || order.status === "CANCELLED") {
         localStorage.removeItem(PENDING_ORDER_KEY);
         localStorage.removeItem(PENDING_ORDER_TOKEN_KEY);
+        clearGuestOrderIdentity();
       }
     } catch {
       // O retorno do pagamento nao pode derrubar a tela se o backend demorar.
@@ -429,23 +431,6 @@ export function useOrderSync({
     [adminToken, orders, syncOrders],
   );
 
-  /** Baixa de pedido "Pague no Caixa": marca o pagamento como recebido. */
-  const confirmCounterPayment = useCallback(
-    async (id: string) => {
-      const res = await fetch(`${API_URL}/orders/${encodeURIComponent(id)}/counter-payment`, {
-        method: "POST",
-        headers: authHeaders(adminToken),
-      });
-      if (!res.ok) {
-        await syncOrders();
-        throw new Error("counter_payment_failed");
-      }
-      const updated = normalizeBackendOrder(await res.json());
-      setOrders((prev) => prev.map((order) => (order.id === updated.id ? { ...order, ...updated } : order)));
-    },
-    [adminToken, syncOrders],
-  );
-
   return {
     orders,
     setOrders,
@@ -454,6 +439,5 @@ export function useOrderSync({
     updateOrderStatus,
     deleteOrder,
     updateOrderItems,
-    confirmCounterPayment,
   };
 }

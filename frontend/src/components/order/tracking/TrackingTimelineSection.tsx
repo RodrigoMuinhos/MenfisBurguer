@@ -123,7 +123,30 @@ export function TrackingTimelineSection({
 
   return (
     <>
-      {(waitingPayment || paymentFailed) && (
+      {waitingPayment && whatsappPayment && (
+        <motion.a
+          href={`${WHATSAPP_URL}?text=${paymentHelpText}`}
+          target="_blank"
+          rel="noreferrer"
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.992 }}
+          className="group relative block min-h-[190px] w-full overflow-hidden rounded-[28px] sm:aspect-[2172/724] sm:min-h-0"
+          style={{ border: "2px solid #22C55E", boxShadow: "0 18px 46px rgba(21,128,61,0.16)" }}
+          aria-label={`Falar com atendente no WhatsApp sobre o pedido ${order.id}`}
+        >
+          <Image
+            src="/FINISH PAY/HEROCONTACT.png"
+            alt="Fale com a gente no WhatsApp e libere seu pedido"
+            fill
+            priority
+            sizes="(max-width: 640px) 100vw, 1100px"
+            className="object-cover object-left transition-transform duration-500 group-hover:scale-[1.008] sm:object-center"
+          />
+          <span className="absolute inset-0 rounded-[26px] ring-2 ring-inset ring-white/35" aria-hidden="true" />
+        </motion.a>
+      )}
+
+      {((waitingPayment && !whatsappPayment) || paymentFailed) && (
         <div
           className="rounded-[24px] p-4 md:p-5"
           style={{

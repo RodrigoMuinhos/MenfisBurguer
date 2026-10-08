@@ -445,7 +445,7 @@ export function CategoryTabs({
   return (
     <section className="mt-5 px-4">
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {CATEGORIES.filter(({ id }) => id !== "salad" && id !== "extras").filter(({ id }) =>
+        {CATEGORIES.filter(({ id }) =>
           (showKioskOnly || id !== "lemonade") && (showSalad || id !== "salad")
         ).map(({ id, label, Icon }) => {
           const active = category === id;
