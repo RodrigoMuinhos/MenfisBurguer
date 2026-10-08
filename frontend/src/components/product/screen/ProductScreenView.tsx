@@ -356,8 +356,7 @@ export function ProductScreenView({
                     (kioskMode ||
                       kioskMobLoggedIn ||
                       modernMobileMode ||
-                      id !== "lemonade") &&
-                    (kioskMobLoggedIn || modernMobileMode || id !== "salad"),
+                      id !== "lemonade"),
                 ).map(({ id, label, Icon }) => {
                   const active = id === "super";
                   return (
