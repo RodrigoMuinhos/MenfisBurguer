@@ -489,7 +489,7 @@ export function ProductScreenView({
             category={category}
             setCategory={setCategory}
             showKioskOnly={kioskMode || kioskMobLoggedIn || modernMobileMode}
-            showSalad={kioskMobLoggedIn || modernMobileMode}
+            showSalad
           />
           {category === "lemonade" ? (
             <LemonadeShowcase
