@@ -300,7 +300,7 @@ export function ProductDetailModal({
             </div>
             <DetailInfo
               title="Observações"
-              copy={item.id === "menfis-monster" ? "Adicionais opcionais: Coca-Cola Zero por R$ 8,90, batata 150g por R$ 16,90 ou os dois por R$ 16,90." : isSweetBrioche
+              copy={item.id === "menfis-monster" ? "Adicionais opcionais: Coca-Cola Zero por R$ 8,90, batata 150g por R$ 16,90 ou faça o combo com os dois por + R$ 20,90." : isSweetBrioche
                 ? "Produto individual. Informe observações antes de adicionar ao carrinho."
                 : "Ponto da carne, molhos, bebidas, adicionais e quantidade são escolhidos antes de adicionar ao carrinho."}
               dark={dark}
@@ -313,7 +313,7 @@ export function ProductDetailModal({
               Opções disponíveis
             </p>
             <p className="mt-1 text-xs font-bold leading-relaxed opacity-70">
-              {item.id === "menfis-monster" ? "Escolha Coca-Cola Zero por R$ 8,90, batata 150g por R$ 16,90 ou os dois por R$ 16,90." : item.category === "combo"
+              {item.id === "menfis-monster" ? "Escolha Coca-Cola Zero por R$ 8,90, batata 150g por R$ 16,90 ou faça o combo com os dois por + R$ 20,90." : item.category === "combo"
                 ? "Escolha ponto, molho, bebida e adicionais antes de adicionar ao pedido."
                 : item.category === "burger"
                   ? isSuperProduct(item)

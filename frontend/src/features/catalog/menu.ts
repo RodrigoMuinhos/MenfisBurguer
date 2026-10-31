@@ -466,7 +466,7 @@ export const REGULAR_MENU_ITEMS: MenuItem[] = [
 // Halloween campaign: regular items remain available for a later restoration.
 export const MONSTER_ID = "menfis-monster";
 export const MONSTER_ADDON_ID = "monster-coca-zero-batata";
-export const MONSTER_ADDON = { id: MONSTER_ADDON_ID, label: "Coca-Cola Zero + batata 150g", price: 16.9, image: "/EXTRAS/cocazero.jpg" };
+export const MONSTER_ADDON = { id: MONSTER_ADDON_ID, label: "Coca-Cola Zero + batata 150g", price: 20.9, image: "/EXTRAS/cocazero.jpg" };
 export const MONSTER_EXTRA_OPTIONS = [
   MONSTER_ADDON,
   { id: "monster-coca-zero", label: "Coca-Cola Zero", price: 8.9, image: "/EXTRAS/cocazero.jpg" },
@@ -477,7 +477,7 @@ export const KIOSK_MENU_ITEMS: MenuItem[] = [{
   name: "Menfis Monster",
   eyebrow: "Especial de Halloween",
   desc: "130g de frango crocante, alface fresquinha, geleia de bacon e ketchup, tudo envolvido em um macio pão brioche negro. Uma combinação monstruosamente deliciosa, feita para quem tem fome de verdade.",
-  price: 33.9,
+  price: 29.9,
   image: "/menu/MenfisMonster.png",
   tags: ["Frango 130g", "Brioche negro", "Halloween"],
   category: "burger",

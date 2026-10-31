@@ -421,7 +421,7 @@ export function ProductCustomizer({
                   <span className="flex items-center gap-3">
                     <OptionThumb src={extra.image} alt={extra.label} />
                     <span>
-                      {comboOffer && <span className="mb-1 block text-sm font-black uppercase text-[#7FD13B]">Por + R$ 16,90, faça seu combo</span>}
+                      {comboOffer && <span className="mb-1 block text-sm font-black uppercase text-[#7FD13B]">Que tal fazer um combo? Só + {fmt(extra.price)}</span>}
                       <span className="block text-sm font-bold">{extra.label}</span>
                       <span className={comboOffer ? "text-xs text-white/75" : "text-xs text-black/50"}>+ {fmt(extra.price)}</span>
                     </span>
