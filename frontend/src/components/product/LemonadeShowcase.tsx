@@ -200,7 +200,7 @@ export function LemonadeShowcase({
                   </p>
                   <div className="mt-6 flex items-end justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: dark ? "#ff8fba" : theme.color }}>Copo 500ml</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: dark ? "#ff8fba" : theme.color }}>Copo 300ml</p>
                     </div>
                     <p className="text-2xl font-black" style={{ color: dark ? "#ff8fba" : theme.color }}>{fmt(item.price)}</p>
                   </div>

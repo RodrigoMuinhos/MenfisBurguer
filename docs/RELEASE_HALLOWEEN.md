@@ -18,3 +18,8 @@ Reuse the existing ProductHeader, ProductCarousel and LemonadeShowcase for the e
 V105 adds event-only Coca-Cola Zero (R$ 8.90) and fries 150g (R$ 16.90). Keep the combined addon at R$ 20.90. Regular drink and fries prices are not changed. The server accepts these addons only with the Monster.
 
 Verified desktop and mobile rendering, brand font, absence of horizontal overflow, the three addon choices, local database prices, backend tests, frontend typecheck, contract tests and production build.
+## Update: Monster R$ 29.90 and lemonades 300ml
+
+V106 sets the Monster price to R$ 29.90 in both order and pricing catalogs. Lemonades remain R$ 14.90 and their product descriptions, pricing notes, fallback tags and displayed cup size now specify 300ml. Existing addon prices remain unchanged.
+
+Checked the migration on local PostgreSQL and verified catalog/customizer totals and frontend typecheck before production build and publication.
