@@ -1,4 +1,4 @@
-import { MONSTER_ID, MONSTER_ADDON } from "@/features/catalog/menu";
+import { MONSTER_ID, MONSTER_EXTRA_OPTIONS } from "@/features/catalog/menu";
 import type { StaticImageData } from "next/image";
 import { Beef, Candy, CupSoda, Package, Plus, Salad, Utensils } from "lucide-react";
 import { CartItem } from "@/types/order";
@@ -299,7 +299,7 @@ export function sweetCardPriceLabel(item: MenuItem) {
 }
 
 export function getExtraOptionsForItem(item: MenuItem) {
-  if (item.id === MONSTER_ID) return [MONSTER_ADDON];
+  if (item.id === MONSTER_ID) return MONSTER_EXTRA_OPTIONS;
   if (isLemonadeProduct(item)) {
     return LEMONADE_TOPPING_OPTIONS;
   }

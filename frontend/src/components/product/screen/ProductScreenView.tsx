@@ -255,7 +255,7 @@ export function ProductScreenView({
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      {halloweenAccount && <HalloweenMenu items={catalogItems} onAdd={addMenuItem} onProfile={openMemberAccess} onCart={handleGoToCart} cartCount={cartCount} />}
+      {halloweenAccount && <HalloweenMenu items={catalogItems} onAdd={addMenuItem} onProfile={openMemberAccess} onCart={handleGoToCart} cartCount={cartCount} memberProfile={memberProfile} onNotifications={openNotifications} notificationCount={unreadNotificationCount} lemonadeSettings={lemonadeSettings} operatingNow={operatingNow} operatingHoursSummary={operatingHoursSummary} operatingHoursMessage={operatingHoursMessage} />}
       {!halloweenAccount && modernCatalogLayout && (
         <MobileMenuExperience
           kioskMode={kioskMode}

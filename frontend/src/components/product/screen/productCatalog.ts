@@ -11,6 +11,8 @@ export const PUBLIC_SETTINGS_CACHE_KEY = "menfis_public_settings_cache_v2";
 export const PRICING_ROWS_CACHE_KEY = "menfis_pricing_rows_cache_v2";
 export const CUSTOMIZER_ADDON_IDS = new Set([
   "monster-coca-zero-batata",
+  "monster-coca-zero",
+  "monster-batata-150g",
   "salad-protein-frango",
   "salad-protein-carne",
   "extra-carne",

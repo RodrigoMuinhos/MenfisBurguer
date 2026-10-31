@@ -1284,8 +1284,11 @@ public class OrderService {
     boolean lemonade = isLemonadeItem(item);
     boolean salad = isSaladItem(item);
     boolean invalid = item.addonIds().stream().anyMatch(addonId -> {
-      if ("menfis-monster".equals(item.productId())) return !"monster-coca-zero-batata".equals(addonId);
-      if ("monster-coca-zero-batata".equals(addonId)) return true;
+      boolean monsterAddon = "monster-coca-zero-batata".equals(addonId)
+        || "monster-coca-zero".equals(addonId)
+        || "monster-batata-150g".equals(addonId);
+      if ("menfis-monster".equals(item.productId())) return !monsterAddon;
+      if (monsterAddon) return true;
       boolean lemonadeTopping = "topping-chantilly".equals(addonId)
         || "topping-espuma-ginger".equals(addonId)
         || "adicional-vodka".equals(addonId)

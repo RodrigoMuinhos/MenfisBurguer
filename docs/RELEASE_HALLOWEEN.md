@@ -11,3 +11,10 @@ Validation: backend tests, frontend typecheck, SEO, PIN, guest checkout, Hallowe
 Deployment: push to main triggers the existing Vercel frontend and Railway backend integrations. Verify their commit statuses, production catalog and event login after deployment. A pre-deployment pricing snapshot is retained outside the repository for comparison.
 
 Rollback: revert this release commit on main and allow both platforms to redeploy. The additive database rows may remain; the previous frontend does not display the event interface. Deactivate only menfis-monster and monster-coca-zero-batata if a complete catalog rollback is needed; existing prices and active flags were not changed.
+## Update: regular layout in dark theme and individual sides
+
+Reuse the existing ProductHeader, ProductCarousel and LemonadeShowcase for the event account. Keep the brand display font, Monster hero and operating-hours data, followed by the lemonade section without its separate hero. Dark styling is optional and defaults remain unchanged for other accounts.
+
+V105 adds event-only Coca-Cola Zero (R$ 8.90) and fries 150g (R$ 16.90). Keep the combined addon at R$ 20.90. Regular drink and fries prices are not changed. The server accepts these addons only with the Monster.
+
+Verified desktop and mobile rendering, brand font, absence of horizontal overflow, the three addon choices, local database prices, backend tests, frontend typecheck, contract tests and production build.

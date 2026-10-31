@@ -467,6 +467,11 @@ export const REGULAR_MENU_ITEMS: MenuItem[] = [
 export const MONSTER_ID = "menfis-monster";
 export const MONSTER_ADDON_ID = "monster-coca-zero-batata";
 export const MONSTER_ADDON = { id: MONSTER_ADDON_ID, label: "Coca-Cola Zero + batata 150g", price: 20.9, image: "/EXTRAS/cocazero.jpg" };
+export const MONSTER_EXTRA_OPTIONS = [
+  MONSTER_ADDON,
+  { id: "monster-coca-zero", label: "Coca-Cola Zero", price: 8.9, image: "/EXTRAS/cocazero.jpg" },
+  { id: "monster-batata-150g", label: "Batata frita 150g", price: 16.9, image: "/EXTRAS/batata.jpg" },
+];
 export const KIOSK_MENU_ITEMS: MenuItem[] = [{
   id: MONSTER_ID,
   name: "Menfis Monster",

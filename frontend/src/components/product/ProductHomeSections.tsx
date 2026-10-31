@@ -28,6 +28,7 @@ export function ProductHeader({
   onOpenMember,
   onOpenNotifications,
   onLogoutMember,
+  dark = false,
 }: {
   kioskMode: boolean;
   idleShortcutEnabled: boolean;
@@ -40,6 +41,7 @@ export function ProductHeader({
   onOpenMember?: () => void;
   onOpenNotifications?: () => void;
   onLogoutMember?: () => void;
+  dark?: boolean;
 }) {
   return (
     <header
@@ -47,12 +49,12 @@ export function ProductHeader({
         position: "sticky",
         top: 0,
         zIndex: 40,
-        background: "rgba(255,255,255,0.96)",
+        background: dark ? "rgba(16,12,18,0.96)" : "rgba(255,255,255,0.96)",
         backdropFilter: "blur(18px)",
-        borderBottom: `1px solid ${VERDE}14`,
+        borderBottom: dark ? "1px solid #ffffff18" : `1px solid ${VERDE}14`,
       }}
     >
-      <div className="flex w-full items-center gap-4 px-4 py-3">
+      <div className={dark ? "flex w-full items-center gap-2 px-3 py-3 md:gap-4 md:px-4" : "flex w-full items-center gap-4 px-4 py-3"}>
         <button
           onClick={onAdminTap}
           aria-label="Menfi's Burger"
@@ -86,9 +88,9 @@ export function ProductHeader({
             alt="Menfi's Burger"
             width={520}
             height={160}
-            className="h-20 w-auto max-w-[260px] object-contain object-left"
+            className={dark ? "h-14 w-auto max-w-full object-contain object-left md:h-20 md:max-w-[260px]" : "h-20 w-auto max-w-[260px] object-contain object-left"}
           />
-          <p className="mt-0.5 truncate text-[10px] font-black uppercase tracking-wide" style={{ color: VERDE }}>
+          <p className="mt-0.5 truncate text-[10px] font-black uppercase tracking-wide" style={{ color: dark ? "#fffafa" : VERDE }}>
             {kioskMode ? "Escolha seu pedido para retirada" : "Burger quente e entrega rápida. Feito com amor"}
           </p>
         </div>
@@ -98,7 +100,7 @@ export function ProductHeader({
             <button
               onClick={onOpenNotifications}
               className="relative flex h-12 w-12 items-center justify-center rounded-full"
-              style={{ background: "#fff", color: VERDE, border: `1px solid ${VERDE}18` }}
+              style={{ background: dark ? "#26171f" : "#fff", color: dark ? "#ffc6da" : VERDE, border: `1px solid ${dark ? "#ffffff22" : `${VERDE}18`}` }}
               aria-label="Abrir notificações"
             >
               <Bell size={20} strokeWidth={2.6} />
@@ -137,8 +139,8 @@ export function ProductHeader({
           disabled={cartCount === 0}
           className="flex items-center gap-2 rounded-full px-4 py-3 text-xs font-black uppercase tracking-wider disabled:opacity-35"
           style={{
-            background: VERDE,
-            color: ROSA,
+            background: dark ? "#ff3f87" : VERDE,
+            color: dark ? "#16070c" : ROSA,
             border: "none",
             cursor: cartCount > 0 ? "pointer" : "default",
           }}

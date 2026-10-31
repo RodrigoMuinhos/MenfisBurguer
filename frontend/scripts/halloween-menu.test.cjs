@@ -28,13 +28,18 @@ test('regular and kiosk menus preserve prices and inactive products', () => {
   assert.deepEqual(catalog.applyPricingToMenu(rows).map(item => [item.id, item.price]), [['burger', 31.9]]);
   assert.deepEqual(catalog.applyPricingToMenu(rows, true).map(item => [item.id, item.price]), [[menu.MONSTER_ID, 33.9]]);
 });
-test('Monster requires neither meat point nor sauce and has only the event addon', () => {
+test('Monster requires neither meat point nor sauce and offers event sides at their individual prices', () => {
   const state = { item: menu.KIOSK_MENU_ITEMS[0], meatPoints: [], sauces: [], drinks: [], extras: {}, qty: 1, note: '' };
   const model = useProductCustomizerModel(state, () => {});
   assert.equal(model.valid, true);
   assert.equal(model.needsMeatPoint, false);
   assert.equal(model.needsSauce, false);
-  assert.deepEqual(model.extraOptions.map(item => item.id), [menu.MONSTER_ADDON_ID]);
+  assert.deepEqual(model.extraOptions.map(item => [item.id, item.price]), [[menu.MONSTER_ADDON_ID, 20.9], ["monster-coca-zero", 8.9], ["monster-batata-150g", 16.9]]);
+  for (const extra of model.extraOptions) {
+    const total = useProductCustomizerModel({ ...state, extras: { [extra.id]: 1 } }, () => {}).total;
+    assert.ok(Math.abs(total - (33.9 + extra.price)) < 0.001);
+    assert.equal(catalog.CUSTOMIZER_ADDON_IDS.has(extra.id), true);
+  }
   assert.equal(model.total, 33.9);
   assert.ok(Math.abs(useProductCustomizerModel({ ...state, extras: { [menu.MONSTER_ADDON_ID]: 1 } }, () => {}).total - 54.8) < 0.001);
   assert.equal(useProductCustomizerModel({ ...state, item: menu.MENU_ITEMS[0] }, () => {}).valid, false);
