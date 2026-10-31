@@ -1,3 +1,5 @@
+import { MONSTER_ID } from "@/features/catalog/menu";
+import { buildMonsterCartLines } from "@/features/catalog/monsterCart";
 import type React from "react";
 import type { CustomizerState } from "../shared";
 import {
@@ -43,7 +45,9 @@ export function useProductCustomizerModel(
     const drink = DRINK_OPTIONS.find((option) => option.id === drinkId);
     return sum + (COMBO_DRINK_SURCHARGE_PRODUCT_ID[drinkId] ? drink?.comboPrice ?? 0 : 0);
   }, 0);
-  const total = (state.item.price + drinkSurchargeTotal + (isSweetBox ? sweetTotal : extrasTotal)) * state.qty;
+  const total = state.item.id === MONSTER_ID
+    ? buildMonsterCartLines(state).reduce((sum, line) => sum + line.item.price * line.quantity, 0)
+    : (state.item.price + drinkSurchargeTotal + (isSweetBox ? sweetTotal : extrasTotal)) * state.qty;
   const valid = (!isSweetBox || sweetCount === SWEET_BOX_REQUIRED_COUNT)
     && (!isSalad || saladProteinCount === 1)
     && (!needsMeatPoint || state.meatPoints.length === requiredCount)

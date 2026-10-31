@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { CartItem, Order } from "@/types/order";
 import { ROSA, VERDE } from "@/utils/theme";
-import { MENU_ITEMS } from "@/features/catalog/menu";
+import { buildMonsterCartLines } from "@/features/catalog/monsterCart";
+import { MENU_ITEMS, MONSTER_ID, MONSTER_EXTRA_OPTIONS } from "@/features/catalog/menu";
 import { MenuItem, ProductCategory } from "@/features/catalog/types";
 import friesPhoto from "@/imports/image-20.png";
 import {
@@ -388,21 +389,26 @@ export function ProductScreen({
     }, 850);
   };
 
-  const openCustomizer = (item: MenuItem) => {
+  const openCustomizer = (item: MenuItem, initialExtras: Record<string, number> = {}) => {
     setCustomizer({
       item,
       meatPoints: [],
       sauces: [],
       drinks: [],
-      extras: {},
+      extras: initialExtras,
       qty: 1,
       note: "",
       spiceLevel: undefined,
     });
   };
 
-  const addMenuItem = (item: MenuItem) => {
-    openCustomizer(item);
+  const addMenuItem = (item: MenuItem, initialExtras?: Record<string, number>) => {
+    if (MONSTER_EXTRA_OPTIONS.some(extra => extra.id === item.id)) {
+      addToCart({ id: item.id, productId: item.id, name: item.name.toUpperCase(), price: item.price, components: [item.name], addonIds: [] });
+      showAddedConfirmation(item);
+      return;
+    }
+    openCustomizer(item, initialExtras);
   };
 
   const showAddedConfirmation = (item: MenuItem) => {
@@ -471,6 +477,14 @@ export function ProductScreen({
 
   const confirmCustomizer = () => {
     if (!customizer) return;
+    if (customizer.item.id === MONSTER_ID) {
+      for (const line of buildMonsterCartLines(customizer)) {
+        for (let i = 0; i < line.quantity; i += 1) addToCart(line.item);
+      }
+      showAddedConfirmation(customizer.item);
+      setCustomizer(null);
+      return;
+    }
     const meatRequired =
       !isChickenProduct(customizer.item) &&
       (customizer.item.category === "burger" ||

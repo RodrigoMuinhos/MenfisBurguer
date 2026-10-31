@@ -32,3 +32,17 @@ Remove the upper header and feature bars from the event page, show the full sand
 Validation: backend closed-store regression and full test suite (54 tests), frontend catalog/session regressions (5 tests), frontend contract tests, production build, desktop/mobile browser checks and intercepted counter checkout request (no real payment/order).
 
 See HALLOWEEN_ASSETS.md for the generated background path and prompt.
+## Update: independent cashier SKUs and combo offer
+
+V108 restores the Monster sandwich to R$ 33.90 and sets the Coca-Cola Zero + 150g fries accompaniment to R$ 16.90. The hero and customizer highlight this combo upgrade; selecting it in the hero preselects one accompaniment. Individual Coke (R$ 8.90) and fries (R$ 16.90) remain available.
+
+Monster customization emits independently quantified cart/order lines. Sandwich quantity no longer multiplies accompaniment quantity. Each side is a standalone products/pricing_products row with a separate cashier code:
+
+- menfis-monster: MONSTER
+- monster-coca-zero-batata: MONSTER-COMBO-ADD
+- monster-coca-zero: MONSTER-COCA-ZERO
+- monster-batata-150g: MONSTER-BATATA150
+
+Side SKUs are hidden from the ordinary catalog and displayed in explicit event accompaniment controls. Legacy addon records remain compatible with cached clients, but new Monster cart lines have no embedded addon IDs. Quantities can be changed independently in the cart, and sides can be added on their own from the event menu.
+
+Verified the local migration and cashier codes, frontend typecheck/build/contract tests, eight event regression tests, and mobile browser scenarios: 2 sandwiches + 1 combo accompaniment = R$ 84.70; 1 sandwich + 2 combo accompaniments = R$ 67.70. Browser checks inspect cart rows only and block every order POST URL on all hosts before transmission.

@@ -1,3 +1,4 @@
+import { MONSTER_ID, MONSTER_ADDON_ID } from "@/features/catalog/menu";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ChefHat, CheckCircle2, Minus, Plus, X } from "lucide-react";
@@ -396,9 +397,11 @@ export function ProductCustomizer({
 
           {!isSweetBox && (
           <OptionSection
-            title={isLemonade ? "Topping" : state.item.id === "chicken-menfis-salad" ? "Bebidas e adicionais" : "Extras"}
+            title={state.item.id === MONSTER_ID ? "Faça seu combo" : isLemonade ? "Topping" : state.item.id === "chicken-menfis-salad" ? "Bebidas e adicionais" : "Extras"}
             subtitle={
-              isLemonade
+              state.item.id === MONSTER_ID
+                ? "Quantidades independentes: escolha os acompanhamentos e ajuste os sanduíches abaixo."
+                : isLemonade
                 ? "Escolha Chantilly ou Espuma Ginger e, se quiser, adicione Vodka"
                 : state.item.id === "chicken-menfis-salad"
                   ? "Escolha bebidas e ingredientes extras"
@@ -408,36 +411,38 @@ export function ProductCustomizer({
             {extraOptions.filter((extra) => !SALAD_PROTEIN_OPTIONS.some((protein) => protein.id === extra.id)).map((extra) => {
               const quantity = state.extras[extra.id] ?? 0;
               const active = quantity > 0;
+              const comboOffer = state.item.id === MONSTER_ID && extra.id === MONSTER_ADDON_ID;
               return (
                 <div
                   key={extra.id}
                   className="flex w-full items-center justify-between gap-3 border-t px-5 py-4 text-left"
-                  style={{ borderColor: `${VERDE}10`, background: "#fff" }}
+                  style={{ borderColor: comboOffer ? "#7FD13B" : `${VERDE}10`, background: comboOffer ? "#5B2C82" : "#fff", color: comboOffer ? "#fff" : VERDE }}
                 >
                   <span className="flex items-center gap-3">
                     <OptionThumb src={extra.image} alt={extra.label} />
                     <span>
+                      {comboOffer && <span className="mb-1 block text-sm font-black uppercase text-[#7FD13B]">Por + R$ 16,90, faça seu combo</span>}
                       <span className="block text-sm font-bold">{extra.label}</span>
-                      <span className="text-xs text-black/50">+ {fmt(extra.price)}</span>
+                      <span className={comboOffer ? "text-xs text-white/75" : "text-xs text-black/50"}>+ {fmt(extra.price)}</span>
                     </span>
                   </span>
                   {active ? (
                     <span
                       className="grid h-10 w-32 grid-cols-3 overflow-hidden rounded-2xl"
-                      style={{ border: `1.5px solid ${VERDE}18` }}
+                      style={{ border: `1.5px solid ${comboOffer ? "#7FD13B80" : `${VERDE}18`}` }}
                     >
                       <button
                         type="button"
                         onClick={() => updateExtraQty(extra.id, -1)}
                         className="flex items-center justify-center"
-                        style={{ color: VERDE }}
+                        style={{ color: comboOffer ? "#7FD13B" : VERDE }}
                         aria-label={`Remover ${extra.label}`}
                       >
                         <Minus size={15} strokeWidth={2.6} />
                       </button>
                       <span
                         className="flex items-center justify-center text-sm font-black"
-                        style={{ background: VERDE, color: ROSA }}
+                        style={{ background: comboOffer ? "#7FD13B" : VERDE, color: comboOffer ? "#1A1A1A" : ROSA }}
                       >
                         {quantity}
                       </span>
@@ -446,7 +451,7 @@ export function ProductCustomizer({
                         onClick={() => updateExtraQty(extra.id, 1)}
                         disabled={isLemonade || quantity >= 3}
                         className="flex items-center justify-center disabled:opacity-35"
-                        style={{ color: VERDE }}
+                        style={{ color: comboOffer ? "#7FD13B" : VERDE }}
                         aria-label={`Adicionar ${extra.label}`}
                       >
                         <Plus size={15} strokeWidth={2.6} />
@@ -457,7 +462,7 @@ export function ProductCustomizer({
                       type="button"
                       onClick={() => updateExtraQty(extra.id, 1)}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-lg font-black"
-                      style={{ background: "#F8F4F5", color: VERDE }}
+                      style={{ background: comboOffer ? "#7FD13B" : "#F8F4F5", color: comboOffer ? "#1A1A1A" : VERDE }}
                       aria-label={`Adicionar ${extra.label}`}
                     >
                       +
@@ -494,6 +499,7 @@ export function ProductCustomizer({
             style={{ border: `1.5px solid ${superTheme ? `${superAccent}66` : `${VERDE}12`}` }}
           >
             <button
+              aria-label={state.item.id === MONSTER_ID ? "Remover sanduíche" : "Diminuir quantidade"}
               onClick={() => setState((prev) => (prev ? { ...prev, qty: Math.max(1, prev.qty - 1) } : prev))}
               className="flex items-center justify-center"
               style={{ color: superTheme ? superAccent : VERDE }}
@@ -504,6 +510,7 @@ export function ProductCustomizer({
               {state.qty}
             </div>
             <button
+              aria-label={state.item.id === MONSTER_ID ? "Adicionar sanduíche" : "Aumentar quantidade"}
               onClick={() => setState((prev) => (prev ? { ...prev, qty: prev.qty + 1 } : prev))}
               className="flex items-center justify-center"
               style={{ color: superTheme ? superAccent : VERDE }}

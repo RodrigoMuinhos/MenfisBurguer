@@ -24,9 +24,9 @@ const catalog = load('src/components/product/screen/productCatalog.ts');
 const { useProductCustomizerModel } = load('src/components/product/customizer/useProductCustomizerModel.ts');
 
 test('regular and kiosk menus preserve prices and inactive products', () => {
-  const rows = [{ id: 'burger', active: true, salePrice: 31.9 }, { id: menu.MONSTER_ID, active: true, salePrice: 29.9 }, { id: 'double-burger', active: false, salePrice: 35.9 }];
+  const rows = [{ id: 'burger', active: true, salePrice: 31.9 }, { id: menu.MONSTER_ID, active: true, salePrice: 33.9 }, { id: 'double-burger', active: false, salePrice: 35.9 }];
   assert.deepEqual(catalog.applyPricingToMenu(rows).map(item => [item.id, item.price]), [['burger', 31.9]]);
-  assert.deepEqual(catalog.applyPricingToMenu(rows, true).map(item => [item.id, item.price]), [[menu.MONSTER_ID, 29.9]]);
+  assert.deepEqual(catalog.applyPricingToMenu(rows, true).map(item => [item.id, item.price]), [[menu.MONSTER_ID, 33.9]]);
 });
 test('Monster requires neither meat point nor sauce and offers event sides at their individual prices', () => {
   const state = { item: menu.KIOSK_MENU_ITEMS[0], meatPoints: [], sauces: [], drinks: [], extras: {}, qty: 1, note: '' };
@@ -34,13 +34,13 @@ test('Monster requires neither meat point nor sauce and offers event sides at th
   assert.equal(model.valid, true);
   assert.equal(model.needsMeatPoint, false);
   assert.equal(model.needsSauce, false);
-  assert.deepEqual(model.extraOptions.map(item => [item.id, item.price]), [[menu.MONSTER_ADDON_ID, 20.9], ["monster-coca-zero", 8.9], ["monster-batata-150g", 16.9]]);
+  assert.deepEqual(model.extraOptions.map(item => [item.id, item.price]), [[menu.MONSTER_ADDON_ID, 16.9], ["monster-coca-zero", 8.9], ["monster-batata-150g", 16.9]]);
   for (const extra of model.extraOptions) {
     const total = useProductCustomizerModel({ ...state, extras: { [extra.id]: 1 } }, () => {}).total;
-    assert.ok(Math.abs(total - (29.9 + extra.price)) < 0.001);
+    assert.ok(Math.abs(total - (33.9 + extra.price)) < 0.001);
     assert.equal(catalog.CUSTOMIZER_ADDON_IDS.has(extra.id), true);
   }
-  assert.equal(model.total, 29.9);
+  assert.equal(model.total, 33.9);
   assert.ok(Math.abs(useProductCustomizerModel({ ...state, extras: { [menu.MONSTER_ADDON_ID]: 1 } }, () => {}).total - 50.8) < 0.001);
   assert.equal(useProductCustomizerModel({ ...state, item: menu.MENU_ITEMS[0] }, () => {}).valid, false);
 });
@@ -62,4 +62,26 @@ test('event profile survives reload without an invented phone', () => {
   global.localStorage = { getItem: () => JSON.stringify({ name: 'Halloween', email: 'halloween@gmail.com', phone: '' }) };
   try { assert.equal(shared.readMemberProfile().email, 'halloween@gmail.com'); }
   finally { delete global.window; delete global.localStorage; }
+});
+
+test('two sandwiches and one combo accompaniment keep separate quantities and cashier IDs', () => {
+  const { buildMonsterCartLines } = load('src/features/catalog/monsterCart.ts');
+  const state = { item: menu.KIOSK_MENU_ITEMS[0], meatPoints: [], sauces: [], drinks: [], extras: { [menu.MONSTER_ADDON_ID]: 1 }, qty: 2, note: '' };
+  const lines = buildMonsterCartLines(state);
+  assert.deepEqual(lines.map(line => [line.item.productId, line.quantity, line.item.price]), [
+    [menu.MONSTER_ID, 2, 33.9], [menu.MONSTER_ADDON_ID, 1, 16.9],
+  ]);
+  assert(lines.every(line => line.item.addonIds.length === 0));
+  assert.ok(Math.abs(useProductCustomizerModel(state, () => {}).total - 84.7) < 0.001);
+});
+test('one sandwich and two combo accompaniments remain independent of sandwich quantity', () => {
+  const { buildMonsterCartLines } = load('src/features/catalog/monsterCart.ts');
+  const state = { item: menu.KIOSK_MENU_ITEMS[0], meatPoints: [], sauces: [], drinks: [], extras: { [menu.MONSTER_ADDON_ID]: 2 }, qty: 1, note: '' };
+  assert.deepEqual(buildMonsterCartLines(state).map(line => [line.item.productId, line.quantity]), [[menu.MONSTER_ID, 1], [menu.MONSTER_ADDON_ID, 2]]);
+  assert.ok(Math.abs(useProductCustomizerModel(state, () => {}).total - 67.7) < 0.001);
+});
+test('cashier side SKUs never leak into regular catalog or duplicate the event side controls', () => {
+  const rows = menu.MONSTER_EXTRA_OPTIONS.map(extra => ({ id: extra.id, name: extra.label, active: true, sale_price: extra.price, kind: 'side' }));
+  assert.deepEqual(catalog.applyPricingToMenu(rows), []);
+  assert.deepEqual(catalog.applyPricingToMenu(rows, false, true), []);
 });
