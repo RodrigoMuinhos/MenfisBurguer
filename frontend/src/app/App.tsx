@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useHalloweenTheme } from "@/utils/useHalloweenTheme";
 import { isHalloweenAccount } from "@/utils/halloween";
 import { ProductScreen } from "@/components/product/ProductScreen";
 import { CartScreen } from "@/components/order/CartScreen";
@@ -101,6 +102,7 @@ function notificationForOrder(
 }
 
 export default function App({ mode }: { mode?: AppMode }) {
+  const halloweenTheme = useHalloweenTheme();
   const appMode = resolveAppMode(mode);
   const adminOnlyMode =
     appMode === "admin" || appMode === "kds" || appMode === "notes";
@@ -620,6 +622,7 @@ export default function App({ mode }: { mode?: AppMode }) {
 
   return (
     <div
+      data-event-theme={halloweenTheme ? "halloween" : undefined}
       className="size-full flex flex-col"
       style={{
         fontFamily: "'Inter', system-ui, sans-serif",

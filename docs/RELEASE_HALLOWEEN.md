@@ -46,3 +46,10 @@ Monster customization emits independently quantified cart/order lines. Sandwich 
 Side SKUs are hidden from the ordinary catalog and displayed in explicit event accompaniment controls. Legacy addon records remain compatible with cached clients, but new Monster cart lines have no embedded addon IDs. Quantities can be changed independently in the cart, and sides can be added on their own from the event menu.
 
 Verified the local migration and cashier codes, frontend typecheck/build/contract tests, eight event regression tests, and mobile browser scenarios: 2 sandwiches + 1 combo accompaniment = R$ 84.70; 1 sandwich + 2 combo accompaniments = R$ 67.70. Browser checks inspect cart rows only and block every order POST URL on all hosts before transmission.
+## Update: full Halloween session palette
+
+The authenticated event account now carries an application-level theme through menu, product customization, cart, review, payment/name prompts, keyboard, profile and status surfaces. The shared black/orange/purple/green palette replaces legacy white/pink inline surfaces only within that account's application root. Normal visitor/customer/admin views keep their existing colors.
+
+A session external-store subscription updates the scope immediately on login, profile/session refresh and logout, and handles cross-tab storage changes. The Pix QR artwork retains a white backing and its original black/white contrast. This change does not create orders, change prices or alter payment rules.
+
+Validation: frontend typecheck, event catalog regressions, SEO/PIN/guest-checkout contract tests, production build, visual/computed-color checks for personalization, cart, payment/name prompts, keyboard and profile, plus normal-session and logout theme isolation. All browser order POSTs are blocked on every host.

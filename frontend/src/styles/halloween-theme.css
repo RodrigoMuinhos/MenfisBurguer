@@ -1,0 +1,116 @@
+/* Account-scoped palette shared by menu, checkout, dialogs, profile and keyboard.
+   Legacy components still use inline brand hex values; this compatibility layer
+   maps those surfaces only inside the event scope, leaving ordinary modes intact. */
+[data-event-theme="halloween"] {
+  --halloween-black: #1a1a1a;
+  --halloween-surface: #242124;
+  --halloween-purple: #5b2c82;
+  --halloween-orange: #e8641c;
+  --halloween-green: #7fd13b;
+  --halloween-text: #fff7ed;
+  color-scheme: dark;
+  background: var(--halloween-black) !important;
+  color: var(--halloween-text) !important;
+}
+[data-event-theme="halloween"] :is(
+  [class~="bg-white"], [class*="bg-[#fff" i], [class*="bg-[#f8f4f5" i],
+  [style*="background: rgb(255, 255, 255)"], [style*="background:#fff" i], [style*="background: #fff" i],
+  [style*="background: rgb(248, 244, 245)"], [style*="background:#f8f4f5" i], [style*="background: #f8f4f5" i],
+  [style*="background: rgb(255, 248, 242)"], [style*="background: rgb(255, 233, 236)"],
+  [style*="background: rgb(249, 249, 249)"], [style*="background: rgb(250, 250, 250)"],
+  [style*="background: rgb(245, 245, 245)"], [style*="background: rgb(244, 244, 244)"],
+  [style*="background:#f5f5f5" i], [style*="background: #f5f5f5" i],
+  [style*="background:#f4f4f4" i], [style*="background: #f4f4f4" i]
+) { background: var(--halloween-surface) !important; color: var(--halloween-text) !important; }
+[data-event-theme="halloween"] :is(
+  [class*="bg-white/"], [style*="background: rgba(255, 255, 255,"],
+  [style*="background:rgba(255,255,255,"],
+  [style*="background: rgba(101, 0, 31,"], [style*="background:rgba(101,0,31,"]
+) { background: rgba(26,26,26,.95) !important; }
+[data-event-theme="halloween"] :is(
+  [class*="text-black"], [class*="text-gray-"], [class*="text-zinc-"],
+  [class*="text-[#65001f]" i], [class*="text-[#65001F]"],
+  [style*="color: rgb(101, 0, 31)"], [style*="color:#65001f" i], [style*="color: #65001f" i],
+  [style*="color: rgb(24, 24, 27)"], [style*="color: rgb(31, 31, 31)"],
+  [style*="color: rgb(34, 34, 34)"], [style*="color: rgb(0, 0, 0)"],
+  [style*="color: #18181b" i], [style*="color: #1f1f1f" i], [style*="color: #222" i]
+) { color: var(--halloween-text) !important; }
+[data-event-theme="halloween"] :is(
+  [style*="color: rgba(101, 0, 31,"], [style*="color:rgba(101,0,31,"],
+  [style*="color: rgba(0, 0, 0,"], [style*="color:rgba(0,0,0,"]
+) { color: rgba(255,247,237,.7) !important; }
+[data-event-theme="halloween"] :is(
+  [style*="background: rgb(101, 0, 31)"], [style*="background:#65001f" i], [style*="background: #65001f" i],
+  [class*="bg-[#65001f]" i]
+) { background: var(--halloween-purple) !important; color: var(--halloween-text) !important; }
+[data-event-theme="halloween"] :is(
+  [style*="background: rgb(101, 0, 31)"], [style*="background:#65001f" i], [style*="background: #65001f" i],
+  [class*="bg-[#65001f]" i]
+) * { color: inherit !important; }
+[data-event-theme="halloween"] :is(
+  [style*="background: rgba(255, 186, 207,"], [style*="background:rgba(255,186,207,"],
+  [class*="bg-pink-"], [style*="background: rgb(255, 186, 207)"],
+  [style*="background:#ffbacf" i], [style*="background: #ffbacf" i]
+) { background: #3b254b !important; color: var(--halloween-text) !important; }
+[data-event-theme="halloween"] :is(
+  [class*="text-pink-"], [class*="text-[#ff3f87]" i],
+  [style*="color: rgb(255, 186, 207)"], [style*="color: #ffbacf" i]
+) { color: var(--halloween-green) !important; }
+[data-event-theme="halloween"] :is(
+  [class*="border-pink-"], [style*="border-color: rgb(101, 0, 31)"],
+  [style*="border-color: rgba(101, 0, 31,"], [style*="border-color: rgb(255, 186, 207)"],
+  [style*="border-color: rgba(255, 186, 207,"],
+  [style*="border:"][style*="rgb(101, 0, 31)"],
+  [style*="border:"][style*="rgb(255, 186, 207)"],
+  [style*="border:"][style*="#65001f" i], [style*="border:"][style*="#ffbacf" i]
+) { border-color: #5b2c8280 !important; }
+[data-event-theme="halloween"] :is(input,textarea,select) {
+  background: var(--halloween-black) !important;
+  border-color: #5b2c82 !important;
+  color: var(--halloween-text) !important;
+  caret-color: var(--halloween-green);
+  accent-color: var(--halloween-green);
+}
+[data-event-theme="halloween"] :is(input,textarea)::placeholder { color: #fff7ed88 !important; }
+[data-event-theme="halloween"] :is(button,a,input,textarea,select,[tabindex]):focus-visible {
+  outline: 3px solid var(--halloween-green) !important;
+  outline-offset: 3px;
+}
+[data-event-theme="halloween"] :is([class*="text-red-"],[class*="text-rose-"]) { color: #ffad7f !important; }
+[data-event-theme="halloween"] [class*="text-green-"] { color: var(--halloween-green) !important; }
+/* QR artwork retains its own black/white contrast for bank-camera scanning. */
+[data-event-theme="halloween"] [data-halloween-qr] { background: #fff !important; color: #000 !important; padding: 12px; border-radius: 12px; }
+@media print {
+  [data-event-theme="halloween"] { color-scheme: light; background: #fff !important; color: #000 !important; }
+}
+
+[data-event-theme="halloween"] :is(
+  [style*="color: rgb(153, 27, 27)"], [style*="color: rgb(185, 28, 28)"],
+  [style*="color:#991b1b" i], [style*="color: #991b1b" i],
+  [class*="text-[#EC1767]" i], [style*="color: rgb(236, 23, 103)"]
+) { color: var(--halloween-orange) !important; }
+[data-event-theme="halloween"] :is(
+  [style*="border"][style*="255, 186, 207"], [style*="border"][style*="101, 0, 31"],
+  [style*="border"][style*="#FCA5A5" i]
+) { border-color: #5b2c8280 !important; }
+
+/* Shared success, warning and error surfaces use the same event palette. */
+[data-event-theme="halloween"] :is(
+  [class*="bg-green-"], [class*="bg-emerald-"],
+  [style*="background: rgb(220, 252, 231)"], [style*="background: rgb(236, 253, 245)"],
+  [style*="background: #DCFCE7" i], [style*="background: #ECFDF5" i]
+) { background: #253020 !important; color: var(--halloween-green) !important; }
+[data-event-theme="halloween"] :is(
+  [class*="bg-yellow-"], [class*="bg-amber-"], [class*="bg-red-"], [class*="bg-rose-"],
+  [style*="background: rgb(255, 251, 235)"], [style*="background: rgb(254, 242, 242)"],
+  [style*="background: rgb(254, 202, 202)"], [style*="background: rgb(255, 248, 231)"],
+  [style*="background: #FFFBEB" i], [style*="background: #FEF2F2" i],
+  [style*="background: #FECACA" i], [style*="background: #FFF8E7" i]
+) { background: #38241d !important; color: #ffad7f !important; }
+[data-event-theme="halloween"] :is(
+  [class*="bg-gray-50"], [class*="bg-gray-100"], [class*="bg-zinc-50"], [class*="bg-zinc-100"],
+  [style*="background: rgb(255, 244, 247)"], [style*="background: rgb(255, 240, 245)"]
+) { background: var(--halloween-surface) !important; color: var(--halloween-text) !important; }
+[data-event-theme="halloween"] :is(
+  [style*="color: rgb(22, 163, 74)"], [style*="color: #16A34A" i]
+) { color: var(--halloween-green) !important; }

@@ -1,3 +1,4 @@
+import { notifyCustomerSessionChanged } from "@/utils/halloween";
 import {
   MemberProfile,
   MEMBER_KEY,
@@ -64,6 +65,7 @@ export async function saveCustomerSession(payload: CustomerPayload) {
   const profile = normalizeCustomer(data.customer);
   localStorage.setItem(MEMBER_TOKEN_KEY, data.token);
   localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+  notifyCustomerSessionChanged();
   return profile;
 }
 
@@ -79,6 +81,7 @@ export async function loginCustomerSession(payload: LoginPayload) {
   const profile = normalizeCustomer(data.customer);
   localStorage.setItem(MEMBER_TOKEN_KEY, data.token);
   localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+  notifyCustomerSessionChanged();
   return profile;
 }
 
@@ -106,6 +109,7 @@ export async function resetCustomerPassword(payload: ResetPasswordPayload) {
   const profile = normalizeCustomer(data.customer);
   localStorage.setItem(MEMBER_TOKEN_KEY, data.token);
   localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+  notifyCustomerSessionChanged();
   return profile;
 }
 
@@ -121,6 +125,7 @@ export async function loadCustomerSession() {
     if (!res.ok) return cachedProfile;
     const profile = normalizeCustomer(await res.json());
     localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+    notifyCustomerSessionChanged();
     return profile;
   } catch {
     return cachedProfile;
@@ -142,12 +147,14 @@ export async function updateCustomerProfile(payload: UpdateProfilePayload) {
   if (!res.ok) throw new Error(data.error || "customer_update_failed");
   const profile = normalizeCustomer(data);
   localStorage.setItem(MEMBER_KEY, JSON.stringify(profile));
+  notifyCustomerSessionChanged();
   return profile;
 }
 
 export function logoutCustomerSession() {
   localStorage.removeItem(MEMBER_TOKEN_KEY);
   localStorage.removeItem(MEMBER_KEY);
+  notifyCustomerSessionChanged();
 }
 
 function normalizeCustomer(raw: any): MemberProfile {

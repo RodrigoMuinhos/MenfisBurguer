@@ -103,7 +103,7 @@ export function MercadoPagoPixModal({ request, onClose, autoCloseExpiredMs }: {
         <p className="mt-2 text-sm">Escaneie no aplicativo do seu banco.</p>
         <p className="mt-3 text-3xl font-black">{fmt(Number(request.order.total))}</p>
         {expired ? <p className="my-6 font-bold">Esta cobrança foi encerrada. Não efetue o pagamento.</p>
-          : qrImage ? <img src={qrImage} alt="QR Code Pix gerado pelo Mercado Pago para este pedido"
+          : qrImage ? <img data-halloween-qr src={qrImage} alt="QR Code Pix gerado pelo Mercado Pago para este pedido"
             className="mx-auto my-4 aspect-square w-full max-w-80 object-contain" />
           : <p className="my-8" role="status">Gerando QR Code no Mercado Pago…</p>}
         {code && !expired && <button type="button" className="rounded-xl bg-[#65001f] px-6 py-3 font-bold text-white"
