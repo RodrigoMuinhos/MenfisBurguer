@@ -108,9 +108,8 @@ export const EXTRA_OPTIONS = [
 ];
 
 export const LEMONADE_TOPPING_OPTIONS = [
-  { id: "topping-chantilly", label: "Chantilly", price: 3, image: "/logo_M.jpeg" },
-  { id: "topping-espuma-ginger", label: "Espuma Ginger", price: 3, image: "/logo_M.jpeg" },
-  { id: "adicional-vodka", label: "Adicional de Vodka", price: 6.5, image: "/logo_M.jpeg" },
+  { id: "adicional-vodka", label: "Drink com vodka", price: 4.5, image: "/logo_M.jpeg" },
+  { id: "adicional-cachaca", label: "Drink com aguardente", price: 4.5, image: "/logo_M.jpeg" },
 ];
 
 export const SALAD_LEMONADE_OPTIONS = [

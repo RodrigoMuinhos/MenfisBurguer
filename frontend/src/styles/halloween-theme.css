@@ -119,7 +119,7 @@
 html:has([data-event-theme="halloween"]), body:has([data-event-theme="halloween"]) { background: var(--halloween-black, #1a1a1a) !important; }
 [data-event-theme="halloween"] {
   min-height: 100dvh;
-  background: linear-gradient(180deg,rgba(26,26,26,.55),rgba(26,26,26,.7)), url('/menu/halloween-bats.png') center bottom / cover fixed, #1a1a1a !important;
+  background: linear-gradient(180deg,rgba(26,26,26,.55),rgba(26,26,26,.7)), url('/menu/halloween-bats.png') center bottom / cover no-repeat, #1a1a1a !important;
 }
 [data-event-theme="halloween"] > div > :is([style*="background: rgb(255, 255, 255)"], [class~="bg-white"], [style*="background: rgb(248, 244, 245)"]) { background: transparent !important; }
 @media print {
