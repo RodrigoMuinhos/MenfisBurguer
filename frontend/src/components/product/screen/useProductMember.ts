@@ -126,7 +126,7 @@ export function useProductMember(kioskMode: boolean, onReadNotifications?: () =>
       setMemberError("Falta preencher: telefone, email ou CPF.");
       return;
     }
-    if (password.length !== 6) {
+    if (!isValidMemberPin(password)) {
       setMemberError("Falta preencher: senha de 6 dígitos.");
       return;
     }

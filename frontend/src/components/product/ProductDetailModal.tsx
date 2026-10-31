@@ -36,6 +36,7 @@ function comboPotatoLabel(item: MenuItem) {
 }
 
 function productStory(item: MenuItem) {
+  if (item.id === "menfis-monster") return item.desc;
   if (isSuperProduct(item)) return item.desc;
   if (item.id === "chicken-menfis-salad") return item.desc;
   const name = item.name.toLowerCase();
@@ -65,6 +66,7 @@ function productStory(item: MenuItem) {
 }
 
 function productIngredients(item: MenuItem) {
+  if (item.id === "menfis-monster") return item.desc;
   if (isSuperProduct(item)) return item.desc;
   if (item.id === "chicken-menfis-salad") return item.desc;
   const name = item.name.toLowerCase();
@@ -115,6 +117,7 @@ function productIngredients(item: MenuItem) {
 }
 
 function productWeight(item: MenuItem) {
+  if (item.id === "menfis-monster") return "Frango crocante 130g.";
   const name = item.name.toLowerCase();
   const isBig = item.id.includes("double");
   const isSuper = name.includes("super");
@@ -297,7 +300,7 @@ export function ProductDetailModal({
             </div>
             <DetailInfo
               title="Observações"
-              copy={isSweetBrioche
+              copy={item.id === "menfis-monster" ? "Adicional opcional: Coca-Cola Zero + batata 150g por R$ 20,90." : isSweetBrioche
                 ? "Produto individual. Informe observações antes de adicionar ao carrinho."
                 : "Ponto da carne, molhos, bebidas, adicionais e quantidade são escolhidos antes de adicionar ao carrinho."}
               dark={dark}
@@ -310,7 +313,7 @@ export function ProductDetailModal({
               Opções disponíveis
             </p>
             <p className="mt-1 text-xs font-bold leading-relaxed opacity-70">
-              {item.category === "combo"
+              {item.id === "menfis-monster" ? "Adicione Coca-Cola Zero + batata 150g por R$ 20,90." : item.category === "combo"
                 ? "Escolha ponto, molho, bebida e adicionais antes de adicionar ao pedido."
                 : item.category === "burger"
                   ? isSuperProduct(item)

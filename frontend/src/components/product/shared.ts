@@ -1,3 +1,4 @@
+import { MONSTER_ID, MONSTER_ADDON } from "@/features/catalog/menu";
 import type { StaticImageData } from "next/image";
 import { Beef, Candy, CupSoda, Package, Plus, Salad, Utensils } from "lucide-react";
 import { CartItem } from "@/types/order";
@@ -171,7 +172,7 @@ export function imageSrc(image?: StaticImageData | string) {
 }
 
 export function isChickenProduct(item: MenuItem) {
-  return item.id.includes("chicken");
+  return item.id === MONSTER_ID || item.id.includes("chicken");
 }
 
 export function isNuggetsProduct(item: MenuItem) {
@@ -298,6 +299,7 @@ export function sweetCardPriceLabel(item: MenuItem) {
 }
 
 export function getExtraOptionsForItem(item: MenuItem) {
+  if (item.id === MONSTER_ID) return [MONSTER_ADDON];
   if (isLemonadeProduct(item)) {
     return LEMONADE_TOPPING_OPTIONS;
   }

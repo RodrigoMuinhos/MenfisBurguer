@@ -145,7 +145,7 @@ public class CustomerService {
     String login = request.login() == null ? "" : request.login().trim().toLowerCase(Locale.ROOT);
     String cpfDigits = digits(login);
     String password = request.password() == null ? "" : request.password().trim();
-    if (login.isBlank() || password.length() != 6) {
+    if (login.isBlank() || !password.matches("[0-9]{6}")) {
       throw new IllegalArgumentException("invalid_customer_credentials");
     }
 

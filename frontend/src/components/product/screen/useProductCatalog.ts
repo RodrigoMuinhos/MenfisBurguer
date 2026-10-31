@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MENU_ITEMS } from "@/features/catalog/menu";
+import { MENU_ITEMS, KIOSK_MENU_ITEMS } from "@/features/catalog/menu";
 import type { MenuItem } from "@/features/catalog/types";
 import { DEFAULT_PRESENTATION_SETTINGS, DEFAULT_SPECIAL_OFFER_SETTINGS, type CarouselCardSettings, type PromoCard, type SpecialOfferSettings, normalizePresentationSettings, normalizePromoCards, normalizeSpecialOfferSettings } from "@/components/order/checkout";
 import { CATEGORIES, imageSrc, isSpecialOfferOnlyProduct, isSuperProduct, sortCatalogItems, sortComboRows } from "../shared";
@@ -8,8 +8,8 @@ import { specialOfferSessionKey } from "./ProductScreenOverlays";
 import { DEFAULT_LEMONADE_SETTINGS, normalizeLemonadeSettings } from "../LemonadeShowcase";
 import { API_URL, DEFAULT_FEATURED_PRODUCT_ID, PRICING_ROWS_CACHE_KEY, PUBLIC_SETTINGS_CACHE_KEY, applyPricingToMenu, freshApiUrl, preloadClientImages, readJsonCache, writeJsonCache } from "./productCatalog";
 
-export function useProductCatalog(kioskMode: boolean) {
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>("combo");
+export function useProductCatalog(kioskMode: boolean, halloweenAccount = false) {
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>(kioskMode ? "burger" : "combo");
   const [featuredProductId, setFeaturedProductId] = useState("");
   const [featuredImage, setFeaturedImage] = useState("");
   const [featuredTitle, setFeaturedTitle] = useState("");
@@ -24,7 +24,7 @@ export function useProductCatalog(kioskMode: boolean) {
   const [operatingHoursMessage, setOperatingHoursMessage] = useState("");
   const [soldOutEnabled, setSoldOutEnabled] = useState(false);
   const [soldOutMessage, setSoldOutMessage] = useState(SOLD_OUT_MESSAGE);
-  const [catalogItems, setCatalogItems] = useState<MenuItem[]>(() => API_URL ? [] : MENU_ITEMS);
+  const [catalogItems, setCatalogItems] = useState<MenuItem[]>(() => API_URL ? [] : (kioskMode ? KIOSK_MENU_ITEMS : MENU_ITEMS));
   const [catalogLoaded, setCatalogLoaded] = useState(!API_URL);
   const [soldOutAlertOpen, setSoldOutAlertOpen] = useState(false);
   const [lemonadeSettings, setLemonadeSettings] = useState(DEFAULT_LEMONADE_SETTINGS);
@@ -53,13 +53,13 @@ export function useProductCatalog(kioskMode: boolean) {
   const specialOfferProductAvailable = catalogItems.some((item) => item.id === specialOffer.productId);
 
   const applyPublicSettings = (settings: Record<string, unknown> | null | undefined) => {
-    setFeaturedProductId(settings?.featuredProductId ? String(settings.featuredProductId) : DEFAULT_FEATURED_PRODUCT_ID);
+    setFeaturedProductId(kioskMode ? "menfis-monster" : settings?.featuredProductId ? String(settings.featuredProductId) : DEFAULT_FEATURED_PRODUCT_ID);
     const presentation = normalizePresentationSettings(settings?.presentation);
     const offer = normalizeSpecialOfferSettings(settings?.specialOffer);
-    setFeaturedImage(presentation.featuredImage ?? ""); setFeaturedTitle(presentation.featuredTitle ?? "");
+    setFeaturedImage(kioskMode ? "/menu/MenfisMonster.png" : presentation.featuredImage ?? ""); setFeaturedTitle(kioskMode ? "Menfis Monster" : presentation.featuredTitle ?? "");
     setCarouselIntervalSeconds(presentation.carouselIntervalSeconds);
-    setCarouselCards(presentation.carouselCards);
-    setPromoCards(normalizePromoCards(settings?.promoCards)); setSpecialOffer(offer);
+    setCarouselCards(kioskMode ? [{ id: "halloween", enabled: true, productId: "menfis-monster", eyebrow: "Especial de Halloween", title: "Menfis Monster", subtitle: "Monstruosamente delicioso · R$ 33,90", image: "/menu/MenfisMonster.png", actionLabel: "Quero o meu" }] : presentation.carouselCards);
+    setPromoCards(kioskMode ? [] : normalizePromoCards(settings?.promoCards)); setSpecialOffer(kioskMode || halloweenAccount ? { ...offer, enabled: false } : offer);
     setLemonadeSettings(normalizeLemonadeSettings(settings?.lemonade));
     preloadClientImages([presentation.featuredImage, featuredItem?.image ? imageSrc(featuredItem.image) : undefined, offer.image]);
     setOperatingNow(settings?.operatingNow !== false); setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
@@ -77,7 +77,7 @@ export function useProductCatalog(kioskMode: boolean) {
       .then((response) => response.ok ? response.json() : null).then((settings) => { if (cancelled) return; if (settings) writeJsonCache(PUBLIC_SETTINGS_CACHE_KEY, settings); applyPublicSettings(settings); })
       .catch(() => undefined).finally(() => { if (!cancelled) setHeroSettingsLoaded(true); });
     return () => { cancelled = true; };
-  }, []);
+  }, [kioskMode, halloweenAccount]);
 
   useEffect(() => { preloadClientImages([featuredImage, featuredItem?.image ? imageSrc(featuredItem.image) : undefined]); }, [featuredImage, featuredItem?.id, featuredItem?.image]);
   useEffect(() => {
@@ -91,11 +91,11 @@ export function useProductCatalog(kioskMode: boolean) {
   useEffect(() => {
     if (typeof window === "undefined" || !API_URL) return;
     setCatalogLoaded(false); const cached = readJsonCache<Array<Record<string, unknown>>>(PRICING_ROWS_CACHE_KEY, []);
-    if (cached.length) { const items = applyPricingToMenu(cached); setCatalogItems(items); preloadClientImages(items.map((item) => imageSrc(item.image))); }
+    if (cached.length) { const items = applyPricingToMenu(cached, kioskMode); setCatalogItems(items); preloadClientImages(items.map((item) => imageSrc(item.image))); }
     fetch(freshApiUrl("/pricing"), { cache: "no-store", headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } })
-      .then((response) => response.ok ? response.json() : []).then((rows) => { if (!Array.isArray(rows)) return; writeJsonCache(PRICING_ROWS_CACHE_KEY, rows); const items = applyPricingToMenu(rows); setCatalogItems(items); preloadClientImages(items.map((item) => imageSrc(item.image))); })
+      .then((response) => response.ok ? response.json() : []).then((rows) => { if (!Array.isArray(rows)) return; writeJsonCache(PRICING_ROWS_CACHE_KEY, rows); const items = applyPricingToMenu(rows, kioskMode); setCatalogItems(items); preloadClientImages(items.map((item) => imageSrc(item.image))); })
       .catch(() => { if (!cached.length) setCatalogItems([]); }).finally(() => setCatalogLoaded(true));
-  }, []);
+  }, [kioskMode, halloweenAccount]);
 
   return { category,setCategory,featuredImage,featuredTitle,carouselIntervalSeconds,carouselCards,heroSettingsLoaded,promoCards,specialOffer,specialOfferOpen,setSpecialOfferOpen,operatingNow,operatingHoursSummary,operatingHoursMessage,soldOutEnabled,soldOutMessage,catalogItems,catalogLoaded,soldOutAlertOpen,setSoldOutAlertOpen,filteredItems,featuredItem,lemonadeSettings };
 }

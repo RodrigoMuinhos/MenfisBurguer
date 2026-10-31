@@ -220,7 +220,7 @@ export function ProductHero({
 
           <div className="flex flex-wrap gap-2">
             {(kioskMode
-              ? ["Burger suculento", "Molho da casa", "Retirada rápida"]
+              ? ["Halloween", "Frango 130g", "Brioche negro"]
               : ["Burger 100g", "Cheddar duplo", "Molho especial"]
             ).map((tag, index) => (
               <span
@@ -251,7 +251,7 @@ export function ProductHero({
             }}
           >
             {kioskMode
-              ? "Monte seu combo. Confirme seu pedido. Mate sua fome."
+              ? "Menfis Monster"
               : "Burger no ponto, delivery sem enrolação"}
           </h1>
           <p
@@ -436,17 +436,19 @@ export function CategoryTabs({
   setCategory,
   showKioskOnly = false,
   showSalad = false,
+  kioskMode = false,
 }: {
   category: (typeof CATEGORIES)[number]["id"];
   setCategory: (category: (typeof CATEGORIES)[number]["id"]) => void;
   showKioskOnly?: boolean;
   showSalad?: boolean;
+  kioskMode?: boolean;
 }) {
   return (
     <section className="mt-5 px-4">
       <div className="flex gap-2 overflow-x-auto pb-1">
         {CATEGORIES.filter(({ id }) =>
-          (showKioskOnly || id !== "lemonade") && (showSalad || id !== "salad")
+          kioskMode ? id === "burger" : (showKioskOnly || id !== "lemonade") && (showSalad || id !== "salad")
         ).map(({ id, label, Icon }) => {
           const active = category === id;
           return (

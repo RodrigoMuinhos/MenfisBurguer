@@ -105,6 +105,7 @@ export function MobileMenuExperience({
   soldOutMessage = SOLD_OUT_MESSAGE,
   lemonadeSettings = DEFAULT_LEMONADE_SETTINGS,
   fullCatalog = false,
+  kioskMode = false,
 }: {
   items: MenuItem[];
   cartCount: number;
@@ -127,8 +128,9 @@ export function MobileMenuExperience({
   soldOutMessage?: string;
   lemonadeSettings?: LemonadeSettings;
   fullCatalog?: boolean;
+  kioskMode?: boolean;
 }) {
-  const [category, setCategory] = useState<MobileCategory>("combo");
+  const [category, setCategory] = useState<MobileCategory>(kioskMode ? "burger" : "combo");
   const [query, setQuery] = useState("");
   const [panel, setPanel] = useState<"reviews" | null>(null);
   const [closedHoursOpen, setClosedHoursOpen] = useState(false);
@@ -294,9 +296,7 @@ export function MobileMenuExperience({
         >
           {MOBILE_CATEGORIES.filter(
             ({ id }) =>
-              kioskMobLoggedIn ||
-              fullCatalog ||
-              id !== "lemonade",
+              kioskMode ? id === "burger" : kioskMobLoggedIn || fullCatalog || id !== "lemonade",
           ).map(({ id, label, icon: Icon }) => (
             <button
               key={id}

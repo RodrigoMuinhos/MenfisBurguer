@@ -1,3 +1,4 @@
+import { HalloweenMenu, isHalloweenAccount } from "../HalloweenMenu";
 import { AnimatePresence, motion } from "motion/react";
 import type { Dispatch, SetStateAction } from "react";
 import {
@@ -227,6 +228,7 @@ export function ProductScreenView({
     addSpecialOffer,
     viewSpecialOfferMenu,
   } = screen;
+  const halloweenAccount = isHalloweenAccount(memberProfile);
   const modernCatalogLayout = !kioskMode || modernMobileMode;
   const specialOfferProduct =
     catalogItems.find((item) => item.id === specialOffer.productId) ??
@@ -253,8 +255,10 @@ export function ProductScreenView({
         fontFamily: "'Inter', system-ui, sans-serif",
       }}
     >
-      {modernCatalogLayout && (
+      {halloweenAccount && <HalloweenMenu items={catalogItems} onAdd={addMenuItem} onProfile={openMemberAccess} onCart={handleGoToCart} cartCount={cartCount} />}
+      {!halloweenAccount && modernCatalogLayout && (
         <MobileMenuExperience
+          kioskMode={kioskMode}
           items={catalogItems}
           cartCount={cartCount}
           cartTotal={cartTotal}
@@ -281,7 +285,7 @@ export function ProductScreenView({
         />
       )}
 
-      <div className={modernCatalogLayout ? "hidden md:block" : undefined}>
+      <div className={halloweenAccount ? "hidden" : modernCatalogLayout ? "hidden md:block" : undefined}>
         {category === "super" && (
           <div
             className="fixed inset-0 z-[60] overflow-hidden bg-black text-white"
@@ -486,6 +490,7 @@ export function ProductScreenView({
           )}
 
           <CategoryTabs
+            kioskMode={kioskMode}
             category={category}
             setCategory={setCategory}
             showKioskOnly={kioskMode || kioskMobLoggedIn || modernMobileMode}
@@ -770,7 +775,7 @@ export function ProductScreenView({
       )}
 
       <AnimatePresence>
-        {specialOfferOpen && (
+        {!halloweenAccount && specialOfferOpen && (
           <SpecialOfferModal
             offer={managedSpecialOffer}
             onClose={closeSpecialOffer}

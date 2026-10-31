@@ -1,6 +1,6 @@
 import { MenuItem } from "./types";
 
-export const MENU_ITEMS: MenuItem[] = [
+export const REGULAR_MENU_ITEMS: MenuItem[] = [
   {
     id: "burger",
     name: "Menfi's Burger Classic",
@@ -462,3 +462,20 @@ export const MENU_ITEMS: MenuItem[] = [
     category: "burger",
   },
 ];
+
+// Halloween campaign: regular items remain available for a later restoration.
+export const MONSTER_ID = "menfis-monster";
+export const MONSTER_ADDON_ID = "monster-coca-zero-batata";
+export const MONSTER_ADDON = { id: MONSTER_ADDON_ID, label: "Coca-Cola Zero + batata 150g", price: 20.9, image: "/EXTRAS/cocazero.jpg" };
+export const KIOSK_MENU_ITEMS: MenuItem[] = [{
+  id: MONSTER_ID,
+  name: "Menfis Monster",
+  eyebrow: "Especial de Halloween",
+  desc: "130g de frango crocante, alface fresquinha, geleia de bacon agridoce e ketchup, tudo envolvido em um macio pão brioche negro. Uma combinação monstruosamente deliciosa, feita para quem tem fome de verdade.",
+  price: 33.9,
+  image: "/menu/MenfisMonster.png",
+  tags: ["Frango 130g", "Brioche negro", "Halloween"],
+  category: "burger",
+}];
+
+export const MENU_ITEMS = REGULAR_MENU_ITEMS;

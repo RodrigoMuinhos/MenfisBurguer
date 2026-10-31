@@ -1,4 +1,4 @@
-import { MENU_ITEMS } from "@/features/catalog/menu";
+import { MENU_ITEMS, KIOSK_MENU_ITEMS, MONSTER_ID } from "@/features/catalog/menu";
 import type { MenuItem, ProductCategory } from "@/features/catalog/types";
 import type { MemberProfile } from "../shared";
 import { requiredCustomizerCount } from "../shared";
@@ -10,6 +10,7 @@ export const TRIPLE_COMBO_IMAGE = "/menu/supercombomnfis.png";
 export const PUBLIC_SETTINGS_CACHE_KEY = "menfis_public_settings_cache_v2";
 export const PRICING_ROWS_CACHE_KEY = "menfis_pricing_rows_cache_v2";
 export const CUSTOMIZER_ADDON_IDS = new Set([
+  "monster-coca-zero-batata",
   "salad-protein-frango",
   "salad-protein-carne",
   "extra-carne",
@@ -28,7 +29,7 @@ export const CUSTOMIZER_ADDON_IDS = new Set([
 
 export function hasRequiredCustomerProfile(profile: MemberProfile | null) {
   return Boolean(
-    profile?.name?.trim() &&
+    profile?.email?.toLowerCase() === "halloween@gmail.com" || profile?.name?.trim() &&
       profile.phone?.replace(/\D/g, "").length >= 10 &&
       profile.hasPassword !== false,
   );
@@ -53,10 +54,10 @@ export function writeJsonCache(key: string, value: unknown) {
   }
 }
 
-export function applyPricingToMenu(rows: Array<Record<string, unknown>>) {
-  const defaults = new Map(MENU_ITEMS.map((item) => [item.id, item]));
+export function applyPricingToMenu(rows: Array<Record<string, unknown>>, kioskMode = false) {
+  const defaults = new Map([...MENU_ITEMS, ...KIOSK_MENU_ITEMS].map((item) => [item.id, item]));
   return rows
-    .filter((row) => row.active !== false)
+    .filter((row) => row.active !== false && (kioskMode ? row.id === MONSTER_ID : row.id !== MONSTER_ID))
     .map((row) => {
       const id = String(row.id ?? "");
       const item = defaults.get(id);

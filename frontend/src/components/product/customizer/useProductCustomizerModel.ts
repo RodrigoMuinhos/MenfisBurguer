@@ -13,7 +13,7 @@ export function useProductCustomizerModel(
 ) {
   const needsMeatPoint = !isChickenProduct(state.item) && (state.item.category === "burger" || state.item.category === "combo");
   const requiredCount = requiredCustomizerCount(state.item);
-  const needsSauce = (state.item.category === "burger" || state.item.category === "combo") && !isSuperProduct(state.item);
+  const needsSauce = (state.item.category === "burger" || state.item.category === "combo") && !isSuperProduct(state.item) && state.item.id !== "menfis-monster";
   const needsFreeMayo = isNuggetsProduct(state.item);
   const needsDrink = state.item.category === "combo";
   const isSweetBox = isSweetBoxProduct(state.item);

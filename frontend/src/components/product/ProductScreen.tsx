@@ -156,7 +156,8 @@ export function ProductScreen({
   onOpenActiveOrder,
   onRepeatOrder,
 }: Props) {
-  const catalog = useProductCatalog(kioskMode);
+  const member = useProductMember(kioskMode, onReadNotifications);
+  const catalog = useProductCatalog(kioskMode, member.memberProfile?.email?.toLowerCase() === "halloween@gmail.com");
   const {
     category,
     setCategory,
@@ -190,7 +191,6 @@ export function ProductScreen({
     chilli: boolean;
   } | null>(null);
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
-  const member = useProductMember(kioskMode, onReadNotifications);
   const {
     loginOpen,
     setLoginOpen,
@@ -479,7 +479,7 @@ export function ProductScreen({
     const requiresSauce =
       (customizer.item.category === "burger" ||
         customizer.item.category === "combo") &&
-      !isSuperProduct(customizer.item);
+      !isSuperProduct(customizer.item) && customizer.item.id !== "menfis-monster";
     const requiresFreeMayo = isNuggetsProduct(customizer.item);
     const requiresSweetBox = isSweetBoxProduct(customizer.item);
     const sweetCount = Object.values(customizer.extras).reduce(

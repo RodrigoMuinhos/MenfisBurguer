@@ -321,6 +321,7 @@ export function CartScreen({
         />
         {checkoutStep === "bag" && (
           <CartBagStepSection
+            kioskMode={kioskMode || memberProfile?.email?.toLowerCase() === "halloween@gmail.com"}
             cart={cart}
             addToCart={addToCart}
             clearCart={clearCart}

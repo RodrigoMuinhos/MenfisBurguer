@@ -175,13 +175,15 @@ export function CartBagStepSection({
   addToCart,
   clearCart,
   goToMenu,
+  kioskMode = false,
 }: {
+  kioskMode?: boolean;
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, "qty">) => void;
   clearCart: () => void;
   goToMenu: () => void;
 }) {
-  const suggestions = buildHeroSuggestions(cart);
+  const suggestions = kioskMode ? [] : buildHeroSuggestions(cart);
   const [suggestionPage, setSuggestionPage] = useState(0);
   const activeSuggestion = suggestions[suggestionPage % Math.max(suggestions.length, 1)];
   const primaryMessage = activeSuggestion?.message;

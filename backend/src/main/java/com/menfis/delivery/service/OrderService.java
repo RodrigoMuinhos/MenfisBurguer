@@ -1284,6 +1284,8 @@ public class OrderService {
     boolean lemonade = isLemonadeItem(item);
     boolean salad = isSaladItem(item);
     boolean invalid = item.addonIds().stream().anyMatch(addonId -> {
+      if ("menfis-monster".equals(item.productId())) return !"monster-coca-zero-batata".equals(addonId);
+      if ("monster-coca-zero-batata".equals(addonId)) return true;
       boolean lemonadeTopping = "topping-chantilly".equals(addonId)
         || "topping-espuma-ginger".equals(addonId)
         || "adicional-vodka".equals(addonId)
