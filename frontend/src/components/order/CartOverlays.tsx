@@ -419,9 +419,9 @@ export function CartOverlays({
                         if (counterServiceMode) setKioskKeyboardTarget("counterName");
                       }}
                       autoFocus
-                      placeholder="Ex.: Mariana"
+                      placeholder="Insira seu nome"
                       inputMode={counterServiceMode ? "none" : "text"}
-                      className="mt-5 min-h-14 w-full rounded-2xl px-4 text-xl font-black uppercase outline-none"
+                      className="mt-5 min-h-14 w-full rounded-2xl px-4 text-xl font-black uppercase outline-none placeholder:font-bold placeholder:normal-case placeholder:text-black/35"
                       style={{
                         border: `2px solid ${canConfirmCounterName ? VERDE : ROSA}`,
                         color: VERDE,

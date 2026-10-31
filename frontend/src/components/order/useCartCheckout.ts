@@ -243,7 +243,7 @@ export function useCartCheckout({
         currentName && currentName !== "KIOSK-MOB" ? currentName : "Cliente balcão",
       );
       counterCustomerNameResolveRef.current = resolve;
-      setCounterCustomerNameDraft(currentName && currentName !== "KIOSK-MOB" ? currentName : "");
+      setCounterCustomerNameDraft(currentName && currentName !== "KIOSK-MOB" && !halloweenAccount ? currentName : "");
       setCounterCustomerNamePromptOpen(true);
     });
 
