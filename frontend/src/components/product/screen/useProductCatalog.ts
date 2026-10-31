@@ -58,7 +58,7 @@ export function useProductCatalog(kioskMode: boolean, halloweenAccount = false) 
     const offer = normalizeSpecialOfferSettings(settings?.specialOffer);
     setFeaturedImage(kioskMode ? "/menu/MenfisMonster.png" : presentation.featuredImage ?? ""); setFeaturedTitle(kioskMode ? "Menfis Monster" : presentation.featuredTitle ?? "");
     setCarouselIntervalSeconds(presentation.carouselIntervalSeconds);
-    setCarouselCards(kioskMode ? [{ id: "halloween", enabled: true, productId: "menfis-monster", eyebrow: "Especial de Halloween", title: "Menfis Monster", subtitle: "Monstruosamente delicioso · R$ 29,90", image: "/menu/MenfisMonster.png", actionLabel: "Quero o meu" }] : presentation.carouselCards);
+    setCarouselCards(kioskMode ? [{ id: "halloween", enabled: true, productId: "menfis-monster", eyebrow: "Especial de Halloween", title: "Menfis Monster", subtitle: "Monstruosamente delicioso · R$ 33,90", image: "/menu/MenfisMonster.png", actionLabel: "Quero o meu" }] : presentation.carouselCards);
     setPromoCards(kioskMode ? [] : normalizePromoCards(settings?.promoCards)); setSpecialOffer(kioskMode || halloweenAccount ? { ...offer, enabled: false } : offer);
     setLemonadeSettings(normalizeLemonadeSettings(settings?.lemonade));
     preloadClientImages([presentation.featuredImage, featuredItem?.image ? imageSrc(featuredItem.image) : undefined, offer.image]);
