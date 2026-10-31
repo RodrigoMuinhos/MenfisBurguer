@@ -1,3 +1,4 @@
+import { isHalloweenAccount } from "@/utils/halloween";
 import { MercadoPagoPixModal } from "./MercadoPagoPixModal";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CartItem, Order } from "@/types/order";
@@ -396,6 +397,7 @@ export function CartScreen({
         />
         {counterServiceMode && checkoutStep === "bag" && stickyCheckoutAction}
         <CheckoutReviewSection
+          showCoupon={!isHalloweenAccount(memberProfile)}
           checkoutStep={checkoutStep}
           kioskMode={kioskMode}
           counterServiceMode={counterServiceMode}

@@ -25,6 +25,7 @@ export function CheckoutReviewSection({
   checkoutStep,
   kioskMode,
   counterServiceMode = false,
+  showCoupon = true,
   payment,
   paymentError,
   paymentSlow,
@@ -48,6 +49,7 @@ export function CheckoutReviewSection({
   checkoutStep: CheckoutStep;
   kioskMode: boolean;
   counterServiceMode?: boolean;
+  showCoupon?: boolean;
   payment: PaymentMethod;
   paymentError: string;
   paymentSlow: boolean;
@@ -80,7 +82,7 @@ export function CheckoutReviewSection({
         </div>
       )}
 
-      {(checkoutStep === "bag" || checkoutStep === "review") && (
+      {showCoupon && (checkoutStep === "bag" || checkoutStep === "review") && (
         <div
           className="rounded-2xl p-4"
           style={{ background: "#fff", border: `1.5px solid ${ROSA}` }}

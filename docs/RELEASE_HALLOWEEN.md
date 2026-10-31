@@ -53,3 +53,8 @@ The authenticated event account now carries an application-level theme through m
 A session external-store subscription updates the scope immediately on login, profile/session refresh and logout, and handles cross-tab storage changes. The Pix QR artwork retains a white backing and its original black/white contrast. This change does not create orders, change prices or alter payment rules.
 
 Validation: frontend typecheck, event catalog regressions, SEO/PIN/guest-checkout contract tests, production build, visual/computed-color checks for personalization, cart, payment/name prompts, keyboard and profile, plus normal-session and logout theme isolation. All browser order POSTs are blocked on every host.
+## Update: hide the event coupon field
+
+Do not render the coupon input/apply block in the Halloween account's cart or review. The shared checkout keeps coupons visible by default for other customers. No price, discount calculation or payment rule changes.
+
+Validation: production build/type validation and production browser check that the event cart has no coupon input. No order submission is needed for this check.
