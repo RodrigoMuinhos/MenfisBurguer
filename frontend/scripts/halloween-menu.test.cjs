@@ -49,3 +49,17 @@ test('event account can sign in without an invented phone; regular profiles keep
   assert.equal(catalog.hasRequiredCustomerProfile({ name: 'Cliente', email: 'cliente@example.com', phone: '' }), false);
   assert.equal(catalog.hasRequiredCustomerProfile(null), false);
 });
+
+test('raspberry drink is available in the event without changing the regular menu', () => {
+  const rows = [{ id: 'raspberry-lemonade', name: 'Framboesa Lemonade', active: true, kind: 'drink', sale_price: 14.9, notes: 'Copo 300ml.' }];
+  assert.deepEqual(catalog.applyPricingToMenu(rows), []);
+  assert.deepEqual(catalog.applyPricingToMenu(rows, true), []);
+  assert.equal(catalog.applyPricingToMenu(rows, false, true)[0].price, 14.9);
+});
+test('event profile survives reload without an invented phone', () => {
+  const shared = load('src/components/product/shared.ts');
+  global.window = {};
+  global.localStorage = { getItem: () => JSON.stringify({ name: 'Halloween', email: 'halloween@gmail.com', phone: '' }) };
+  try { assert.equal(shared.readMemberProfile().email, 'halloween@gmail.com'); }
+  finally { delete global.window; delete global.localStorage; }
+});

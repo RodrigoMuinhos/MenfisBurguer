@@ -476,7 +476,7 @@ export const KIOSK_MENU_ITEMS: MenuItem[] = [{
   id: MONSTER_ID,
   name: "Menfis Monster",
   eyebrow: "Especial de Halloween",
-  desc: "130g de frango crocante, alface fresquinha, geleia de bacon agridoce e ketchup, tudo envolvido em um macio pão brioche negro. Uma combinação monstruosamente deliciosa, feita para quem tem fome de verdade.",
+  desc: "130g de frango crocante, alface fresquinha, geleia de bacon e ketchup, tudo envolvido em um macio pão brioche negro. Uma combinação monstruosamente deliciosa, feita para quem tem fome de verdade.",
   price: 29.9,
   image: "/menu/MenfisMonster.png",
   tags: ["Frango 130g", "Brioche negro", "Halloween"],

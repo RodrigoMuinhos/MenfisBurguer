@@ -56,10 +56,10 @@ export function writeJsonCache(key: string, value: unknown) {
   }
 }
 
-export function applyPricingToMenu(rows: Array<Record<string, unknown>>, kioskMode = false) {
+export function applyPricingToMenu(rows: Array<Record<string, unknown>>, kioskMode = false, halloweenAccount = false) {
   const defaults = new Map([...MENU_ITEMS, ...KIOSK_MENU_ITEMS].map((item) => [item.id, item]));
   return rows
-    .filter((row) => row.active !== false && (kioskMode ? row.id === MONSTER_ID : row.id !== MONSTER_ID))
+    .filter((row) => row.active !== false && (kioskMode ? row.id === MONSTER_ID : row.id !== MONSTER_ID && (halloweenAccount || row.id !== "raspberry-lemonade")))
     .map((row) => {
       const id = String(row.id ?? "");
       const item = defaults.get(id);

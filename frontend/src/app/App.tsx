@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { isHalloweenAccount } from "@/utils/halloween";
 import { ProductScreen } from "@/components/product/ProductScreen";
 import { CartScreen } from "@/components/order/CartScreen";
 import { TrackingScreen } from "@/components/order/TrackingScreen";
@@ -628,7 +629,7 @@ export default function App({ mode }: { mode?: AppMode }) {
       <div className="flex-1 overflow-auto">
         {screen === "product" && (
           <>
-            {!selfServiceMenuMode && visibleActiveOrder && (
+            {!selfServiceMenuMode && !isHalloweenAccount(readMemberProfile()) && visibleActiveOrder && (
               <ActiveOrderBanner
                 order={visibleActiveOrder}
                 onOpen={() => setScreen("tracking")}

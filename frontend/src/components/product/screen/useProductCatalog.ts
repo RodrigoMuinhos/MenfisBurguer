@@ -62,8 +62,8 @@ export function useProductCatalog(kioskMode: boolean, halloweenAccount = false) 
     setPromoCards(kioskMode ? [] : normalizePromoCards(settings?.promoCards)); setSpecialOffer(kioskMode || halloweenAccount ? { ...offer, enabled: false } : offer);
     setLemonadeSettings(normalizeLemonadeSettings(settings?.lemonade));
     preloadClientImages([presentation.featuredImage, featuredItem?.image ? imageSrc(featuredItem.image) : undefined, offer.image]);
-    setOperatingNow(settings?.operatingNow !== false); setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
-    setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? "")); setSoldOutEnabled(settings?.soldOutActive === true);
+    setOperatingNow(kioskMode || halloweenAccount || settings?.operatingNow !== false); setOperatingHoursSummary(String(settings?.operatingHoursSummary ?? ""));
+    setOperatingHoursMessage(String(settings?.operatingHoursMessage ?? "")); setSoldOutEnabled(!kioskMode && !halloweenAccount && settings?.soldOutActive === true);
     setSoldOutMessage(String(settings?.soldOutMessage ?? SOLD_OUT_MESSAGE));
   };
 
@@ -91,9 +91,9 @@ export function useProductCatalog(kioskMode: boolean, halloweenAccount = false) 
   useEffect(() => {
     if (typeof window === "undefined" || !API_URL) return;
     setCatalogLoaded(false); const cached = readJsonCache<Array<Record<string, unknown>>>(PRICING_ROWS_CACHE_KEY, []);
-    if (cached.length) { const items = applyPricingToMenu(cached, kioskMode); setCatalogItems(items); preloadClientImages(items.map((item) => imageSrc(item.image))); }
+    if (cached.length) { const items = applyPricingToMenu(cached, kioskMode, halloweenAccount); setCatalogItems(items); preloadClientImages(items.map((item) => imageSrc(item.image))); }
     fetch(freshApiUrl("/pricing"), { cache: "no-store", headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } })
-      .then((response) => response.ok ? response.json() : []).then((rows) => { if (!Array.isArray(rows)) return; writeJsonCache(PRICING_ROWS_CACHE_KEY, rows); const items = applyPricingToMenu(rows, kioskMode); setCatalogItems(items); preloadClientImages(items.map((item) => imageSrc(item.image))); })
+      .then((response) => response.ok ? response.json() : []).then((rows) => { if (!Array.isArray(rows)) return; writeJsonCache(PRICING_ROWS_CACHE_KEY, rows); const items = applyPricingToMenu(rows, kioskMode, halloweenAccount); setCatalogItems(items); preloadClientImages(items.map((item) => imageSrc(item.image))); })
       .catch(() => { if (!cached.length) setCatalogItems([]); }).finally(() => setCatalogLoaded(true));
   }, [kioskMode, halloweenAccount]);
 

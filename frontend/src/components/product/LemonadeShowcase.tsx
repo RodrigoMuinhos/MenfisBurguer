@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { MenuItem } from "@/features/catalog/types";
 import { fmt } from "./shared";
 
-const LEMONADE_IDS = ["pink-lemonade", "purple-lemonade", "sunset-lemonade"] as const;
+const LEMONADE_IDS = ["pink-lemonade", "purple-lemonade", "sunset-lemonade", "raspberry-lemonade"] as const;
 const LEMONADE_HEROS = [
   { src: "/Lemonade/hero.png", alt: "Lemonades especiais Menfi's" },
   { src: "/Lemonade/hero2.png", alt: "Sunset Lemonade Menfi's" },
@@ -39,6 +39,7 @@ export function normalizeLemonadeSettings(value: unknown): LemonadeSettings {
       "pink-lemonade": String(row.badgeLabels?.["pink-lemonade"] ?? "").trim(),
       "purple-lemonade": String(row.badgeLabels?.["purple-lemonade"] ?? "").trim(),
       "sunset-lemonade": String(row.badgeLabels?.["sunset-lemonade"] ?? row.badgeLabel ?? "Em breve").trim(),
+      "raspberry-lemonade": String(row.badgeLabels?.["raspberry-lemonade"] ?? "").trim(),
     },
     enabledFlavors: enabled,
     flavorOrder: [...flavorOrder, ...LEMONADE_IDS.filter((id) => !flavorOrder.includes(id))],
@@ -48,6 +49,7 @@ export function normalizeLemonadeSettings(value: unknown): LemonadeSettings {
 
 const FLAVOR_THEME: Record<string, { color: string; soft: string }> = {
   "pink-lemonade": { color: "#C80B50", soft: "#FFF0F5" },
+  "raspberry-lemonade": { color: "#5B2C82", soft: "#F7EDFA" },
   "purple-lemonade": { color: "#7B367D", soft: "#F7EDFA" },
   "sunset-lemonade": { color: "#F04B16", soft: "#FFF1E9" },
 };
@@ -62,12 +64,14 @@ export function LemonadeShowcase({
   settings = DEFAULT_LEMONADE_SETTINGS,
   dark = false,
   showHero = true,
+  halloween = false,
 }: {
   items: MenuItem[];
   onAdd: (item: MenuItem) => void;
   settings?: LemonadeSettings;
   dark?: boolean;
   showHero?: boolean;
+  halloween?: boolean;
 }) {
   const normalizedSettings = normalizeLemonadeSettings(settings);
   const heroes = normalizedSettings.heroOrder.map((name) =>
@@ -95,7 +99,7 @@ export function LemonadeShowcase({
   };
 
   return (
-    <div className={dark ? "overflow-hidden bg-[#100c12] text-[#fffafa]" : "overflow-hidden bg-white text-[#5B1230]"}>
+    <div className={halloween ? "overflow-hidden text-[#fff7ed]" : dark ? "overflow-hidden bg-[#100c12] text-[#fffafa]" : "overflow-hidden bg-white text-[#5B1230]"}>
       {showHero && <section
         className="relative aspect-[1672/941] overflow-hidden bg-[#FFE7EF]"
         aria-label="Destaques das Lemonades Menfi's"
@@ -150,7 +154,7 @@ export function LemonadeShowcase({
 
       <section id="lemonade-flavors" className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-16">
         <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 text-[#EC1767]">
+          <div className={halloween ? "flex items-center justify-center gap-3 text-[#E8641C]" : "flex items-center justify-center gap-3 text-[#EC1767]"}>
             <Heart size={18} fill="currentColor" />
             <h2 className="text-2xl font-black uppercase tracking-[0.12em] md:text-4xl">
               Escolha sua Lemonade
@@ -158,7 +162,7 @@ export function LemonadeShowcase({
             <Heart size={18} fill="currentColor" />
           </div>
           <p className={dark ? "mt-2 text-sm font-semibold text-white/65 md:text-base" : "mt-2 text-sm font-semibold text-[#8C5369] md:text-base"}>
-            Três sabores únicos, feitos especialmente para você.
+            Sabores únicos, feitos especialmente para você.
           </p>
         </div>
 
@@ -168,8 +172,8 @@ export function LemonadeShowcase({
             return (
               <article
                 key={item.id}
-                className={dark ? "group overflow-hidden rounded-[28px] bg-[#21171f] shadow-lg" : "group overflow-hidden rounded-[28px] bg-white shadow-[0_16px_45px_rgba(92,18,48,0.10)]"}
-                style={{ border: `1px solid ${theme.color}24` }}
+                className={dark ? "group overflow-hidden rounded-[28px] bg-[#1A1A1A] shadow-lg" : "group overflow-hidden rounded-[28px] bg-white shadow-[0_16px_45px_rgba(92,18,48,0.10)]"}
+                style={{ border: `1px solid ${halloween ? "#5B2C8280" : `${theme.color}24`}` }}
               >
                 <div className="relative aspect-[3/4] overflow-hidden" style={{ background: theme.soft }}>
                   {item.image ? (
@@ -182,16 +186,16 @@ export function LemonadeShowcase({
                     />
                   ) : null}
                   {normalizedSettings.badgeLabels[item.id] && (
-                    <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-[10px] font-black uppercase tracking-widest" style={{ color: dark ? "#ff8fba" : theme.color }}>
+                    <span className="absolute left-4 top-4 rounded-full bg-white/90 px-4 py-2 text-[10px] font-black uppercase tracking-widest" style={{ color: dark ? halloween ? "#7FD13B" : "#ff8fba" : theme.color }}>
                       {normalizedSettings.badgeLabels[item.id]}
                     </span>
                   )}
-                  <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90" style={{ color: dark ? "#ff8fba" : theme.color }}>
+                  <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/90" style={{ color: dark ? halloween ? "#7FD13B" : "#ff8fba" : theme.color }}>
                     <Heart size={19} />
                   </span>
                 </div>
                 <div className="p-5 md:p-6">
-                  <h3 className="text-xl font-black uppercase" style={{ color: dark ? "#ff8fba" : theme.color }}>{item.name}</h3>
+                  <h3 className="text-xl font-black uppercase" style={{ color: dark ? halloween ? "#7FD13B" : "#ff8fba" : theme.color }}>{item.name}</h3>
                   <p
                     className={dark ? "mt-2 min-h-10 overflow-hidden text-sm font-semibold leading-5 text-white/75" : "mt-2 min-h-10 overflow-hidden text-sm font-semibold leading-5 text-[#704053]"}
                     style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2 }}
@@ -200,15 +204,15 @@ export function LemonadeShowcase({
                   </p>
                   <div className="mt-6 flex items-end justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: dark ? "#ff8fba" : theme.color }}>Copo 300ml</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: dark ? halloween ? "#7FD13B" : "#ff8fba" : theme.color }}>Copo 300ml</p>
                     </div>
-                    <p className="text-2xl font-black" style={{ color: dark ? "#ff8fba" : theme.color }}>{fmt(item.price)}</p>
+                    <p className="text-2xl font-black" style={{ color: dark ? halloween ? "#7FD13B" : "#ff8fba" : theme.color }}>{fmt(item.price)}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => onAdd(item)}
                     className="mt-4 flex h-12 w-full items-center justify-center gap-3 rounded-xl text-sm font-black uppercase text-white shadow-lg"
-                    style={{ background: `linear-gradient(100deg, ${theme.color}, ${theme.color}D9)` }}
+                    style={{ background: halloween ? "#5B2C82" : `linear-gradient(100deg, ${theme.color}, ${theme.color}D9)` }}
                   >
                     Adicionar <Plus size={18} strokeWidth={3} />
                   </button>
@@ -218,10 +222,10 @@ export function LemonadeShowcase({
           })}
         </div>
 
-        <div className={dark ? "mt-7 flex items-center gap-4 rounded-[24px] border border-white/10 bg-[#21171f] px-5 py-5 md:px-8" : "mt-7 flex items-center gap-4 rounded-[24px] border border-[#EC176722] bg-[#FFF4F7] px-5 py-5 md:px-8"}>
+        <div className={dark ? "mt-7 flex items-center gap-4 rounded-[24px] border border-white/10 bg-[#1A1A1A] px-5 py-5 md:px-8" : "mt-7 flex items-center gap-4 rounded-[24px] border border-[#EC176722] bg-[#FFF4F7] px-5 py-5 md:px-8"}>
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#EC1767]"><Sparkles size={22} /></span>
           <div>
-            <p className={dark ? "font-black uppercase text-[#ff8fba]" : "font-black uppercase text-[#A81249]"}>Bebida gelada, feita na hora</p>
+            <p className={dark ? "font-black uppercase text-[#7FD13B]" : "font-black uppercase text-[#A81249]"}>Bebida gelada, feita na hora</p>
             <p className={dark ? "mt-1 text-sm font-semibold text-white/65" : "mt-1 text-sm font-semibold text-[#8C5369]"}>Adoçada na medida certa e perfeita para qualquer momento.</p>
           </div>
         </div>

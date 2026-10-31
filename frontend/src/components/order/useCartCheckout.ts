@@ -1,3 +1,4 @@
+import { isHalloweenAccount } from "@/utils/halloween";
 import type { PixPaymentRequest } from "./MercadoPagoPixModal";
 import { useEffect, useRef, useState } from "react";
 import { CartItem, Order } from "@/types/order";
@@ -121,8 +122,9 @@ export function useCartCheckout({
   initialCheckoutStep?: CheckoutStep;
 }) {
   const memberProfile = kioskMode ? null : readMemberProfile();
+  const halloweenAccount = isHalloweenAccount(memberProfile);
   const counterServiceMode =
-    !kioskMode && normalizeKioskMobName(memberProfile?.name) === "KIOSK-MOB";
+    !kioskMode && (halloweenAccount || normalizeKioskMobName(memberProfile?.name) === "KIOSK-MOB");
   const [delivery, setDelivery] = useState<DeliveryType>(
     kioskMode || counterServiceMode ? "retirada" : "delivery",
   );
@@ -166,7 +168,7 @@ export function useCartCheckout({
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   const [confirmedDeliveryAddress, setConfirmedDeliveryAddress] = useState("");
   const [customerName, setCustomerName] = useState<string>(
-    counterServiceMode ? "KIOSK-MOB" : memberProfile?.name ?? "",
+    counterServiceMode ? (halloweenAccount ? "Halloween" : "KIOSK-MOB") : memberProfile?.name ?? "",
   );
   const [phone, setPhone] = useState<string>(
     maskPhone(memberProfile?.phone ?? saved.phone ?? ""),
@@ -260,7 +262,7 @@ export function useCartCheckout({
     kioskSuccessResolveRef.current = null;
     setCheckoutStep("bag");
     setPayment(kioskMode || counterServiceMode ? "pix" : "");
-    setCustomerName(counterServiceMode ? "KIOSK-MOB" : "");
+    setCustomerName(counterServiceMode ? (halloweenAccount ? "Halloween" : "KIOSK-MOB") : "");
     setPhone("");
     setCounterCustomerNameDraft("");
     setCouponCode("");
@@ -418,7 +420,7 @@ export function useCartCheckout({
 
   const deliveryValid =
     (kioskMode || counterServiceMode || customerName.trim().length >= 2) &&
-    phone.replace(/\D/g, "").length >= 10 &&
+    (halloweenAccount || phone.replace(/\D/g, "").length >= 10) &&
     (!kioskMode || customerName.trim().length >= 2) &&
     (kioskMode ||
       (effectiveDelivery === "retirada" ||
@@ -437,7 +439,7 @@ export function useCartCheckout({
       : "",
     effectiveDelivery === "delivery" && !street.length ? "endereço" : "",
     effectiveDelivery === "delivery" && !number.trim().length ? "número" : "",
-    phone.replace(/\D/g, "").length < 10 ? "WhatsApp" : "",
+    !halloweenAccount && phone.replace(/\D/g, "").length < 10 ? "WhatsApp" : "",
   ].filter(Boolean);
 
   const invalidDeliveryFields = {
@@ -447,7 +449,7 @@ export function useCartCheckout({
       (cep.replace(/\D/g, "").length !== 8 || cepError),
     street: effectiveDelivery === "delivery" && !street.trim().length,
     number: effectiveDelivery === "delivery" && !number.trim().length,
-    phone: phone.replace(/\D/g, "").length < 10,
+    phone: !halloweenAccount && phone.replace(/\D/g, "").length < 10,
   };
 
   const focusFirstMissingDeliveryField = () => {

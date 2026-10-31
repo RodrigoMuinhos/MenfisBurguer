@@ -1,3 +1,4 @@
+import { isHalloweenAccount } from "@/utils/halloween";
 import { MONSTER_ID, MONSTER_EXTRA_OPTIONS } from "@/features/catalog/menu";
 import type { StaticImageData } from "next/image";
 import { Beef, Candy, CupSoda, Package, Plus, Salad, Utensils } from "lucide-react";
@@ -333,7 +334,7 @@ export function readMemberProfile(): MemberProfile | null {
     const raw = localStorage.getItem(MEMBER_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);
-    if (!data?.phone) return null;
+    if (!data?.phone && !isHalloweenAccount(data)) return null;
     return {
       id: data.id ? Number(data.id) : undefined,
       name: String(data.name ?? ""),

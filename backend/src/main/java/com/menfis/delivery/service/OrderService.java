@@ -89,8 +89,12 @@ public class OrderService {
       OrderResponse existing = findByIdempotencyKey(request.idempotencyKey());
       if (existing != null) return rotateTrackingToken(existing);
     }
+    boolean halloweenCustomer = authenticatedCustomerId != null && Boolean.TRUE.equals(jdbc.queryForObject(
+      "select exists (select 1 from customers where id = ? and lower(email) = 'halloween@gmail.com')",
+      Boolean.class, authenticatedCustomerId
+    ));
     boolean kioskLocalCustomer = isKioskMobName(request.customerName());
-    OrderChannel channel = kioskLocalCustomer
+    OrderChannel channel = kioskLocalCustomer || halloweenCustomer
       ? OrderChannel.KIOSK
       : request.channel() == null
       ? (request.paymentMethod() == PaymentMethod.PRESENCIAL ? OrderChannel.KIOSK : OrderChannel.DELIVERY)
@@ -98,7 +102,7 @@ public class OrderService {
     if (channel == OrderChannel.DINING_QR) {
       throw new IllegalArgumentException("use_dining_order_endpoint");
     }
-    DeliveryType deliveryType = kioskLocalCustomer ? DeliveryType.RETIRADA : request.deliveryType();
+    DeliveryType deliveryType = kioskLocalCustomer || halloweenCustomer ? DeliveryType.RETIRADA : request.deliveryType();
     String customerName = kioskLocalCustomer
       ? "KIOSK-MOB"
       : request.customerName() == null ? null : request.customerName().trim();
