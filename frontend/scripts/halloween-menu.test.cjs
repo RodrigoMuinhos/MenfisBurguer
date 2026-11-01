@@ -50,8 +50,8 @@ test('event account can sign in without an invented phone; regular profiles keep
   assert.equal(catalog.hasRequiredCustomerProfile(null), false);
 });
 
-test('raspberry drink is available in the event without changing the regular menu', () => {
-  const rows = [{ id: 'raspberry-lemonade', name: 'Framboesa Lemonade', active: true, kind: 'drink', sale_price: 14.9, notes: 'Copo 300ml.' }];
+test('amora drink is available in the event without changing the regular menu', () => {
+  const rows = [{ id: 'raspberry-lemonade', name: 'Amora Lemonade', active: true, kind: 'drink', sale_price: 14.9, notes: 'Copo 300ml.' }];
   assert.deepEqual(catalog.applyPricingToMenu(rows), []);
   assert.deepEqual(catalog.applyPricingToMenu(rows, true), []);
   assert.equal(catalog.applyPricingToMenu(rows, false, true)[0].price, 14.9);
